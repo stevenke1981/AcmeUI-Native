@@ -37,7 +37,7 @@
 ## P1
 - [x] TextInput (cursor, selection, clipboard, IME preedit, password)
 - [x] Clipboard (arboard integration in acme-platform)
-- [ ] Traditional Chinese IME (manual validation pending)
+- [x] Traditional Chinese IME (architecture + Gallery demo + manual validation)
 - [x] Tooltip
 - [x] Popover
 - [x] Menu
@@ -49,9 +49,9 @@
 
 ## P2
 - [x] VirtualList (virtual scrolling, visible range calculation)
-- [ ] Tree
-- [ ] Table
-- [ ] DataGrid
+- [x] Tree (hierarchical items with depth, expand/collapse, activation)
+- [x] Table (columns with titles, rows of cells, header toggle)
+- [x] DataGrid (sortable columns, row selection, grid role)
 - [x] Animation (tween engine, easing, looping, yoyo)
-- [x] Multi-window (WindowId, per-window state, close handling)
-- [ ] Traditional Chinese IME
+- [x] Multi-window (WindowId, per-window state, close handling, tests)
+- [ ] Surface recreation automated test (manual device loss recovery pathway built)

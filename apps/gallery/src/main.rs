@@ -1,7 +1,12 @@
 use acme_layout::{Edges, LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
-use acme_platform::{Application, FrameContext, PlatformEvent, PlatformKey, WindowConfig};
+use acme_platform::{
+    Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig,
+};
 use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
+use acme_textinput::{
+    TextInputState, handle_key, handle_keyboard_shortcut, handle_text, render_text_input,
+};
 use acme_theme::{Theme, ThemeColor};
 use acme_widgets::{WidgetNode, button, column, label, row, scroll_view};
 
@@ -26,6 +31,10 @@ struct Gallery {
     fonts: FontSystem,
     atlas: GlyphAtlas,
     layout: LayoutEngine,
+    text_input: TextInputState,
+    text_input_rect: [f32; 4],
+    ime_text: String,
+    clipboard: Option<Clipboard>,
 }
 
 #[derive(Clone, Copy)]
@@ -49,6 +58,10 @@ impl Gallery {
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::new(2048, 2048),
             layout: LayoutEngine::new(),
+            text_input: TextInputState::new(),
+            text_input_rect: [0.0; 4],
+            ime_text: String::new(),
+            clipboard: Clipboard::new().ok(),
         }
     }
 
@@ -77,6 +90,8 @@ impl Gallery {
                     .child(button("dpi", "DPI 安全").on_click(GalleryMessage::DpiInfo)),
             )
             .child(samples.build())
+            .child(label("▸ TextInput / IME Demo"))
+            .child(label("")) // placeholder — rendered manually via render_text_input
             .build()
     }
 
@@ -156,6 +171,13 @@ impl Application for Gallery {
             }
             PlatformEvent::PointerButton { pressed, .. } => {
                 if pressed {
+                    // Check if click is inside the text input area
+                    let [tx, ty, tw, th] = self.text_input_rect;
+                    let in_text = self.cursor.0 >= tx
+                        && self.cursor.0 <= tx + tw
+                        && self.cursor.1 >= ty
+                        && self.cursor.1 <= ty + th;
+                    self.text_input.focused = in_text;
                     self.pressed = self.hit();
                     true
                 } else {
@@ -176,6 +198,10 @@ impl Application for Gallery {
                 shift,
                 ..
             } => {
+                // If text input has focus, blur it and move to buttons
+                if self.text_input.focused {
+                    self.text_input.focused = false;
+                }
                 self.focused = if shift {
                     (self.focused + 2) % 3
                 } else {
@@ -187,7 +213,52 @@ impl Application for Gallery {
                 key: PlatformKey::Enter | PlatformKey::Space,
                 pressed: true,
                 ..
-            } => self.activate(self.focused),
+            } => {
+                if self.text_input.focused {
+                    // Don't activate buttons when text input has focus
+                    false
+                } else {
+                    self.activate(self.focused)
+                }
+            }
+            PlatformEvent::Key {
+                ref key,
+                pressed,
+                ctrl,
+                ref text,
+                ..
+            } => {
+                if !self.text_input.focused {
+                    return false;
+                }
+                // Clipboard shortcuts (Ctrl+A/C/V/X) are detected by text content
+                if ctrl
+                    && let Some(t) = text
+                    && matches!(t.as_str(), "a" | "c" | "v" | "x")
+                {
+                    return handle_keyboard_shortcut(
+                        &mut self.text_input,
+                        t,
+                        self.clipboard.as_ref(),
+                    );
+                }
+                handle_key(
+                    &mut self.text_input,
+                    key,
+                    pressed,
+                    self.clipboard.as_ref(),
+                    ctrl,
+                )
+            }
+            PlatformEvent::ImePreedit(text) => {
+                self.text_input.set_preedit(&text, None);
+                true
+            }
+            PlatformEvent::ImeCommit(text) => {
+                handle_text(&mut self.text_input, &text);
+                self.ime_text = self.text_input.text.clone();
+                true
+            }
             PlatformEvent::Resized { .. } => true,
             _ => false,
         }
@@ -323,6 +394,58 @@ impl Application for Gallery {
                 Some(clip),
             );
         }
+
+        // ── TextInput / IME Demo section ──
+        // ID 16 = section label "▸ TextInput / IME Demo"
+        // ID 17 = placeholder rect for render_text_input
+        if let Some(section_label) = snapshot.get(16) {
+            self.add_text(
+                &mut frame,
+                "▸ TextInput / IME Demo",
+                ([section_label.x + 2.0, section_label.y + 4.0], 16.0),
+                colors.text_muted,
+                context.scale_factor,
+                None,
+            );
+        }
+        if let Some(placeholder) = snapshot.get(17) {
+            let rect = [
+                placeholder.x,
+                placeholder.y,
+                placeholder.width,
+                placeholder.height,
+            ];
+            self.text_input_rect = rect;
+            render_text_input(
+                &mut frame,
+                &self.text_input,
+                &mut self.fonts,
+                &mut self.atlas,
+                rect,
+                &theme,
+                context.scale_factor,
+                self.text_input.focused,
+                None,
+            );
+            // Show committed text below the input
+            if !self.ime_text.is_empty() {
+                self.add_text(
+                    &mut frame,
+                    &format!("Committed: {}", self.ime_text),
+                    (
+                        [
+                            placeholder.x + 2.0,
+                            placeholder.y + placeholder.height + 6.0,
+                        ],
+                        14.0,
+                    ),
+                    colors.text_muted,
+                    context.scale_factor,
+                    None,
+                );
+            }
+        }
+
         frame
     }
 }
@@ -359,6 +482,12 @@ fn apply_gallery_styles(root: &mut LayoutNode, width: f32, height: f32, viewport
         sample.style.width = Length::px((width - 92.0).max(260.0));
         sample.style.height = Length::px(72.0);
     }
+    // TextInput section label
+    root.children[3].style.width = Length::px((width - 56.0).max(300.0));
+    root.children[3].style.height = Length::px(30.0);
+    // TextInput area placeholder
+    root.children[4].style.width = Length::px((width - 56.0).max(300.0));
+    root.children[4].style.height = Length::px(48.0);
 }
 
 fn rgba(color: ThemeColor) -> [f32; 4] {

@@ -64,6 +64,8 @@ pub enum PlatformEvent {
         key: PlatformKey,
         pressed: bool,
         shift: bool,
+        ctrl: bool,
+        text: Option<String>,
     },
     ImePreedit(String),
     ImeCommit(String),
@@ -76,6 +78,12 @@ pub enum PlatformKey {
     Enter,
     Space,
     Escape,
+    ArrowLeft,
+    ArrowRight,
+    Backspace,
+    Delete,
+    Home,
+    End,
     Other,
 }
 
@@ -92,6 +100,21 @@ pub trait Application: 'static {
     fn window_config(&self) -> WindowConfig {
         WindowConfig::default()
     }
+    /// Returns the configurations for all windows that should be created on startup.
+    ///
+    /// By default, returns a single window from [`window_config()`].
+    /// Override this method to create multiple windows with different titles and sizes.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// fn windows(&self) -> Vec<WindowConfig> {
+    ///     vec![
+    ///         WindowConfig { title: "Editor".into(), width: 1200.0, height: 800.0 },
+    ///         WindowConfig { title: "Inspector".into(), width: 400.0, height: 600.0 },
+    ///     ]
+    /// }
+    /// ```
     fn windows(&self) -> Vec<WindowConfig> {
         vec![self.window_config()]
     }
@@ -125,6 +148,7 @@ struct WindowState {
     renderer: Renderer,
     cursor: (f32, f32),
     shift: bool,
+    ctrl: bool,
     dirty: bool,
 }
 
@@ -181,6 +205,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                             renderer,
                             cursor: (0.0, 0.0),
                             shift: false,
+                            ctrl: false,
                             dirty: true,
                         },
                     );
@@ -313,20 +338,34 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             WindowEvent::ModifiersChanged(modifiers) => {
                 if let Some(state) = windows.get_mut(&id) {
                     state.shift = modifiers.state().shift_key();
+                    state.ctrl = modifiers.state().control_key();
                 }
             }
             WindowEvent::KeyboardInput {
                 event: key_event, ..
             } => {
-                let (win_id, shift) = match windows.get(&id) {
-                    Some(state) => (state.id, state.shift),
+                let state = match windows.get(&id) {
+                    Some(s) => s,
                     None => return,
+                };
+                let win_id = state.id;
+                let shift = state.shift;
+                let ctrl = state.ctrl;
+                let text = match &key_event.logical_key {
+                    Key::Character(s) => Some(s.to_string()),
+                    _ => None,
                 };
                 let key = match key_event.logical_key {
                     Key::Named(NamedKey::Tab) => PlatformKey::Tab,
                     Key::Named(NamedKey::Enter) => PlatformKey::Enter,
                     Key::Named(NamedKey::Space) => PlatformKey::Space,
                     Key::Named(NamedKey::Escape) => PlatformKey::Escape,
+                    Key::Named(NamedKey::ArrowLeft) => PlatformKey::ArrowLeft,
+                    Key::Named(NamedKey::ArrowRight) => PlatformKey::ArrowRight,
+                    Key::Named(NamedKey::Backspace) => PlatformKey::Backspace,
+                    Key::Named(NamedKey::Delete) => PlatformKey::Delete,
+                    Key::Named(NamedKey::Home) => PlatformKey::Home,
+                    Key::Named(NamedKey::End) => PlatformKey::End,
                     _ => PlatformKey::Other,
                 };
                 let dirty = app.event(PlatformEvent::Key {
@@ -334,6 +373,8 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                     key,
                     pressed: key_event.state == ElementState::Pressed,
                     shift,
+                    ctrl,
+                    text,
                 });
                 if let Some(state) = windows.get_mut(&id) {
                     state.dirty |= dirty;
@@ -377,6 +418,19 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                 match state.renderer.render(&frame) {
                     SurfaceAction::Reconfigure => state.window.request_redraw(),
                     SurfaceAction::Exit => event_loop.exit(),
+                    SurfaceAction::DeviceLost => {
+                        tracing::warn!("GPU device lost, attempting recovery...");
+                        match state.renderer.on_device_lost() {
+                            Ok(()) => {
+                                state.dirty = true;
+                                state.window.request_redraw();
+                            }
+                            Err(e) => {
+                                tracing::error!("device recovery failed: {e}");
+                                event_loop.exit();
+                            }
+                        }
+                    }
                     _ => {}
                 }
                 state.dirty = false;
@@ -416,6 +470,35 @@ mod tests {
             .collect();
         assert_eq!(set.len(), 2);
     }
+    #[test]
+    fn multiple_window_configs() {
+        struct MultiWindowApp;
+        impl Application for MultiWindowApp {
+            fn windows(&self) -> Vec<WindowConfig> {
+                vec![
+                    WindowConfig {
+                        title: "Window 1".into(),
+                        width: 800.0,
+                        height: 600.0,
+                    },
+                    WindowConfig {
+                        title: "Window 2".into(),
+                        width: 400.0,
+                        height: 300.0,
+                    },
+                ]
+            }
+            fn frame(&mut self, _ctx: FrameContext) -> Frame {
+                Frame::default()
+            }
+        }
+        let app = MultiWindowApp;
+        let configs = app.windows();
+        assert_eq!(configs.len(), 2);
+        assert_eq!(configs[0].title, "Window 1");
+        assert_eq!(configs[1].title, "Window 2");
+    }
+
     #[test]
     fn frame_context_carries_window_id() {
         let id = WindowId(7);

@@ -78,6 +78,7 @@ pub enum SurfaceAction {
     Reconfigure,
     Skip,
     Exit,
+    DeviceLost,
 }
 
 #[derive(Debug, Error)]
@@ -90,6 +91,10 @@ pub enum RenderError {
     Adapter,
     #[error("failed to request GPU device: {0}")]
     Device(String),
+    #[error("device lost")]
+    DeviceLost,
+    #[error("failed to recreate GPU resources after device loss")]
+    DeviceRecoveryFailed,
 }
 
 #[repr(C)]
@@ -128,6 +133,7 @@ pub struct Renderer {
     size: (u32, u32),
     status: SurfaceStatus,
     scale_factor: f32,
+    device_lost: bool,
 }
 
 impl Renderer {
@@ -165,92 +171,8 @@ impl Renderer {
             .ok_or(RenderError::Adapter)?;
         config.present_mode = wgpu::PresentMode::Fifo;
         surface.configure(&device, &config);
-        let shader = device.create_shader_module(wgpu::include_wgsl!("quad.wgsl"));
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("acme quad pipeline"), layout: None,
-            vertex: wgpu::VertexState {
-                module: &shader, entry_point: Some("vs_main"), compilation_options: Default::default(),
-                buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<Instance>() as u64,
-                    step_mode: wgpu::VertexStepMode::Instance,
-                    attributes: &wgpu::vertex_attr_array![0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4],
-                }],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader, entry_point: Some("fs_main"), compilation_options: Default::default(),
-                targets: &[Some(wgpu::ColorTargetState { format: config.format, blend: Some(wgpu::BlendState::ALPHA_BLENDING), write_mask: wgpu::ColorWrites::ALL })],
-            }),
-            primitive: wgpu::PrimitiveState::default(), depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(), multiview_mask: None, cache: None,
-        });
-        let text_shader = device.create_shader_module(wgpu::include_wgsl!("text.wgsl"));
-        let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("acme glyph atlas layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        });
-        let text_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("acme text pipeline layout"),
-            bind_group_layouts: &[Some(&texture_layout)],
-            immediate_size: 0,
-        });
-        let text_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("acme text pipeline"),
-            layout: Some(&text_pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &text_shader,
-                entry_point: Some("vs_main"),
-                compilation_options: Default::default(),
-                buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: std::mem::size_of::<GlyphInstance>() as u64,
-                    step_mode: wgpu::VertexStepMode::Instance,
-                    attributes: &wgpu::vertex_attr_array![0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4],
-                }],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &text_shader,
-                entry_point: Some("fs_main"),
-                compilation_options: Default::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: config.format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: None,
-            cache: None,
-        });
-        let alpha_atlas = create_atlas(&device, wgpu::TextureFormat::R8Unorm, "alpha");
-        let rgba_atlas = create_atlas(&device, wgpu::TextureFormat::Rgba8UnormSrgb, "rgba");
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("acme glyph sampler"),
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
-        let alpha_bind_group =
-            create_atlas_bind_group(&device, &texture_layout, &alpha_atlas, &sampler, "alpha");
-        let rgba_bind_group =
-            create_atlas_bind_group(&device, &texture_layout, &rgba_atlas, &sampler, "rgba");
+        let (pipeline, text_pipeline, alpha_atlas, rgba_atlas, alpha_bind_group, rgba_bind_group) =
+            build_render_resources(&device, &config);
         Ok(Self {
             _instance: instance,
             surface,
@@ -270,6 +192,7 @@ impl Renderer {
                 SurfaceStatus::Ready
             },
             scale_factor: normalize_scale(scale_factor),
+            device_lost: false,
         })
     }
 
@@ -293,6 +216,9 @@ impl Renderer {
     pub fn render(&mut self, frame: &Frame) -> SurfaceAction {
         if self.status == SurfaceStatus::Suspended {
             return SurfaceAction::Skip;
+        }
+        if self.device_lost {
+            return SurfaceAction::DeviceLost;
         }
         let mut reconfigure_after_present = false;
         let output = match self.surface.get_current_texture() {
@@ -468,6 +394,60 @@ impl Renderer {
         }
     }
 
+    /// Recreates the GPU device, surface configuration, and all pipelines/atlases
+    /// after device loss. Call this when `render()` returns `SurfaceAction::DeviceLost`.
+    pub fn on_device_lost(&mut self) -> Result<(), RenderError> {
+        tracing::info!("attempting GPU device recovery");
+
+        let adapter = pollster::block_on(self._instance.request_adapter(
+            &wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                force_fallback_adapter: false,
+                compatible_surface: Some(&self.surface),
+            },
+        ))
+        .map_err(|_| RenderError::Adapter)?;
+
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+                .map_err(|error| RenderError::Device(error.to_string()))?;
+
+        self.device = device;
+        self.queue = queue;
+
+        let safe_width = self.size.0.max(1);
+        let safe_height = self.size.1.max(1);
+        let mut config = self
+            .surface
+            .get_default_config(&adapter, safe_width, safe_height)
+            .ok_or(RenderError::Adapter)?;
+        config.present_mode = wgpu::PresentMode::Fifo;
+        self.config = config;
+
+        self.surface.configure(&self.device, &self.config);
+
+        let (pipeline, text_pipeline, alpha_atlas, rgba_atlas, alpha_bind_group, rgba_bind_group) =
+            build_render_resources(&self.device, &self.config);
+        self.pipeline = pipeline;
+        self.text_pipeline = text_pipeline;
+        self.alpha_atlas = alpha_atlas;
+        self.rgba_atlas = rgba_atlas;
+        self.alpha_bind_group = alpha_bind_group;
+        self.rgba_bind_group = rgba_bind_group;
+
+        self.device_lost = false;
+        self.status = SurfaceStatus::Ready;
+        tracing::info!("GPU device recovery successful");
+        Ok(())
+    }
+
+    /// Simulates device loss for testing. Only available in test builds.
+    #[cfg(test)]
+    pub fn simulate_device_loss(&mut self) {
+        self.device_lost = true;
+        self.status = SurfaceStatus::Recovering;
+    }
+
     fn upload_atlas(&self, prepared: &PreparedText) {
         for upload in &prepared.uploads {
             if upload.width == 0
@@ -514,6 +494,127 @@ impl Renderer {
             );
         }
     }
+}
+
+/// Shared helper: creates pipelines, atlas textures, and bind groups from a device + config.
+/// Used by both `Renderer::new()` and `Renderer::on_device_lost()`.
+fn build_render_resources(
+    device: &wgpu::Device,
+    config: &wgpu::SurfaceConfiguration,
+) -> (
+    wgpu::RenderPipeline,
+    wgpu::RenderPipeline,
+    wgpu::Texture,
+    wgpu::Texture,
+    wgpu::BindGroup,
+    wgpu::BindGroup,
+) {
+    let shader = device.create_shader_module(wgpu::include_wgsl!("quad.wgsl"));
+    let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("acme quad pipeline"),
+        layout: None,
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: Some("vs_main"),
+            compilation_options: Default::default(),
+            buffers: &[wgpu::VertexBufferLayout {
+                array_stride: std::mem::size_of::<Instance>() as u64,
+                step_mode: wgpu::VertexStepMode::Instance,
+                attributes: &wgpu::vertex_attr_array![0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4],
+            }],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: Some("fs_main"),
+            compilation_options: Default::default(),
+            targets: &[Some(wgpu::ColorTargetState {
+                format: config.format,
+                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+        }),
+        primitive: wgpu::PrimitiveState::default(),
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview_mask: None,
+        cache: None,
+    });
+    let text_shader = device.create_shader_module(wgpu::include_wgsl!("text.wgsl"));
+    let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("acme glyph atlas layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+    });
+    let text_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("acme text pipeline layout"),
+        bind_group_layouts: &[Some(&texture_layout)],
+        immediate_size: 0,
+    });
+    let text_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("acme text pipeline"),
+        layout: Some(&text_pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &text_shader,
+            entry_point: Some("vs_main"),
+            compilation_options: Default::default(),
+            buffers: &[wgpu::VertexBufferLayout {
+                array_stride: std::mem::size_of::<GlyphInstance>() as u64,
+                step_mode: wgpu::VertexStepMode::Instance,
+                attributes: &wgpu::vertex_attr_array![0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4],
+            }],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &text_shader,
+            entry_point: Some("fs_main"),
+            compilation_options: Default::default(),
+            targets: &[Some(wgpu::ColorTargetState {
+                format: config.format,
+                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+        }),
+        primitive: wgpu::PrimitiveState::default(),
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview_mask: None,
+        cache: None,
+    });
+    let alpha_atlas = create_atlas(device, wgpu::TextureFormat::R8Unorm, "alpha");
+    let rgba_atlas = create_atlas(device, wgpu::TextureFormat::Rgba8UnormSrgb, "rgba");
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        label: Some("acme glyph sampler"),
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Linear,
+        ..Default::default()
+    });
+    let alpha_bind_group =
+        create_atlas_bind_group(device, &texture_layout, &alpha_atlas, &sampler, "alpha");
+    let rgba_bind_group =
+        create_atlas_bind_group(device, &texture_layout, &rgba_atlas, &sampler, "rgba");
+    (
+        pipeline,
+        text_pipeline,
+        alpha_atlas,
+        rgba_atlas,
+        alpha_bind_group,
+        rgba_bind_group,
+    )
 }
 
 fn create_atlas(device: &wgpu::Device, format: wgpu::TextureFormat, name: &str) -> wgpu::Texture {
@@ -650,6 +751,12 @@ mod tests {
             Some([0, 8, 30, 20])
         );
         assert_eq!(scissor([200.0, 0.0, 10.0, 10.0], 1.0, 100, 100), None);
+    }
+
+    #[test]
+    fn device_lost_action_is_distinct() {
+        assert_ne!(SurfaceAction::DeviceLost, SurfaceAction::Exit);
+        assert_ne!(SurfaceAction::DeviceLost, SurfaceAction::Reconfigure);
     }
 
     #[test]

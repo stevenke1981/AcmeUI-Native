@@ -77,9 +77,22 @@ threshold or controlled hardware baseline.
 - **Dialog**: `WidgetNode::Dialog(Dialog<M>)` with title, content, modal flag, explicit width/height, tests.
 - 174 unit tests total across all crates, all passing with zero warnings.
 
+## Milestone 4 additions
+
+- **Tree**: `WidgetNode::Tree(Tree<M>)` with `TreeNode<M>` (label, depth, disabled, expanded, submenu/message), column-layout with indentation, 5 tests.
+- **Table**: `WidgetNode::Table(Table<M>)` with `TableColumn` (title, width), `rows: Vec<Vec<WidgetNode<M>>>`, header visibility toggle, 5 tests.
+- **DataGrid**: `WidgetNode::DataGrid(DataGrid<M>)` with `DataGridColumn` (title, width, sortable), `DataGridRow<M>` (cells, selected), sort column and selected row tracking, 5 tests.
+- **PlatformKey extended**: `ArrowLeft`, `ArrowRight`, `Backspace`, `Delete`, `Home`, `End` + `ctrl` and `text` fields on `PlatformEvent::Key`.
+- **TextInput keyboard shortcuts**: `handle_key()` handles arrows (cursor navigation), Backspace/Delete, Home/End, Escape (blur). New `handle_keyboard_shortcut()` handles Ctrl+A (select all), Ctrl+C (copy), Ctrl+V (paste), Ctrl+X (cut). 60 textinput tests total (+15 new).
+- **IME Gallery demo**: TextInput section with focus-on-click, IME preedit/commit handling, rendered via `render_text_input()` with theme tokens, committed text display.
+- **Multi-window test**: `multiple_window_configs` test verifies `app.windows()` returns N configs with correct titles.
+- **Surface/device recreation**: `SurfaceAction::DeviceLost`, `Renderer::on_device_lost()` recreates device/pipelines/atlases/bind-groups, `simulate_device_loss()` test method, `device_lost_action_is_distinct` test.
+- **Devtools + Accessibility**: Tree/Table/DataGrid match arms in `node_kind()`, `key_string()`, `extra_info()`, and `walk_node()` (Tree → Role::Tree, Table → Role::Table, DataGrid → Role::Grid).
+- 211 unit tests total across all crates, all passing with zero warnings.
+- `cargo fmt --all`, `cargo check`, `cargo clippy -D warnings`, `cargo test` — all gates pass.
+
 ## Remaining (next milestone)
 
-Implementation of Tree, Table, DataGrid widgets, Traditional Chinese IME manual
-validation, deterministic surface/device recreation, retained NodeId layout identity,
-intrinsic text measurement for auto-sized Label/Stack, manual DPI validation,
-and the concrete multi-window Runtime loop.
+Deterministic surface/device recreation automated test, retained NodeId layout identity,
+intrinsic text measurement for auto-sized Label/Stack, manual DPI validation at
+125/150/200% Windows display scaling.

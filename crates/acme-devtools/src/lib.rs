@@ -235,6 +235,9 @@ impl WidgetTreeDump {
             WidgetNode::Popover(_) => "Popover",
             WidgetNode::Menu(_) => "Menu",
             WidgetNode::Dialog(_) => "Dialog",
+            WidgetNode::Tree(_) => "Tree",
+            WidgetNode::Table(_) => "Table",
+            WidgetNode::DataGrid(_) => "DataGrid",
         }
     }
 
@@ -254,6 +257,9 @@ impl WidgetTreeDump {
             WidgetNode::Popover(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::Menu(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::Dialog(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::Tree(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::Table(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::DataGrid(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::Label(_) | WidgetNode::Separator(_) => String::new(),
         }
     }
@@ -269,6 +275,11 @@ impl WidgetTreeDump {
             WidgetNode::Menu(v) => format!(" items={}", v.items.len()),
             WidgetNode::Dialog(v) => {
                 format!(" title=\"{}\" w={:?} h={:?}", v.title, v.width, v.height)
+            }
+            WidgetNode::Tree(v) => format!(" items={}", v.items.len()),
+            WidgetNode::Table(v) => format!(" cols={} rows={}", v.columns.len(), v.rows.len()),
+            WidgetNode::DataGrid(v) => {
+                format!(" cols={} rows={}", v.columns.len(), v.rows.len())
             }
             _ => String::new(),
         }

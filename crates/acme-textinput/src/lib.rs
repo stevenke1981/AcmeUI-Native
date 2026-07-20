@@ -448,16 +448,27 @@ pub fn byte_offset_to_x(
 ///
 /// # Keyboard map
 ///
-/// | Key         | Action               |
-/// |-------------|----------------------|
-/// | `Tab`       | (handled by focus manager — no-op here) |
-/// | `Enter`     | (submitted — no-op here) |
-/// | `Escape`    | Blur (clear focus)   |
+/// | Key               | Action                 |
+/// |-------------------|------------------------|
+/// | `ArrowLeft`       | `cursor_prev()`        |
+/// | `ArrowRight`      | `cursor_next()`        |
+/// | `Backspace`       | `delete_before_cursor()` |
+/// | `Delete`          | `delete_after_cursor()`  |
+/// | `Home`            | `cursor_home()`        |
+/// | `End`             | `cursor_end()`         |
+/// | `Escape`          | Blur (clear focus)     |
+/// | `Tab`             | (handled by focus manager — no-op here) |
+/// | `Enter`           | (submitted — no-op here) |
 ///
-/// **Note:** Full keyboard navigation (arrows, home/end, backspace, delete,
-/// clipboard shortcuts) requires `PlatformKey` to expose additional named keys
-/// such as `ArrowLeft`, `ArrowRight`, `Backspace`, `Delete`, `Home`, `End`,
-/// and `ctrl` modifier state in the calling code.
+/// When `ctrl` is `true` and the state is focused, the following text-based
+/// shortcuts are available (via `key_text`):
+///
+/// | Shortcut | Action                    |
+/// |----------|---------------------------|
+/// | Ctrl+A   | `select_all()`            |
+/// | Ctrl+C   | Copy selection to clipboard |
+/// | Ctrl+V   | Paste from clipboard      |
+/// | Ctrl+X   | Cut selection to clipboard |
 ///
 /// Returns `true` if the state was modified.
 pub fn handle_key(
@@ -465,6 +476,7 @@ pub fn handle_key(
     key: &PlatformKey,
     pressed: bool,
     _clipboard: Option<&Clipboard>,
+    ctrl: bool,
 ) -> bool {
     if !pressed {
         return false;
@@ -486,7 +498,121 @@ pub fn handle_key(
                 false
             }
         }
-        PlatformKey::Space | PlatformKey::Other => false,
+        PlatformKey::ArrowLeft => {
+            if !state.focused {
+                return false;
+            }
+            state.cursor_prev();
+            true
+        }
+        PlatformKey::ArrowRight => {
+            if !state.focused {
+                return false;
+            }
+            state.cursor_next();
+            true
+        }
+        PlatformKey::Backspace => {
+            if !state.focused {
+                return false;
+            }
+            state.delete_before_cursor()
+        }
+        PlatformKey::Delete => {
+            if !state.focused {
+                return false;
+            }
+            state.delete_after_cursor()
+        }
+        PlatformKey::Home => {
+            if !state.focused {
+                return false;
+            }
+            state.cursor_home();
+            true
+        }
+        PlatformKey::End => {
+            if !state.focused {
+                return false;
+            }
+            state.cursor_end();
+            true
+        }
+        PlatformKey::Space | PlatformKey::Other => {
+            if !state.focused {
+                return false;
+            }
+            if ctrl {
+                // Cannot distinguish Ctrl+A/C/V/X without key_text;
+                // the caller should route those through clipboard API before
+                // calling handle_key.  For now this arm returns false so
+                // ctrl+letter events don't accidentally match Space/Other.
+                false
+            } else {
+                false
+            }
+        }
+    }
+}
+
+/// Handle clipboard shortcuts for a text input.
+///
+/// Call this from the application event loop when `PlatformEvent::Key` has
+/// `ctrl: true` and `text` is `Some("a")`, `Some("c")`, `Some("v")`, or
+/// `Some("x")`.
+///
+/// Returns `true` if the state or clipboard was modified.
+pub fn handle_keyboard_shortcut(
+    state: &mut TextInputState,
+    key_text: &str,
+    clipboard: Option<&Clipboard>,
+) -> bool {
+    if !state.focused {
+        return false;
+    }
+    match key_text {
+        "a" => {
+            state.select_all();
+            true
+        }
+        "c" => {
+            if let Some((start, end)) = state.selection
+                && start < state.text.len()
+                && end <= state.text.len()
+                && start < end
+            {
+                let copied = state.text[start..end].to_string();
+                if let Some(clip) = clipboard {
+                    let _ = clip.set_text(&copied);
+                }
+            }
+            true
+        }
+        "x" => {
+            if let Some((start, end)) = state.selection
+                && start < state.text.len()
+                && end <= state.text.len()
+                && start < end
+            {
+                let cut = state.text[start..end].to_string();
+                if let Some(clip) = clipboard {
+                    let _ = clip.set_text(&cut);
+                }
+                state.text.drain(start..end);
+                state.cursor = start;
+                state.selection = None;
+            }
+            true
+        }
+        "v" => {
+            if let Some(clip) = clipboard
+                && let Ok(text) = clip.get_text()
+            {
+                handle_text(state, &text);
+            }
+            true
+        }
+        _ => false,
     }
 }
 
@@ -969,7 +1095,7 @@ mod tests {
     fn handle_key_escape_blurs() {
         let mut s = TextInputState::new();
         s.focused = true;
-        assert!(handle_key(&mut s, &PlatformKey::Escape, true, None));
+        assert!(handle_key(&mut s, &PlatformKey::Escape, true, None, false));
         assert!(!s.focused);
     }
 
@@ -977,26 +1103,216 @@ mod tests {
     fn handle_key_escape_noop_when_not_focused() {
         let mut s = TextInputState::new();
         s.focused = false;
-        assert!(!handle_key(&mut s, &PlatformKey::Escape, true, None));
+        assert!(!handle_key(&mut s, &PlatformKey::Escape, true, None, false));
     }
 
     #[test]
     fn handle_key_tab_is_noop() {
         let mut s = TextInputState::new();
-        assert!(!handle_key(&mut s, &PlatformKey::Tab, true, None));
+        assert!(!handle_key(&mut s, &PlatformKey::Tab, true, None, false));
     }
 
     #[test]
     fn handle_key_enter_is_noop() {
         let mut s = TextInputState::new();
-        assert!(!handle_key(&mut s, &PlatformKey::Enter, true, None));
+        assert!(!handle_key(&mut s, &PlatformKey::Enter, true, None, false));
     }
 
     #[test]
     fn handle_key_noop_on_release() {
         let mut s = TextInputState::new();
         s.focused = true;
-        assert!(!handle_key(&mut s, &PlatformKey::Escape, false, None));
+        assert!(!handle_key(
+            &mut s,
+            &PlatformKey::Escape,
+            false,
+            None,
+            false
+        ));
+    }
+
+    // ---- handle_key: new PlatformKey variants ----
+
+    #[test]
+    fn handle_key_arrow_left_moves_cursor() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 3;
+        s.focused = true;
+        assert!(handle_key(
+            &mut s,
+            &PlatformKey::ArrowLeft,
+            true,
+            None,
+            false
+        ));
+        assert_eq!(s.cursor, 2);
+    }
+
+    #[test]
+    fn handle_key_arrow_left_noop_when_not_focused() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 3;
+        s.focused = false;
+        assert!(!handle_key(
+            &mut s,
+            &PlatformKey::ArrowLeft,
+            true,
+            None,
+            false
+        ));
+        assert_eq!(s.cursor, 3);
+    }
+
+    #[test]
+    fn handle_key_arrow_right_moves_cursor() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 2;
+        s.focused = true;
+        assert!(handle_key(
+            &mut s,
+            &PlatformKey::ArrowRight,
+            true,
+            None,
+            false
+        ));
+        assert_eq!(s.cursor, 3);
+    }
+
+    #[test]
+    fn handle_key_backspace_deletes_before() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 5;
+        s.focused = true;
+        assert!(handle_key(
+            &mut s,
+            &PlatformKey::Backspace,
+            true,
+            None,
+            false
+        ));
+        assert_eq!(s.text, "hell");
+        assert_eq!(s.cursor, 4);
+    }
+
+    #[test]
+    fn handle_key_backspace_noop_when_not_focused() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 5;
+        s.focused = false;
+        assert!(!handle_key(
+            &mut s,
+            &PlatformKey::Backspace,
+            true,
+            None,
+            false
+        ));
+    }
+
+    #[test]
+    fn handle_key_delete_deletes_after() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 0;
+        s.focused = true;
+        assert!(handle_key(&mut s, &PlatformKey::Delete, true, None, false));
+        assert_eq!(s.text, "ello");
+        assert_eq!(s.cursor, 0);
+    }
+
+    #[test]
+    fn handle_key_home_moves_to_start() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 3;
+        s.focused = true;
+        assert!(handle_key(&mut s, &PlatformKey::Home, true, None, false));
+        assert_eq!(s.cursor, 0);
+    }
+
+    #[test]
+    fn handle_key_end_moves_to_end() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 0;
+        s.focused = true;
+        assert!(handle_key(&mut s, &PlatformKey::End, true, None, false));
+        assert_eq!(s.cursor, 5);
+    }
+
+    #[test]
+    fn handle_key_navigation_clears_selection() {
+        let mut s = TextInputState::new();
+        s.text = "hello world".to_string();
+        s.cursor = 5;
+        s.selection = Some((2, 8));
+        s.focused = true;
+        handle_key(&mut s, &PlatformKey::ArrowLeft, true, None, false);
+        assert_eq!(s.selection, None);
+    }
+
+    // ---- handle_keyboard_shortcut ----
+
+    #[test]
+    fn shortcut_ctrl_a_selects_all() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 2;
+        s.focused = true;
+        assert!(handle_keyboard_shortcut(&mut s, "a", None));
+        assert_eq!(s.selection, Some((0, 5)));
+    }
+
+    #[test]
+    fn shortcut_ctrl_c_does_not_panic() {
+        let mut s = TextInputState::new();
+        s.text = "select".to_string();
+        s.selection = Some((0, 6));
+        s.focused = true;
+        // Without a real clipboard, copy should be a no-op that returns true
+        assert!(handle_keyboard_shortcut(&mut s, "c", None));
+    }
+
+    #[test]
+    fn shortcut_ctrl_x_cuts_selection() {
+        let mut s = TextInputState::new();
+        s.text = "cut me".to_string();
+        s.cursor = 6;
+        s.selection = Some((0, 6));
+        s.focused = true;
+        assert!(handle_keyboard_shortcut(&mut s, "x", None));
+        assert!(s.text.is_empty());
+        assert_eq!(s.cursor, 0);
+    }
+
+    #[test]
+    fn shortcut_ctrl_v_noop_without_clipboard() {
+        let mut s = TextInputState::new();
+        s.text = "hello ".to_string();
+        s.cursor = 6;
+        s.focused = true;
+        // Without clipboard, paste is a no-op that returns true
+        assert!(handle_keyboard_shortcut(&mut s, "v", None));
+    }
+
+    #[test]
+    fn shortcut_ctrl_a_noop_when_not_focused() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.focused = false;
+        assert!(!handle_keyboard_shortcut(&mut s, "a", None));
+    }
+
+    #[test]
+    fn shortcut_unknown_key_is_noop() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.focused = true;
+        assert!(!handle_keyboard_shortcut(&mut s, "z", None));
     }
 
     // ---- Clipboard integration test ----

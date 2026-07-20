@@ -104,6 +104,9 @@ pub enum WidgetNode<M> {
     Popover(Popover<M>),
     Menu(Menu<M>),
     Dialog(Dialog<M>),
+    Tree(Tree<M>),
+    Table(Table<M>),
+    DataGrid(DataGrid<M>),
 }
 impl<M> WidgetNode<M> {
     pub fn key(&self) -> Option<&WidgetKey> {
@@ -117,6 +120,9 @@ impl<M> WidgetNode<M> {
             Self::Popover(v) => Some(&v.key),
             Self::Menu(v) => Some(&v.key),
             Self::Dialog(v) => Some(&v.key),
+            Self::Tree(v) => Some(&v.key),
+            Self::Table(v) => Some(&v.key),
+            Self::DataGrid(v) => Some(&v.key),
         }
     }
     pub fn children(&self) -> &[WidgetNode<M>] {
@@ -128,6 +134,9 @@ impl<M> WidgetNode<M> {
             Self::Popover(v) => &v.children,
             Self::Menu(_) => &[],
             Self::Dialog(v) => std::slice::from_ref(&v.content),
+            Self::Tree(_) => &[],
+            Self::Table(v) => &v.all_cells,
+            Self::DataGrid(v) => &v.all_cells,
             Self::Label(_) | Self::Button(_) | Self::Separator(_) => &[],
         }
     }
@@ -203,6 +212,149 @@ impl<M> WidgetNode<M> {
                     ..Default::default()
                 },
             ),
+            Self::Tree(v) => {
+                let mut child_nodes = Vec::with_capacity(v.items.len());
+                for item in &v.items {
+                    child_nodes.push(LayoutNode::leaf(
+                        *next,
+                        LayoutStyle {
+                            width: Length::Auto,
+                            height: Length::px(24.0),
+                            padding: Edges {
+                                left: item.depth as f32 * 20.0,
+                                ..Edges::default()
+                            },
+                            ..Default::default()
+                        },
+                    ));
+                    *next += 1;
+                }
+                LayoutNode::container(
+                    id,
+                    LayoutStyle {
+                        kind: LayoutKind::Column,
+                        ..Default::default()
+                    },
+                    child_nodes,
+                )
+            }
+            Self::Table(v) => {
+                let mut child_nodes: Vec<LayoutNode> = Vec::new();
+                if v.header_visible {
+                    let header_children: Vec<LayoutNode> = v
+                        .columns
+                        .iter()
+                        .map(|col| {
+                            let nid = *next;
+                            *next += 1;
+                            LayoutNode::leaf(
+                                nid,
+                                LayoutStyle {
+                                    width: col.width,
+                                    min_height: Length::px(24.0),
+                                    ..Default::default()
+                                },
+                            )
+                        })
+                        .collect();
+                    child_nodes.push(LayoutNode::container(
+                        *next,
+                        LayoutStyle::row(),
+                        header_children,
+                    ));
+                    *next += 1;
+                }
+                for row in &v.rows {
+                    let row_children: Vec<LayoutNode> = row
+                        .iter()
+                        .map(|_| {
+                            let nid = *next;
+                            *next += 1;
+                            LayoutNode::leaf(
+                                nid,
+                                LayoutStyle {
+                                    min_height: Length::px(24.0),
+                                    ..Default::default()
+                                },
+                            )
+                        })
+                        .collect();
+                    child_nodes.push(LayoutNode::container(
+                        *next,
+                        LayoutStyle::row(),
+                        row_children,
+                    ));
+                    *next += 1;
+                }
+                LayoutNode::container(
+                    id,
+                    LayoutStyle {
+                        kind: LayoutKind::Column,
+                        ..Default::default()
+                    },
+                    child_nodes,
+                )
+            }
+            Self::DataGrid(v) => {
+                let mut child_nodes: Vec<LayoutNode> = Vec::new();
+                // Header row
+                let header_children: Vec<LayoutNode> = v
+                    .columns
+                    .iter()
+                    .enumerate()
+                    .map(|(i, col)| {
+                        let nid = *next;
+                        *next += 1;
+                        let mut style = LayoutStyle {
+                            width: col.width,
+                            min_height: Length::px(24.0),
+                            ..Default::default()
+                        };
+                        if v.sort_column == Some(i) {
+                            style.flex_grow = 1.0;
+                        }
+                        LayoutNode::leaf(nid, style)
+                    })
+                    .collect();
+                child_nodes.push(LayoutNode::container(
+                    *next,
+                    LayoutStyle::row(),
+                    header_children,
+                ));
+                *next += 1;
+                // Data rows
+                for row in &v.rows {
+                    let row_children: Vec<LayoutNode> = row
+                        .cells
+                        .iter()
+                        .map(|_| {
+                            let nid = *next;
+                            *next += 1;
+                            LayoutNode::leaf(
+                                nid,
+                                LayoutStyle {
+                                    min_height: Length::px(24.0),
+                                    ..Default::default()
+                                },
+                            )
+                        })
+                        .collect();
+                    child_nodes.push(LayoutNode::container(
+                        *next,
+                        LayoutStyle::row(),
+                        row_children,
+                    ));
+                    *next += 1;
+                }
+                LayoutNode::container(
+                    id,
+                    LayoutStyle {
+                        kind: LayoutKind::Column,
+                        ..Default::default()
+                    },
+                    child_nodes,
+                )
+            }
         }
     }
 }
@@ -733,6 +885,268 @@ impl<M> From<Dialog<M>> for WidgetNode<M> {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Tree widget
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TreeNode<M> {
+    pub key: WidgetKey,
+    pub label: String,
+    pub children: Vec<TreeNode<M>>,
+    pub expanded: bool,
+    pub depth: usize,
+    pub disabled: bool,
+    pub message: Option<M>,
+}
+
+impl<M> TreeNode<M> {
+    pub fn activate(&self) -> Option<&M> {
+        if self.disabled {
+            None
+        } else {
+            self.message.as_ref()
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Tree<M> {
+    pub key: WidgetKey,
+    pub items: Vec<TreeNode<M>>,
+}
+
+pub fn tree<M>(key: impl Into<WidgetKey>) -> Tree<M> {
+    Tree {
+        key: key.into(),
+        items: vec![],
+    }
+}
+
+pub fn tree_node<M>(key: impl Into<WidgetKey>, label: impl Into<String>) -> TreeNode<M> {
+    TreeNode {
+        key: key.into(),
+        label: label.into(),
+        children: vec![],
+        expanded: false,
+        depth: 0,
+        disabled: false,
+        message: None,
+    }
+}
+
+impl<M> TreeNode<M> {
+    pub fn child(mut self, node: TreeNode<M>) -> Self {
+        self.children.push(node);
+        self
+    }
+    pub fn expanded(mut self, value: bool) -> Self {
+        self.expanded = value;
+        self
+    }
+    pub fn depth(mut self, value: usize) -> Self {
+        self.depth = value;
+        self
+    }
+    pub fn disabled(mut self, value: bool) -> Self {
+        self.disabled = value;
+        self
+    }
+    pub fn on_activate(mut self, message: M) -> Self {
+        self.message = Some(message);
+        self
+    }
+}
+
+impl<M> Tree<M> {
+    pub fn item(mut self, node: TreeNode<M>) -> Self {
+        self.items.push(node);
+        self
+    }
+    pub fn build(self) -> WidgetNode<M> {
+        WidgetNode::Tree(self)
+    }
+}
+
+impl<M> From<Tree<M>> for WidgetNode<M> {
+    fn from(value: Tree<M>) -> Self {
+        WidgetNode::Tree(value)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Table widget
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TableColumn {
+    pub key: WidgetKey,
+    pub title: String,
+    pub width: Length,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Table<M> {
+    pub key: WidgetKey,
+    pub columns: Vec<TableColumn>,
+    pub rows: Vec<Vec<WidgetNode<M>>>,
+    pub header_visible: bool,
+    pub(crate) all_cells: Vec<WidgetNode<M>>,
+}
+
+impl TableColumn {
+    pub fn width(mut self, value: Length) -> Self {
+        self.width = value;
+        self
+    }
+}
+
+pub fn table<M>(key: impl Into<WidgetKey>) -> Table<M> {
+    Table {
+        key: key.into(),
+        columns: vec![],
+        rows: vec![],
+        header_visible: true,
+        all_cells: vec![],
+    }
+}
+
+pub fn table_column(key: impl Into<WidgetKey>, title: impl Into<String>) -> TableColumn {
+    TableColumn {
+        key: key.into(),
+        title: title.into(),
+        width: Length::Auto,
+    }
+}
+
+impl<M: Clone> Table<M> {
+    pub fn column(mut self, col: TableColumn) -> Self {
+        self.columns.push(col);
+        self
+    }
+    pub fn add_row(mut self, cells: Vec<WidgetNode<M>>) -> Self {
+        self.rows.push(cells);
+        self
+    }
+    pub fn header_visible(mut self, value: bool) -> Self {
+        self.header_visible = value;
+        self
+    }
+    pub fn build(mut self) -> WidgetNode<M> {
+        self.all_cells = self.rows.iter().flat_map(|r| r.iter().cloned()).collect();
+        WidgetNode::Table(self)
+    }
+}
+
+impl<M> From<Table<M>> for WidgetNode<M> {
+    fn from(value: Table<M>) -> Self {
+        WidgetNode::Table(value)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// DataGrid widget
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct DataGridColumn {
+    pub key: WidgetKey,
+    pub title: String,
+    pub width: Length,
+    pub sortable: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct DataGridRow<M> {
+    pub cells: Vec<WidgetNode<M>>,
+    pub selected: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct DataGrid<M> {
+    pub key: WidgetKey,
+    pub columns: Vec<DataGridColumn>,
+    pub rows: Vec<DataGridRow<M>>,
+    pub selected_row: Option<usize>,
+    pub sort_column: Option<usize>,
+    pub sort_ascending: bool,
+    pub(crate) all_cells: Vec<WidgetNode<M>>,
+}
+
+pub fn datagrid<M>(key: impl Into<WidgetKey>) -> DataGrid<M> {
+    DataGrid {
+        key: key.into(),
+        columns: vec![],
+        rows: vec![],
+        selected_row: None,
+        sort_column: None,
+        sort_ascending: true,
+        all_cells: vec![],
+    }
+}
+
+pub fn datagrid_column(key: impl Into<WidgetKey>, title: impl Into<String>) -> DataGridColumn {
+    DataGridColumn {
+        key: key.into(),
+        title: title.into(),
+        width: Length::Auto,
+        sortable: false,
+    }
+}
+
+impl DataGridColumn {
+    pub fn sortable(mut self, value: bool) -> Self {
+        self.sortable = value;
+        self
+    }
+    pub fn width(mut self, value: Length) -> Self {
+        self.width = value;
+        self
+    }
+}
+
+impl<M> DataGridRow<M> {
+    pub fn new(cells: Vec<WidgetNode<M>>) -> Self {
+        Self {
+            cells,
+            selected: false,
+        }
+    }
+    pub fn selected(mut self, value: bool) -> Self {
+        self.selected = value;
+        self
+    }
+}
+
+impl<M: Clone> DataGrid<M> {
+    pub fn column(mut self, col: DataGridColumn) -> Self {
+        self.columns.push(col);
+        self
+    }
+    pub fn add_row(mut self, row: DataGridRow<M>) -> Self {
+        self.rows.push(row);
+        self
+    }
+    pub fn sort_column(mut self, col_index: usize) -> Self {
+        self.sort_column = Some(col_index);
+        self
+    }
+    pub fn build(mut self) -> WidgetNode<M> {
+        self.all_cells = self
+            .rows
+            .iter()
+            .flat_map(|r| r.cells.iter().cloned())
+            .collect();
+        WidgetNode::DataGrid(self)
+    }
+}
+
+impl<M> From<DataGrid<M>> for WidgetNode<M> {
+    fn from(value: DataGrid<M>) -> Self {
+        WidgetNode::DataGrid(value)
+    }
+}
+
 fn finite(value: f32) -> f32 {
     if value.is_finite() {
         value.max(0.0)
@@ -1126,5 +1540,256 @@ mod tests {
     fn dialog_key_is_accessible() {
         let node: WidgetNode<Msg> = dialog::<Msg>("confirm", label("y")).build();
         assert_eq!(node.key().unwrap().as_str(), "confirm");
+    }
+
+    // ------------------------------------------------------------------
+    // Tree tests
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn tree_creates_items_with_labels_and_depth() {
+        let node: WidgetNode<Msg> = tree::<Msg>("tree")
+            .item(tree_node("n1", "Node 1").depth(0))
+            .item(tree_node("n2", "Node 2").depth(1).expanded(true))
+            .build();
+        let WidgetNode::Tree(t) = &node else {
+            panic!("expected Tree variant");
+        };
+        assert_eq!(t.items.len(), 2);
+        assert_eq!(t.items[0].label, "Node 1");
+        assert_eq!(t.items[0].depth, 0);
+        assert_eq!(t.items[1].label, "Node 2");
+        assert_eq!(t.items[1].depth, 1);
+        assert!(t.items[1].expanded);
+    }
+
+    #[test]
+    fn tree_item_activation_returns_message() {
+        let item = tree_node::<Msg>("n1", "Item").on_activate(Msg::Save);
+        assert_eq!(item.activate(), Some(&Msg::Save));
+    }
+
+    #[test]
+    fn tree_item_disabled_does_not_activate() {
+        let item = tree_node::<Msg>("n1", "Item")
+            .disabled(true)
+            .on_activate(Msg::Save);
+        assert_eq!(item.activate(), None);
+    }
+
+    #[test]
+    fn tree_to_layout_creates_column_with_children() {
+        let node: WidgetNode<Msg> = tree::<Msg>("t")
+            .item(tree_node("n1", "Root").depth(0))
+            .item(tree_node("n2", "Child").depth(1))
+            .build();
+        let mut next = 1;
+        let layout = node.to_layout(&mut next);
+        assert_eq!(layout.style.kind, LayoutKind::Column);
+        assert_eq!(layout.children.len(), 2);
+        // First child (depth 0): padding left should be 0
+        assert_eq!(layout.children[0].style.padding.left, 0.0);
+        // Second child (depth 1): padding left should be 20.0
+        assert_eq!(layout.children[1].style.padding.left, 20.0);
+    }
+
+    #[test]
+    fn tree_key_is_accessible() {
+        let node: WidgetNode<Msg> = tree::<Msg>("mytree").build();
+        assert_eq!(node.key().unwrap().as_str(), "mytree");
+    }
+
+    #[test]
+    fn tree_children_is_empty() {
+        let node: WidgetNode<Msg> = tree::<Msg>("t").item(tree_node("n1", "Item")).build();
+        assert!(node.children().is_empty());
+    }
+
+    #[test]
+    fn tree_from_conversion() {
+        let t = tree::<Msg>("t");
+        let node: WidgetNode<Msg> = t.into();
+        assert!(matches!(node, WidgetNode::Tree(_)));
+    }
+
+    // ------------------------------------------------------------------
+    // Table tests
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn table_creates_columns_and_rows() {
+        let node: WidgetNode<Msg> = table::<Msg>("t")
+            .column(table_column("name", "Name").width(Length::px(100.0)))
+            .column(table_column("age", "Age"))
+            .add_row(vec![label("Alice"), label("30")])
+            .add_row(vec![label("Bob"), label("25")])
+            .build();
+        let WidgetNode::Table(t) = &node else {
+            panic!("expected Table variant");
+        };
+        assert_eq!(t.columns.len(), 2);
+        assert_eq!(t.columns[0].title, "Name");
+        assert_eq!(t.columns[0].width, Length::px(100.0));
+        assert_eq!(t.columns[1].title, "Age");
+        assert_eq!(t.rows.len(), 2);
+        assert_eq!(t.rows[0].len(), 2);
+        assert!(t.header_visible);
+    }
+
+    #[test]
+    fn table_header_can_be_hidden() {
+        let node: WidgetNode<Msg> = table::<Msg>("t")
+            .column(table_column("a", "A"))
+            .add_row(vec![label("v1")])
+            .header_visible(false)
+            .build();
+        let WidgetNode::Table(t) = &node else {
+            panic!("expected Table variant");
+        };
+        assert!(!t.header_visible);
+    }
+
+    #[test]
+    fn table_to_layout_produces_correct_structure() {
+        let node: WidgetNode<Msg> = table::<Msg>("t")
+            .column(table_column("a", "A"))
+            .column(table_column("b", "B"))
+            .add_row(vec![label("a1"), label("b1")])
+            .add_row(vec![label("a2"), label("b2")])
+            .build();
+        let mut next = 1;
+        let layout = node.to_layout(&mut next);
+        // Outer column
+        assert_eq!(layout.style.kind, LayoutKind::Column);
+        // Header row + 2 data rows = 3 children
+        assert_eq!(layout.children.len(), 3);
+        // First child is header row
+        assert_eq!(layout.children[0].style.kind, LayoutKind::Row);
+        assert_eq!(layout.children[0].children.len(), 2);
+        // Second child is first data row
+        assert_eq!(layout.children[1].style.kind, LayoutKind::Row);
+        assert_eq!(layout.children[1].children.len(), 2);
+    }
+
+    #[test]
+    fn table_children_returns_flat_cells() {
+        let node: WidgetNode<Msg> = table::<Msg>("t")
+            .column(table_column("a", "A"))
+            .add_row(vec![label("c1")])
+            .add_row(vec![label("c2")])
+            .build();
+        assert_eq!(node.children().len(), 2);
+    }
+
+    #[test]
+    fn table_key_is_accessible() {
+        let node: WidgetNode<Msg> = table::<Msg>("mytable")
+            .column(table_column("a", "A"))
+            .build();
+        assert_eq!(node.key().unwrap().as_str(), "mytable");
+    }
+
+    #[test]
+    fn table_from_conversion() {
+        let t = table::<Msg>("t");
+        let node: WidgetNode<Msg> = t.into();
+        assert!(matches!(node, WidgetNode::Table(_)));
+    }
+
+    // ------------------------------------------------------------------
+    // DataGrid tests
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn datagrid_creates_columns_and_rows() {
+        let node: WidgetNode<Msg> = datagrid::<Msg>("grid")
+            .column(datagrid_column("name", "Name"))
+            .column(datagrid_column("score", "Score"))
+            .add_row(DataGridRow::new(vec![label("Alice"), label("95")]))
+            .add_row(DataGridRow::new(vec![label("Bob"), label("87")]))
+            .build();
+        let WidgetNode::DataGrid(d) = &node else {
+            panic!("expected DataGrid variant");
+        };
+        assert_eq!(d.columns.len(), 2);
+        assert_eq!(d.columns[0].title, "Name");
+        assert_eq!(d.columns[1].title, "Score");
+        assert_eq!(d.rows.len(), 2);
+        assert_eq!(d.rows[0].cells.len(), 2);
+        assert!(!d.rows[0].selected);
+    }
+
+    #[test]
+    fn datagrid_sort_column_tracking() {
+        let node: WidgetNode<Msg> = datagrid::<Msg>("grid")
+            .column(datagrid_column("a", "A").sortable(true))
+            .column(datagrid_column("b", "B"))
+            .add_row(DataGridRow::new(vec![label("x"), label("y")]))
+            .sort_column(0)
+            .build();
+        let WidgetNode::DataGrid(d) = &node else {
+            panic!("expected DataGrid variant");
+        };
+        assert_eq!(d.sort_column, Some(0));
+        assert!(d.sort_ascending);
+    }
+
+    #[test]
+    fn datagrid_selected_row_tracking() {
+        let mut grid = datagrid::<Msg>("grid")
+            .column(datagrid_column("a", "A"))
+            .add_row(DataGridRow::new(vec![label("r1")]).selected(true))
+            .add_row(DataGridRow::new(vec![label("r2")]));
+        grid.selected_row = Some(0);
+        let node: WidgetNode<Msg> = grid.build();
+        let WidgetNode::DataGrid(d) = &node else {
+            panic!("expected DataGrid variant");
+        };
+        assert_eq!(d.selected_row, Some(0));
+        assert!(d.rows[0].selected);
+        assert!(!d.rows[1].selected);
+    }
+
+    #[test]
+    fn datagrid_children_returns_cells() {
+        let node: WidgetNode<Msg> = datagrid::<Msg>("grid")
+            .column(datagrid_column("a", "A"))
+            .add_row(DataGridRow::new(vec![label("x")]))
+            .add_row(DataGridRow::new(vec![label("y")]))
+            .build();
+        assert_eq!(node.children().len(), 2);
+    }
+
+    #[test]
+    fn datagrid_to_layout_produces_correct_structure() {
+        let node: WidgetNode<Msg> = datagrid::<Msg>("grid")
+            .column(datagrid_column("a", "A"))
+            .column(datagrid_column("b", "B"))
+            .add_row(DataGridRow::new(vec![label("a1"), label("b1")]))
+            .build();
+        let mut next = 1;
+        let layout = node.to_layout(&mut next);
+        assert_eq!(layout.style.kind, LayoutKind::Column);
+        // Header row + 1 data row = 2 children
+        assert_eq!(layout.children.len(), 2);
+        assert_eq!(layout.children[0].style.kind, LayoutKind::Row);
+        assert_eq!(layout.children[0].children.len(), 2);
+        assert_eq!(layout.children[1].style.kind, LayoutKind::Row);
+        assert_eq!(layout.children[1].children.len(), 2);
+    }
+
+    #[test]
+    fn datagrid_key_is_accessible() {
+        let node: WidgetNode<Msg> = datagrid::<Msg>("mygrid")
+            .column(datagrid_column("a", "A"))
+            .build();
+        assert_eq!(node.key().unwrap().as_str(), "mygrid");
+    }
+
+    #[test]
+    fn datagrid_from_conversion() {
+        let d = datagrid::<Msg>("d");
+        let node: WidgetNode<Msg> = d.into();
+        assert!(matches!(node, WidgetNode::DataGrid(_)));
     }
 }
