@@ -36,7 +36,10 @@ pub use acme_core::{NodeId, WidgetKey};
 // Imports used by WidgetNode and RuntimeNode
 // ============================================================================
 
-use acme_layout::{Edges, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
+use acme_layout::{
+    Edges, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow, TextMeasureSpec,
+    WidgetLayoutContext,
+};
 
 // ============================================================================
 // RuntimeNode — compiled node with stable identity
@@ -185,14 +188,26 @@ impl<M> WidgetNode<M> {
                 v.layout(),
                 v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
-            Self::Label(l) => LayoutNode::leaf(
+            Self::Label(l) => {
+                let font_size = l.font_size.unwrap_or(16.0);
+                let line_height = (font_size * 1.4).ceil();
+                LayoutNode::leaf(
+                    id,
+                    LayoutStyle {
+                        min_height: Length::px(line_height),
+                        flex_shrink: 0.0,
+                        ..Default::default()
+                    },
+                )
+            }
+            Self::TextInput(_) => LayoutNode::leaf(
                 id,
                 LayoutStyle {
-                    min_height: Length::px(l.font_size.unwrap_or(16.0) * 1.5),
+                    min_height: Length::px(40.0),
+                    flex_shrink: 0.0,
                     ..Default::default()
                 },
             ),
-            Self::TextInput(_) => LayoutNode::leaf(id, LayoutStyle::default()),
             Self::Button(_) => LayoutNode::leaf(
                 id,
                 LayoutStyle {
@@ -412,6 +427,341 @@ impl<M> WidgetNode<M> {
                 id,
                 v.layout_style(),
                 v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
+            ),
+        }
+    }
+
+    /// Convert to a layout tree using the given [`NodeId`] and typography
+    /// context from the theme / application.
+    ///
+    /// `id` is the root identity; descendants receive monotonically increasing
+    /// IDs via a shared counter (DFS).
+    ///
+    /// For [`Label`](crate::Label) nodes this produces a [`LayoutNode::text_leaf`]
+    /// with a [`TextMeasureSpec`] that consults the label's own fields and falls
+    /// back to `context.body_font_size` / `context.body_line_height`.
+    ///
+    /// For [`TextInput`](crate::TextInput) nodes the minimum height is derived
+    /// from `context.control_height`.
+    pub fn to_layout_with_context(&self, id: NodeId, context: &WidgetLayoutContext) -> LayoutNode
+    where
+        M: Clone,
+    {
+        let mut next = id.get();
+        self.to_layout_alloc_with_context(&mut next, context)
+    }
+
+    fn to_layout_alloc_with_context(
+        &self,
+        next: &mut u64,
+        context: &WidgetLayoutContext,
+    ) -> LayoutNode
+    where
+        M: Clone,
+    {
+        let id = NodeId::new(*next);
+        *next += 1;
+        match self {
+            Self::Row(v) => LayoutNode::container(
+                id,
+                v.layout(LayoutKind::Row),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .collect(),
+            ),
+            Self::Column(v) => LayoutNode::container(
+                id,
+                v.layout(LayoutKind::Column),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .collect(),
+            ),
+            Self::Stack(v) => LayoutNode::container(
+                id,
+                v.layout(LayoutKind::Stack),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .collect(),
+            ),
+            Self::Card(v) => LayoutNode::container(
+                id,
+                LayoutStyle {
+                    kind: LayoutKind::Column,
+                    gap: v.gap,
+                    padding: v.padding,
+                    ..Default::default()
+                },
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .collect(),
+            ),
+            Self::ScrollView(v) => LayoutNode::container(
+                id,
+                v.layout(),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .collect(),
+            ),
+            Self::Label(l) => {
+                let font_size = l.font_size.unwrap_or(context.body_font_size);
+                let line_height = l.line_height.unwrap_or(context.body_line_height);
+                let spec = TextMeasureSpec {
+                    text: l.text.clone(),
+                    font_size,
+                    line_height,
+                    wrap: crate::foundations::label::map_label_wrap(l.wrap),
+                    max_lines: l.max_lines,
+                };
+                LayoutNode::text_leaf(
+                    id,
+                    LayoutStyle {
+                        ..Default::default()
+                    },
+                    spec,
+                )
+            }
+            Self::TextInput(_) => LayoutNode::leaf(
+                id,
+                LayoutStyle {
+                    min_height: Length::px(context.control_height),
+                    flex_shrink: 0.0,
+                    ..Default::default()
+                },
+            ),
+            Self::Button(_) => LayoutNode::leaf(
+                id,
+                LayoutStyle {
+                    height: Length::px(36.0),
+                    ..Default::default()
+                },
+            ),
+            Self::VirtualList(v) => LayoutNode::container(
+                id,
+                LayoutStyle {
+                    kind: LayoutKind::Column,
+                    height: Length::px(v.viewport_height),
+                    overflow: Overflow::Scroll,
+                    ..Default::default()
+                },
+                vec![],
+            ),
+            // Tooltip/Popover: keep the wrapper's id for the outer node by
+            // allocating a fresh id for the inner content so both are unique.
+            Self::Tooltip(v) => {
+                let _ = id;
+                *next -= 1;
+                v.child.to_layout_alloc_with_context(next, context)
+            }
+            Self::Popover(v) => {
+                let _ = id;
+                *next -= 1;
+                v.children[0].to_layout_alloc_with_context(next, context)
+            }
+            Self::Menu(_) => LayoutNode::leaf(
+                id,
+                LayoutStyle {
+                    width: Length::px(200.0),
+                    height: Length::Auto,
+                    ..Default::default()
+                },
+            ),
+            Self::Dialog(v) => LayoutNode::leaf(
+                id,
+                LayoutStyle {
+                    width: v.width,
+                    height: v.height,
+                    ..Default::default()
+                },
+            ),
+            Self::Separator(v) => LayoutNode::leaf(
+                id,
+                LayoutStyle {
+                    height: Length::px(v.thickness),
+                    ..Default::default()
+                },
+            ),
+            Self::Tree(v) => {
+                let visible = v.visible_nodes();
+                let mut child_nodes = Vec::with_capacity(visible.len());
+                for node in &visible {
+                    let leaf_id = NodeId::new(*next);
+                    *next += 1;
+                    child_nodes.push(LayoutNode::leaf(
+                        leaf_id,
+                        LayoutStyle {
+                            width: Length::Auto,
+                            height: Length::px(24.0),
+                            padding: Edges {
+                                left: node.depth as f32 * v.indent,
+                                ..Edges::default()
+                            },
+                            ..Default::default()
+                        },
+                    ));
+                }
+                LayoutNode::container(
+                    id,
+                    LayoutStyle {
+                        kind: LayoutKind::Column,
+                        ..Default::default()
+                    },
+                    child_nodes,
+                )
+            }
+            Self::Table(v) => {
+                let mut child_nodes: Vec<LayoutNode> = Vec::new();
+                if !v.columns.is_empty() {
+                    let header_children: Vec<LayoutNode> = v
+                        .columns
+                        .iter()
+                        .map(|col| {
+                            let nid = NodeId::new(*next);
+                            *next += 1;
+                            LayoutNode::leaf(
+                                nid,
+                                LayoutStyle {
+                                    width: Length::px(col.width),
+                                    min_height: Length::px(24.0),
+                                    ..Default::default()
+                                },
+                            )
+                        })
+                        .collect();
+                    let header_id = NodeId::new(*next);
+                    *next += 1;
+                    child_nodes.push(LayoutNode::container(
+                        header_id,
+                        LayoutStyle::row(),
+                        header_children,
+                    ));
+                }
+                for row in &v.rows {
+                    let row_children: Vec<LayoutNode> = row
+                        .cells
+                        .iter()
+                        .map(|_| {
+                            let nid = NodeId::new(*next);
+                            *next += 1;
+                            LayoutNode::leaf(
+                                nid,
+                                LayoutStyle {
+                                    min_height: Length::px(24.0),
+                                    ..Default::default()
+                                },
+                            )
+                        })
+                        .collect();
+                    let row_id = NodeId::new(*next);
+                    *next += 1;
+                    child_nodes.push(LayoutNode::container(
+                        row_id,
+                        LayoutStyle::row(),
+                        row_children,
+                    ));
+                }
+                LayoutNode::container(
+                    id,
+                    LayoutStyle {
+                        kind: LayoutKind::Column,
+                        ..Default::default()
+                    },
+                    child_nodes,
+                )
+            }
+            Self::DataGrid(v) => {
+                let mut child_nodes: Vec<LayoutNode> = Vec::new();
+                let header_children: Vec<LayoutNode> = v
+                    .columns
+                    .iter()
+                    .map(|col| {
+                        let nid = NodeId::new(*next);
+                        *next += 1;
+                        LayoutNode::leaf(
+                            nid,
+                            LayoutStyle {
+                                width: Length::px(col.width),
+                                min_height: Length::px(24.0),
+                                ..Default::default()
+                            },
+                        )
+                    })
+                    .collect();
+                let header_id = NodeId::new(*next);
+                *next += 1;
+                child_nodes.push(LayoutNode::container(
+                    header_id,
+                    LayoutStyle::row(),
+                    header_children,
+                ));
+                for row in &v.rows {
+                    let row_children: Vec<LayoutNode> = row
+                        .cells
+                        .iter()
+                        .map(|_| {
+                            let nid = NodeId::new(*next);
+                            *next += 1;
+                            LayoutNode::leaf(
+                                nid,
+                                LayoutStyle {
+                                    min_height: Length::px(24.0),
+                                    ..Default::default()
+                                },
+                            )
+                        })
+                        .collect();
+                    let row_id = NodeId::new(*next);
+                    *next += 1;
+                    child_nodes.push(LayoutNode::container(
+                        row_id,
+                        LayoutStyle::row(),
+                        row_children,
+                    ));
+                }
+                LayoutNode::container(
+                    id,
+                    LayoutStyle {
+                        kind: LayoutKind::Column,
+                        ..Default::default()
+                    },
+                    child_nodes,
+                )
+            }
+            Self::NavRail(v) => LayoutNode::container(
+                id,
+                v.layout_style(),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .collect(),
+            ),
+            Self::Sidebar(v) => LayoutNode::container(
+                id,
+                v.layout_style(),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .collect(),
+            ),
+            Self::TabBar(v) => LayoutNode::container(
+                id,
+                v.layout_style(),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .collect(),
+            ),
+            Self::Breadcrumb(v) => LayoutNode::container(
+                id,
+                v.layout_style(),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .collect(),
             ),
         }
     }

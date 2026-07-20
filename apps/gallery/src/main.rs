@@ -13,7 +13,9 @@
 
 use acme_accessibility::AccessibilityAdapter;
 use acme_core::NodeId;
-use acme_layout::{LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
+use acme_layout::{
+    LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow, WidgetLayoutContext,
+};
 use acme_platform::{
     Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
 };
@@ -1740,25 +1742,46 @@ impl Application for Gallery {
         // ── 1. Build widget tree ──
         let description = self.description();
 
-        // ── 2. Convert to layout tree ──
-        let mut root = description.to_layout(NodeId::new(1));
+        // ── 2. Build Theme ──
+        let theme = if self.dark {
+            Theme::dark()
+        } else {
+            Theme::light()
+        };
 
-        // ── 3. Apply sizes, gaps, scroll flags ──
+        // ── 3. Build layout context from theme ──
+        let layout_context = WidgetLayoutContext {
+            body_font_size: theme.typography.body_size,
+            body_line_height: theme.typography.body_size * theme.typography.line_height,
+            label_font_size: theme.typography.label_size,
+            control_height: 40.0,
+            scale_factor: context.scale_factor,
+        };
+
+        // ── 4. Convert to layout tree with context ──
+        let mut root = description.to_layout_with_context(NodeId::new(1), &layout_context);
+
+        // ── 5. Apply sizes, gaps, scroll flags ──
         apply_gallery_styles(&mut root, width, height);
 
-        // ── 4. Compute layout snapshot ──
+        // ── 6. Compute layout snapshot with intrinsic text measurement ──
         let snapshot = self
             .layout
-            .compute(&root, (width, height))
+            .compute_with_text(
+                &root,
+                (width, height),
+                &mut self.fonts,
+                context.scale_factor,
+            )
             .expect("finite Gallery viewport");
 
-        // ── 5. Accessibility ──
+        // ── 7. Accessibility ──
         self.accessibility.update(&description, &snapshot);
 
-        // ── 6. Extract structural IDs for the fixed frame ──
+        // ── 8. Extract structural IDs for the fixed frame ──
         let ids = extract_gallery_ids(&root);
 
-        // ── 7. Collect hit regions (buttons first, then Tree/Table custom hits) ──
+        // ── 9. Collect hit regions (buttons first, then Tree/Table custom hits) ──
         // Button-only DFS order must stay stable so paint btn_idx (chrome=0..10,
         // content from 11) stays aligned with button_info indices.
         let mut button_info = Vec::new();
@@ -1790,12 +1813,6 @@ impl Application for Gallery {
             .map(|r| [r.x, r.y, r.width, r.height])
             .unwrap_or([0.0; 4]);
 
-        // ── 9. Theme ──
-        let theme = if self.dark {
-            Theme::dark()
-        } else {
-            Theme::light()
-        };
         let colors = theme.colors;
 
         // ── 10. Build frame ──
@@ -2192,8 +2209,8 @@ fn render_content(
             }
             if let Some(rect) = snapshot.get(layout.id) {
                 let fs = l.font_size.unwrap_or(theme.typography.body_size);
-                let line_h = fs * theme.typography.line_height;
-                let y_text = rect.y - scroll_y + (rect.height - line_h).max(0.0) * 0.5;
+                // Top-align: Label rect now has min_height so y is the top.
+                let y_text = rect.y - scroll_y;
                 add_text(
                     fonts,
                     atlas,
@@ -2535,14 +2552,14 @@ fn paint_label_like(
                 return;
             }
             if let Some(rect) = snapshot.get(layout.id) {
-                let y = rect.y - scroll_y;
                 let fs = l.font_size.unwrap_or(theme.typography.body_size);
+                let y_text = rect.y - scroll_y;
                 add_text(
                     fonts,
                     atlas,
                     frame,
                     &l.text,
-                    ([rect.x + 4.0, y + 2.0], fs),
+                    ([rect.x + 4.0, y_text], fs),
                     theme.colors.text,
                     scale,
                     Some(clip),

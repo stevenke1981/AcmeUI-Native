@@ -2,11 +2,54 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 use acme_core::NodeId;
+use acme_text::{FontSystem, TextConstraints, TextStyle, TextWrap};
 use std::collections::HashMap;
 use taffy::prelude::{
     AvailableSpace, Dimension, Display, FlexDirection, Size, Style, TaffyTree, length, percent,
 };
 use taffy::style::{Overflow as TaffyOverflow, Position};
+
+/// Controls how text wraps when measured during layout.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TextWrapMode {
+    None,
+    Word,
+    Character,
+}
+
+/// Specifies the text content and style for a node that should be intrinsically
+/// measured during Taffy layout via `compute_layout_with_measure`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TextMeasureSpec {
+    pub text: String,
+    pub font_size: f32,
+    pub line_height: f32,
+    pub wrap: TextWrapMode,
+    pub max_lines: Option<usize>,
+}
+
+/// Typography and sizing context provided by the theme / application so that
+/// widget‑to‑layout conversion can produce correct [`TextMeasureSpec`] values
+/// without hard‑coding theme constants inside the widget library.
+#[derive(Clone, Copy, Debug)]
+pub struct WidgetLayoutContext {
+    pub body_font_size: f32,
+    pub body_line_height: f32,
+    pub label_font_size: f32,
+    pub control_height: f32,
+    pub scale_factor: f32,
+}
+
+/// The per-node context stored inside TaffyTree for intrinsic measurement.
+type NodeContext = Option<TextMeasureSpec>;
+
+fn map_wrap(mode: TextWrapMode) -> TextWrap {
+    match mode {
+        TextWrapMode::None => TextWrap::None,
+        TextWrapMode::Word => TextWrap::Word,
+        TextWrapMode::Character => TextWrap::Glyph,
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Length {
@@ -111,6 +154,7 @@ impl LayoutStyle {
 pub struct LayoutNode {
     pub id: NodeId,
     pub style: LayoutStyle,
+    pub measure: Option<TextMeasureSpec>,
     pub children: Vec<LayoutNode>,
 }
 impl LayoutNode {
@@ -118,6 +162,15 @@ impl LayoutNode {
         Self {
             id,
             style,
+            measure: None,
+            children: vec![],
+        }
+    }
+    pub fn text_leaf(id: NodeId, style: LayoutStyle, spec: TextMeasureSpec) -> Self {
+        Self {
+            id,
+            style,
+            measure: Some(spec),
             children: vec![],
         }
     }
@@ -125,6 +178,7 @@ impl LayoutNode {
         Self {
             id,
             style,
+            measure: None,
             children,
         }
     }
@@ -203,7 +257,7 @@ impl LayoutEngine {
         {
             return Err(LayoutError::InvalidViewport);
         }
-        let mut tree: TaffyTree<u64> = TaffyTree::new();
+        let mut tree: TaffyTree<NodeContext> = TaffyTree::new();
         let mut ids = HashMap::new();
         let root_node = build(&mut tree, root, &mut ids, false)?;
         tree.compute_layout(
@@ -218,16 +272,93 @@ impl LayoutEngine {
         collect(&tree, root, root_node, (0.0, 0.0), &mut out)?;
         Ok(out)
     }
+
+    /// Run layout with intrinsic text measurement.
+    ///
+    /// Nodes that carry a [`TextMeasureSpec`] (created via [`LayoutNode::text_leaf`])
+    /// are measured by actually shaping the text with `fonts` inside Taffy's measure
+    /// function, so wrapping and font metrics are accounted for during layout.
+    pub fn compute_with_text(
+        &mut self,
+        root: &LayoutNode,
+        viewport: (f32, f32),
+        fonts: &mut FontSystem,
+        scale_factor: f32,
+    ) -> Result<LayoutSnapshot, LayoutError> {
+        if !viewport.0.is_finite()
+            || !viewport.1.is_finite()
+            || viewport.0 < 0.0
+            || viewport.1 < 0.0
+        {
+            return Err(LayoutError::InvalidViewport);
+        }
+        let mut tree: TaffyTree<NodeContext> = TaffyTree::new();
+        let mut ids = HashMap::new();
+        let root_node = build(&mut tree, root, &mut ids, false)?;
+
+        tree.compute_layout_with_measure(
+            root_node,
+            Size {
+                width: AvailableSpace::Definite(viewport.0),
+                height: AvailableSpace::Definite(viewport.1),
+            },
+            |known: Size<Option<f32>>,
+             available: Size<AvailableSpace>,
+             _node_id: taffy::NodeId,
+             ctx: Option<&mut NodeContext>,
+             _style: &Style| {
+                // Only provide intrinsic size for text-leaf nodes.
+                let Some(Some(spec)) = ctx else {
+                    return Size::ZERO;
+                };
+                // Derive the maximum width from available / known dimensions.
+                let max_width = match available.width {
+                    AvailableSpace::Definite(w) => Some(w),
+                    _ => known.width,
+                };
+                let text_style = TextStyle {
+                    font_size: spec.font_size,
+                    line_height: spec.line_height,
+                    ..TextStyle::default()
+                };
+                let constraints = TextConstraints {
+                    max_width,
+                    wrap: map_wrap(spec.wrap),
+                };
+                let shaped = fonts.shape(&spec.text, &text_style, constraints, scale_factor);
+                Size {
+                    width: known.width.unwrap_or(shaped.width),
+                    height: known.height.unwrap_or(shaped.height.max(spec.line_height)),
+                }
+            },
+        )
+        .map_err(|e| LayoutError::Engine(e.to_string()))?;
+
+        let mut out = LayoutSnapshot::default();
+        collect(&tree, root, root_node, (0.0, 0.0), &mut out)?;
+        Ok(out)
+    }
 }
 
 fn build(
-    tree: &mut TaffyTree<u64>,
+    tree: &mut TaffyTree<NodeContext>,
     node: &LayoutNode,
     ids: &mut HashMap<NodeId, ()>,
     absolute: bool,
 ) -> Result<taffy::NodeId, LayoutError> {
     if ids.insert(node.id, ()).is_some() {
         return Err(LayoutError::DuplicateId(node.id));
+    }
+    // Text leaf nodes: store the measure spec as context so
+    // `compute_with_text` can intrinsically size them.
+    if node.children.is_empty() && let Some(spec) = &node.measure {
+        let mut style = to_taffy(&node.style);
+        if absolute {
+            style.position = Position::Absolute;
+        }
+        return tree
+            .new_leaf_with_context(style, Some(spec.clone()))
+            .map_err(|e| LayoutError::Engine(e.to_string()));
     }
     let mut children = Vec::with_capacity(node.children.len());
     for child in &node.children {
@@ -246,7 +377,7 @@ fn build(
         .map_err(|e| LayoutError::Engine(e.to_string()))
 }
 fn collect(
-    tree: &TaffyTree<u64>,
+    tree: &TaffyTree<NodeContext>,
     node: &LayoutNode,
     tid: taffy::NodeId,
     parent: (f32, f32),
@@ -532,5 +663,82 @@ mod tests {
             LayoutEngine::new().compute(&root, (10.0, 10.0)),
             Err(LayoutError::DuplicateId(id)) if id.get() == 1
         ));
+    }
+
+    #[test]
+    fn label_has_non_zero_intrinsic_height() {
+        let mut fonts = FontSystem::new();
+        let style = TextStyle {
+            font_size: 24.0,
+            line_height: 28.0,
+            ..TextStyle::default()
+        };
+        let result = measure_text("Typography", &mut fonts, &style, 1.0, None);
+        assert!(
+            result.height >= 24.0,
+            "expected height >= 24, got {}",
+            result.height
+        );
+    }
+
+    #[test]
+    fn larger_font_has_larger_intrinsic_height() {
+        let mut fonts = FontSystem::new();
+        let small = TextStyle {
+            font_size: 12.0,
+            line_height: 16.0,
+            ..TextStyle::default()
+        };
+        let large = TextStyle {
+            font_size: 24.0,
+            line_height: 28.0,
+            ..TextStyle::default()
+        };
+        let small_result = measure_text("Text", &mut fonts, &small, 1.0, None);
+        let large_result = measure_text("Text", &mut fonts, &large, 1.0, None);
+        assert!(
+            large_result.height > small_result.height,
+            "expected 24px height ({}) > 12px height ({})",
+            large_result.height,
+            small_result.height
+        );
+    }
+
+    #[test]
+    fn narrow_cjk_text_wraps_to_more_lines() {
+        let mut fonts = FontSystem::new();
+        // 22 CJK characters — wraps at 240 px but fits on a single line at 600 px
+        let cjk = "繁體中文內容需要換行測試文字排版與行數計算";
+        let style = TextStyle {
+            font_size: 16.0,
+            line_height: 20.0,
+            ..TextStyle::default()
+        };
+        // Note: measure_text hard-codes TextWrap::None, so we use fonts.shape()
+        // directly (the same approach acme-text tests use) to exercise wrapping.
+        let narrow = fonts.shape(
+            cjk,
+            &style,
+            TextConstraints {
+                max_width: Some(240.0),
+                wrap: TextWrap::Word,
+            },
+            1.0,
+        );
+        let wide = fonts.shape(
+            cjk,
+            &style,
+            TextConstraints {
+                max_width: Some(600.0),
+                wrap: TextWrap::Word,
+            },
+            1.0,
+        );
+        assert!(
+            narrow.height > wide.height,
+            "expected narrow height ({}) > wide height ({})",
+            narrow.height,
+            wide.height,
+        );
     }
 }
