@@ -1,0 +1,15 @@
+[package]
+name = "acme-textinput"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+acme-core = { path = "../acme-core" }
+acme-layout = { path = "../acme-layout" }
+acme-text = { path = "../acme-text" }
+acme-theme = { path = "../acme-theme" }
+acme-widgets = { path = "../acme-widgets" }
+acme-platform = { path = "../acme-platform" }
+acme-render-wgpu = { path = "../acme-render-wgpu" }
+unicode-segmentation.workspace = true

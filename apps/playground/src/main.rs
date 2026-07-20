@@ -335,14 +335,14 @@ impl Application for Playground {
 
     fn event(&mut self, event: PlatformEvent) -> bool {
         match event {
-            PlatformEvent::PointerMoved { x, y } => {
+            PlatformEvent::PointerMoved { x, y, .. } => {
                 self.cursor = (x, y);
                 let next = self.hit();
                 let changed = next != self.hovered;
                 self.hovered = next;
                 changed
             }
-            PlatformEvent::PointerButton { pressed } => {
+            PlatformEvent::PointerButton { pressed, .. } => {
                 if pressed {
                     self.pressed = self.hit();
                     true
@@ -354,7 +354,7 @@ impl Application for Playground {
                     activated.is_some_and(|index| self.activate(index))
                 }
             }
-            PlatformEvent::Scroll { delta_y } => {
+            PlatformEvent::Scroll { delta_y, .. } => {
                 self.scroll = (self.scroll - delta_y).clamp(0.0, self.max_scroll);
                 true
             }
@@ -362,6 +362,7 @@ impl Application for Playground {
                 key: PlatformKey::Tab,
                 pressed: true,
                 shift,
+                ..
             } => {
                 self.focused = if shift {
                     (self.focused + 7) % 8

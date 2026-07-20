@@ -32,11 +32,15 @@ threshold or controlled hardware baseline.
 
 - Deterministic surface-loss recreation is not yet complete; resize, zero-size
   suspension, outdated/suboptimal reconfiguration and validation diagnostics exist.
-- Traditional Chinese IME is architecture-only and has not received manual 注音
-  preedit/candidate/commit/cancel validation.
-- AccessKit, TextInput/clipboard, multi-window and cross-platform support are deferred.
+- Traditional Chinese IME has architecture-only support (preedit/commit/cancel events in
+  PlatformEvent, TextInputState handles IME composition) but has not received manual 注音
+  validation.
 - Manual interaction at physical 125/150/200% Windows display scaling remains to be
   performed; automated DPI conversion and glyph-scale tests do not replace it.
+- Tree, Table, DataGrid not yet implemented.
+- Application::run() multi-window support is designed (WindowId on all events) but the
+  concrete Runtime loop still drives a single window; the `windows()` default returns an
+  empty iterator.
 
 ## Risks
 
@@ -60,8 +64,22 @@ threshold or controlled hardware baseline.
 - Fixed `LayoutSnapshot.iter()` API exposure.
 - 68 unit tests total across all crates, all passing.
 
-## Next milestone
+## Milestone 3 additions
 
-Finish deterministic surface/device recreation, retained NodeId layout identity,
-intrinsic text measurement for auto-sized Label/Stack, manual DPI validation, then
-begin TextInput and manually validated Traditional Chinese IME work.
+- **Clipboard**: `acme-platform/src/clipboard.rs` with arboard-based `Clipboard { get_text, set_text, is_available }`, thread-safe via `Mutex`, 2 tests.
+- **Tooltip**: `WidgetNode::Tooltip(Tooltip<M>)` with label + child content, wraps child in layout, 3 tests.
+- **Animation**: New `acme-animation` crate with `AnimationEngine`, `Tween<T>`, `Easing` (Linear, QuadIn, QuadOut, QuadInOut, SmoothStep, Bounce, Elastic), `AnimationUpdate { value, progress, done }`, 22 tests.
+- **Multi-window**: `WindowId(pub u64)` added to all `PlatformEvent` variants, `Application::windows()` default method returning empty iterator, `HashMap<WinitWindowId, WindowState>` in Runtime, 7 tests.
+- **TextInput**: New `acme-textinput` crate with `TextInputState` — grapheme-aware cursor movement, selection (shift+arrow), clipboard cut/copy/paste, IME preedit/commit/password masking, `render_text_input()` returning styled quads + cursor, 45 tests.
+- **VirtualList**: `WidgetNode::VirtualList(VirtualList<M>)` with `visible_range()`, `content_height`, `Arc<dyn Fn(usize) -> WidgetNode<M>>` item builder, 7 tests.
+- **Popover**: `WidgetNode::Popover(Popover<M>)` with anchor + content nodes, `PopoverPlacement::Bottom/Top/Left/Right`, tests.
+- **Menu**: `WidgetNode::Menu(Menu<M>)` with `Vec<MenuItem<M>>` (label, disabled, separator, submenu), tests.
+- **Dialog**: `WidgetNode::Dialog(Dialog<M>)` with title, content, modal flag, explicit width/height, tests.
+- 174 unit tests total across all crates, all passing with zero warnings.
+
+## Remaining (next milestone)
+
+Implementation of Tree, Table, DataGrid widgets, Traditional Chinese IME manual
+validation, deterministic surface/device recreation, retained NodeId layout identity,
+intrinsic text measurement for auto-sized Label/Stack, manual DPI validation,
+and the concrete multi-window Runtime loop.

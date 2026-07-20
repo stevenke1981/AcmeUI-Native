@@ -35,22 +35,23 @@
 - [x] Gallery
 
 ## P1
-- [ ] TextInput
-- [ ] Clipboard
-- [ ] Traditional Chinese IME
-- [ ] Tooltip
-- [ ] Popover
-- [ ] Menu
-- [ ] Dialog
+- [x] TextInput (cursor, selection, clipboard, IME preedit, password)
+- [x] Clipboard (arboard integration in acme-platform)
+- [ ] Traditional Chinese IME (manual validation pending)
+- [x] Tooltip
+- [x] Popover
+- [x] Menu
+- [x] Dialog
 - [x] AccessKit
 - [x] acme-devtools crate (FrameMetrics, WidgetTreeDump, LayoutInspector, RenderDiagnostics)
 - [x] apps/benchmark (layout, reconciliation, frame build benchmarks)
 - [x] apps/playground (interactive widget testing app)
 
 ## P2
-- [ ] VirtualList
+- [x] VirtualList (virtual scrolling, visible range calculation)
 - [ ] Tree
 - [ ] Table
 - [ ] DataGrid
-- [ ] Animation
-- [ ] Multi-window
+- [x] Animation (tween engine, easing, looping, yoyo)
+- [x] Multi-window (WindowId, per-window state, close handling)
+- [ ] Traditional Chinese IME

@@ -230,6 +230,11 @@ impl WidgetTreeDump {
             WidgetNode::Card(_) => "Card",
             WidgetNode::Separator(_) => "Separator",
             WidgetNode::ScrollView(_) => "ScrollView",
+            WidgetNode::VirtualList(_) => "VirtualList",
+            WidgetNode::Tooltip(_) => "Tooltip",
+            WidgetNode::Popover(_) => "Popover",
+            WidgetNode::Menu(_) => "Menu",
+            WidgetNode::Dialog(_) => "Dialog",
         }
     }
 
@@ -244,6 +249,11 @@ impl WidgetTreeDump {
                 .map_or_else(String::new, |k| format!(" key=\"{}\"", k.as_str())),
             WidgetNode::Button(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::ScrollView(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::VirtualList(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::Tooltip(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::Popover(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::Menu(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::Dialog(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::Label(_) | WidgetNode::Separator(_) => String::new(),
         }
     }
@@ -253,6 +263,13 @@ impl WidgetTreeDump {
             WidgetNode::Label(v) => format!(" text=\"{}\"", v.text),
             WidgetNode::Button(v) => format!(" label=\"{}\"", v.label),
             WidgetNode::Separator(v) => format!(" thickness={}", v.thickness),
+            WidgetNode::Tooltip(v) => format!(" text=\"{}\"", v.text),
+            WidgetNode::VirtualList(v) => format!(" items={}", v.item_count),
+            WidgetNode::Popover(v) => format!(" placement={:?}", v.placement),
+            WidgetNode::Menu(v) => format!(" items={}", v.items.len()),
+            WidgetNode::Dialog(v) => {
+                format!(" title=\"{}\" w={:?} h={:?}", v.title, v.width, v.height)
+            }
             _ => String::new(),
         }
     }

@@ -3,7 +3,7 @@ resolver = "2"
 members = [
  "crates/acme-core", "crates/acme-platform", "crates/acme-render-wgpu",
  "crates/acme-layout", "crates/acme-text", "crates/acme-accessibility",
- "crates/acme-theme", "crates/acme-widgets", "crates/acme-devtools",
+ "crates/acme-theme", "crates/acme-animation", "crates/acme-widgets", "crates/acme-textinput", "crates/acme-devtools",
  "apps/gallery", "apps/playground", "apps/benchmark"
 ]
 default-members = ["apps/gallery"]

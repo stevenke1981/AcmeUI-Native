@@ -82,6 +82,11 @@ fn walk_node<M: Clone + 'static>(
         WidgetNode::Button(_) => Role::Button,
         WidgetNode::Separator(_) => Role::Splitter,
         WidgetNode::ScrollView(_) => Role::ScrollView,
+        WidgetNode::VirtualList(_) => Role::List,
+        WidgetNode::Tooltip(_) => Role::Tooltip,
+        WidgetNode::Popover(_) => Role::Group,
+        WidgetNode::Menu(_) => Role::Menu,
+        WidgetNode::Dialog(_) => Role::Dialog,
     };
 
     let mut access_node = AccessNode::new(role);
