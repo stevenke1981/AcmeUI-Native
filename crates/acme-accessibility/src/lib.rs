@@ -230,6 +230,10 @@ pub fn walk_node<M: Clone + 'static>(
         WidgetNode::Table(_) => Role::Table,
         WidgetNode::DataGrid(_) => Role::Grid,
         WidgetNode::TextInput(_) => Role::TextInput,
+        WidgetNode::NavRail(_) | WidgetNode::Sidebar(_) | WidgetNode::Breadcrumb(_) => {
+            Role::Navigation
+        }
+        WidgetNode::TabBar(_) => Role::TabList,
     };
 
     let mut access_node = AccessNode::new(role);

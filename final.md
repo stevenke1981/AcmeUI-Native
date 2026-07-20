@@ -175,9 +175,24 @@ threshold or controlled hardware baseline.
 - `cargo clippy --workspace --all-targets -- -D warnings`: passed.
 - `cargo test --workspace`: passed (**331** unit tests, 0 failed; 1 ignored doctest).
 
+## v0.2.2 additions
+
+### Gallery Data + Navigation demos
+- Data category: live Tree, Table (28 rows), DataGrid (frozen col + merge), VirtualList (250 items)
+- Navigation category: NavRail / Sidebar / TabBar / Breadcrumb demos
+- `acme-widgets::navigation` module fully implemented with tests
+
+### Real device-lost detection
+- wgpu 29 `set_device_lost_callback` + `on_uncaptured_error` → `Arc<AtomicBool>`
+- Internal/OutOfMemory mark lost; Validation errors log only
+- `#[ignore]` GPU smoke test for adapter/device + handler registration
+
+### Verification (v0.2.2)
+- fmt/check/clippy `-D warnings`: passed
+- `cargo test --workspace`: ~341 unit tests passed; 2 ignored (GPU smoke + doctest)
+
 ## Remaining (next milestone)
 
-Real wgpu device-loss detection hook, manual 注音 IME validation, manual DPI at
-125/150/200%, Gallery Data live demos, navigation widgets, glyph atlas eviction,
+Manual 注音 IME validation, manual DPI at 125/150/200%, glyph atlas eviction,
 screenshot golden comparison, performance baseline thresholds, `cargo-deny` /
-`cargo-audit`, WSL/macOS/CI matrix.
+`cargo-audit`, WSL/macOS/CI matrix, interactive multi-window smoke.

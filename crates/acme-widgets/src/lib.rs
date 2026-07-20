@@ -22,7 +22,6 @@ mod visual_state;
 pub use data::*;
 pub use foundations::*;
 pub use inputs::*;
-#[allow(unused_imports)]
 pub use navigation::*;
 pub use overlay::*;
 pub use overlay_manager::*;
@@ -77,6 +76,10 @@ pub enum WidgetNode<M> {
     Table(Table<M>),
     DataGrid(DataGrid<M>),
     TextInput(TextInput<M>),
+    NavRail(NavRail<M>),
+    Sidebar(Sidebar<M>),
+    TabBar(TabBar<M>),
+    Breadcrumb(Breadcrumb<M>),
 }
 
 // ============================================================================
@@ -101,6 +104,10 @@ impl<M> WidgetNode<M> {
             Self::Table(v) => Some(&v.key),
             Self::DataGrid(v) => Some(&v.key),
             Self::TextInput(v) => Some(&v.key),
+            Self::NavRail(v) => Some(&v.key),
+            Self::Sidebar(v) => Some(&v.key),
+            Self::TabBar(v) => Some(&v.key),
+            Self::Breadcrumb(v) => Some(&v.key),
         }
     }
 
@@ -118,6 +125,10 @@ impl<M> WidgetNode<M> {
             Self::Tree(_) => &[],
             Self::Table(v) => &v.all_cells,
             Self::DataGrid(v) => &v.all_cells,
+            Self::NavRail(v) => &v.children,
+            Self::Sidebar(v) => &v.children,
+            Self::TabBar(v) => &v.children,
+            Self::Breadcrumb(v) => &v.children,
             Self::Label(_) | Self::Button(_) | Self::Separator(_) | Self::TextInput(_) => &[],
         }
     }
@@ -397,6 +408,66 @@ impl<M> WidgetNode<M> {
                         ..Default::default()
                     },
                     child_nodes,
+                )
+            }
+            Self::NavRail(v) => {
+                let mut child_id = id.get() + 1;
+                LayoutNode::container(
+                    id,
+                    v.layout_style(),
+                    v.children
+                        .iter()
+                        .map(|c| {
+                            let this_id = NodeId::new(child_id);
+                            child_id += 1;
+                            c.to_layout(this_id)
+                        })
+                        .collect(),
+                )
+            }
+            Self::Sidebar(v) => {
+                let mut child_id = id.get() + 1;
+                LayoutNode::container(
+                    id,
+                    v.layout_style(),
+                    v.children
+                        .iter()
+                        .map(|c| {
+                            let this_id = NodeId::new(child_id);
+                            child_id += 1;
+                            c.to_layout(this_id)
+                        })
+                        .collect(),
+                )
+            }
+            Self::TabBar(v) => {
+                let mut child_id = id.get() + 1;
+                LayoutNode::container(
+                    id,
+                    v.layout_style(),
+                    v.children
+                        .iter()
+                        .map(|c| {
+                            let this_id = NodeId::new(child_id);
+                            child_id += 1;
+                            c.to_layout(this_id)
+                        })
+                        .collect(),
+                )
+            }
+            Self::Breadcrumb(v) => {
+                let mut child_id = id.get() + 1;
+                LayoutNode::container(
+                    id,
+                    v.layout_style(),
+                    v.children
+                        .iter()
+                        .map(|c| {
+                            let this_id = NodeId::new(child_id);
+                            child_id += 1;
+                            c.to_layout(this_id)
+                        })
+                        .collect(),
                 )
             }
         }
@@ -1202,5 +1273,179 @@ mod tests {
         let resolved = b.resolve_style(&theme, ButtonState::default());
         assert_eq!(resolved.background, theme.colors.disabled_bg);
         assert_eq!(resolved.foreground, theme.colors.disabled_text);
+    }
+
+    // ------------------------------------------------------------------
+    // Navigation widgets
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn nav_rail_builder_and_layout() {
+        let node = nav_rail::<Msg>("rail")
+            .item(nav_item("Home").icon("⌂"))
+            .item(nav_item("Search").on_click(Msg::Save))
+            .item(nav_item("Settings").disabled(true))
+            .selected(1)
+            .collapsed(false)
+            .build();
+        assert!(matches!(node, WidgetNode::NavRail(_)));
+        assert_eq!(node.key().unwrap().as_str(), "rail");
+        let WidgetNode::NavRail(r) = &node else {
+            panic!("expected NavRail");
+        };
+        assert_eq!(r.items.len(), 3);
+        assert_eq!(r.selected, Some(1));
+        assert!(!r.collapsed);
+        assert_eq!(r.children.len(), 3);
+        let layout = node.to_layout(NodeId::new(1));
+        assert_eq!(layout.style.kind, LayoutKind::Column);
+        assert_eq!(layout.style.width, Length::px(200.0));
+        assert_eq!(layout.children.len(), 3);
+        assert!(!layout.children.is_empty());
+    }
+
+    #[test]
+    fn nav_rail_collapsed_width_and_short_labels() {
+        let node = nav_rail::<Msg>("rail")
+            .item(nav_item("Home"))
+            .item(nav_item("Docs").icon("D"))
+            .selected(0)
+            .collapsed(true)
+            .build();
+        let WidgetNode::NavRail(r) = &node else {
+            panic!("expected NavRail");
+        };
+        assert!(r.collapsed);
+        let layout = node.to_layout(NodeId::new(10));
+        assert_eq!(layout.style.width, Length::px(56.0));
+        let WidgetNode::Label(l) = &r.children[0] else {
+            panic!("expected Label for item without message");
+        };
+        assert_eq!(l.text, "• H");
+        let WidgetNode::Label(l2) = &r.children[1] else {
+            panic!("expected Label");
+        };
+        assert_eq!(l2.text, "D");
+    }
+
+    #[test]
+    fn sidebar_builder_width_header_children() {
+        let node = sidebar::<Msg>("sb")
+            .width(240.0)
+            .header("Library")
+            .child(label("Item A"))
+            .child(label("Item B"))
+            .build();
+        assert!(matches!(node, WidgetNode::Sidebar(_)));
+        let WidgetNode::Sidebar(s) = &node else {
+            panic!("expected Sidebar");
+        };
+        assert_eq!(s.key.as_str(), "sb");
+        assert_eq!(s.width, 240.0);
+        assert_eq!(s.header.as_deref(), Some("Library"));
+        assert_eq!(s.children.len(), 3);
+        let layout = node.to_layout(NodeId::new(1));
+        assert_eq!(layout.style.kind, LayoutKind::Column);
+        assert_eq!(layout.style.width, Length::px(240.0));
+        assert_eq!(layout.children.len(), 3);
+    }
+
+    #[test]
+    fn sidebar_default_width() {
+        let node = sidebar::<Msg>("sb").child(label("only")).build();
+        let WidgetNode::Sidebar(s) = &node else {
+            panic!("expected Sidebar");
+        };
+        assert_eq!(s.width, 224.0);
+        assert_eq!(s.children.len(), 1);
+    }
+
+    #[test]
+    fn tab_bar_builder_selected_and_layout() {
+        let node = tab_bar::<Msg>("tabs")
+            .tab("Overview")
+            .tab("Details")
+            .tab("History")
+            .selected(1)
+            .build();
+        assert!(matches!(node, WidgetNode::TabBar(_)));
+        let WidgetNode::TabBar(t) = &node else {
+            panic!("expected TabBar");
+        };
+        assert_eq!(t.tabs.len(), 3);
+        assert_eq!(t.selected, 1);
+        assert_eq!(t.children.len(), 3);
+        let WidgetNode::Label(sel) = &t.children[1] else {
+            panic!("expected Label");
+        };
+        assert_eq!(sel.text, "[Details]");
+        let layout = node.to_layout(NodeId::new(1));
+        assert_eq!(layout.style.kind, LayoutKind::Row);
+        assert_eq!(layout.children.len(), 3);
+        assert!(!layout.children.is_empty());
+    }
+
+    #[test]
+    fn tab_bar_item_with_message() {
+        let node = tab_bar::<Msg>("tabs")
+            .item(TabItem::new("A").on_click(Msg::Save))
+            .tab("B")
+            .selected(0)
+            .build();
+        let WidgetNode::TabBar(t) = &node else {
+            panic!("expected TabBar");
+        };
+        assert!(matches!(t.children[0], WidgetNode::Button(_)));
+        assert!(t.tabs[0].activate().is_some());
+    }
+
+    #[test]
+    fn breadcrumb_builder_and_separators() {
+        let node = breadcrumb::<Msg>("bc")
+            .segment("Home")
+            .segment("Library")
+            .segment("Data")
+            .build();
+        assert!(matches!(node, WidgetNode::Breadcrumb(_)));
+        let WidgetNode::Breadcrumb(b) = &node else {
+            panic!("expected Breadcrumb");
+        };
+        assert_eq!(b.segments.len(), 3);
+        assert_eq!(b.children.len(), 5);
+        let layout = node.to_layout(NodeId::new(1));
+        assert_eq!(layout.style.kind, LayoutKind::Row);
+        assert_eq!(layout.children.len(), 5);
+        assert!(!layout.children.is_empty());
+    }
+
+    #[test]
+    fn breadcrumb_custom_separator_and_clickable_segment() {
+        let node = breadcrumb::<Msg>("bc")
+            .separator(">")
+            .item(BreadcrumbSegment::new("Root").on_click(Msg::Save))
+            .segment("Leaf")
+            .build();
+        let WidgetNode::Breadcrumb(b) = &node else {
+            panic!("expected Breadcrumb");
+        };
+        assert_eq!(b.separator, ">");
+        assert!(matches!(b.children[0], WidgetNode::Button(_)));
+        let WidgetNode::Label(sep) = &b.children[1] else {
+            panic!("expected separator label");
+        };
+        assert_eq!(sep.text, " > ");
+        assert_eq!(node.key().unwrap().as_str(), "bc");
+    }
+
+    #[test]
+    fn navigation_widgets_convert_via_from() {
+        let rail: WidgetNode<Msg> = nav_rail("r").item(nav_item("A")).into();
+        let sb: WidgetNode<Msg> = sidebar("s").child(label("x")).into();
+        let tabs: WidgetNode<Msg> = tab_bar("t").tab("One").into();
+        let bc: WidgetNode<Msg> = breadcrumb("b").segment("Home").into();
+        assert!(matches!(rail, WidgetNode::NavRail(_)));
+        assert!(matches!(sb, WidgetNode::Sidebar(_)));
+        assert!(matches!(tabs, WidgetNode::TabBar(_)));
+        assert!(matches!(bc, WidgetNode::Breadcrumb(_)));
     }
 }

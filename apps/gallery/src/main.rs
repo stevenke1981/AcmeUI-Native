@@ -24,8 +24,9 @@ use acme_textinput::{
 };
 use acme_theme::{Theme, ThemeColor, ThemeMode};
 use acme_widgets::{
-    ButtonState, ButtonVariant, WidgetNode, button, column, label, label_with_size, row,
-    scroll_view, separator,
+    ButtonState, ButtonVariant, DataGridColumn, DataGridRow, TableColumn, TableRow, TreeNode,
+    WidgetNode, breadcrumb, button, column, datagrid, label, label_with_size, nav_item, nav_rail,
+    row, scroll_view, separator, sidebar, tab_bar, table, tree, virtual_list,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -339,8 +340,183 @@ impl Gallery {
     }
 
     fn navigation_page(&self) -> WidgetNode<GalleryMessage> {
-        let name = CATEGORIES[2].pages[self.selected_page.min(3)];
-        self.component_page(name)
+        match self.selected_page.min(3) {
+            0 => self.nav_rail_page(),
+            1 => self.sidebar_widget_page(),
+            2 => self.tab_bar_page(),
+            _ => self.breadcrumb_page(),
+        }
+    }
+
+    fn nav_rail_page(&self) -> WidgetNode<GalleryMessage> {
+        let g = spacing(self.density, 8.0);
+        let expanded = nav_rail::<GalleryMessage>("demo_rail")
+            .item(nav_item("Home").icon("⌂").on_click(GalleryMessage::DpiInfo))
+            .item(
+                nav_item("Search")
+                    .icon("⌕")
+                    .on_click(GalleryMessage::DpiInfo),
+            )
+            .item(
+                nav_item("Library")
+                    .icon("☰")
+                    .on_click(GalleryMessage::DpiInfo),
+            )
+            .item(nav_item("Settings").icon("⚙").disabled(true))
+            .selected(0)
+            .collapsed(false)
+            .build();
+        let collapsed = nav_rail::<GalleryMessage>("demo_rail_c")
+            .item(nav_item("Home").icon("⌂"))
+            .item(nav_item("Search").icon("⌕"))
+            .item(nav_item("Library").icon("☰"))
+            .selected(1)
+            .collapsed(true)
+            .build();
+        let secs = vec![
+            (
+                "Anatomy",
+                column()
+                    .gap(4.0)
+                    .child(label("NavRail — vertical destinations"))
+                    .child(label("  key, items[], selected, collapsed"))
+                    .child(label("  item: label + optional icon / message / disabled"))
+                    .build(),
+            ),
+            (
+                "Expanded",
+                column()
+                    .gap(g)
+                    .child(label("Selected: Home"))
+                    .child(expanded)
+                    .build(),
+            ),
+            (
+                "Collapsed",
+                column()
+                    .gap(g)
+                    .child(label("Icons / short labels only"))
+                    .child(collapsed)
+                    .build(),
+            ),
+            ("Density", density_demo()),
+            ("Long Traditional Chinese Text", long_text_section()),
+        ];
+        self.build_component_page("NavRail", secs)
+    }
+
+    fn sidebar_widget_page(&self) -> WidgetNode<GalleryMessage> {
+        let g = spacing(self.density, 8.0);
+        let demo = sidebar::<GalleryMessage>("demo_sidebar")
+            .width(224.0)
+            .header("Explorer")
+            .child(button("sb_files", "Files").on_click(GalleryMessage::DpiInfo))
+            .child(button("sb_search", "Search").on_click(GalleryMessage::DpiInfo))
+            .child(label("— Recent —"))
+            .child(label("readme.md"))
+            .child(label("main.rs"))
+            .build();
+        let secs = vec![
+            (
+                "Anatomy",
+                column()
+                    .gap(4.0)
+                    .child(label("Sidebar — fixed-width panel"))
+                    .child(label("  key, width (default 224), header, children[]"))
+                    .build(),
+            ),
+            (
+                "Demo",
+                column()
+                    .gap(g)
+                    .child(label("width = 224px, header + body"))
+                    .child(demo)
+                    .build(),
+            ),
+            ("Density", density_demo()),
+            ("Long Traditional Chinese Text", long_text_section()),
+        ];
+        self.build_component_page("Sidebar", secs)
+    }
+
+    fn tab_bar_page(&self) -> WidgetNode<GalleryMessage> {
+        let g = spacing(self.density, 8.0);
+        let tabs = tab_bar::<GalleryMessage>("demo_tabs")
+            .tab("Overview")
+            .tab("Details")
+            .tab("History")
+            .tab("Settings")
+            .selected(0)
+            .build();
+        let tabs_sel = tab_bar::<GalleryMessage>("demo_tabs_2")
+            .tab("日")
+            .tab("週")
+            .tab("月")
+            .selected(1)
+            .build();
+        let secs = vec![
+            (
+                "Anatomy",
+                column()
+                    .gap(4.0)
+                    .child(label("TabBar — horizontal tab strip"))
+                    .child(label("  key, tabs[], selected index"))
+                    .child(label("  selected tab rendered as [Label]"))
+                    .build(),
+            ),
+            (
+                "Demo",
+                column()
+                    .gap(g)
+                    .child(label("selected = Overview"))
+                    .child(tabs)
+                    .child(label("selected = 週"))
+                    .child(tabs_sel)
+                    .build(),
+            ),
+            ("Density", density_demo()),
+            ("Long Traditional Chinese Text", long_text_section()),
+        ];
+        self.build_component_page("TabBar", secs)
+    }
+
+    fn breadcrumb_page(&self) -> WidgetNode<GalleryMessage> {
+        let g = spacing(self.density, 8.0);
+        let trail = breadcrumb::<GalleryMessage>("demo_bc")
+            .segment("Home")
+            .segment("Library")
+            .segment("Data")
+            .segment("表單")
+            .build();
+        let trail_gt = breadcrumb::<GalleryMessage>("demo_bc_gt")
+            .separator(">")
+            .segment("Root")
+            .segment("src")
+            .segment("main.rs")
+            .build();
+        let secs = vec![
+            (
+                "Anatomy",
+                column()
+                    .gap(4.0)
+                    .child(label("Breadcrumb — path trail with separators"))
+                    .child(label("  key, segments[], separator (default \"/\")"))
+                    .build(),
+            ),
+            (
+                "Demo",
+                column()
+                    .gap(g)
+                    .child(label("separator = /"))
+                    .child(trail)
+                    .child(label("separator = >"))
+                    .child(trail_gt)
+                    .build(),
+            ),
+            ("Density", density_demo()),
+            ("Long Traditional Chinese Text", long_text_section()),
+        ];
+        self.build_component_page("Breadcrumb", secs)
     }
 
     fn overlay_page(&self) -> WidgetNode<GalleryMessage> {
@@ -349,8 +525,226 @@ impl Gallery {
     }
 
     fn data_page(&self) -> WidgetNode<GalleryMessage> {
-        let name = CATEGORIES[4].pages[self.selected_page.min(3)];
-        self.component_page(name)
+        let page = self.selected_page.min(3);
+        let title = CATEGORIES[4].pages[page];
+        let body = match page {
+            0 => self.tree_demo(),
+            1 => self.table_demo(),
+            2 => self.datagrid_demo(),
+            _ => self.virtual_list_demo(),
+        };
+        column()
+            .gap(spacing(self.density, 16.0))
+            .padding(spacing(self.density, 24.0))
+            .child(label_with_size(title, 24.0))
+            .child(self.data_page_tabs(page))
+            .child(separator())
+            .child(body)
+            .build()
+    }
+
+    /// In-category page switcher for Data demos (Tree / Table / DataGrid / VirtualList).
+    fn data_page_tabs(&self, active: usize) -> WidgetNode<GalleryMessage> {
+        // WidgetKey only accepts &str (not String) — keep static keys.
+        const TAB_KEYS: [&str; 4] = ["data_tab_0", "data_tab_1", "data_tab_2", "data_tab_3"];
+        let mut tabs = row::<GalleryMessage>().gap(spacing(self.density, 8.0));
+        for (i, name) in CATEGORIES[4].pages.iter().enumerate() {
+            let mut btn = button::<GalleryMessage>(TAB_KEYS[i], *name);
+            if i == active {
+                btn = btn.primary();
+            }
+            tabs = tabs.child(btn.on_click(GalleryMessage::SelectPage(i)));
+        }
+        tabs.build()
+    }
+
+    fn tree_demo(&self) -> WidgetNode<GalleryMessage> {
+        let gap = spacing(self.density, 8.0);
+        column()
+            .gap(gap)
+            .child(label(
+                "Hierarchical Tree with expand/collapse. Nested categories demo:",
+            ))
+            .child(label(
+                "Keyboard (when focused): ↑/↓ move · → expand · ← collapse · Home/End · typeahead",
+            ))
+            .child(
+                tree::<GalleryMessage>("gallery_tree")
+                    .indent(20.0)
+                    .viewport_height(320.0)
+                    .child(
+                        TreeNode::new("docs", label("Documents"))
+                            .expanded(true)
+                            .child(TreeNode::new("docs_readme", label("README.md")))
+                            .child(TreeNode::new("docs_guide", label("Getting Started")))
+                            .child(
+                                TreeNode::new("docs_zh", label("繁體中文說明"))
+                                    .expanded(true)
+                                    .child(TreeNode::new("docs_zh_ime", label("IME 輸入注意事項")))
+                                    .child(TreeNode::new("docs_zh_a11y", label("無障礙指南"))),
+                            ),
+                    )
+                    .child(
+                        TreeNode::new("images", label("Images"))
+                            .expanded(true)
+                            .child(TreeNode::new("img_logo", label("logo.png")))
+                            .child(TreeNode::new("img_banner", label("banner.webp"))),
+                    )
+                    .child(
+                        TreeNode::new("code", label("Code"))
+                            .expanded(true)
+                            .child(
+                                TreeNode::new("code_src", label("src/"))
+                                    .expanded(true)
+                                    .child(TreeNode::new("code_main", label("main.rs")))
+                                    .child(TreeNode::new("code_lib", label("lib.rs"))),
+                            )
+                            .child(TreeNode::new("code_toml", label("Cargo.toml"))),
+                    )
+                    .build(),
+            )
+            .child(label(
+                "Note: Gallery paints visible nodes from Tree::visible_nodes(); live expand state is static in this demo.",
+            ))
+            .build()
+    }
+
+    fn table_demo(&self) -> WidgetNode<GalleryMessage> {
+        let gap = spacing(self.density, 8.0);
+        let owners = ["Ada", "Lin", "Sam", "Mei", "Kai", "Zoe"];
+        let statuses = ["Active", "Draft", "Review", "Done", "Blocked"];
+        let mut tbl = table::<GalleryMessage>("gallery_table")
+            .sticky_header(true)
+            .row_height(28.0)
+            .column(
+                TableColumn::new("name", label("Name"), 160.0)
+                    .sortable(true)
+                    .resizable(true),
+            )
+            .column(
+                TableColumn::new("status", label("Status"), 100.0)
+                    .sortable(true)
+                    .resizable(true),
+            )
+            .column(
+                TableColumn::new("owner", label("Owner"), 100.0)
+                    .sortable(true)
+                    .resizable(true),
+            )
+            .column(
+                TableColumn::new("updated", label("Updated"), 120.0)
+                    .sortable(true)
+                    .resizable(true),
+            );
+
+        for i in 0..28 {
+            let name = format!("Project {i:02}");
+            let status = statuses[i % statuses.len()];
+            let owner = owners[i % owners.len()];
+            let updated = format!("2026-0{}-{:02}", (i % 9) + 1, (i % 28) + 1);
+            tbl = tbl.add_row(TableRow::new(vec![
+                label(name),
+                label(status),
+                label(owner),
+                label(updated),
+            ]));
+        }
+
+        column()
+            .gap(gap)
+            .child(label(
+                "Table with sticky header, 4 columns, and 28 sample rows.",
+            ))
+            .child(label(
+                "Sort / column-resize APIs exist on Table; Gallery state is static (no live sort interaction yet).",
+            ))
+            .child(tbl.build())
+            .build()
+    }
+
+    fn datagrid_demo(&self) -> WidgetNode<GalleryMessage> {
+        let gap = spacing(self.density, 8.0);
+        let mut grid = datagrid::<GalleryMessage>("gallery_datagrid")
+            .frozen_cols(1)
+            .frozen_rows(0)
+            .default_row_height(28.0)
+            .default_col_width(120.0)
+            .viewport_width(640.0)
+            .viewport_height(280.0)
+            .column(
+                DataGridColumn::new("id", label("ID"), 72.0)
+                    .frozen(true)
+                    .sortable(true),
+            )
+            .column(DataGridColumn::new("product", label("Product"), 140.0).sortable(true))
+            .column(DataGridColumn::new("region", label("Region"), 100.0))
+            .column(DataGridColumn::new("qty", label("Qty"), 72.0))
+            .column(DataGridColumn::new("total", label("Total"), 100.0));
+
+        let regions = ["APAC", "EMEA", "AMER", "JP"];
+        let products = ["Widget A", "Widget B", "Gadget C", "Module D", "Kit E"];
+        for i in 0..12 {
+            let id = format!("R{i:03}");
+            let product = products[i % products.len()];
+            let region = regions[i % regions.len()];
+            let qty = format!("{}", 10 + i * 3);
+            let total = format!("${}.00", 120 + i * 17);
+            grid = grid.add_row(
+                DataGridRow::new(vec![
+                    label(id),
+                    label(product),
+                    label(region),
+                    label(qty),
+                    label(total),
+                ])
+                .row_number(format!("{}", i + 1)),
+            );
+        }
+        // Light merge demo: first data row product+region span (colspan 2)
+        grid = grid.merge_cells(0, 1, 2, 1);
+
+        column()
+            .gap(gap)
+            .child(label(
+                "DataGrid with frozen first column, 5 columns × 12 rows, and one cell merge.",
+            ))
+            .child(label(
+                "Frozen cols stay visible during horizontal scroll; merge is declarative (layout still shows cell slots).",
+            ))
+            .child(grid.build())
+            .build()
+    }
+
+    fn virtual_list_demo(&self) -> WidgetNode<GalleryMessage> {
+        let gap = spacing(self.density, 8.0);
+        const ITEM_COUNT: usize = 250;
+        const ITEM_HEIGHT: f32 = 28.0;
+        const VIEWPORT_H: f32 = 360.0;
+
+        let mut list = virtual_list::<GalleryMessage>("gallery_vlist")
+            .item_height(Some(ITEM_HEIGHT))
+            .viewport_height(VIEWPORT_H)
+            .overscan(4)
+            .scroll_offset(0.0);
+
+        for i in 0..ITEM_COUNT {
+            list = list.child(label(format!("Item {i}: 項目內容 demo")));
+        }
+
+        column()
+            .gap(gap)
+            .child(label_with_size("VirtualList", 16.0))
+            .child(label(
+                "Fixed item height path · only the viewport window (+ overscan) is painted.",
+            ))
+            .child(label(format!(
+                "{ITEM_COUNT} items × {ITEM_HEIGHT}px · viewport {VIEWPORT_H}px · overscan 4"
+            )))
+            .child(list.build())
+            .child(label(
+                "Scroll the page to move the outer scroll view; VirtualList uses its own scroll_offset (static 0 in this demo).",
+            ))
+            .build()
     }
 
     fn patterns_page(&self) -> WidgetNode<GalleryMessage> {
@@ -1571,6 +1965,145 @@ fn render_content(
                 show_focus_rings,
             );
         }
+        // Tree: children() is empty; layout leaves pair with visible_nodes().
+        WidgetNode::Tree(t) => {
+            let visible = t.visible_nodes();
+            for (node, child_layout) in visible.iter().zip(layout.children.iter()) {
+                paint_label_like(
+                    frame,
+                    &node.content,
+                    child_layout,
+                    snapshot,
+                    theme,
+                    scale,
+                    scroll_y,
+                    clip,
+                    fonts,
+                    atlas,
+                );
+            }
+        }
+        // Table: layout is header-row + data-row containers (not flat all_cells).
+        WidgetNode::Table(t) => {
+            let mut row_i = 0usize;
+            if !t.columns.is_empty() {
+                if let Some(header_row) = layout.children.get(row_i) {
+                    for (col, cell_layout) in t.columns.iter().zip(header_row.children.iter()) {
+                        paint_label_like(
+                            frame,
+                            &col.header,
+                            cell_layout,
+                            snapshot,
+                            theme,
+                            scale,
+                            scroll_y,
+                            clip,
+                            fonts,
+                            atlas,
+                        );
+                    }
+                }
+                row_i += 1;
+            }
+            for data_row in &t.rows {
+                let Some(row_layout) = layout.children.get(row_i) else {
+                    break;
+                };
+                for (cell, cell_layout) in data_row.cells.iter().zip(row_layout.children.iter()) {
+                    paint_label_like(
+                        frame,
+                        cell,
+                        cell_layout,
+                        snapshot,
+                        theme,
+                        scale,
+                        scroll_y,
+                        clip,
+                        fonts,
+                        atlas,
+                    );
+                }
+                row_i += 1;
+            }
+        }
+        // DataGrid: same row/column container layout as Table.
+        WidgetNode::DataGrid(g) => {
+            let mut row_i = 0usize;
+            if !g.columns.is_empty() {
+                if let Some(header_row) = layout.children.get(row_i) {
+                    for (col, cell_layout) in g.columns.iter().zip(header_row.children.iter()) {
+                        paint_label_like(
+                            frame,
+                            &col.header,
+                            cell_layout,
+                            snapshot,
+                            theme,
+                            scale,
+                            scroll_y,
+                            clip,
+                            fonts,
+                            atlas,
+                        );
+                    }
+                }
+                row_i += 1;
+            }
+            for data_row in &g.rows {
+                let Some(row_layout) = layout.children.get(row_i) else {
+                    break;
+                };
+                for (cell, cell_layout) in data_row.cells.iter().zip(row_layout.children.iter()) {
+                    paint_label_like(
+                        frame,
+                        cell,
+                        cell_layout,
+                        snapshot,
+                        theme,
+                        scale,
+                        scroll_y,
+                        clip,
+                        fonts,
+                        atlas,
+                    );
+                }
+                row_i += 1;
+            }
+        }
+        // VirtualList: to_layout emits an empty container; paint the visible window.
+        WidgetNode::VirtualList(v) => {
+            if let Some(rect) = snapshot.get(layout.id) {
+                let (first, last) = v.visible_range();
+                let item_h = v.item_height.unwrap_or(32.0).max(1.0);
+                // Clip drawing to the list viewport (also honor outer scroll clip).
+                let list_clip = [
+                    rect.x.max(clip[0]),
+                    (rect.y - scroll_y).max(clip[1]),
+                    rect.width.min(clip[2]),
+                    rect.height.min(clip[3]),
+                ];
+                for i in first..last {
+                    let Some(child) = v.children.get(i) else {
+                        break;
+                    };
+                    let y = rect.y + (i as f32 * item_h) - v.scroll_offset - scroll_y;
+                    if let WidgetNode::Label(l) = child {
+                        add_text(
+                            fonts,
+                            atlas,
+                            frame,
+                            &l.text,
+                            (
+                                [rect.x + 4.0, y + 2.0],
+                                l.font_size.unwrap_or(theme.typography.body_size),
+                            ),
+                            colors.text,
+                            scale,
+                            Some(list_clip),
+                        );
+                    }
+                }
+            }
+        }
         _ => {
             let wc = widget.children();
             for (w, l) in wc.iter().zip(layout.children.iter()) {
@@ -1590,6 +2123,55 @@ fn render_content(
                     fonts,
                     atlas,
                     show_focus_rings,
+                );
+            }
+        }
+    }
+}
+
+/// Paint a Label (or nested Label-in-container) at a layout leaf position.
+#[allow(clippy::too_many_arguments)]
+fn paint_label_like(
+    frame: &mut Frame,
+    widget: &WidgetNode<GalleryMessage>,
+    layout: &LayoutNode,
+    snapshot: &acme_layout::LayoutSnapshot,
+    theme: &Theme,
+    scale: f32,
+    scroll_y: f32,
+    clip: [f32; 4],
+    fonts: &mut FontSystem,
+    atlas: &mut GlyphAtlas,
+) {
+    match widget {
+        WidgetNode::Label(l) => {
+            if l.text == TEXT_INPUT_MARKER {
+                return;
+            }
+            if let Some(rect) = snapshot.get(layout.id) {
+                let y = rect.y - scroll_y;
+                let fs = l.font_size.unwrap_or(theme.typography.body_size);
+                add_text(
+                    fonts,
+                    atlas,
+                    frame,
+                    &l.text,
+                    ([rect.x + 4.0, y + 2.0], fs),
+                    theme.colors.text,
+                    scale,
+                    Some(clip),
+                );
+            }
+        }
+        other => {
+            // Containers nested inside cells: walk widget children against layout children.
+            let wc = other.children();
+            if wc.is_empty() {
+                return;
+            }
+            for (w, l) in wc.iter().zip(layout.children.iter()) {
+                paint_label_like(
+                    frame, w, l, snapshot, theme, scale, scroll_y, clip, fonts, atlas,
                 );
             }
         }

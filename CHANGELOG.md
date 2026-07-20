@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.2.2 — Gallery demos, navigation widgets, device-lost detection (2026-07-20)
+
+### Gallery Data demos
+- Real Tree / Table / DataGrid / VirtualList pages with in-category tabs
+- Custom paint paths for Tree visible nodes, Table/DataGrid header+rows, VirtualList labels
+
+### Navigation widgets
+- `NavRail`, `Sidebar`, `TabBar`, `Breadcrumb` with builders, `to_layout`, a11y roles, devtools kinds
+- Gallery Navigation category demos all four widgets
+
+### Device-lost detection (wgpu 29)
+- `device_lost_flag: Arc<AtomicBool>` shared with callbacks
+- `set_device_lost_callback` marks lost; `on_uncaptured_error` marks lost on Internal/OutOfMemory (Validation logged only)
+- Handlers re-registered after successful `on_device_lost`
+- Tests: flag→DeviceLost mapping; `#[ignore]` adapter/device smoke
+
+### Misc
+- Fixed flaky `frame_metrics_begin_end_frame_records_timing` (1ms sleep)
+
+### Verification
+- Workspace fmt/check/clippy `-D warnings` clean; ~341 unit tests pass (2 ignored)
+
 ## v0.2.1 — Recovery + IME caret hardening (2026-07-20)
 
 ### Surface / device recovery truth

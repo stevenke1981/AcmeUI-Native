@@ -57,10 +57,11 @@
 - [x] Surface recreation automated test (pure state machine + atlas invalidation contract + `on_gpu_recovered` hook)
 
 ## Remaining / next
+- [x] Navigation widgets (NavRail, Sidebar, TabBar, Breadcrumb)
+- [x] Gallery Data category real Tree/Table/DataGrid/VirtualList demos
+- [x] Real wgpu device-lost detection (`set_device_lost_callback` + uncaptured Internal/OOM)
 - [ ] Manual Traditional Chinese 注音 IME validation on Windows
 - [ ] Manual DPI interaction at 125/150/200% Windows scaling
 - [ ] Glyph atlas eviction/aging when full
-- [ ] Navigation widgets (NavRail, Sidebar, TabBar, Breadcrumb)
-- [ ] Gallery Data category real Tree/Table/DataGrid demos
 - [ ] Benchmark headless CI thresholds
 - [ ] Screenshot golden / pixel regression

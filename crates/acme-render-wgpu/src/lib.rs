@@ -2,6 +2,7 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::{any::Any, sync::Arc};
 
 use acme_text::{AtlasFormat, PreparedText};
@@ -135,14 +136,45 @@ fn resolve_surface_action(
     }
 }
 
+fn is_device_lost(flag: &AtomicBool) -> bool {
+    flag.load(Ordering::Acquire)
+}
+
 fn complete_recovery_state(
-    device_lost: &mut bool,
+    device_lost: &AtomicBool,
     status: &mut SurfaceStatus,
     gpu_epoch: &mut u64,
 ) {
-    *device_lost = false;
+    device_lost.store(false, Ordering::Release);
     *status = SurfaceStatus::Ready;
     *gpu_epoch = gpu_epoch.wrapping_add(1);
+}
+
+/// Register wgpu callbacks that mark the shared device-lost flag.
+///
+/// - `set_device_lost_callback`: real device loss
+/// - `on_uncaptured_error`: Internal / OutOfMemory → treat as lost; Validation is logged only
+fn register_device_error_handlers(device: &wgpu::Device, flag: &Arc<AtomicBool>) {
+    let lost_flag = Arc::clone(flag);
+    device.set_device_lost_callback(move |reason, message| {
+        tracing::error!(?reason, %message, "GPU device lost callback fired");
+        lost_flag.store(true, Ordering::Release);
+    });
+
+    let err_flag = Arc::clone(flag);
+    device.on_uncaptured_error(Arc::new(move |error: wgpu::Error| match &error {
+        wgpu::Error::Validation { description, .. } => {
+            tracing::error!(%description, "wgpu validation error (not marking device lost)");
+        }
+        wgpu::Error::OutOfMemory { .. } => {
+            tracing::error!(%error, "wgpu out-of-memory; marking device lost");
+            err_flag.store(true, Ordering::Release);
+        }
+        wgpu::Error::Internal { description, .. } => {
+            tracing::error!(%description, "wgpu internal error; marking device lost");
+            err_flag.store(true, Ordering::Release);
+        }
+    }));
 }
 
 #[derive(Debug, Error)]
@@ -201,7 +233,8 @@ pub struct Renderer {
     size: (u32, u32),
     status: SurfaceStatus,
     scale_factor: f32,
-    device_lost: bool,
+    /// Shared with wgpu uncaptured-error / device-lost callbacks.
+    device_lost_flag: Arc<AtomicBool>,
     gpu_epoch: u64,
     // Persistent double-buffered instance buffers.
     quad_buffers: [wgpu::Buffer; 2],
@@ -240,6 +273,8 @@ impl Renderer {
             .request_device(&wgpu::DeviceDescriptor::default())
             .await
             .map_err(|error| RenderError::Device(error.to_string()))?;
+        let device_lost_flag = Arc::new(AtomicBool::new(false));
+        register_device_error_handlers(&device, &device_lost_flag);
         let safe_width = width.max(1);
         let safe_height = height.max(1);
         let mut config = surface
@@ -286,7 +321,7 @@ impl Renderer {
                 SurfaceStatus::Ready
             },
             scale_factor: normalize_scale(scale_factor),
-            device_lost: false,
+            device_lost_flag,
             gpu_epoch: 0,
             quad_buffers,
             glyph_buffers,
@@ -325,14 +360,16 @@ impl Renderer {
 
     pub fn render(&mut self, frame: &Frame) -> SurfaceAction {
         let suspended = self.status == SurfaceStatus::Suspended;
+        let lost = is_device_lost(&self.device_lost_flag);
         // Decide fast-exit actions without touching the surface where possible.
-        let pre_acquire_action =
-            resolve_surface_action(suspended, self.device_lost, AcquireOutcome::Success);
+        let pre_acquire_action = resolve_surface_action(suspended, lost, AcquireOutcome::Success);
         if pre_acquire_action != SurfaceAction::Rendered {
             return pre_acquire_action;
         }
         let mut reconfigure_after_present = false;
         let acquired = self.surface.get_current_texture();
+        // Re-check after acquire in case a callback fired concurrently.
+        let lost = is_device_lost(&self.device_lost_flag);
         let outcome = match &acquired {
             wgpu::CurrentSurfaceTexture::Success(_) => AcquireOutcome::Success,
             wgpu::CurrentSurfaceTexture::Suboptimal(_) => AcquireOutcome::Suboptimal,
@@ -344,7 +381,7 @@ impl Renderer {
             }
             wgpu::CurrentSurfaceTexture::Validation => AcquireOutcome::Validation,
         };
-        let action = resolve_surface_action(suspended, self.device_lost, outcome);
+        let action = resolve_surface_action(suspended, lost, outcome);
         if action != SurfaceAction::Rendered {
             // Handle the reconfigure side effect for the outdated/lost case.
             if outcome == AcquireOutcome::OutdatedOrLost {
@@ -659,6 +696,7 @@ impl Renderer {
             pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
                 .map_err(|error| RenderError::Device(error.to_string()))?;
 
+        register_device_error_handlers(&device, &self.device_lost_flag);
         self.device = device;
         self.queue = queue;
 
@@ -704,7 +742,11 @@ impl Renderer {
         self.current_frame = 0;
         self.stats = RenderStats::default();
 
-        complete_recovery_state(&mut self.device_lost, &mut self.status, &mut self.gpu_epoch);
+        complete_recovery_state(
+            &self.device_lost_flag,
+            &mut self.status,
+            &mut self.gpu_epoch,
+        );
         tracing::info!("GPU device recovery successful");
         Ok(())
     }
@@ -712,7 +754,7 @@ impl Renderer {
     /// Simulates device loss for testing. Only available in test builds.
     #[cfg(test)]
     pub fn simulate_device_loss(&mut self) {
-        self.device_lost = true;
+        self.device_lost_flag.store(true, Ordering::Release);
         self.status = SurfaceStatus::Recovering;
     }
 
@@ -1108,13 +1150,53 @@ mod tests {
     #[test]
     fn recovery_resets_pure_state_and_bumps_epoch() {
         // Mimic post-device-loss state: device_lost=true, status=Recovering.
-        let mut device_lost = true;
+        let device_lost = AtomicBool::new(true);
         let mut status = SurfaceStatus::Recovering;
         let mut gpu_epoch = 7u64;
-        complete_recovery_state(&mut device_lost, &mut status, &mut gpu_epoch);
-        assert!(!device_lost, "device_lost must clear after recovery");
+        complete_recovery_state(&device_lost, &mut status, &mut gpu_epoch);
+        assert!(
+            !is_device_lost(&device_lost),
+            "device_lost must clear after recovery"
+        );
         assert_eq!(status, SurfaceStatus::Ready, "status must return to Ready");
         assert_eq!(gpu_epoch, 8, "gpu_epoch must increment by one");
+    }
+
+    #[test]
+    fn device_lost_flag_maps_to_device_lost_action() {
+        let flag = AtomicBool::new(false);
+        assert_eq!(
+            resolve_surface_action(false, is_device_lost(&flag), AcquireOutcome::Success),
+            SurfaceAction::Rendered
+        );
+        flag.store(true, Ordering::Release);
+        assert_eq!(
+            resolve_surface_action(false, is_device_lost(&flag), AcquireOutcome::Success),
+            SurfaceAction::DeviceLost
+        );
+    }
+
+    #[test]
+    #[ignore = "requires real GPU adapter; run with cargo test -p acme-render-wgpu -- --ignored"]
+    fn device_recovery_smoke_ignored() {
+        // Adapter + device + handler registration only (no window / surface).
+        let instance = wgpu::Instance::default();
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::LowPower,
+            force_fallback_adapter: true,
+            compatible_surface: None,
+        }));
+        let Ok(adapter) = adapter else {
+            return;
+        };
+        let Ok((device, _queue)) =
+            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+        else {
+            return;
+        };
+        let flag = Arc::new(AtomicBool::new(false));
+        register_device_error_handlers(&device, &flag);
+        assert!(!is_device_lost(&flag));
     }
 
     #[test]

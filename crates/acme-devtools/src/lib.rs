@@ -241,6 +241,10 @@ impl WidgetTreeDump {
             WidgetNode::Table(_) => "Table",
             WidgetNode::DataGrid(_) => "DataGrid",
             WidgetNode::TextInput(_) => "TextInput",
+            WidgetNode::NavRail(_) => "NavRail",
+            WidgetNode::Sidebar(_) => "Sidebar",
+            WidgetNode::TabBar(_) => "TabBar",
+            WidgetNode::Breadcrumb(_) => "Breadcrumb",
         }
     }
 
@@ -265,6 +269,10 @@ impl WidgetTreeDump {
             WidgetNode::Table(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::DataGrid(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::TextInput(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::NavRail(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::Sidebar(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::TabBar(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::Breadcrumb(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::Label(_) | WidgetNode::Separator(_) => String::new(),
         }
     }
@@ -296,6 +304,17 @@ impl WidgetTreeDump {
             WidgetNode::DataGrid(v) => {
                 format!(" cols={} rows={}", v.columns.len(), v.rows.len())
             }
+            WidgetNode::NavRail(v) => {
+                format!(
+                    " items={} selected={:?} collapsed={}",
+                    v.items.len(),
+                    v.selected,
+                    v.collapsed
+                )
+            }
+            WidgetNode::Sidebar(v) => format!(" width={} children={}", v.width, v.children.len()),
+            WidgetNode::TabBar(v) => format!(" tabs={} selected={}", v.tabs.len(), v.selected),
+            WidgetNode::Breadcrumb(v) => format!(" segments={}", v.segments.len()),
             _ => String::new(),
         }
     }
@@ -406,11 +425,15 @@ mod tests {
         let mut m = FrameMetrics::new();
 
         m.begin_frame();
-        // Simulate a tiny amount of work.
-        std::hint::spin_loop();
+        // Ensure a measurable duration even on very fast clocks.
+        std::thread::sleep(Duration::from_millis(1));
         m.end_frame();
 
-        assert!(m.frame_duration.is_some());
+        let duration = m.frame_duration.expect("end_frame should record duration");
+        assert!(
+            duration > Duration::ZERO,
+            "frame duration should be positive, got {duration:?}"
+        );
         assert!(m.fps > 0.0, "FPS should be positive, got {}", m.fps);
     }
 

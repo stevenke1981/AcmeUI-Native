@@ -24,16 +24,17 @@
 | `acme-widgets::data::Table` | Column resize, sort, selection, viewport virtualization, sticky header |
 | `acme-widgets::data::DataGrid` | Frozen cells, merged cells, bidirectional virtualization |
 | `acme-widgets::data::VirtualList` | Visible range, variable height cache, scroll anchoring |
-| `acme-gallery` | 8-category navigation; IME caret wired; Data demos still placeholders |
+| `acme-gallery` | 8-category nav; live Data demos (Tree/Table/DataGrid/VirtualList); Navigation demos |
+| `acme-widgets::navigation` | NavRail, Sidebar, TabBar, Breadcrumb (structural; declarative selection) |
+| Device-lost detection | `Arc<AtomicBool>` + `set_device_lost_callback` + uncaptured Internal/OOM |
 
 ## Architecture Only
 
 | Component | Notes |
 |-----------|-------|
-| `acme-widgets::navigation` | Module structure reserved; widgets not yet implemented |
 | Glyph atlas eviction/aging | Fixed 2048² shelf; full → drop glyphs until `clear()` |
-| Real wgpu device-loss detection | `device_lost` flag + recovery path exist; uncaptured-error hook not wired |
 | Screenshot golden pipeline | `ScreenshotConfig` scaffolded; no capture/diff CI |
+| Full end-to-end GPU recovery on Windows | Callbacks + pure tests wired; interactive device-loss still manual |
 
 ## Automated Only (manual still pending)
 

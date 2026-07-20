@@ -7,6 +7,9 @@ pub use crate::foundations::{Card, CardVariant, Container, Label, ScrollView, Se
 pub use crate::inputs::{
     Button, ButtonSize, ButtonState, ButtonVariant, ResolvedButtonStyle, TextInput,
 };
+pub use crate::navigation::{
+    Breadcrumb, BreadcrumbSegment, NavItem, NavRail, Sidebar, TabBar, TabItem,
+};
 pub use crate::overlay::{Dialog, Menu, MenuItem, Popover, PopoverPlacement, Tooltip};
 pub use crate::overlay_manager::{OverlayLayer, OverlayManager};
 pub use crate::visual_state::VisualState;
