@@ -284,9 +284,9 @@ impl Theme {
             spacing: SpacingTokens {
                 xs: 4.0,
                 sm: 8.0,
-                md: 12.0,
-                lg: 16.0,
-                xl: 24.0,
+                md: 16.0,
+                lg: 24.0,
+                xl: 40.0,
             },
             radii: RadiusTokens {
                 sm: 4.0,
@@ -296,7 +296,7 @@ impl Theme {
             typography: TypographyTokens {
                 body_size: 16.0,
                 label_size: 14.0,
-                line_height: 1.4,
+                line_height: 1.5,
             },
         }
     }

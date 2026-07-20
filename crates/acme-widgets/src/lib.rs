@@ -158,26 +158,17 @@ impl<M> WidgetNode<M> {
             Self::Row(v) => LayoutNode::container(
                 id,
                 v.layout(LayoutKind::Row),
-                v.children
-                    .iter()
-                    .map(|c| c.to_layout_alloc(next))
-                    .collect(),
+                v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
             Self::Column(v) => LayoutNode::container(
                 id,
                 v.layout(LayoutKind::Column),
-                v.children
-                    .iter()
-                    .map(|c| c.to_layout_alloc(next))
-                    .collect(),
+                v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
             Self::Stack(v) => LayoutNode::container(
                 id,
                 v.layout(LayoutKind::Stack),
-                v.children
-                    .iter()
-                    .map(|c| c.to_layout_alloc(next))
-                    .collect(),
+                v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
             Self::Card(v) => LayoutNode::container(
                 id,
@@ -187,20 +178,21 @@ impl<M> WidgetNode<M> {
                     padding: v.padding,
                     ..Default::default()
                 },
-                v.children
-                    .iter()
-                    .map(|c| c.to_layout_alloc(next))
-                    .collect(),
+                v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
             Self::ScrollView(v) => LayoutNode::container(
                 id,
                 v.layout(),
-                v.children
-                    .iter()
-                    .map(|c| c.to_layout_alloc(next))
-                    .collect(),
+                v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
-            Self::Label(_) | Self::TextInput(_) => LayoutNode::leaf(id, LayoutStyle::default()),
+            Self::Label(l) => LayoutNode::leaf(
+                id,
+                LayoutStyle {
+                    min_height: Length::px(l.font_size.unwrap_or(16.0) * 1.5),
+                    ..Default::default()
+                },
+            ),
+            Self::TextInput(_) => LayoutNode::leaf(id, LayoutStyle::default()),
             Self::Button(_) => LayoutNode::leaf(
                 id,
                 LayoutStyle {
@@ -404,34 +396,22 @@ impl<M> WidgetNode<M> {
             Self::NavRail(v) => LayoutNode::container(
                 id,
                 v.layout_style(),
-                v.children
-                    .iter()
-                    .map(|c| c.to_layout_alloc(next))
-                    .collect(),
+                v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
             Self::Sidebar(v) => LayoutNode::container(
                 id,
                 v.layout_style(),
-                v.children
-                    .iter()
-                    .map(|c| c.to_layout_alloc(next))
-                    .collect(),
+                v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
             Self::TabBar(v) => LayoutNode::container(
                 id,
                 v.layout_style(),
-                v.children
-                    .iter()
-                    .map(|c| c.to_layout_alloc(next))
-                    .collect(),
+                v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
             Self::Breadcrumb(v) => LayoutNode::container(
                 id,
                 v.layout_style(),
-                v.children
-                    .iter()
-                    .map(|c| c.to_layout_alloc(next))
-                    .collect(),
+                v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
         }
     }

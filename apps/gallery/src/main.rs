@@ -330,7 +330,7 @@ impl Gallery {
     fn sidebar(&self) -> WidgetNode<GalleryMessage> {
         let mut col = column::<GalleryMessage>()
             .key("sidebar")
-            .gap(2.0)
+            .gap(4.0)
             .padding(12.0);
         col = col.child(label_with_size("AcmeUI", 18.0));
         col = col.child(separator());
@@ -929,7 +929,7 @@ impl Gallery {
         sections: Vec<(&'static str, WidgetNode<GalleryMessage>)>,
     ) -> WidgetNode<GalleryMessage> {
         let mut page = column::<GalleryMessage>()
-            .gap(spacing(self.density, 20.0))
+            .gap(spacing(self.density, 28.0))
             .padding(spacing(self.density, 24.0));
         page = page.child(label_with_size(title, 24.0));
         page = page.child(separator());
@@ -1192,8 +1192,8 @@ impl Gallery {
 
     fn kpi_card(&self, value: &str, title: &str) -> WidgetNode<GalleryMessage> {
         column()
-            .gap(4.0)
-            .padding(12.0)
+            .gap(6.0)
+            .padding(16.0)
             .child(label_with_size(value, 22.0))
             .child(label(title))
             .build()
@@ -1227,7 +1227,7 @@ fn standard_component_sections() -> Vec<(&'static str, WidgetNode<GalleryMessage
 
 fn anatomy_diagram() -> WidgetNode<GalleryMessage> {
     column()
-        .gap(4.0)
+        .gap(8.0)
         .child(label("── Component Anatomy ──"))
         .child(label("┌─────────────────────┐"))
         .child(label("│  Container / Root   │"))
@@ -1261,7 +1261,7 @@ fn variants_demo() -> WidgetNode<GalleryMessage> {
 
 fn sizes_demo() -> WidgetNode<GalleryMessage> {
     column()
-        .gap(6.0)
+        .gap(10.0)
         .child(label("XS  ·  S  ·  M  ·  L  ·  XL"))
         .child(
             row()
@@ -1298,7 +1298,7 @@ fn light_dark_demo() -> WidgetNode<GalleryMessage> {
 
 fn density_demo() -> WidgetNode<GalleryMessage> {
     column()
-        .gap(4.0)
+        .gap(8.0)
         .child(label("Compact (0.75×) vs Comfortable (1.0×)"))
         .child(label("Toggle via toolbar button above."))
         .build()
@@ -1306,7 +1306,7 @@ fn density_demo() -> WidgetNode<GalleryMessage> {
 
 fn keyboard_behavior() -> WidgetNode<GalleryMessage> {
     column()
-        .gap(4.0)
+        .gap(8.0)
         .child(label("Space  ·  Activate focused widget"))
         .child(label("Enter  ·  Submit / Confirm"))
         .child(label("Tab    ·  Move focus forward"))
@@ -1317,7 +1317,7 @@ fn keyboard_behavior() -> WidgetNode<GalleryMessage> {
 
 fn accessibility_props() -> WidgetNode<GalleryMessage> {
     column()
-        .gap(4.0)
+        .gap(8.0)
         .child(label(
             "role=\"button\"  ·  aria-label=\"...\"  ·  tabindex=\"0\"",
         ))
@@ -1330,7 +1330,7 @@ fn accessibility_props() -> WidgetNode<GalleryMessage> {
 
 fn long_text_section() -> WidgetNode<GalleryMessage> {
     column()
-        .gap(4.0)
+        .gap(8.0)
         .child(label_with_size("Long Traditional Chinese string:", 14.0))
         .child(label_with_size(LONG_CHINESE_TEXT, 14.0))
         .build()
@@ -1338,7 +1338,7 @@ fn long_text_section() -> WidgetNode<GalleryMessage> {
 
 fn screenshot_info() -> WidgetNode<GalleryMessage> {
     column()
-        .gap(4.0)
+        .gap(8.0)
         .child(label("Screenshot sizes: 1280×800 · 1024×700 · 800×600"))
         .child(label("Toggle theme & density via toolbar before capture."))
         .build()
@@ -1826,6 +1826,7 @@ impl Application for Gallery {
                 colors.text,
                 context.scale_factor,
                 None,
+                theme.typography.line_height,
             );
         }
 
@@ -1877,6 +1878,7 @@ impl Application for Gallery {
                 fg,
                 context.scale_factor,
                 None,
+                theme.typography.line_height,
             );
         }
 
@@ -1939,6 +1941,7 @@ impl Application for Gallery {
                 resolved.foreground,
                 context.scale_factor,
                 None,
+                theme.typography.line_height,
             );
         }
 
@@ -1997,6 +2000,7 @@ impl Application for Gallery {
                             colors.text_muted,
                             context.scale_factor,
                             None,
+                            theme.typography.line_height,
                         );
                     }
                 }
@@ -2095,7 +2099,7 @@ fn apply_gallery_styles(root: &mut LayoutNode, width: f32, height: f32) {
         kind: LayoutKind::Column,
         width: Length::px(SIDEBAR_WIDTH),
         height: Length::px(height),
-        gap: 2.0,
+        gap: 4.0,
         padding: acme_layout::Edges {
             left: 12.0,
             right: 12.0,
@@ -2107,7 +2111,7 @@ fn apply_gallery_styles(root: &mut LayoutNode, width: f32, height: f32) {
     // Category buttons
     for i in 2..=9 {
         sb.children[i].style.width = Length::px(SIDEBAR_WIDTH - 24.0);
-        sb.children[i].style.height = Length::px(36.0);
+        sb.children[i].style.height = Length::px(40.0);
     }
 
     // Content area: fills remaining width
@@ -2187,17 +2191,19 @@ fn render_content(
                 return;
             }
             if let Some(rect) = snapshot.get(layout.id) {
-                let y = rect.y - scroll_y;
                 let fs = l.font_size.unwrap_or(theme.typography.body_size);
+                let line_h = fs * theme.typography.line_height;
+                let y_text = rect.y - scroll_y + (rect.height - line_h).max(0.0) * 0.5;
                 add_text(
                     fonts,
                     atlas,
                     frame,
                     &l.text,
-                    ([rect.x + 4.0, y + 2.0], fs),
+                    ([rect.x + 4.0, y_text], fs),
                     colors.text,
                     scale,
                     Some(clip),
+                    theme.typography.line_height,
                 );
             }
         }
@@ -2239,6 +2245,7 @@ fn render_content(
                     resolved.foreground,
                     scale,
                     Some(clip),
+                    theme.typography.line_height,
                 );
             }
         }
@@ -2320,6 +2327,7 @@ fn render_content(
                             colors.text_muted,
                             scale,
                             Some(clip),
+                            theme.typography.line_height,
                         );
                     }
                 }
@@ -2476,6 +2484,7 @@ fn render_content(
                             colors.text,
                             scale,
                             Some(list_clip),
+                            theme.typography.line_height,
                         );
                     }
                 }
@@ -2537,6 +2546,7 @@ fn paint_label_like(
                     theme.colors.text,
                     scale,
                     Some(clip),
+                    theme.typography.line_height,
                 );
             }
         }
@@ -2779,11 +2789,12 @@ fn add_text(
     color: ThemeColor,
     scale: f32,
     clip: Option<[f32; 4]>,
+    line_height_ratio: f32,
 ) {
     let (origin, size) = geometry;
     let style = TextStyle {
         font_size: size,
-        line_height: size * 1.35,
+        line_height: size * line_height_ratio,
         ..TextStyle::default()
     };
     let layout = fonts.shape(text, &style, TextConstraints::default(), scale);
