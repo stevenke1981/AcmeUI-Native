@@ -135,91 +135,71 @@ impl<M> WidgetNode<M> {
 
     /// Convert to a layout tree using the given NodeId.
     /// The caller is responsible for providing the correct NodeId.
+    /// Convert to a layout tree with unique [`NodeId`]s.
+    ///
+    /// `id` is the root identity; descendants receive monotonically increasing
+    /// IDs via a shared counter (DFS). Sibling containers never reuse each
+    /// other's child ranges — the previous `parent+1` offset scheme collided.
     pub fn to_layout(&self, id: NodeId) -> LayoutNode
     where
         M: Clone,
     {
+        let mut next = id.get();
+        self.to_layout_alloc(&mut next)
+    }
+
+    fn to_layout_alloc(&self, next: &mut u64) -> LayoutNode
+    where
+        M: Clone,
+    {
+        let id = NodeId::new(*next);
+        *next += 1;
         match self {
-            Self::Row(v) => {
-                let mut child_id = id.get() + 1;
-                LayoutNode::container(
-                    id,
-                    v.layout(LayoutKind::Row),
-                    v.children
-                        .iter()
-                        .map(|c| {
-                            let this_id = NodeId::new(child_id);
-                            child_id += 1;
-                            c.to_layout(this_id)
-                        })
-                        .collect(),
-                )
-            }
-            Self::Column(v) => {
-                let mut child_id = id.get() + 1;
-                LayoutNode::container(
-                    id,
-                    v.layout(LayoutKind::Column),
-                    v.children
-                        .iter()
-                        .map(|c| {
-                            let this_id = NodeId::new(child_id);
-                            child_id += 1;
-                            c.to_layout(this_id)
-                        })
-                        .collect(),
-                )
-            }
-            Self::Stack(v) => {
-                let mut child_id = id.get() + 1;
-                LayoutNode::container(
-                    id,
-                    v.layout(LayoutKind::Stack),
-                    v.children
-                        .iter()
-                        .map(|c| {
-                            let this_id = NodeId::new(child_id);
-                            child_id += 1;
-                            c.to_layout(this_id)
-                        })
-                        .collect(),
-                )
-            }
-            Self::Card(v) => {
-                let mut child_id = id.get() + 1;
-                LayoutNode::container(
-                    id,
-                    LayoutStyle {
-                        kind: LayoutKind::Column,
-                        gap: v.gap,
-                        padding: v.padding,
-                        ..Default::default()
-                    },
-                    v.children
-                        .iter()
-                        .map(|c| {
-                            let this_id = NodeId::new(child_id);
-                            child_id += 1;
-                            c.to_layout(this_id)
-                        })
-                        .collect(),
-                )
-            }
-            Self::ScrollView(v) => {
-                let mut child_id = id.get() + 1;
-                LayoutNode::container(
-                    id,
-                    v.layout(),
-                    v.children
-                        .iter()
-                        .map(|c| {
-                            let this_id = NodeId::new(child_id);
-                            child_id += 1;
-                            c.to_layout(this_id)
-                        })
-                        .collect(),
-                )
-            }
+            Self::Row(v) => LayoutNode::container(
+                id,
+                v.layout(LayoutKind::Row),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc(next))
+                    .collect(),
+            ),
+            Self::Column(v) => LayoutNode::container(
+                id,
+                v.layout(LayoutKind::Column),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc(next))
+                    .collect(),
+            ),
+            Self::Stack(v) => LayoutNode::container(
+                id,
+                v.layout(LayoutKind::Stack),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc(next))
+                    .collect(),
+            ),
+            Self::Card(v) => LayoutNode::container(
+                id,
+                LayoutStyle {
+                    kind: LayoutKind::Column,
+                    gap: v.gap,
+                    padding: v.padding,
+                    ..Default::default()
+                },
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc(next))
+                    .collect(),
+            ),
+            Self::ScrollView(v) => LayoutNode::container(
+                id,
+                v.layout(),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc(next))
+                    .collect(),
+            ),
             Self::Label(_) | Self::TextInput(_) => LayoutNode::leaf(id, LayoutStyle::default()),
             Self::Button(_) => LayoutNode::leaf(
                 id,
@@ -238,8 +218,20 @@ impl<M> WidgetNode<M> {
                 },
                 vec![],
             ),
-            Self::Tooltip(v) => v.child.to_layout(id),
-            Self::Popover(v) => v.children[0].to_layout(id),
+            // Tooltip/Popover: keep the wrapper's id for the outer node by
+            // allocating a fresh id for the inner content so both are unique.
+            Self::Tooltip(v) => {
+                let _ = id;
+                // Re-use the id we already took for the tooltip as the child's
+                // identity (tooltip is layout-transparent).
+                *next -= 1;
+                v.child.to_layout_alloc(next)
+            }
+            Self::Popover(v) => {
+                let _ = id;
+                *next -= 1;
+                v.children[0].to_layout_alloc(next)
+            }
             Self::Menu(_) => LayoutNode::leaf(
                 id,
                 LayoutStyle {
@@ -264,12 +256,13 @@ impl<M> WidgetNode<M> {
                 },
             ),
             Self::Tree(v) => {
-                let mut child_id = id.get() + 1;
                 let visible = v.visible_nodes();
                 let mut child_nodes = Vec::with_capacity(visible.len());
                 for node in &visible {
+                    let leaf_id = NodeId::new(*next);
+                    *next += 1;
                     child_nodes.push(LayoutNode::leaf(
-                        NodeId::new(child_id),
+                        leaf_id,
                         LayoutStyle {
                             width: Length::Auto,
                             height: Length::px(24.0),
@@ -280,7 +273,6 @@ impl<M> WidgetNode<M> {
                             ..Default::default()
                         },
                     ));
-                    child_id += 1;
                 }
                 LayoutNode::container(
                     id,
@@ -292,16 +284,14 @@ impl<M> WidgetNode<M> {
                 )
             }
             Self::Table(v) => {
-                let mut child_id = id.get() + 1;
                 let mut child_nodes: Vec<LayoutNode> = Vec::new();
-                // Always render header row if columns exist
                 if !v.columns.is_empty() {
                     let header_children: Vec<LayoutNode> = v
                         .columns
                         .iter()
                         .map(|col| {
-                            let nid = NodeId::new(child_id);
-                            child_id += 1;
+                            let nid = NodeId::new(*next);
+                            *next += 1;
                             LayoutNode::leaf(
                                 nid,
                                 LayoutStyle {
@@ -312,20 +302,21 @@ impl<M> WidgetNode<M> {
                             )
                         })
                         .collect();
+                    let header_id = NodeId::new(*next);
+                    *next += 1;
                     child_nodes.push(LayoutNode::container(
-                        NodeId::new(child_id),
+                        header_id,
                         LayoutStyle::row(),
                         header_children,
                     ));
-                    child_id += 1;
                 }
                 for row in &v.rows {
                     let row_children: Vec<LayoutNode> = row
                         .cells
                         .iter()
                         .map(|_| {
-                            let nid = NodeId::new(child_id);
-                            child_id += 1;
+                            let nid = NodeId::new(*next);
+                            *next += 1;
                             LayoutNode::leaf(
                                 nid,
                                 LayoutStyle {
@@ -335,12 +326,13 @@ impl<M> WidgetNode<M> {
                             )
                         })
                         .collect();
+                    let row_id = NodeId::new(*next);
+                    *next += 1;
                     child_nodes.push(LayoutNode::container(
-                        NodeId::new(child_id),
+                        row_id,
                         LayoutStyle::row(),
                         row_children,
                     ));
-                    child_id += 1;
                 }
                 LayoutNode::container(
                     id,
@@ -352,15 +344,13 @@ impl<M> WidgetNode<M> {
                 )
             }
             Self::DataGrid(v) => {
-                let mut child_id = id.get() + 1;
                 let mut child_nodes: Vec<LayoutNode> = Vec::new();
-                // Header row
                 let header_children: Vec<LayoutNode> = v
                     .columns
                     .iter()
                     .map(|col| {
-                        let nid = NodeId::new(child_id);
-                        child_id += 1;
+                        let nid = NodeId::new(*next);
+                        *next += 1;
                         LayoutNode::leaf(
                             nid,
                             LayoutStyle {
@@ -371,20 +361,20 @@ impl<M> WidgetNode<M> {
                         )
                     })
                     .collect();
+                let header_id = NodeId::new(*next);
+                *next += 1;
                 child_nodes.push(LayoutNode::container(
-                    NodeId::new(child_id),
+                    header_id,
                     LayoutStyle::row(),
                     header_children,
                 ));
-                child_id += 1;
-                // Data rows
                 for row in &v.rows {
                     let row_children: Vec<LayoutNode> = row
                         .cells
                         .iter()
                         .map(|_| {
-                            let nid = NodeId::new(child_id);
-                            child_id += 1;
+                            let nid = NodeId::new(*next);
+                            *next += 1;
                             LayoutNode::leaf(
                                 nid,
                                 LayoutStyle {
@@ -394,12 +384,13 @@ impl<M> WidgetNode<M> {
                             )
                         })
                         .collect();
+                    let row_id = NodeId::new(*next);
+                    *next += 1;
                     child_nodes.push(LayoutNode::container(
-                        NodeId::new(child_id),
+                        row_id,
                         LayoutStyle::row(),
                         row_children,
                     ));
-                    child_id += 1;
                 }
                 LayoutNode::container(
                     id,
@@ -410,66 +401,38 @@ impl<M> WidgetNode<M> {
                     child_nodes,
                 )
             }
-            Self::NavRail(v) => {
-                let mut child_id = id.get() + 1;
-                LayoutNode::container(
-                    id,
-                    v.layout_style(),
-                    v.children
-                        .iter()
-                        .map(|c| {
-                            let this_id = NodeId::new(child_id);
-                            child_id += 1;
-                            c.to_layout(this_id)
-                        })
-                        .collect(),
-                )
-            }
-            Self::Sidebar(v) => {
-                let mut child_id = id.get() + 1;
-                LayoutNode::container(
-                    id,
-                    v.layout_style(),
-                    v.children
-                        .iter()
-                        .map(|c| {
-                            let this_id = NodeId::new(child_id);
-                            child_id += 1;
-                            c.to_layout(this_id)
-                        })
-                        .collect(),
-                )
-            }
-            Self::TabBar(v) => {
-                let mut child_id = id.get() + 1;
-                LayoutNode::container(
-                    id,
-                    v.layout_style(),
-                    v.children
-                        .iter()
-                        .map(|c| {
-                            let this_id = NodeId::new(child_id);
-                            child_id += 1;
-                            c.to_layout(this_id)
-                        })
-                        .collect(),
-                )
-            }
-            Self::Breadcrumb(v) => {
-                let mut child_id = id.get() + 1;
-                LayoutNode::container(
-                    id,
-                    v.layout_style(),
-                    v.children
-                        .iter()
-                        .map(|c| {
-                            let this_id = NodeId::new(child_id);
-                            child_id += 1;
-                            c.to_layout(this_id)
-                        })
-                        .collect(),
-                )
-            }
+            Self::NavRail(v) => LayoutNode::container(
+                id,
+                v.layout_style(),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc(next))
+                    .collect(),
+            ),
+            Self::Sidebar(v) => LayoutNode::container(
+                id,
+                v.layout_style(),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc(next))
+                    .collect(),
+            ),
+            Self::TabBar(v) => LayoutNode::container(
+                id,
+                v.layout_style(),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc(next))
+                    .collect(),
+            ),
+            Self::Breadcrumb(v) => LayoutNode::container(
+                id,
+                v.layout_style(),
+                v.children
+                    .iter()
+                    .map(|c| c.to_layout_alloc(next))
+                    .collect(),
+            ),
         }
     }
 
