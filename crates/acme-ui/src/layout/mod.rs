@@ -1,5 +1,6 @@
 //! High-level layout components built from acme-widgets primitives.
 
+pub mod form;
 pub mod grid;
 pub mod pagination;
 pub mod settings_page;
@@ -9,6 +10,7 @@ pub mod stepper;
 pub mod tabs;
 pub mod toolbar;
 
+pub use form::*;
 pub use grid::*;
 pub use pagination::*;
 pub use settings_page::*;

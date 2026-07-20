@@ -10,6 +10,7 @@ pub mod markdown_view;
 pub mod navigation_view;
 pub mod property_grid;
 pub mod resize_handle;
+pub mod sidenav;
 pub mod title_bar;
 pub mod window_controls;
 
@@ -19,5 +20,6 @@ pub use markdown_view::*;
 pub use navigation_view::*;
 pub use property_grid::*;
 pub use resize_handle::*;
+pub use sidenav::*;
 pub use title_bar::*;
 pub use window_controls::*;
