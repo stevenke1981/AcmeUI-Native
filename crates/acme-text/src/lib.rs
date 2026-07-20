@@ -65,8 +65,10 @@ pub struct TextLayout {
     pub width: f32,
     pub height: f32,
     pub line_count: usize,
+    /// Distance from the top of the layout to the first baseline.
+    pub baseline: f32,
     pub glyphs: Vec<ShapedGlyph>,
-    raster_glyphs: Vec<RasterGlyph>,
+    pub(crate) raster_glyphs: Vec<RasterGlyph>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -146,8 +148,12 @@ impl FontSystem {
         let mut measured_width = 0.0_f32;
         let mut measured_height = 0.0_f32;
         let mut line_count = 0;
+        let mut baseline = 0.0_f32;
         for run in buffer.layout_runs() {
             line_count += 1;
+            if line_count == 1 {
+                baseline = run.line_y;
+            }
             measured_width = measured_width.max(run.line_w);
             measured_height = measured_height.max(run.line_top + run.line_height);
             for glyph in run.glyphs {
@@ -173,6 +179,7 @@ impl FontSystem {
             width: measured_width,
             height: measured_height,
             line_count,
+            baseline,
             glyphs,
             raster_glyphs,
         }
@@ -189,6 +196,7 @@ impl FontSystem {
             width: layout.width,
             height: layout.height,
             line_count: layout.line_count,
+            baseline: layout.baseline,
         }
     }
 
@@ -282,6 +290,12 @@ pub struct TextMeasurement {
     pub width: f32,
     pub height: f32,
     pub line_count: usize,
+    /// Distance from the top of the layout to the first baseline.
+    /// Useful for precise vertical centering — set origin_y so that
+    /// `origin_y - baseline` aligns the visual text top with the desired
+    /// container top, or use `top + (height - layout_height) / 2 + baseline`
+    /// for centering within a rect.
+    pub baseline: f32,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

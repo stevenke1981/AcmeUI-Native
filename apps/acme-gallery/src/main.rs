@@ -642,14 +642,25 @@ impl Application for Gallery {
             ));
         }
 
-        // 12. Sidebar title
+        // 12. Sidebar title — centered
         if let Some(r) = snapshot.get(ids.sidebar_label) {
+            let measured = self.fonts.measure(
+                "AcmeUI",
+                &TextStyle {
+                    font_size: 18.0,
+                    line_height: 18.0 * theme.typography.line_height,
+                    ..TextStyle::default()
+                },
+                TextConstraints::default(),
+            );
+            let ox = r.x + (r.width - measured.width).max(0.0) / 2.0;
+            let oy = r.y + (r.height - measured.height) / 2.0 + measured.baseline;
             add_text(
                 &mut self.fonts,
                 &mut self.atlas,
                 &mut frame,
                 "AcmeUI",
-                ([r.x + 4.0, r.y + 2.0], 18.0),
+                ([ox, oy], 18.0),
                 colors.text,
                 context.scale_factor,
                 None,
@@ -657,7 +668,7 @@ impl Application for Gallery {
             );
         }
 
-        // 13. Sidebar buttons
+        // 13. Sidebar buttons — text centered both horizontally and vertically
         for (i, &btn_id) in ids.sidebar_buttons.iter().enumerate() {
             let Some(r) = snapshot.get(btn_id) else {
                 continue;
@@ -687,12 +698,28 @@ impl Application for Gallery {
                 1.0,
                 colors.border,
             ));
+            let label = CATEGORIES[i].name;
+            let measured = self.fonts.measure(
+                label,
+                &TextStyle {
+                    font_size: theme.typography.label_size,
+                    line_height: theme.typography.label_size * theme.typography.line_height,
+                    ..TextStyle::default()
+                },
+                TextConstraints::default(),
+            );
+            let ox = r.x + (r.width - measured.width).max(0.0) / 2.0;
+            // Vertical centering: place the layout's top at
+            //   r.y + (r.height - measured.height) / 2
+            // then add baseline so origin_y (the baseline position)
+            // correctly positions all glyphs.
+            let oy = r.y + (r.height - measured.height) / 2.0 + measured.baseline;
             add_text(
                 &mut self.fonts,
                 &mut self.atlas,
                 &mut frame,
-                CATEGORIES[i].name,
-                ([r.x + 12.0, r.y + 9.0], theme.typography.label_size),
+                label,
+                ([ox, oy], theme.typography.label_size),
                 fg,
                 context.scale_factor,
                 None,
@@ -738,12 +765,23 @@ impl Application for Gallery {
                     colors.border
                 },
             ));
+            let measured_tb = self.fonts.measure(
+                label_text,
+                &TextStyle {
+                    font_size: 13.0,
+                    line_height: 13.0 * theme.typography.line_height,
+                    ..TextStyle::default()
+                },
+                TextConstraints::default(),
+            );
+            let tb_ox = r.x + (r.width - measured_tb.width).max(0.0) / 2.0;
+            let tb_oy = r.y + (r.height - measured_tb.height) / 2.0 + measured_tb.baseline;
             add_text(
                 &mut self.fonts,
                 &mut self.atlas,
                 &mut frame,
                 label_text,
-                ([r.x + 10.0, r.y + 6.0], 13.0),
+                ([tb_ox, tb_oy], 13.0),
                 resolved.foreground,
                 context.scale_factor,
                 None,
