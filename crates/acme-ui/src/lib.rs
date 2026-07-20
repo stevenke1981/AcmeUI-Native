@@ -3,7 +3,9 @@
 //! High-level UI components built on acme-widgets primitives.
 //! Design system inspired by shadcn/ui, Material UI, and Ant Design.
 
+pub mod browser;
 pub mod charts;
+pub mod desktop;
 pub mod foundations;
 pub mod inputs;
 pub mod layout;
