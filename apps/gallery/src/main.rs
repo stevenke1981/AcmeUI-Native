@@ -24,9 +24,10 @@ use acme_textinput::{
 };
 use acme_theme::{Theme, ThemeColor, ThemeMode};
 use acme_widgets::{
-    ButtonState, ButtonVariant, DataGridColumn, DataGridRow, TableColumn, TableRow, TreeNode,
-    WidgetNode, breadcrumb, button, column, datagrid, label, label_with_size, nav_item, nav_rail,
-    row, scroll_view, separator, sidebar, tab_bar, table, tree, virtual_list,
+    ButtonState, ButtonVariant, DataGridColumn, DataGridRow, SortDirection, TabItem, TableColumn,
+    TableRow, TreeNode, WidgetKey, WidgetNode, breadcrumb, button, column, datagrid, label,
+    label_with_size, nav_item, nav_rail, row, scroll_view, separator, sidebar, tab_bar, table,
+    tree, virtual_list,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -48,6 +49,16 @@ const LONG_CHINESE_TEXT: &str =
 
 /// Unique marker for the TextInput placeholder slot (must not appear in normal labels).
 const TEXT_INPUT_MARKER: &str = "\0_ti_ph_\0";
+
+/// Expandable tree node keys (bit `i` in `Gallery::tree_expanded`).
+const TREE_EXPAND_KEYS: &[&str] = &["docs", "docs_zh", "images", "code", "code_src"];
+/// Default: all expandable nodes open (matches the original static demo).
+const TREE_EXPAND_DEFAULT: u32 = 0b1_1111;
+
+const VLIST_ITEM_COUNT: usize = 250;
+const VLIST_ITEM_HEIGHT: f32 = 28.0;
+const VLIST_VIEWPORT_H: f32 = 360.0;
+const TABLE_ROW_COUNT: usize = 28;
 
 struct CategoryInfo {
     name: &'static str,
@@ -150,12 +161,30 @@ enum GalleryMessage {
     ToggleFocusRings,
     FocusDemo,
     DpiInfo,
+    /// NavRail destination index.
+    NavRailSelect(usize),
+    /// Primary TabBar tab index.
+    TabBarSelect(usize),
+    /// Secondary (zh) TabBar tab index.
+    TabBarZhSelect(usize),
+    /// Select a tree node by stable key.
+    TreeSelectKey(&'static str),
+    /// Toggle expand/collapse for a tree node key.
+    TreeToggleKey(&'static str),
+    /// Sort table by column index (toggles direction when repeated).
+    TableSort(usize),
+    /// Select table row by original (pre-sort) data index.
+    TableSelectRow(usize),
 }
 
-/// A button hit region stored after layout each frame.
+/// A hit region stored after layout each frame.
+///
+/// `scrolled` is true for targets inside the page `ScrollView`. Their layout
+/// rects are in content space; hit tests subtract `Gallery::scroll` from `y`.
 struct HitRegion {
     rect: [f32; 4],
     message: GalleryMessage,
+    scrolled: bool,
 }
 
 // ── Gallery State ───────────────────────────────────────────────────────────
@@ -187,6 +216,25 @@ struct Gallery {
     ime_text: String,
     /// Last frame scale factor (for caret geometry outside `frame`).
     last_scale_factor: f32,
+
+    // ── Data / Nav demo interaction state (lives on Gallery; widgets rebuild) ──
+    /// Bit `i` ⇒ `TREE_EXPAND_KEYS[i]` is expanded.
+    tree_expanded: u32,
+    tree_selected: Option<&'static str>,
+    table_sort_col: Option<usize>,
+    table_sort_asc: bool,
+    /// Original (pre-sort) row index.
+    table_selected_row: Option<usize>,
+    vlist_scroll: f32,
+    nav_rail_selected: usize,
+    tab_bar_selected: usize,
+    tab_bar_zh_selected: usize,
+    /// Content-space viewport rects updated each frame (hit/scroll routing).
+    tree_viewport_rect: [f32; 4],
+    table_viewport_rect: [f32; 4],
+    vlist_viewport_rect: [f32; 4],
+    /// Window-space clip of the page scroll viewport (for scrolled hit tests).
+    scroll_clip_rect: [f32; 4],
 
     // Systems
     fonts: FontSystem,
@@ -220,6 +268,19 @@ impl Gallery {
             ime_caret_window_rect: None,
             ime_text: String::new(),
             last_scale_factor: 1.0,
+            tree_expanded: TREE_EXPAND_DEFAULT,
+            tree_selected: None,
+            table_sort_col: None,
+            table_sort_asc: true,
+            table_selected_row: None,
+            vlist_scroll: 0.0,
+            nav_rail_selected: 0,
+            tab_bar_selected: 0,
+            tab_bar_zh_selected: 1,
+            tree_viewport_rect: [0.0; 4],
+            table_viewport_rect: [0.0; 4],
+            vlist_viewport_rect: [0.0; 4],
+            scroll_clip_rect: [0.0; 4],
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::new(2048, 2048),
             layout: LayoutEngine::new(),
@@ -227,6 +288,33 @@ impl Gallery {
             accessibility: AccessibilityAdapter::new(0),
             screenshot_config: None,
         }
+    }
+
+    fn tree_is_expanded(&self, key: &str) -> bool {
+        TREE_EXPAND_KEYS
+            .iter()
+            .position(|&k| k == key)
+            .is_some_and(|i| self.tree_expanded & (1u32 << i) != 0)
+    }
+
+    fn tree_set_expanded(&mut self, key: &str, expanded: bool) {
+        if let Some(i) = TREE_EXPAND_KEYS.iter().position(|&k| k == key) {
+            if expanded {
+                self.tree_expanded |= 1u32 << i;
+            } else {
+                self.tree_expanded &= !(1u32 << i);
+            }
+        }
+    }
+
+    fn tree_toggle_expanded(&mut self, key: &str) {
+        if let Some(i) = TREE_EXPAND_KEYS.iter().position(|&k| k == key) {
+            self.tree_expanded ^= 1u32 << i;
+        }
+    }
+
+    fn vlist_max_scroll(&self) -> f32 {
+        (VLIST_ITEM_COUNT as f32 * VLIST_ITEM_HEIGHT - VLIST_VIEWPORT_H).max(0.0)
     }
 
     // ── Top-level Widget Tree Builder ────────────────────────────────────────
@@ -350,27 +438,46 @@ impl Gallery {
 
     fn nav_rail_page(&self) -> WidgetNode<GalleryMessage> {
         let g = spacing(self.density, 8.0);
+        let sel = self.nav_rail_selected;
+        let names = ["Home", "Search", "Library", "Settings"];
+        let sel_name = names.get(sel).copied().unwrap_or("?");
         let expanded = nav_rail::<GalleryMessage>("demo_rail")
-            .item(nav_item("Home").icon("⌂").on_click(GalleryMessage::DpiInfo))
+            .item(
+                nav_item("Home")
+                    .icon("⌂")
+                    .on_click(GalleryMessage::NavRailSelect(0)),
+            )
             .item(
                 nav_item("Search")
                     .icon("⌕")
-                    .on_click(GalleryMessage::DpiInfo),
+                    .on_click(GalleryMessage::NavRailSelect(1)),
             )
             .item(
                 nav_item("Library")
                     .icon("☰")
-                    .on_click(GalleryMessage::DpiInfo),
+                    .on_click(GalleryMessage::NavRailSelect(2)),
             )
             .item(nav_item("Settings").icon("⚙").disabled(true))
-            .selected(0)
+            .selected(sel)
             .collapsed(false)
             .build();
         let collapsed = nav_rail::<GalleryMessage>("demo_rail_c")
-            .item(nav_item("Home").icon("⌂"))
-            .item(nav_item("Search").icon("⌕"))
-            .item(nav_item("Library").icon("☰"))
-            .selected(1)
+            .item(
+                nav_item("Home")
+                    .icon("⌂")
+                    .on_click(GalleryMessage::NavRailSelect(0)),
+            )
+            .item(
+                nav_item("Search")
+                    .icon("⌕")
+                    .on_click(GalleryMessage::NavRailSelect(1)),
+            )
+            .item(
+                nav_item("Library")
+                    .icon("☰")
+                    .on_click(GalleryMessage::NavRailSelect(2)),
+            )
+            .selected(sel.min(2))
             .collapsed(true)
             .build();
         let secs = vec![
@@ -387,7 +494,7 @@ impl Gallery {
                 "Expanded",
                 column()
                     .gap(g)
-                    .child(label("Selected: Home"))
+                    .child(label(format!("Selected: {sel_name} (click items)")))
                     .child(expanded)
                     .build(),
             ),
@@ -395,7 +502,7 @@ impl Gallery {
                 "Collapsed",
                 column()
                     .gap(g)
-                    .child(label("Icons / short labels only"))
+                    .child(label("Icons / short labels only — shares selection state"))
                     .child(collapsed)
                     .build(),
             ),
@@ -441,19 +548,28 @@ impl Gallery {
 
     fn tab_bar_page(&self) -> WidgetNode<GalleryMessage> {
         let g = spacing(self.density, 8.0);
-        let tabs = tab_bar::<GalleryMessage>("demo_tabs")
-            .tab("Overview")
-            .tab("Details")
-            .tab("History")
-            .tab("Settings")
-            .selected(0)
-            .build();
-        let tabs_sel = tab_bar::<GalleryMessage>("demo_tabs_2")
-            .tab("日")
-            .tab("週")
-            .tab("月")
-            .selected(1)
-            .build();
+        let primary_labels = ["Overview", "Details", "History", "Settings"];
+        let zh_labels = ["日", "週", "月"];
+        let mut tabs = tab_bar::<GalleryMessage>("demo_tabs").selected(self.tab_bar_selected);
+        for (i, label_text) in primary_labels.iter().enumerate() {
+            tabs = tabs.item(TabItem::new(*label_text).on_click(GalleryMessage::TabBarSelect(i)));
+        }
+        let tabs = tabs.build();
+        let mut tabs_sel =
+            tab_bar::<GalleryMessage>("demo_tabs_2").selected(self.tab_bar_zh_selected);
+        for (i, label_text) in zh_labels.iter().enumerate() {
+            tabs_sel = tabs_sel
+                .item(TabItem::new(*label_text).on_click(GalleryMessage::TabBarZhSelect(i)));
+        }
+        let tabs_sel = tabs_sel.build();
+        let primary_name = primary_labels
+            .get(self.tab_bar_selected)
+            .copied()
+            .unwrap_or("?");
+        let zh_name = zh_labels
+            .get(self.tab_bar_zh_selected)
+            .copied()
+            .unwrap_or("?");
         let secs = vec![
             (
                 "Anatomy",
@@ -468,9 +584,9 @@ impl Gallery {
                 "Demo",
                 column()
                     .gap(g)
-                    .child(label("selected = Overview"))
+                    .child(label(format!("selected = {primary_name} (click tabs)")))
                     .child(tabs)
-                    .child(label("selected = 週"))
+                    .child(label(format!("selected = {zh_name}")))
                     .child(tabs_sel)
                     .build(),
             ),
@@ -560,95 +676,128 @@ impl Gallery {
 
     fn tree_demo(&self) -> WidgetNode<GalleryMessage> {
         let gap = spacing(self.density, 8.0);
+        // All nodes start collapsed; Gallery bits drive Tree.expanded HashSet.
+        let mut tree_widget = tree::<GalleryMessage>("gallery_tree")
+            .indent(20.0)
+            .viewport_height(320.0)
+            .child(
+                TreeNode::new("docs", label("Documents"))
+                    .expanded(false)
+                    .child(TreeNode::new("docs_readme", label("README.md")))
+                    .child(TreeNode::new("docs_guide", label("Getting Started")))
+                    .child(
+                        TreeNode::new("docs_zh", label("繁體中文說明"))
+                            .expanded(false)
+                            .child(TreeNode::new("docs_zh_ime", label("IME 輸入注意事項")))
+                            .child(TreeNode::new("docs_zh_a11y", label("無障礙指南"))),
+                    ),
+            )
+            .child(
+                TreeNode::new("images", label("Images"))
+                    .expanded(false)
+                    .child(TreeNode::new("img_logo", label("logo.png")))
+                    .child(TreeNode::new("img_banner", label("banner.webp"))),
+            )
+            .child(
+                TreeNode::new("code", label("Code"))
+                    .expanded(false)
+                    .child(
+                        TreeNode::new("code_src", label("src/"))
+                            .expanded(false)
+                            .child(TreeNode::new("code_main", label("main.rs")))
+                            .child(TreeNode::new("code_lib", label("lib.rs"))),
+                    )
+                    .child(TreeNode::new("code_toml", label("Cargo.toml"))),
+            );
+        for (i, &key) in TREE_EXPAND_KEYS.iter().enumerate() {
+            if self.tree_expanded & (1u32 << i) != 0 {
+                tree_widget.expanded.insert(WidgetKey::from(key));
+            }
+        }
+        if let Some(sel) = self.tree_selected {
+            tree_widget.selected = Some(WidgetKey::from(sel));
+        }
+        let sel_label = self.tree_selected.unwrap_or("(none)");
         column()
             .gap(gap)
             .child(label(
                 "Hierarchical Tree with expand/collapse. Nested categories demo:",
             ))
             .child(label(
-                "Keyboard (when focused): ↑/↓ move · → expand · ← collapse · Home/End · typeahead",
+                "Click row to select · click again (or chevron zone) to toggle · ←/→ collapse/expand",
             ))
-            .child(
-                tree::<GalleryMessage>("gallery_tree")
-                    .indent(20.0)
-                    .viewport_height(320.0)
-                    .child(
-                        TreeNode::new("docs", label("Documents"))
-                            .expanded(true)
-                            .child(TreeNode::new("docs_readme", label("README.md")))
-                            .child(TreeNode::new("docs_guide", label("Getting Started")))
-                            .child(
-                                TreeNode::new("docs_zh", label("繁體中文說明"))
-                                    .expanded(true)
-                                    .child(TreeNode::new("docs_zh_ime", label("IME 輸入注意事項")))
-                                    .child(TreeNode::new("docs_zh_a11y", label("無障礙指南"))),
-                            ),
-                    )
-                    .child(
-                        TreeNode::new("images", label("Images"))
-                            .expanded(true)
-                            .child(TreeNode::new("img_logo", label("logo.png")))
-                            .child(TreeNode::new("img_banner", label("banner.webp"))),
-                    )
-                    .child(
-                        TreeNode::new("code", label("Code"))
-                            .expanded(true)
-                            .child(
-                                TreeNode::new("code_src", label("src/"))
-                                    .expanded(true)
-                                    .child(TreeNode::new("code_main", label("main.rs")))
-                                    .child(TreeNode::new("code_lib", label("lib.rs"))),
-                            )
-                            .child(TreeNode::new("code_toml", label("Cargo.toml"))),
-                    )
-                    .build(),
-            )
+            .child(label(format!("Selected: {sel_label}")))
+            .child(tree_widget.build())
             .child(label(
-                "Note: Gallery paints visible nodes from Tree::visible_nodes(); live expand state is static in this demo.",
+                "State lives on Gallery; Tree rebuilds each frame from expand bits + selection.",
             ))
             .build()
     }
 
     fn table_demo(&self) -> WidgetNode<GalleryMessage> {
         let gap = spacing(self.density, 8.0);
-        let owners = ["Ada", "Lin", "Sam", "Mei", "Kai", "Zoe"];
-        let statuses = ["Active", "Draft", "Review", "Done", "Blocked"];
+        let headers = ["Name", "Status", "Owner", "Updated"];
+        let widths = [160.0_f32, 100.0, 100.0, 120.0];
         let mut tbl = table::<GalleryMessage>("gallery_table")
             .sticky_header(true)
-            .row_height(28.0)
-            .column(
-                TableColumn::new("name", label("Name"), 160.0)
-                    .sortable(true)
-                    .resizable(true),
-            )
-            .column(
-                TableColumn::new("status", label("Status"), 100.0)
-                    .sortable(true)
-                    .resizable(true),
-            )
-            .column(
-                TableColumn::new("owner", label("Owner"), 100.0)
-                    .sortable(true)
-                    .resizable(true),
-            )
-            .column(
-                TableColumn::new("updated", label("Updated"), 120.0)
-                    .sortable(true)
-                    .resizable(true),
-            );
+            .row_height(28.0);
 
-        for i in 0..28 {
-            let name = format!("Project {i:02}");
-            let status = statuses[i % statuses.len()];
-            let owner = owners[i % owners.len()];
-            let updated = format!("2026-0{}-{:02}", (i % 9) + 1, (i % 28) + 1);
+        for (ci, (header, width)) in headers.iter().zip(widths.iter()).enumerate() {
+            let mut title = (*header).to_string();
+            if self.table_sort_col == Some(ci) {
+                title.push_str(if self.table_sort_asc { " ↑" } else { " ↓" });
+            }
+            let mut col = TableColumn::new(
+                ["name", "status", "owner", "updated"][ci],
+                label(title),
+                *width,
+            )
+            .sortable(true)
+            .resizable(true);
+            if self.table_sort_col == Some(ci) {
+                col = col.sort_indicator(if self.table_sort_asc {
+                    SortDirection::Ascending
+                } else {
+                    SortDirection::Descending
+                });
+            }
+            tbl = tbl.column(col);
+        }
+
+        let order = table_display_order(self.table_sort_col, self.table_sort_asc);
+        let display_selected = self
+            .table_selected_row
+            .and_then(|orig| order.iter().position(|&o| o == orig));
+
+        for &orig in &order {
+            let cells = table_row_cells(orig);
             tbl = tbl.add_row(TableRow::new(vec![
-                label(name),
-                label(status),
-                label(owner),
-                label(updated),
+                label(cells[0].clone()),
+                label(cells[1].clone()),
+                label(cells[2].clone()),
+                label(cells[3].clone()),
             ]));
         }
+
+        let mut node = tbl.build();
+        if let WidgetNode::Table(ref mut t) = node {
+            t.sort_column = self.table_sort_col;
+            t.sort_ascending = self.table_sort_asc;
+            t.selected_row = display_selected;
+        }
+
+        let sort_info = match self.table_sort_col {
+            Some(c) => format!(
+                "sort = {} ({})",
+                headers[c],
+                if self.table_sort_asc { "asc" } else { "desc" }
+            ),
+            None => "sort = none".into(),
+        };
+        let sel_info = match self.table_selected_row {
+            Some(i) => format!("selected row = Project {i:02}"),
+            None => "selected row = none".into(),
+        };
 
         column()
             .gap(gap)
@@ -656,9 +805,10 @@ impl Gallery {
                 "Table with sticky header, 4 columns, and 28 sample rows.",
             ))
             .child(label(
-                "Sort / column-resize APIs exist on Table; Gallery state is static (no live sort interaction yet).",
+                "Click header to sort · click row to select. State lives on Gallery.",
             ))
-            .child(tbl.build())
+            .child(label(format!("{sort_info} · {sel_info}")))
+            .child(node)
             .build()
     }
 
@@ -717,17 +867,14 @@ impl Gallery {
 
     fn virtual_list_demo(&self) -> WidgetNode<GalleryMessage> {
         let gap = spacing(self.density, 8.0);
-        const ITEM_COUNT: usize = 250;
-        const ITEM_HEIGHT: f32 = 28.0;
-        const VIEWPORT_H: f32 = 360.0;
 
         let mut list = virtual_list::<GalleryMessage>("gallery_vlist")
-            .item_height(Some(ITEM_HEIGHT))
-            .viewport_height(VIEWPORT_H)
+            .item_height(Some(VLIST_ITEM_HEIGHT))
+            .viewport_height(VLIST_VIEWPORT_H)
             .overscan(4)
-            .scroll_offset(0.0);
+            .scroll_offset(self.vlist_scroll);
 
-        for i in 0..ITEM_COUNT {
+        for i in 0..VLIST_ITEM_COUNT {
             list = list.child(label(format!("Item {i}: 項目內容 demo")));
         }
 
@@ -738,11 +885,12 @@ impl Gallery {
                 "Fixed item height path · only the viewport window (+ overscan) is painted.",
             ))
             .child(label(format!(
-                "{ITEM_COUNT} items × {ITEM_HEIGHT}px · viewport {VIEWPORT_H}px · overscan 4"
+                "{} items × {}px · viewport {}px · overscan 4 · scroll {:.0}px",
+                VLIST_ITEM_COUNT, VLIST_ITEM_HEIGHT, VLIST_VIEWPORT_H, self.vlist_scroll
             )))
             .child(list.build())
             .child(label(
-                "Scroll the page to move the outer scroll view; VirtualList uses its own scroll_offset (static 0 in this demo).",
+                "Hover the list and scroll to move VirtualList; scroll outside moves the page.",
             ))
             .build()
     }
@@ -1201,24 +1349,84 @@ fn spacing(density: Density, base: f32) -> f32 {
     base * density.spacing_scale()
 }
 
+/// Static-ish table cell text for original row `i`, column `col`.
+fn table_cell_text(row: usize, col: usize) -> String {
+    const OWNERS: &[&str] = &["Ada", "Lin", "Sam", "Mei", "Kai", "Zoe"];
+    const STATUSES: &[&str] = &["Active", "Draft", "Review", "Done", "Blocked"];
+    match col {
+        0 => format!("Project {row:02}"),
+        1 => STATUSES[row % STATUSES.len()].to_string(),
+        2 => OWNERS[row % OWNERS.len()].to_string(),
+        _ => format!("2026-0{}-{:02}", (row % 9) + 1, (row % 28) + 1),
+    }
+}
+
+fn table_row_cells(row: usize) -> [String; 4] {
+    [
+        table_cell_text(row, 0),
+        table_cell_text(row, 1),
+        table_cell_text(row, 2),
+        table_cell_text(row, 3),
+    ]
+}
+
+/// Display order of original row indices under the current sort.
+fn table_display_order(sort_col: Option<usize>, sort_asc: bool) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..TABLE_ROW_COUNT).collect();
+    if let Some(col) = sort_col {
+        order.sort_by(|&a, &b| {
+            let cmp = table_cell_text(a, col).cmp(&table_cell_text(b, col));
+            if sort_asc { cmp } else { cmp.reverse() }
+        });
+    }
+    order
+}
+
+fn point_in_rect(x: f32, y: f32, rect: [f32; 4]) -> bool {
+    x >= rect[0] && x <= rect[0] + rect[2] && y >= rect[1] && y <= rect[1] + rect[3]
+}
+
+/// Map a content-space layout rect into window space using page scroll.
+fn scrolled_hit_rect(rect: [f32; 4], scroll_y: f32) -> [f32; 4] {
+    [rect[0], rect[1] - scroll_y, rect[2], rect[3]]
+}
+
 // ── Event Handling ──────────────────────────────────────────────────────────
 
 impl Gallery {
     fn hit(&self) -> Option<usize> {
-        self.button_info.iter().position(|hr| {
-            let r = hr.rect;
-            self.cursor.0 >= r[0]
-                && self.cursor.0 <= r[0] + r[2]
-                && self.cursor.1 >= r[1]
-                && self.cursor.1 <= r[1] + r[3]
-        })
+        // Prefer the last (top-most / deepest) match so nested content wins over chrome
+        // when rects overlap; content hits are appended after chrome buttons.
+        self.button_info
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(i, hr)| {
+                let r = if hr.scrolled {
+                    // Must be visible inside the page scroll viewport.
+                    if self.scroll_clip_rect[2] > 0.0
+                        && !point_in_rect(self.cursor.0, self.cursor.1, self.scroll_clip_rect)
+                    {
+                        return None;
+                    }
+                    scrolled_hit_rect(hr.rect, self.scroll)
+                } else {
+                    hr.rect
+                };
+                if point_in_rect(self.cursor.0, self.cursor.1, r) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
     }
 
     fn activate(&mut self, index: usize) -> bool {
         let Some(hr) = self.button_info.get(index) else {
             return false;
         };
-        match hr.message {
+        let message = hr.message;
+        match message {
             GalleryMessage::ToggleTheme => {
                 self.dark = !self.dark;
                 true
@@ -1243,6 +1451,44 @@ impl Gallery {
             GalleryMessage::SelectPage(i) => {
                 self.selected_page = i;
                 self.scroll = 0.0;
+                true
+            }
+            GalleryMessage::NavRailSelect(i) => {
+                self.nav_rail_selected = i;
+                true
+            }
+            GalleryMessage::TabBarSelect(i) => {
+                self.tab_bar_selected = i;
+                true
+            }
+            GalleryMessage::TabBarZhSelect(i) => {
+                self.tab_bar_zh_selected = i;
+                true
+            }
+            GalleryMessage::TreeSelectKey(key) => {
+                // Second click on the same expandable node toggles expand.
+                if self.tree_selected == Some(key) {
+                    self.tree_toggle_expanded(key);
+                }
+                self.tree_selected = Some(key);
+                true
+            }
+            GalleryMessage::TreeToggleKey(key) => {
+                self.tree_toggle_expanded(key);
+                self.tree_selected = Some(key);
+                true
+            }
+            GalleryMessage::TableSort(col) => {
+                if self.table_sort_col == Some(col) {
+                    self.table_sort_asc = !self.table_sort_asc;
+                } else {
+                    self.table_sort_col = Some(col);
+                    self.table_sort_asc = true;
+                }
+                true
+            }
+            GalleryMessage::TableSelectRow(orig) => {
+                self.table_selected_row = Some(orig);
                 true
             }
             GalleryMessage::FocusDemo | GalleryMessage::DpiInfo => true,
@@ -1330,6 +1576,17 @@ impl Application for Gallery {
                 }
             }
             PlatformEvent::Scroll { delta_y, .. } => {
+                // VirtualList captures wheel when the cursor is over its viewport.
+                let vlist_screen = scrolled_hit_rect(self.vlist_viewport_rect, self.scroll);
+                if self.selected_category == 4
+                    && self.selected_page == 3
+                    && self.vlist_viewport_rect[2] > 0.0
+                    && point_in_rect(self.cursor.0, self.cursor.1, vlist_screen)
+                {
+                    self.vlist_scroll =
+                        (self.vlist_scroll - delta_y).clamp(0.0, self.vlist_max_scroll());
+                    return true;
+                }
                 self.scroll = (self.scroll - delta_y).clamp(0.0, self.max_scroll);
                 true
             }
@@ -1362,6 +1619,56 @@ impl Application for Gallery {
                     false
                 } else {
                     self.activate(self.focused)
+                }
+            }
+            PlatformEvent::Key {
+                ref key,
+                pressed: true,
+                ..
+            } if !self.text_input.focused
+                && self.selected_category == 4
+                && self.selected_page == 0
+                && matches!(
+                    key,
+                    PlatformKey::ArrowLeft
+                        | PlatformKey::ArrowRight
+                        | PlatformKey::Home
+                        | PlatformKey::End
+                ) =>
+            {
+                // Tree keyboard: ←/→ collapse/expand selected; Home/End first/last visible.
+                // (PlatformKey has no ArrowUp/Down yet — pointer moves selection.)
+                match key {
+                    PlatformKey::ArrowRight => {
+                        if let Some(sel) = self.tree_selected {
+                            self.tree_set_expanded(sel, true);
+                        }
+                        true
+                    }
+                    PlatformKey::ArrowLeft => {
+                        if let Some(sel) = self.tree_selected {
+                            self.tree_set_expanded(sel, false);
+                        }
+                        true
+                    }
+                    PlatformKey::Home => {
+                        self.tree_selected = Some("docs");
+                        true
+                    }
+                    PlatformKey::End => {
+                        // Last key among currently visible leaves — best-effort.
+                        self.tree_selected = if self.tree_is_expanded("code") {
+                            if self.tree_is_expanded("code_src") {
+                                Some("code_lib")
+                            } else {
+                                Some("code_toml")
+                            }
+                        } else {
+                            Some("code")
+                        };
+                        true
+                    }
+                    _ => false,
                 }
             }
             PlatformEvent::Key {
@@ -1451,9 +1758,25 @@ impl Application for Gallery {
         // ── 6. Extract structural IDs for the fixed frame ──
         let ids = extract_gallery_ids(&root);
 
-        // ── 7. Collect all button hit regions via DFS walk ──
+        // ── 7. Collect hit regions (buttons first, then Tree/Table custom hits) ──
+        // Button-only DFS order must stay stable so paint btn_idx (chrome=0..10,
+        // content from 11) stays aligned with button_info indices.
         let mut button_info = Vec::new();
-        collect_hit_regions(&description, &root, &snapshot, &mut button_info);
+        collect_hit_regions(&description, &root, &snapshot, false, &mut button_info);
+        self.tree_viewport_rect = [0.0; 4];
+        self.table_viewport_rect = [0.0; 4];
+        self.vlist_viewport_rect = [0.0; 4];
+        collect_data_widget_hits(
+            &description,
+            &root,
+            &snapshot,
+            self.table_sort_col,
+            self.table_sort_asc,
+            &mut button_info,
+            &mut self.tree_viewport_rect,
+            &mut self.table_viewport_rect,
+            &mut self.vlist_viewport_rect,
+        );
         self.button_info = button_info;
 
         // ── 8. Scroll metrics ──
@@ -1462,6 +1785,10 @@ impl Application for Gallery {
             .map(|m| (m.content_height - m.viewport_height).max(0.0))
             .unwrap_or(0.0);
         self.scroll = self.scroll.clamp(0.0, self.max_scroll);
+        self.scroll_clip_rect = snapshot
+            .get(ids.scroll_view)
+            .map(|r| [r.x, r.y, r.width, r.height])
+            .unwrap_or([0.0; 4]);
 
         // ── 9. Theme ──
         let theme = if self.dark {
@@ -1969,6 +2296,33 @@ fn render_content(
         WidgetNode::Tree(t) => {
             let visible = t.visible_nodes();
             for (node, child_layout) in visible.iter().zip(layout.children.iter()) {
+                if let Some(rect) = snapshot.get(child_layout.id) {
+                    let y = rect.y - scroll_y;
+                    let selected = t.selected.as_ref() == Some(&node.key);
+                    if selected {
+                        frame.quads.push(quad_rect(
+                            [rect.x, y, rect.width.max(1.0), rect.height.max(1.0)],
+                            colors.surface_hover,
+                            0.0,
+                            0.0,
+                            colors.surface_hover,
+                        ));
+                    }
+                    // Expand/collapse chevron affordance for parents.
+                    if node.has_children {
+                        let mark = if node.expanded { "▾" } else { "▸" };
+                        add_text(
+                            fonts,
+                            atlas,
+                            frame,
+                            mark,
+                            ([rect.x + 2.0, y + 2.0], theme.typography.body_size),
+                            colors.text_muted,
+                            scale,
+                            Some(clip),
+                        );
+                    }
+                }
                 paint_label_like(
                     frame,
                     &node.content,
@@ -1988,6 +2342,17 @@ fn render_content(
             let mut row_i = 0usize;
             if !t.columns.is_empty() {
                 if let Some(header_row) = layout.children.get(row_i) {
+                    // Header background
+                    if let Some(hr) = snapshot.get(header_row.id) {
+                        let y = hr.y - scroll_y;
+                        frame.quads.push(quad_rect(
+                            [hr.x, y, hr.width.max(1.0), hr.height.max(1.0)],
+                            colors.surface,
+                            0.0,
+                            1.0,
+                            colors.border,
+                        ));
+                    }
                     for (col, cell_layout) in t.columns.iter().zip(header_row.children.iter()) {
                         paint_label_like(
                             frame,
@@ -2005,10 +2370,22 @@ fn render_content(
                 }
                 row_i += 1;
             }
-            for data_row in &t.rows {
+            for (display_i, data_row) in t.rows.iter().enumerate() {
                 let Some(row_layout) = layout.children.get(row_i) else {
                     break;
                 };
+                if t.selected_row == Some(display_i)
+                    && let Some(rr) = snapshot.get(row_layout.id)
+                {
+                    let y = rr.y - scroll_y;
+                    frame.quads.push(quad_rect(
+                        [rr.x, y, rr.width.max(1.0), rr.height.max(1.0)],
+                        colors.surface_hover,
+                        0.0,
+                        0.0,
+                        colors.surface_hover,
+                    ));
+                }
                 for (cell, cell_layout) in data_row.cells.iter().zip(row_layout.children.iter()) {
                     paint_label_like(
                         frame,
@@ -2179,10 +2556,15 @@ fn paint_label_like(
 }
 
 /// Walk the entire widget+layout tree and collect button hit regions (DFS order).
+///
+/// `scrolled` becomes true under the page `ScrollView` so hit tests can subtract
+/// page scroll. Does **not** emit Tree/Table hits (those are appended separately
+/// so button paint indices stay aligned with chrome 0..10 + content from 11).
 fn collect_hit_regions(
     widget: &WidgetNode<GalleryMessage>,
     layout: &LayoutNode,
     snapshot: &acme_layout::LayoutSnapshot,
+    scrolled: bool,
     result: &mut Vec<HitRegion>,
 ) {
     #[allow(clippy::collapsible_if)]
@@ -2193,23 +2575,196 @@ fn collect_hit_regions(
                     result.push(HitRegion {
                         rect: [rect.x, rect.y, rect.width, rect.height],
                         message: *msg,
+                        scrolled,
                     });
                 }
             }
         }
+        WidgetNode::ScrollView(_) => {
+            let wc = widget.children();
+            for (w, l) in wc.iter().zip(layout.children.iter()) {
+                collect_hit_regions(w, l, snapshot, true, result);
+            }
+        }
         WidgetNode::Tooltip(t) => {
-            collect_hit_regions(&t.child, layout, snapshot, result);
+            collect_hit_regions(&t.child, layout, snapshot, scrolled, result);
         }
         WidgetNode::Popover(p) => {
-            collect_hit_regions(&p.children[0], layout, snapshot, result);
+            collect_hit_regions(&p.children[0], layout, snapshot, scrolled, result);
+        }
+        // Tree/Table/VirtualList handled in collect_data_widget_hits.
+        WidgetNode::Tree(_) | WidgetNode::Table(_) | WidgetNode::VirtualList(_) => {}
+        _ => {
+            let wc = widget.children();
+            for (w, l) in wc.iter().zip(layout.children.iter()) {
+                collect_hit_regions(w, l, snapshot, scrolled, result);
+            }
+        }
+    }
+}
+
+/// Append Tree / Table hit regions and cache viewport rects for scroll routing.
+///
+/// Always treated as scrolled content (inside the page scroll view).
+#[allow(clippy::too_many_arguments)]
+fn collect_data_widget_hits(
+    widget: &WidgetNode<GalleryMessage>,
+    layout: &LayoutNode,
+    snapshot: &acme_layout::LayoutSnapshot,
+    table_sort_col: Option<usize>,
+    table_sort_asc: bool,
+    result: &mut Vec<HitRegion>,
+    tree_viewport: &mut [f32; 4],
+    table_viewport: &mut [f32; 4],
+    vlist_viewport: &mut [f32; 4],
+) {
+    match widget {
+        WidgetNode::Tree(t) => {
+            if let Some(rect) = snapshot.get(layout.id) {
+                *tree_viewport = [rect.x, rect.y, rect.width, rect.height];
+            }
+            let visible = t.visible_nodes();
+            for (node, child_layout) in visible.iter().zip(layout.children.iter()) {
+                let Some(rect) = snapshot.get(child_layout.id) else {
+                    continue;
+                };
+                let full = [rect.x, rect.y, rect.width, rect.height];
+                // Resolve stable &'static str for Copy messages.
+                let Some(key) = tree_key_static(node.key.as_str()) else {
+                    continue;
+                };
+                if node.has_children {
+                    // Left chevron strip → toggle expand.
+                    let chevron_w = 20.0_f32.min(rect.width);
+                    result.push(HitRegion {
+                        rect: [rect.x, rect.y, chevron_w, rect.height],
+                        message: GalleryMessage::TreeToggleKey(key),
+                        scrolled: true,
+                    });
+                    result.push(HitRegion {
+                        rect: [
+                            rect.x + chevron_w,
+                            rect.y,
+                            (rect.width - chevron_w).max(0.0),
+                            rect.height,
+                        ],
+                        message: GalleryMessage::TreeSelectKey(key),
+                        scrolled: true,
+                    });
+                } else {
+                    result.push(HitRegion {
+                        rect: full,
+                        message: GalleryMessage::TreeSelectKey(key),
+                        scrolled: true,
+                    });
+                }
+            }
+        }
+        WidgetNode::Table(t) => {
+            if let Some(rect) = snapshot.get(layout.id) {
+                *table_viewport = [rect.x, rect.y, rect.width, rect.height];
+            }
+            let mut row_i = 0usize;
+            if !t.columns.is_empty() {
+                if let Some(header_row) = layout.children.get(row_i) {
+                    for (ci, cell_layout) in header_row.children.iter().enumerate() {
+                        if !t.columns.get(ci).is_some_and(|c| c.sortable) {
+                            continue;
+                        }
+                        if let Some(rect) = snapshot.get(cell_layout.id) {
+                            result.push(HitRegion {
+                                rect: [rect.x, rect.y, rect.width, rect.height],
+                                message: GalleryMessage::TableSort(ci),
+                                scrolled: true,
+                            });
+                        }
+                    }
+                }
+                row_i += 1;
+            }
+            let order = table_display_order(table_sort_col, table_sort_asc);
+            for (display_i, row_layout) in layout.children.iter().skip(row_i).enumerate() {
+                let Some(&orig) = order.get(display_i) else {
+                    break;
+                };
+                if let Some(rect) = snapshot.get(row_layout.id) {
+                    result.push(HitRegion {
+                        rect: [rect.x, rect.y, rect.width, rect.height],
+                        message: GalleryMessage::TableSelectRow(orig),
+                        scrolled: true,
+                    });
+                }
+            }
+        }
+        WidgetNode::VirtualList(_) => {
+            if let Some(rect) = snapshot.get(layout.id) {
+                *vlist_viewport = [rect.x, rect.y, rect.width, rect.height];
+            }
+        }
+        WidgetNode::Tooltip(t) => {
+            collect_data_widget_hits(
+                &t.child,
+                layout,
+                snapshot,
+                table_sort_col,
+                table_sort_asc,
+                result,
+                tree_viewport,
+                table_viewport,
+                vlist_viewport,
+            );
+        }
+        WidgetNode::Popover(p) => {
+            collect_data_widget_hits(
+                &p.children[0],
+                layout,
+                snapshot,
+                table_sort_col,
+                table_sort_asc,
+                result,
+                tree_viewport,
+                table_viewport,
+                vlist_viewport,
+            );
         }
         _ => {
             let wc = widget.children();
             for (w, l) in wc.iter().zip(layout.children.iter()) {
-                collect_hit_regions(w, l, snapshot, result);
+                collect_data_widget_hits(
+                    w,
+                    l,
+                    snapshot,
+                    table_sort_col,
+                    table_sort_asc,
+                    result,
+                    tree_viewport,
+                    table_viewport,
+                    vlist_viewport,
+                );
             }
         }
     }
+}
+
+/// Map a tree node key string to a `'static` constant used in messages.
+fn tree_key_static(key: &str) -> Option<&'static str> {
+    const ALL: &[&str] = &[
+        "docs",
+        "docs_readme",
+        "docs_guide",
+        "docs_zh",
+        "docs_zh_ime",
+        "docs_zh_a11y",
+        "images",
+        "img_logo",
+        "img_banner",
+        "code",
+        "code_src",
+        "code_main",
+        "code_lib",
+        "code_toml",
+    ];
+    ALL.iter().copied().find(|&k| k == key)
 }
 
 // ── Text Helper ─────────────────────────────────────────────────────────────

@@ -34,15 +34,19 @@
 |-----------|-------|
 | Glyph atlas eviction/aging | Fixed 2048² shelf; full → drop glyphs until `clear()` |
 | Screenshot golden pipeline | `ScreenshotConfig` scaffolded; no capture/diff CI |
-| Full end-to-end GPU recovery on Windows | Callbacks + pure tests wired; interactive device-loss still manual |
+| Full end-to-end GPU recovery on Windows | Callbacks + pure tests wired; interactive device-loss still manual — [docs/MANUAL_VALIDATION.md](docs/MANUAL_VALIDATION.md#a-gpu-device-loss-recovery) |
 
 ## Automated Only (manual still pending)
 
+Human checklists (both still **NOT YET MANUALLY VALIDATED**):
+[`docs/MANUAL_VALIDATION.md`](docs/MANUAL_VALIDATION.md)
+— A. GPU device loss · B. Traditional Chinese 注音 IME.
+
 | Component | Automated evidence | Manual still needed |
 |-----------|--------------------|---------------------|
-| Surface status machine | `resolve_surface_action` covers suspended/device-lost/acquire outcomes | Real GPU device loss on Windows |
-| Post-recovery text integrity | `atlas_clear_forces_reupload`; Gallery/Playground `on_gpu_recovered` clears CPU atlas | Trigger real device loss and confirm glyphs |
-| IME caret geometry | `ime_caret_area` + `resolve_ime_cursor_area` + Gallery field-relative rect | Traditional Chinese 注音 candidate placement |
+| Surface status machine | `resolve_surface_action` covers suspended/device-lost/acquire outcomes | Real GPU device loss on Windows — [checklist A](docs/MANUAL_VALIDATION.md#a-gpu-device-loss-recovery) |
+| Post-recovery text integrity | `atlas_clear_forces_reupload`; Gallery/Playground `on_gpu_recovered` clears CPU atlas | Trigger real device loss and confirm glyphs — [checklist A](docs/MANUAL_VALIDATION.md#a-gpu-device-loss-recovery) |
+| IME caret geometry | `ime_caret_area` + `resolve_ime_cursor_area` + Gallery field-relative rect | Traditional Chinese 注音 candidate placement — [checklist B](docs/MANUAL_VALIDATION.md#b-traditional-chinese-ime-注音) |
 | CJK shaping | `acme-text` shapes TC + emoji without panic | Visual glyph quality at 125/150/200% DPI |
 | Multi-window routing | Unit tests for WindowId / configs | Interactive multi-window smoke |
 | Theme V2 | Constructors + validation test | Visual Light/Dark/High Contrast pass |
@@ -54,4 +58,5 @@
 - `cargo-deny` / `cargo-audit`
 - WSL / macOS / CI matrix beyond local Windows
 - MSRV Rust 1.85 check
-- Manual Traditional Chinese 注音 IME
+- Manual Traditional Chinese 注音 IME — [checklist B](docs/MANUAL_VALIDATION.md#b-traditional-chinese-ime-注音) (status: **NOT YET MANUALLY VALIDATED**)
+- Manual GPU device-loss recovery on Windows — [checklist A](docs/MANUAL_VALIDATION.md#a-gpu-device-loss-recovery) (status: **NOT YET MANUALLY VALIDATED**)

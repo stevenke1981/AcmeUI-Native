@@ -60,7 +60,10 @@
 - [x] Navigation widgets (NavRail, Sidebar, TabBar, Breadcrumb)
 - [x] Gallery Data category real Tree/Table/DataGrid/VirtualList demos
 - [x] Real wgpu device-lost detection (`set_device_lost_callback` + uncaptured Internal/OOM)
-- [ ] Manual Traditional Chinese 注音 IME validation on Windows
+- [x] Interactive Gallery Data/Nav demos (Tree/Table/VL/Nav state machines)
+- [x] Manual validation checklists documented (`docs/MANUAL_VALIDATION.md`) — **human sign-off still open**
+- [ ] Manual Traditional Chinese 注音 IME validation on Windows (checklist B)
+- [ ] Manual GPU device-loss recovery on Windows (checklist A)
 - [ ] Manual DPI interaction at 125/150/200% Windows scaling
 - [ ] Glyph atlas eviction/aging when full
 - [ ] Benchmark headless CI thresholds

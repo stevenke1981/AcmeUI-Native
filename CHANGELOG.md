@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.3 — Interactive Gallery demos + manual validation checklists (2026-07-20)
+
+### Interactive Data / Nav (Gallery state on app, rebuild each frame)
+- Tree: expand/collapse + selection (click, chevron, ←/→); state in `tree_expanded` bits
+- Table: header sort (reorders row data), row select + highlight
+- VirtualList: independent wheel scroll when pointer over list viewport
+- NavRail / TabBar: click selection via `on_click` messages
+- Hit testing respects page scroll (`HitRegion.scrolled` + clip rect)
+
+### Manual validation docs (honest)
+- Added `docs/MANUAL_VALIDATION.md` for GPU device-loss and 注音 IME
+- Both checklists status: **NOT YET MANUALLY VALIDATED**
+- STATUS links to checklist; no false “manual done” claims
+
+### Verification
+- Workspace fmt/clippy/test green
+
 ## v0.2.2 — Gallery demos, navigation widgets, device-lost detection (2026-07-20)
 
 ### Gallery Data demos
