@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "updatedAt": 1784531372506,
+  "sessions": {
+    "ses_081a49770ffeXX92U0oslidHVb": {
+      "startedAt": 1784531347599,
+      "lastActivityAt": 1784531372437,
+      "lastSeenAt": 1784531372437,
+      "activeMs": 24805,
+      "messages": {
+        "msg_f7e5b68d0001A51zB4lJpG9sjQ": {
+          "input": 31824,
+          "output": 153,
+          "reasoning": 163,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "cost": 0,
+          "updatedAt": 1784531352730
+        },
+        "msg_f7e5b7c9e001Fmj2CuX4GtbOx3": {
+          "input": 2268,
+          "output": 73,
+          "reasoning": 66,
+          "cacheRead": 32128,
+          "cacheWrite": 0,
+          "cost": 0,
+          "updatedAt": 1784531355871
+        },
+        "msg_f7e5b88e3001fl6hHIU5mHwALb": {
+          "input": 228,
+          "output": 67,
+          "reasoning": 42,
+          "cacheRead": 34432,
+          "cacheWrite": 0,
+          "cost": 0,
+          "updatedAt": 1784531358797
+        },
+        "msg_f7e5b9452001vSphQqJLtDOqpV": {
+          "input": 109,
+          "output": 125,
+          "reasoning": 32,
+          "cacheRead": 34688,
+          "cacheWrite": 0,
+          "cost": 0,
+          "updatedAt": 1784531362044
+        },
+        "msg_f7e5ba101001ht77J81tq86qqY": {
+          "input": 109,
+          "output": 87,
+          "reasoning": 47,
+          "cacheRead": 34944,
+          "cacheWrite": 0,
+          "cost": 0,
+          "updatedAt": 1784531365142
+        },
+        "msg_f7e5bad19001VpLvl6YlZoL2NY": {
+          "input": 1800,
+          "output": 67,
+          "reasoning": 20,
+          "cacheRead": 35072,
+          "cacheWrite": 0,
+          "cost": 0,
+          "updatedAt": 1784531367810
+        },
+        "msg_f7e5bb786001V3Ss3d6Nh6F9H0": {
+          "input": 972,
+          "output": 69,
+          "reasoning": 92,
+          "cacheRead": 36864,
+          "cacheWrite": 0,
+          "cost": 0,
+          "updatedAt": 1784531371272
+        },
+        "msg_f7e5bc50d0014xuRCLh3nM4RER": {
+          "input": 0,
+          "output": 0,
+          "reasoning": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "cost": 0,
+          "updatedAt": 1784531372506
+        }
+      },
+      "todos": {
+        "completed": 0,
+        "total": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+[package]
+name = "acme-layout"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+taffy.workspace = true
+acme-core = { path = "../acme-core" }

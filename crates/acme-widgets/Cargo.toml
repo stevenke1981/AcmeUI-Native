@@ -1,0 +1,10 @@
+[package]
+name = "acme-widgets"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+acme-core = { path = "../acme-core" }
+acme-layout = { path = "../acme-layout" }
+acme-theme = { path = "../acme-theme" }

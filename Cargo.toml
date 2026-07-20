@@ -1,0 +1,49 @@
+[workspace]
+resolver = "2"
+members = [
+ "crates/acme-core", "crates/acme-platform", "crates/acme-render-wgpu",
+ "crates/acme-layout", "crates/acme-text", "crates/acme-accessibility",
+ "crates/acme-theme", "crates/acme-widgets", "crates/acme-devtools",
+ "apps/gallery", "apps/playground", "apps/benchmark"
+]
+default-members = ["apps/gallery"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.85"
+
+[workspace.dependencies]
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+winit = "0.30"
+wgpu = "29"
+pollster = "0.4"
+bytemuck = { version = "1", features = ["derive"] }
+taffy = "0.9"
+cosmic-text = "0.14"
+fontdb = "0.23"
+unicode-segmentation = "1"
+arboard = "3"
+accesskit = "0.21"
+accesskit_winit = "0.29"
+smallvec = "1"
+slotmap = "1"
+bitflags = "2"
+
+[profile.dev]
+incremental = true
+debug = 1
+codegen-units = 256
+
+[profile.dev.package."*"]
+opt-level = 1
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"

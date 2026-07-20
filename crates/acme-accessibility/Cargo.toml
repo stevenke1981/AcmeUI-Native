@@ -1,0 +1,9 @@
+[package]
+name = "acme-accessibility"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+accesskit.workspace = true
+accesskit_winit.workspace = true

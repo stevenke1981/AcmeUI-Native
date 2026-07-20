@@ -1,0 +1,17 @@
+[package]
+name = "acme-playground"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+acme-core = { path = "../../crates/acme-core" }
+acme-platform = { path = "../../crates/acme-platform" }
+acme-render-wgpu = { path = "../../crates/acme-render-wgpu" }
+acme-layout = { path = "../../crates/acme-layout" }
+acme-text = { path = "../../crates/acme-text" }
+acme-theme = { path = "../../crates/acme-theme" }
+acme-widgets = { path = "../../crates/acme-widgets" }
