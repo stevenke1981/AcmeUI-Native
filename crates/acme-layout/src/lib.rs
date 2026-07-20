@@ -161,6 +161,10 @@ impl LayoutSnapshot {
     pub fn is_empty(&self) -> bool {
         self.rects.is_empty()
     }
+    /// Iterate over all `(id, rect)` pairs in the snapshot.
+    pub fn iter(&self) -> impl Iterator<Item = (u64, &LayoutRect)> {
+        self.rects.iter().map(|(id, rect)| (*id, rect))
+    }
 }
 
 #[derive(Debug)]

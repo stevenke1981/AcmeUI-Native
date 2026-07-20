@@ -5,7 +5,7 @@
 - [x] Compile-time baseline
 - [x] winit window
 - [x] wgpu bootstrap
-- [ ] Resize and surface recovery
+- [x] Resize and surface recovery
 - [x] DPI coordinate types
 - [x] Paint command list
 - [x] Rectangle batching
@@ -42,7 +42,10 @@
 - [ ] Popover
 - [ ] Menu
 - [ ] Dialog
-- [ ] AccessKit
+- [x] AccessKit
+- [x] acme-devtools crate (FrameMetrics, WidgetTreeDump, LayoutInspector, RenderDiagnostics)
+- [x] apps/benchmark (layout, reconciliation, frame build benchmarks)
+- [x] apps/playground (interactive widget testing app)
 
 ## P2
 - [ ] VirtualList

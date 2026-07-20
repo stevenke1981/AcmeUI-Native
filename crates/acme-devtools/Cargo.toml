@@ -6,3 +6,8 @@ license.workspace = true
 
 [dependencies]
 tracing.workspace = true
+acme-core = { path = "../acme-core" }
+acme-layout = { path = "../acme-layout" }
+acme-theme = { path = "../acme-theme" }
+acme-widgets = { path = "../acme-widgets" }
+acme-render-wgpu = { path = "../acme-render-wgpu" }

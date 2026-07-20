@@ -114,6 +114,10 @@ version = "0.1.0"
 dependencies = [
  "accesskit",
  "accesskit_winit",
+ "acme-core",
+ "acme-layout",
+ "acme-theme",
+ "acme-widgets",
 ]
 
 [[package]]
@@ -140,6 +144,11 @@ version = "0.1.0"
 name = "acme-devtools"
 version = "0.1.0"
 dependencies = [
+ "acme-core",
+ "acme-layout",
+ "acme-render-wgpu",
+ "acme-theme",
+ "acme-widgets",
  "tracing",
 ]
 

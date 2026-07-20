@@ -5,3 +5,5 @@
 *.ilk
 *.log
 .DS_Store
+.opencode/memory/.runtime/
+.opencode/status-footer/
