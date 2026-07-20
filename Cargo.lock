@@ -116,6 +116,7 @@ dependencies = [
  "accesskit_winit",
  "acme-core",
  "acme-layout",
+ "acme-platform",
  "acme-theme",
  "acme-widgets",
 ]
@@ -163,6 +164,7 @@ dependencies = [
 name = "acme-gallery"
 version = "0.1.0"
 dependencies = [
+ "acme-accessibility",
  "acme-core",
  "acme-layout",
  "acme-platform",
@@ -182,6 +184,7 @@ name = "acme-layout"
 version = "0.1.0"
 dependencies = [
  "acme-core",
+ "acme-text",
  "taffy",
 ]
 

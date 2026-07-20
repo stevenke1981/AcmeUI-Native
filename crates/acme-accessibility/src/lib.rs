@@ -1,19 +1,158 @@
 //! AccessKit integration for AcmeUI Native.
 //!
 //! Provides functions to build [`TreeUpdate`] values from the widget tree
-//! and layout snapshot used by the AcmeUI framework.
+//! and layout snapshot used by the AcmeUI framework. Also provides a
+//! per-window [`AccessibilityAdapter`] that bridges the accessibility tree
+//! with the platform event system.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 use accesskit::{Action, Node as AccessNode, NodeId as AccessNodeId, Rect, Role, Tree, TreeUpdate};
 use acme_core::NodeId;
 use acme_layout::LayoutSnapshot;
+use acme_platform::{PlatformEvent, WindowId};
 use acme_widgets::WidgetNode;
+
+/// Re-export AccessKit types used in the public API.
+pub use accesskit::{Node as AccNode, NodeId as AccNodeId};
 
 /// Converts an AcmeUI [`NodeId`] to an AccessKit [`AccessNodeId`].
 #[inline]
 pub fn to_access_id(id: NodeId) -> AccessNodeId {
     AccessNodeId::from(id.get())
+}
+
+/// A snapshot of the accessibility tree for one window.
+///
+/// Contains the flat node list and the root node ID, mirroring the
+/// structure of AccessKit's [`TreeUpdate`] without the focus or
+/// tree-identity fields.
+#[derive(Clone, Debug)]
+pub struct AccessibilityTree {
+    pub nodes: Vec<(AccessNodeId, AccessNode)>,
+    pub root: AccessNodeId,
+}
+
+/// Actions that accessibility tools (screen readers, etc.) can trigger
+/// on a widget. Each variant carries the target [`NodeId`] within the
+/// accessibility tree.
+#[derive(Debug, Clone, PartialEq)]
+pub enum AccessibilityAction {
+    /// Move keyboard focus to the widget.
+    Focus(NodeId),
+    /// Simulate a click on the widget.
+    Click(NodeId),
+    /// Set the accessible value of a widget (e.g. a text field).
+    SetValue(NodeId, String),
+    /// Scroll the widget into the visible viewport.
+    ScrollIntoView(NodeId),
+    /// Generic "activate" – press a button, toggle a switch, etc.
+    Activate(NodeId),
+}
+
+/// Bridges the accessibility tree with one window.
+///
+/// Holds the last-built [`AccessibilityTree`] and can route
+/// [`AccessibilityAction`] values into [`PlatformEvent`] values for
+/// the windowing system.
+pub struct AccessibilityAdapter {
+    window_id: u64,
+    tree: Option<AccessibilityTree>,
+    /// Cache of the last built tree root for diffing.
+    last_root: Option<AccessNodeId>,
+    focused_node: Option<NodeId>,
+}
+
+impl AccessibilityAdapter {
+    /// Create a new adapter for the given window.
+    pub fn new(window_id: u64) -> Self {
+        Self {
+            window_id,
+            tree: None,
+            last_root: None,
+            focused_node: None,
+        }
+    }
+
+    /// Rebuild the accessibility tree from the widget tree and layout snapshot.
+    ///
+    /// Walks `root` in DFS order (matching [`WidgetNode::to_layout`]), assigns
+    /// sequential IDs, and stores the result as the current tree.
+    pub fn update<M>(&mut self, root: &WidgetNode<M>, snapshot: &LayoutSnapshot)
+    where
+        M: Clone + 'static,
+    {
+        let mut next = 1u64;
+        let mut nodes = Vec::new();
+        let root_id = walk_node(root, snapshot, &mut next, None, &mut nodes);
+        self.last_root = Some(root_id);
+        self.tree = Some(AccessibilityTree {
+            nodes,
+            root: root_id,
+        });
+    }
+
+    /// Get a reference to the current accessibility tree, if one has been built.
+    pub fn tree_ref(&self) -> Option<&AccessibilityTree> {
+        self.tree.as_ref()
+    }
+
+    /// Route an accessibility action into the corresponding platform event.
+    ///
+    /// Returns `Some(PlatformEvent)` when the action maps to a concrete platform
+    /// event, or `None` for actions that have no direct platform representation.
+    ///
+    /// The caller should dispatch the returned event through the normal
+    /// application event pipeline.
+    pub fn route_action(&self, action: &AccessibilityAction) -> Option<PlatformEvent> {
+        match action {
+            AccessibilityAction::Focus(_id) => Some(PlatformEvent::FocusChanged {
+                window: WindowId(self.window_id),
+                gained: true,
+                node_id: 0,
+            }),
+            AccessibilityAction::Click(_id) => Some(PlatformEvent::PointerButtonDetailed {
+                window: WindowId(self.window_id),
+                pressed: true,
+                x: 0.0,
+                y: 0.0,
+                button: 0,
+                pointer: 0,
+            }),
+            AccessibilityAction::SetValue(_id, val) => Some(PlatformEvent::ImeCommitDetailed {
+                window: WindowId(self.window_id),
+                text: val.clone(),
+            }),
+            // ScrollIntoView and Activate do not have a one-to-one platform
+            // event mapping in the current event set; the framework layer
+            // should handle them directly.
+            AccessibilityAction::ScrollIntoView(_) | AccessibilityAction::Activate(_) => None,
+        }
+    }
+
+    /// Track the given node as focused.
+    ///
+    /// The focused node is included when building the next [`TreeUpdate`]
+    /// via [`build_tree_update`]. Call this method when keyboard focus
+    /// moves to a new widget.
+    pub fn focus_widget(&mut self, target_id: NodeId) {
+        self.focused_node = Some(target_id);
+    }
+
+    /// Build an AccessKit [`TreeUpdate`] from the current tree with
+    /// the tracked focus applied.
+    pub fn build_tree_update(&self) -> Option<TreeUpdate> {
+        let tree = self.tree.as_ref()?;
+        let focus = self
+            .focused_node
+            .map(|id| AccessNodeId::from(id.get()))
+            .unwrap_or(tree.root);
+        Some(TreeUpdate {
+            nodes: tree.nodes.clone(),
+            tree: Some(Tree::new(tree.root)),
+            focus,
+        })
+    }
 }
 
 /// Build a full [`TreeUpdate`] from a widget tree and its layout snapshot.
@@ -63,7 +202,7 @@ where
 }
 
 /// Recursively walk the widget tree, producing AccessKit nodes.
-fn walk_node<M: Clone + 'static>(
+pub fn walk_node<M: Clone + 'static>(
     node: &WidgetNode<M>,
     snapshot: &LayoutSnapshot,
     next_id: &mut u64,
@@ -71,7 +210,7 @@ fn walk_node<M: Clone + 'static>(
     nodes: &mut Vec<(AccessNodeId, AccessNode)>,
 ) -> AccessNodeId {
     let id = AccessNodeId::from(*next_id);
-    let layout_id = *next_id;
+    let layout_id = NodeId::new(*next_id);
     *next_id += 1;
 
     let role = match node {
@@ -90,6 +229,7 @@ fn walk_node<M: Clone + 'static>(
         WidgetNode::Tree(_) => Role::Tree,
         WidgetNode::Table(_) => Role::Table,
         WidgetNode::DataGrid(_) => Role::Grid,
+        WidgetNode::TextInput(_) => Role::TextInput,
     };
 
     let mut access_node = AccessNode::new(role);
@@ -385,7 +525,7 @@ mod tests {
         start_id: u64,
         viewport: (f32, f32),
     ) -> LayoutSnapshot {
-        let layout = tree.to_layout(&mut start_id.clone());
+        let layout = tree.to_layout(NodeId::new(start_id));
         LayoutEngine::new()
             .compute(&layout, viewport)
             .expect("layout computation should succeed")
@@ -495,5 +635,136 @@ mod tests {
             .bounds()
             .expect("window should have bounds");
         assert_eq!(bounds, Rect::new(0.0, 0.0, 1080.0, 720.0));
+    }
+
+    // ------------------------------------------------------------------
+    // AccessibilityAdapter
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn adapter_creates_tree_from_widget_tree() {
+        let tree = column::<TestMsg>()
+            .child(label("Hello"))
+            .child(button("btn", "OK").on_click(TestMsg {}))
+            .build();
+        let snapshot = LayoutSnapshot::default();
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update(&tree, &snapshot);
+
+        let t = adapter.tree_ref().expect("tree should exist after update");
+        assert_eq!(t.root, AccessNodeId::from(1u64), "root should be ID 1");
+        assert_eq!(t.nodes.len(), 3, "expected 3 accessibility nodes");
+    }
+
+    #[test]
+    fn adapter_node_roles_after_update() {
+        let tree = column::<TestMsg>()
+            .child(label("A"))
+            .child(separator::<TestMsg>())
+            .build();
+        let snapshot = LayoutSnapshot::default();
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update(&tree, &snapshot);
+
+        let t = adapter.tree_ref().expect("tree should exist");
+        // walk_node uses post-order: children pushed before parent.
+        // So order is: label (Label), separator (Splitter), column (Group).
+        let roles: Vec<Role> = t.nodes.iter().map(|(_, n)| n.role()).collect();
+        assert_eq!(roles, vec![Role::Label, Role::Splitter, Role::Group]);
+    }
+
+    #[test]
+    fn adapter_routes_focus_action() {
+        let adapter = AccessibilityAdapter::new(42);
+        let action = AccessibilityAction::Focus(NodeId::new(7));
+        let event = adapter.route_action(&action);
+        assert!(event.is_some(), "Focus action should produce an event");
+        match event.unwrap() {
+            PlatformEvent::FocusChanged { window, gained, .. } => {
+                assert_eq!(window, WindowId(42));
+                assert!(gained);
+            }
+            other => panic!("expected FocusChanged, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn adapter_routes_click_action() {
+        let adapter = AccessibilityAdapter::new(3);
+        let action = AccessibilityAction::Click(NodeId::new(5));
+        let event = adapter.route_action(&action);
+        assert!(event.is_some(), "Click action should produce an event");
+        match event.unwrap() {
+            PlatformEvent::PointerButtonDetailed {
+                window, pressed, ..
+            } => {
+                assert_eq!(window, WindowId(3));
+                assert!(pressed);
+            }
+            other => panic!("expected PointerButtonDetailed, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn adapter_routes_set_value_action() {
+        let adapter = AccessibilityAdapter::new(1);
+        let action = AccessibilityAction::SetValue(NodeId::new(2), "hello".into());
+        let event = adapter.route_action(&action);
+        assert!(event.is_some(), "SetValue action should produce an event");
+        match event.unwrap() {
+            PlatformEvent::ImeCommitDetailed { window, text } => {
+                assert_eq!(window, WindowId(1));
+                assert_eq!(text, "hello");
+            }
+            other => panic!("expected ImeCommitDetailed, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn adapter_scroll_into_view_returns_none() {
+        let adapter = AccessibilityAdapter::new(1);
+        let action = AccessibilityAction::ScrollIntoView(NodeId::new(3));
+        assert!(adapter.route_action(&action).is_none());
+    }
+
+    #[test]
+    fn adapter_activate_returns_none() {
+        let adapter = AccessibilityAdapter::new(1);
+        let action = AccessibilityAction::Activate(NodeId::new(4));
+        assert!(adapter.route_action(&action).is_none());
+    }
+
+    #[test]
+    fn adapter_build_tree_update_includes_focus() {
+        let tree = column::<TestMsg>().child(label("Hi")).build();
+        let snapshot = LayoutSnapshot::default();
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update(&tree, &snapshot);
+        adapter.focus_widget(NodeId::new(2));
+
+        let update = adapter
+            .build_tree_update()
+            .expect("build_tree_update should return Some");
+        assert_eq!(update.focus, AccessNodeId::from(2u64));
+    }
+
+    #[test]
+    fn adapter_build_tree_update_defaults_to_root_focus() {
+        let tree = column::<TestMsg>().child(label("Hi")).build();
+        let snapshot = LayoutSnapshot::default();
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update(&tree, &snapshot);
+        // No focus_widget called → focus should be root (ID 1)
+
+        let update = adapter
+            .build_tree_update()
+            .expect("build_tree_update should return Some");
+        assert_eq!(update.focus, AccessNodeId::from(1u64));
+    }
+
+    #[test]
+    fn adapter_build_tree_update_returns_none_without_update() {
+        let adapter = AccessibilityAdapter::new(1);
+        assert!(adapter.build_tree_update().is_none());
     }
 }

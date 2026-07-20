@@ -1,6 +1,7 @@
 //! Framework-owned facade over Taffy.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+use acme_core::NodeId;
 use std::collections::HashMap;
 use taffy::prelude::{
     AvailableSpace, Dimension, Display, FlexDirection, Size, Style, TaffyTree, length, percent,
@@ -108,19 +109,19 @@ impl LayoutStyle {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LayoutNode {
-    pub id: u64,
+    pub id: NodeId,
     pub style: LayoutStyle,
     pub children: Vec<LayoutNode>,
 }
 impl LayoutNode {
-    pub fn leaf(id: u64, style: LayoutStyle) -> Self {
+    pub fn leaf(id: NodeId, style: LayoutStyle) -> Self {
         Self {
             id,
             style,
             children: vec![],
         }
     }
-    pub fn container(id: u64, style: LayoutStyle, children: Vec<Self>) -> Self {
+    pub fn container(id: NodeId, style: LayoutStyle, children: Vec<Self>) -> Self {
         Self {
             id,
             style,
@@ -145,14 +146,14 @@ pub struct ScrollMetrics {
 }
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LayoutSnapshot {
-    rects: HashMap<u64, LayoutRect>,
-    scroll: HashMap<u64, ScrollMetrics>,
+    rects: HashMap<NodeId, LayoutRect>,
+    scroll: HashMap<NodeId, ScrollMetrics>,
 }
 impl LayoutSnapshot {
-    pub fn get(&self, id: u64) -> Option<&LayoutRect> {
+    pub fn get(&self, id: NodeId) -> Option<&LayoutRect> {
         self.rects.get(&id)
     }
-    pub fn scroll_metrics(&self, id: u64) -> Option<&ScrollMetrics> {
+    pub fn scroll_metrics(&self, id: NodeId) -> Option<&ScrollMetrics> {
         self.scroll.get(&id)
     }
     pub fn len(&self) -> usize {
@@ -162,21 +163,21 @@ impl LayoutSnapshot {
         self.rects.is_empty()
     }
     /// Iterate over all `(id, rect)` pairs in the snapshot.
-    pub fn iter(&self) -> impl Iterator<Item = (u64, &LayoutRect)> {
+    pub fn iter(&self) -> impl Iterator<Item = (NodeId, &LayoutRect)> {
         self.rects.iter().map(|(id, rect)| (*id, rect))
     }
 }
 
 #[derive(Debug)]
 pub enum LayoutError {
-    DuplicateId(u64),
+    DuplicateId(NodeId),
     InvalidViewport,
     Engine(String),
 }
 impl std::fmt::Display for LayoutError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::DuplicateId(id) => write!(f, "duplicate layout id {id}"),
+            Self::DuplicateId(id) => write!(f, "duplicate layout id {}", id.get()),
             Self::InvalidViewport => f.write_str("viewport must be finite and non-negative"),
             Self::Engine(e) => f.write_str(e),
         }
@@ -222,7 +223,7 @@ impl LayoutEngine {
 fn build(
     tree: &mut TaffyTree<u64>,
     node: &LayoutNode,
-    ids: &mut HashMap<u64, ()>,
+    ids: &mut HashMap<NodeId, ()>,
     absolute: bool,
 ) -> Result<taffy::NodeId, LayoutError> {
     if ids.insert(node.id, ()).is_some() {
@@ -366,12 +367,81 @@ fn normalize(v: f32) -> f32 {
     if v.is_finite() { v.max(0.0) } else { 0.0 }
 }
 
+// ---------------------------------------------------------------------------
+// Text shaping utilities (intrinsic text layout — P0-02)
+// ---------------------------------------------------------------------------
+
+/// A positioned glyph with bounding-box info.
+///
+/// This is a cache-friendly, simplified representation of a shaped glyph.
+/// Coordinates are in logical pixels.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PositionedGlyph {
+    pub id: u32,
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+}
+
+/// Cached shaped text that survives across frames.
+///
+/// Created by [`measure_text`] and intended to be stored by callers (widgets,
+/// text input) so that shaping only runs when the text or style changes.
+#[derive(Clone, Debug)]
+pub struct ShapedText {
+    pub glyphs: Vec<PositionedGlyph>,
+    pub width: f32,
+    pub height: f32,
+    pub text: String,
+    pub font_size: f32,
+}
+
+/// Measure (shape) text and return a [`ShapedText`] that can be cached.
+///
+/// Wraps [`FontSystem::shape`] into a reusable, cache-friendly form.
+/// The caller is responsible for storing the result and only calling this
+/// again when text or style changes.
+pub fn measure_text(
+    text: &str,
+    fonts: &mut acme_text::FontSystem,
+    style: &acme_text::TextStyle,
+    scale: f32,
+    max_width: Option<f32>,
+) -> ShapedText {
+    use acme_text::TextConstraints;
+    let constraints = TextConstraints {
+        max_width,
+        wrap: acme_text::TextWrap::None,
+    };
+    let layout = fonts.shape(text, style, constraints, scale);
+    let line_h = style.line_height;
+    let glyphs: Vec<PositionedGlyph> = layout
+        .glyphs
+        .iter()
+        .map(|g| PositionedGlyph {
+            id: g.byte_range.start as u32,
+            x: g.x,
+            y: g.y,
+            w: g.advance,
+            h: line_h,
+        })
+        .collect();
+    ShapedText {
+        glyphs,
+        width: layout.width,
+        height: layout.height,
+        text: text.to_string(),
+        font_size: style.font_size,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     fn fixed(id: u64, w: f32, h: f32) -> LayoutNode {
         LayoutNode::leaf(
-            id,
+            NodeId::new(id),
             LayoutStyle {
                 width: Length::px(w),
                 height: Length::px(h),
@@ -382,7 +452,7 @@ mod tests {
     #[test]
     fn row_and_column_snapshots() {
         let root = LayoutNode::container(
-            1,
+            NodeId::new(1),
             LayoutStyle {
                 width: Length::px(100.0),
                 height: Length::px(100.0),
@@ -392,13 +462,13 @@ mod tests {
             vec![fixed(2, 20.0, 20.0), fixed(3, 20.0, 20.0)],
         );
         let s = LayoutEngine::new().compute(&root, (100.0, 100.0)).unwrap();
-        assert_eq!(s.get(2).unwrap().y, 0.0);
-        assert_eq!(s.get(3).unwrap().y, 30.0);
+        assert_eq!(s.get(NodeId::new(2)).unwrap().y, 0.0);
+        assert_eq!(s.get(NodeId::new(3)).unwrap().y, 30.0);
     }
     #[test]
     fn row_places_children_horizontally() {
         let root = LayoutNode::container(
-            1,
+            NodeId::new(1),
             LayoutStyle {
                 width: Length::px(100.0),
                 height: Length::px(20.0),
@@ -408,12 +478,12 @@ mod tests {
             vec![fixed(2, 20.0, 20.0), fixed(3, 20.0, 20.0)],
         );
         let s = LayoutEngine::new().compute(&root, (100.0, 20.0)).unwrap();
-        assert_eq!(s.get(3).unwrap().x, 25.0);
+        assert_eq!(s.get(NodeId::new(3)).unwrap().x, 25.0);
     }
     #[test]
     fn stack_overlaps_children() {
         let root = LayoutNode::container(
-            1,
+            NodeId::new(1),
             LayoutStyle {
                 width: Length::px(100.0),
                 height: Length::px(100.0),
@@ -423,18 +493,24 @@ mod tests {
         );
         let snapshot = LayoutEngine::new().compute(&root, (100.0, 100.0)).unwrap();
         assert_eq!(
-            (snapshot.get(2).unwrap().x, snapshot.get(2).unwrap().y),
+            (
+                snapshot.get(NodeId::new(2)).unwrap().x,
+                snapshot.get(NodeId::new(2)).unwrap().y
+            ),
             (0.0, 0.0)
         );
         assert_eq!(
-            (snapshot.get(3).unwrap().x, snapshot.get(3).unwrap().y),
+            (
+                snapshot.get(NodeId::new(3)).unwrap().x,
+                snapshot.get(NodeId::new(3)).unwrap().y
+            ),
             (0.0, 0.0)
         );
     }
     #[test]
     fn scroll_reports_overflow() {
         let root = LayoutNode::container(
-            1,
+            NodeId::new(1),
             LayoutStyle {
                 width: Length::px(50.0),
                 height: Length::px(40.0),
@@ -444,16 +520,17 @@ mod tests {
             vec![fixed(2, 50.0, 90.0)],
         );
         let s = LayoutEngine::new().compute(&root, (50.0, 40.0)).unwrap();
-        let m = s.scroll_metrics(1).unwrap();
+        let m = s.scroll_metrics(NodeId::new(1)).unwrap();
         assert_eq!(m.viewport_height, 40.0);
         assert_eq!(m.content_height, 90.0);
     }
     #[test]
     fn duplicate_ids_fail_closed() {
-        let root = LayoutNode::container(1, LayoutStyle::row(), vec![fixed(1, 1.0, 1.0)]);
+        let root =
+            LayoutNode::container(NodeId::new(1), LayoutStyle::row(), vec![fixed(1, 1.0, 1.0)]);
         assert!(matches!(
             LayoutEngine::new().compute(&root, (10.0, 10.0)),
-            Err(LayoutError::DuplicateId(1))
+            Err(LayoutError::DuplicateId(id)) if id.get() == 1
         ));
     }
 }

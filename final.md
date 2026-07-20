@@ -91,8 +91,72 @@ threshold or controlled hardware baseline.
 - 211 unit tests total across all crates, all passing with zero warnings.
 - `cargo fmt --all`, `cargo check`, `cargo clippy -D warnings`, `cargo test` — all gates pass.
 
+## Agent Improvement Pack v0.2 additions
+
+### P0-03: Renderer Buffering & Batching
+- **Persistent double-buffered buffers**: Quad/glyph buffers with 1.5× auto-grow, frame ring alternates between buffers each frame — eliminates per-frame re-allocation
+- **Clip-based batching**: Quads grouped by clip rect → one scissored draw call per group; text runs by `(AtlasFormat, scissor)`
+- **`RenderStats`**: quad_count, glyph_count, draw_calls, buffer_grows, bytes_uploaded, atlas_hit_rate — `summary()` display
+- **Atlas upload dedup**: `HashSet<region>` prevents redundant uploads per frame
+
+### P0-04: Unified Platform Event Model
+- **9 additive `PlatformEvent` variants**: `ImePreeditDetailed`, `ImeCommitDetailed`, `ImeEnabled`, `ImeDisabled`, `PointerButtonDetailed`, `FocusChanged`, `CursorEntered`, `CursorLeft`, `FileDropped`
+- **IME + WindowId**: `WindowId` on preedit/commit; `set_ime_cursor_area()` trait method
+- **Pointer tracking**: `PointerButtonDetailed` with x/y/button/pointer; modifier tracking (shift/ctrl/alt/meta)
+
+### P0-01: Unified Node Identity
+- **`LayoutNode.id`**: `u64` → `NodeId`; `LayoutSnapshot` keyed by `NodeId`
+- **`to_layout(id: NodeId)`**: Caller provides identity instead of traversal counter
+- **`RuntimeNode<M>`**: Compiled node with id/widget/children; `compile()` for future pipeline
+- **No magic numbers**: Gallery/Playground use `extract_gallery_ids()` structural walk
+
+### P0-02: Intrinsic Text Layout
+- **`measure_text()`**: Extracted into `acme_layout`, returns `ShapedText` with glyphs + bounds
+- **`render_text_input()` cache**: Auto-caches `TextLayout` by rendered text string
+- **Label `font_size` / `cached`**: `label_with_size()` builder
+
+### P0-05: Accessibility Runtime Integration
+- **`AccessibilityAdapter`**: Per-window bridge; `update()` rebuilds tree, `route_action()` maps actions to PlatformEvent
+- **`AccessibilityAction`**: Focus, Click, SetValue, ScrollIntoView, Activate
+- **Gallery integration**: Adapter in `new()`, called every frame
+
+### P1-01: Theme V2
+- **11 new types**: SurfaceTokens, TextTokens, BorderTokens, SemanticColor/Tokens, Typeface, TypographyScale, SpacingScale, RadiusScale, ControlDimensions/Sizes, Density, Elevation, ThemeV2
+- **`pub v2: ThemeV2`** on Theme struct; `light_v2()`/`dark_v2()`/`high_contrast()`
+
+### P2-01: TextInput Hardening
+- **Private cursor/selection**: Accessors, debug asserts; 96 tests
+- **Undo/redo**: Transaction stack (max 50); mouse click/drag/word selection
+- **Extended keys**: Shift+arrows, Ctrl+arrows, Ctrl+Backspace/Delete, Shift+Home/End
+- **Placeholder/readonly/invalid**: UI states; IME caret area; horizontal scrolling
+
+### P1-02: Widget Visual States + Module Refactor
+- **Module restructure**: `acme-widgets/src/` → foundations/ inputs/ navigation/ overlay/ data/
+- **`VisualState` enum**: 8 states; `ButtonVariant`/`ButtonSize`; `CardVariant`; OverlayManager
+- **14 new theme tokens**
+
+### P1-03: Gallery Templates
+- **8-category sidebar**: Foundations→Stress Tests; component page template (10 sections)
+- **4 reference templates**: Settings, Dashboard, IDE Layout, SpeakType
+- **Theme/density toggle**: Light/Dark, Compact/Comfortable, focus rings; screenshot config
+
+### P2-02: Data Widgets Productionization
+- **VirtualList**: Viewport culling, variable height cache, scroll anchoring
+- **Tree**: Expand/collapse, Arrow/Home/End, typeahead, visible nodes
+- **Table**: Column resize, sort, row/cell selection, viewport virtualization, sticky header
+- **DataGrid**: Frozen rows/cols, cell merge, bidirectional virtualization
+- **10 new theme tokens**: table_*, tree_*, datagrid_*
+
+### Verification (v0.2)
+- `cargo fmt --all -- --check`: passed.
+- `cargo check --workspace --all-targets`: passed.
+- `cargo clippy --workspace --all-targets -- -D warnings`: passed.
+- `cargo test --workspace`: passed (319 unit tests, 0 failed across 11 crates).
+- Full gallery navigation with 8 categories and 4 templates compiles.
+
 ## Remaining (next milestone)
 
-Deterministic surface/device recreation automated test, retained NodeId layout identity,
-intrinsic text measurement for auto-sized Label/Stack, manual DPI validation at
-125/150/200% Windows display scaling.
+Deterministic surface/device recreation automated test, UI pixel test / screenshot golden file
+comparison, performance baseline (clean build, warm incremental, frame preparation),
+`cargo-deny` / `cargo-audit` dependency auditing, WSL/macOS/CI pipeline,
+manual DPI validation at 125/150/200% Windows display scaling.

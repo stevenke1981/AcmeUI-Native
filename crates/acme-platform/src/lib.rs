@@ -6,17 +6,21 @@ pub use clipboard::Clipboard;
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 
 use acme_render_wgpu::{Frame, Renderer, SurfaceAction};
 use thiserror::Error;
 use winit::{
     application::ApplicationHandler,
-    dpi::{LogicalSize, PhysicalPosition},
-    event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent},
+    dpi::{LogicalPosition, LogicalSize, PhysicalPosition},
+    event::{ElementState, Ime, MouseButton, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     keyboard::{Key, NamedKey},
     window::{Window, WindowId as WinitWindowId},
 };
+
+/// Global pointer/touch ID counter for tracking unique pointer identities.
+static NEXT_POINTER_ID: AtomicU64 = AtomicU64::new(1);
 
 /// A unique window identifier within the framework.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -40,6 +44,7 @@ impl Default for WindowConfig {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlatformEvent {
+    // ── Existing variants (backward-compatible, unchanged) ──
     Resized {
         window: WindowId,
         logical_width: f32,
@@ -70,6 +75,58 @@ pub enum PlatformEvent {
     ImePreedit(String),
     ImeCommit(String),
     WindowCloseRequested(WindowId),
+
+    // ── New variants (added alongside existing ones) ──
+    /// Enhanced IME preedit with WindowId and cursor position.
+    ImePreeditDetailed {
+        window: WindowId,
+        text: String,
+        cursor: Option<(usize, usize)>,
+    },
+    /// Enhanced IME commit with WindowId.
+    ImeCommitDetailed {
+        window: WindowId,
+        text: String,
+    },
+    /// IME input method was enabled for the given window.
+    ImeEnabled(WindowId),
+    /// IME input method was disabled for the given window.
+    ImeDisabled(WindowId),
+
+    /// Enhanced pointer button with position, button type, and pointer ID.
+    /// `button`: 0 = left, 1 = right, 2 = middle.
+    PointerButtonDetailed {
+        window: WindowId,
+        pressed: bool,
+        x: f32,
+        y: f32,
+        button: u16,
+        pointer: u64,
+    },
+
+    /// Window keyboard focus changed. `node_id` is set by the framework layer.
+    FocusChanged {
+        window: WindowId,
+        gained: bool,
+        node_id: u64,
+    },
+
+    /// Cursor entered the window client area.
+    CursorEntered {
+        window: WindowId,
+        x: f32,
+        y: f32,
+    },
+    /// Cursor left the window client area.
+    CursorLeft {
+        window: WindowId,
+    },
+
+    /// One or more files were dropped onto the window.
+    FileDropped {
+        window: WindowId,
+        paths: Vec<String>,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -121,6 +178,12 @@ pub trait Application: 'static {
     fn event(&mut self, _event: PlatformEvent) -> bool {
         false
     }
+    /// Called when the application should update the IME cursor area for a window.
+    ///
+    /// `rect` is `[x, y, width, height]` in logical pixels relative to the window's
+    /// client area. The framework calls this during IME composition so the platform
+    /// input method can position its candidate window.
+    fn set_ime_cursor_area(&mut self, _window: WindowId, _rect: [f32; 4]) {}
     fn frame(&mut self, context: FrameContext) -> Frame;
 }
 
@@ -149,6 +212,8 @@ struct WindowState {
     cursor: (f32, f32),
     shift: bool,
     ctrl: bool,
+    alt: bool,
+    meta: bool,
     dirty: bool,
 }
 
@@ -206,6 +271,8 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                             cursor: (0.0, 0.0),
                             shift: false,
                             ctrl: false,
+                            alt: false,
+                            meta: false,
                             dirty: true,
                         },
                     );
@@ -297,20 +364,81 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                     state.window.request_redraw();
                 }
             }
+            WindowEvent::CursorEntered { .. } => {
+                if let Some(state) = windows.get_mut(&id) {
+                    let win_id = state.id;
+                    let (x, y) = state.cursor;
+                    let dirty = app.event(PlatformEvent::CursorEntered {
+                        window: win_id,
+                        x,
+                        y,
+                    });
+                    state.dirty |= dirty;
+                    if state.dirty {
+                        state.window.request_redraw();
+                    }
+                }
+            }
+            WindowEvent::CursorLeft { .. } => {
+                if let Some(state) = windows.get_mut(&id) {
+                    let win_id = state.id;
+                    let dirty = app.event(PlatformEvent::CursorLeft { window: win_id });
+                    state.dirty |= dirty;
+                    if state.dirty {
+                        state.window.request_redraw();
+                    }
+                }
+            }
+            WindowEvent::Focused(gained) => {
+                if let Some(state) = windows.get_mut(&id) {
+                    let win_id = state.id;
+                    let dirty = app.event(PlatformEvent::FocusChanged {
+                        window: win_id,
+                        gained,
+                        node_id: 0,
+                    });
+                    state.dirty |= dirty;
+                    if state.dirty {
+                        state.window.request_redraw();
+                    }
+                }
+            }
             WindowEvent::MouseInput {
                 state: ms_state,
-                button: MouseButton::Left,
+                button,
                 ..
             } => {
                 let Some(state) = windows.get_mut(&id) else {
                     return;
                 };
                 let win_id = state.id;
+                let pressed = ms_state == ElementState::Pressed;
+                let (x, y) = state.cursor;
+                let button_code: u16 = match button {
+                    MouseButton::Left => 0,
+                    MouseButton::Right => 1,
+                    MouseButton::Middle => 2,
+                    MouseButton::Back => 3,
+                    MouseButton::Forward => 4,
+                    _ => 0,
+                };
+                let pointer = 0; // mouse pointer
+
+                // Emit legacy event (backward compat)
                 let dirty = app.event(PlatformEvent::PointerButton {
                     window: win_id,
-                    pressed: ms_state == ElementState::Pressed,
+                    pressed,
                 });
-                state.dirty |= dirty;
+                // Emit enhanced event
+                let dirty2 = app.event(PlatformEvent::PointerButtonDetailed {
+                    window: win_id,
+                    pressed,
+                    x,
+                    y,
+                    button: button_code,
+                    pointer,
+                });
+                state.dirty |= dirty | dirty2;
                 if state.dirty {
                     state.window.request_redraw();
                 }
@@ -339,6 +467,8 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                 if let Some(state) = windows.get_mut(&id) {
                     state.shift = modifiers.state().shift_key();
                     state.ctrl = modifiers.state().control_key();
+                    state.alt = modifiers.state().alt_key();
+                    state.meta = modifiers.state().super_key();
                 }
             }
             WindowEvent::KeyboardInput {
@@ -383,21 +513,91 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                     }
                 }
             }
-            WindowEvent::Ime(winit::event::Ime::Preedit(text, _)) => {
+            WindowEvent::Ime(Ime::Enabled) => {
                 if let Some(state) = windows.get_mut(&id) {
-                    state.dirty |= app.event(PlatformEvent::ImePreedit(text));
+                    let win_id = state.id;
+                    let dirty = app.event(PlatformEvent::ImeEnabled(win_id));
+                    state.dirty |= dirty;
+                    // Set IME cursor area at current cursor position as a sensible default.
+                    let (cx, cy) = state.cursor;
+                    app.set_ime_cursor_area(win_id, [cx, cy, 1.0, 24.0]);
+                    state.window.set_ime_cursor_area(
+                        LogicalPosition::new(cx as f64, cy as f64),
+                        LogicalSize::new(1.0, 24.0),
+                    );
                     if state.dirty {
                         state.window.request_redraw();
                     }
                 }
             }
-            WindowEvent::Ime(winit::event::Ime::Commit(text)) => {
+            WindowEvent::Ime(Ime::Disabled) => {
                 if let Some(state) = windows.get_mut(&id) {
-                    state.dirty |= app.event(PlatformEvent::ImeCommit(text));
+                    let win_id = state.id;
+                    let dirty = app.event(PlatformEvent::ImeDisabled(win_id));
+                    state.dirty |= dirty;
+                    // Reset IME cursor area to origin when IME is disabled
+                    app.set_ime_cursor_area(win_id, [0.0, 0.0, 0.0, 0.0]);
+                    state.window.set_ime_cursor_area(
+                        LogicalPosition::new(0.0, 0.0),
+                        LogicalSize::new(0.0, 0.0),
+                    );
                     if state.dirty {
                         state.window.request_redraw();
                     }
                 }
+            }
+            WindowEvent::Ime(Ime::Preedit(text, cursor)) => {
+                if let Some(state) = windows.get_mut(&id) {
+                    let win_id = state.id;
+                    // Update IME cursor area to track cursor during composition
+                    let (cx, cy) = state.cursor;
+                    app.set_ime_cursor_area(win_id, [cx, cy, 1.0, 24.0]);
+                    state.window.set_ime_cursor_area(
+                        LogicalPosition::new(cx as f64, cy as f64),
+                        LogicalSize::new(1.0, 24.0),
+                    );
+                    // Legacy event (backward compat)
+                    let dirty = app.event(PlatformEvent::ImePreedit(text.clone()));
+                    // Enhanced event
+                    let dirty2 = app.event(PlatformEvent::ImePreeditDetailed {
+                        window: win_id,
+                        text,
+                        cursor,
+                    });
+                    state.dirty |= dirty | dirty2;
+                    if state.dirty {
+                        state.window.request_redraw();
+                    }
+                }
+            }
+            WindowEvent::Ime(Ime::Commit(text)) => {
+                if let Some(state) = windows.get_mut(&id) {
+                    let win_id = state.id;
+                    // Legacy event (backward compat)
+                    let dirty = app.event(PlatformEvent::ImeCommit(text.clone()));
+                    // Enhanced event
+                    let dirty2 = app.event(PlatformEvent::ImeCommitDetailed {
+                        window: win_id,
+                        text,
+                    });
+                    state.dirty |= dirty | dirty2;
+                    if state.dirty {
+                        state.window.request_redraw();
+                    }
+                }
+            }
+            WindowEvent::DroppedFile(path) => {
+                if let Some(state) = windows.get(&id) {
+                    let win_id = state.id;
+                    let paths = vec![lossy_path_string(&path)];
+                    let _ = app.event(PlatformEvent::FileDropped {
+                        window: win_id,
+                        paths,
+                    });
+                }
+            }
+            WindowEvent::HoveredFileCancelled | WindowEvent::HoveredFile(_) => {
+                // Not currently mapped; available for future use.
             }
             WindowEvent::RedrawRequested => {
                 let Some(state) = windows.get_mut(&id) else {
@@ -438,6 +638,20 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             _ => {}
         }
     }
+}
+
+/// Convert a [`Path`] to a [`String`], replacing invalid UTF-8 sequences with
+/// U+FFFD replacement characters.
+fn lossy_path_string(path: &std::path::Path) -> String {
+    path.to_string_lossy().into_owned()
+}
+
+/// Allocate a new unique pointer ID for tracking pointer/touch identities.
+///
+/// Returns a monotonically increasing [`u64`]. The first call returns `1`;
+/// `0` is reserved for the mouse pointer.
+pub fn allocate_pointer_id() -> u64 {
+    NEXT_POINTER_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }
 
 #[cfg(test)]

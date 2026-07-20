@@ -7,6 +7,7 @@
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
+use acme_core::NodeId;
 use acme_layout::{LayoutRect, LayoutSnapshot};
 use acme_render_wgpu::{Frame, SurfaceStatus};
 use acme_widgets::WidgetNode;
@@ -198,7 +199,7 @@ impl WidgetTreeDump {
         counter: &mut u64,
         out: &mut String,
     ) {
-        let id = *counter;
+        let id = NodeId::new(*counter);
         *counter += 1;
         let prefix = " ".repeat(indent);
 
@@ -212,7 +213,8 @@ impl WidgetTreeDump {
             .unwrap_or_default();
 
         out.push_str(&format!(
-            "{prefix}[{id}] {kind}{key_str}{rect_str}{extra}\n"
+            "{prefix}[{}] {kind}{key_str}{rect_str}{extra}\n",
+            id.get()
         ));
 
         for child in node.children() {
@@ -238,15 +240,17 @@ impl WidgetTreeDump {
             WidgetNode::Tree(_) => "Tree",
             WidgetNode::Table(_) => "Table",
             WidgetNode::DataGrid(_) => "DataGrid",
+            WidgetNode::TextInput(_) => "TextInput",
         }
     }
 
     fn key_string<M>(node: &WidgetNode<M>) -> String {
         match node {
-            WidgetNode::Row(v)
-            | WidgetNode::Column(v)
-            | WidgetNode::Stack(v)
-            | WidgetNode::Card(v) => v
+            WidgetNode::Row(v) | WidgetNode::Column(v) | WidgetNode::Stack(v) => v
+                .key
+                .as_ref()
+                .map_or_else(String::new, |k| format!(" key=\"{}\"", k.as_str())),
+            WidgetNode::Card(v) => v
                 .key
                 .as_ref()
                 .map_or_else(String::new, |k| format!(" key=\"{}\"", k.as_str())),
@@ -260,6 +264,7 @@ impl WidgetTreeDump {
             WidgetNode::Tree(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::Table(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::DataGrid(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::TextInput(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::Label(_) | WidgetNode::Separator(_) => String::new(),
         }
     }
@@ -268,15 +273,25 @@ impl WidgetTreeDump {
         match node {
             WidgetNode::Label(v) => format!(" text=\"{}\"", v.text),
             WidgetNode::Button(v) => format!(" label=\"{}\"", v.label),
+            WidgetNode::TextInput(v) => {
+                let mut s = format!(" value=\"{}\"", v.value);
+                if let Some(label) = &v.label {
+                    s.push_str(&format!(" label=\"{label}\""));
+                }
+                if let Some(desc) = &v.description {
+                    s.push_str(&format!(" desc=\"{desc}\""));
+                }
+                s
+            }
             WidgetNode::Separator(v) => format!(" thickness={}", v.thickness),
             WidgetNode::Tooltip(v) => format!(" text=\"{}\"", v.text),
-            WidgetNode::VirtualList(v) => format!(" items={}", v.item_count),
+            WidgetNode::VirtualList(v) => format!(" items={}", v.children.len()),
             WidgetNode::Popover(v) => format!(" placement={:?}", v.placement),
             WidgetNode::Menu(v) => format!(" items={}", v.items.len()),
             WidgetNode::Dialog(v) => {
                 format!(" title=\"{}\" w={:?} h={:?}", v.title, v.width, v.height)
             }
-            WidgetNode::Tree(v) => format!(" items={}", v.items.len()),
+            WidgetNode::Tree(v) => format!(" items={}", v.children.len()),
             WidgetNode::Table(v) => format!(" cols={} rows={}", v.columns.len(), v.rows.len()),
             WidgetNode::DataGrid(v) => {
                 format!(" cols={} rows={}", v.columns.len(), v.rows.len())
@@ -299,8 +314,8 @@ impl LayoutInspector {
     ///
     /// Preferring the smallest area is a proxy for the deepest (most specific)
     /// node in the tree. Returns the node id and a reference to its rect.
-    pub fn find_node(snapshot: &LayoutSnapshot, x: f32, y: f32) -> Option<(u64, &LayoutRect)> {
-        let mut result: Option<(u64, &LayoutRect)> = None;
+    pub fn find_node(snapshot: &LayoutSnapshot, x: f32, y: f32) -> Option<(NodeId, &LayoutRect)> {
+        let mut result: Option<(NodeId, &LayoutRect)> = None;
         let mut best_area: Option<f32> = None;
         for (id, rect) in snapshot.iter() {
             if x >= rect.x && y >= rect.y && x <= rect.x + rect.width && y <= rect.y + rect.height {
@@ -319,7 +334,7 @@ impl LayoutInspector {
     /// **Note:** `LayoutSnapshot` does not store parent/child relationships,
     /// so this function returns the node's own entry as a single-element vec
     /// when the id exists, or an empty vec when the id is unknown.
-    pub fn node_path(snapshot: &LayoutSnapshot, id: u64) -> Vec<(u64, LayoutRect)> {
+    pub fn node_path(snapshot: &LayoutSnapshot, id: NodeId) -> Vec<(NodeId, LayoutRect)> {
         snapshot
             .iter()
             .find(|(nid, _)| *nid == id)
@@ -428,7 +443,7 @@ mod tests {
     fn frame_metrics_record_layout_snapshot() {
         let mut m = FrameMetrics::new();
         let node = LayoutNode::leaf(
-            1,
+            NodeId::new(1),
             LayoutStyle {
                 width: Length::px(100.0),
                 height: Length::px(100.0),
@@ -479,8 +494,7 @@ mod tests {
         let tree = acme_widgets::column::<()>()
             .child(acme_widgets::label::<()>("Hello"))
             .build();
-        let mut id_counter = 1;
-        let layout = tree.to_layout(&mut id_counter);
+        let layout = tree.to_layout(NodeId::new(1));
         let snapshot = LayoutEngine::new()
             .compute(&layout, (800.0, 600.0))
             .unwrap();
@@ -507,8 +521,7 @@ mod tests {
             .key("root")
             .child(acme_widgets::button::<Msg>("btn", "Click"))
             .build();
-        let mut id_counter = 1;
-        let layout = tree.to_layout(&mut id_counter);
+        let layout = tree.to_layout(NodeId::new(1));
         let snapshot = LayoutEngine::new()
             .compute(&layout, (800.0, 600.0))
             .unwrap();
@@ -528,8 +541,7 @@ mod tests {
     #[test]
     fn dump_has_rects_for_layout_nodes() {
         let tree = acme_widgets::label::<()>("Hello");
-        let mut id_counter = 1;
-        let layout = tree.to_layout(&mut id_counter);
+        let layout = tree.to_layout(NodeId::new(1));
         let snapshot = LayoutEngine::new()
             .compute(&layout, (800.0, 600.0))
             .unwrap();
@@ -553,14 +565,14 @@ mod tests {
     #[test]
     fn find_node_hit_test_finds_correct_node() {
         let node = LayoutNode::container(
-            1,
+            NodeId::new(1),
             LayoutStyle {
                 width: Length::px(200.0),
                 height: Length::px(100.0),
                 ..LayoutStyle::row()
             },
             vec![LayoutNode::leaf(
-                2,
+                NodeId::new(2),
                 LayoutStyle {
                     width: Length::px(100.0),
                     height: Length::px(100.0),
@@ -575,7 +587,7 @@ mod tests {
         let found = LayoutInspector::find_node(&snapshot, 50.0, 50.0);
         assert!(found.is_some(), "should find a node at (50, 50)");
         let (id, _) = found.unwrap();
-        assert_eq!(id, 2, "expected child node id=2 at (50,50)");
+        assert_eq!(id, NodeId::new(2), "expected child node id=2 at (50,50)");
 
         // Outside all nodes.
         let outside = LayoutInspector::find_node(&snapshot, 999.0, 999.0);
@@ -585,7 +597,7 @@ mod tests {
     #[test]
     fn node_path_returns_known_node() {
         let node = LayoutNode::leaf(
-            42,
+            NodeId::new(42),
             LayoutStyle {
                 width: Length::px(50.0),
                 height: Length::px(50.0),
@@ -593,15 +605,15 @@ mod tests {
             },
         );
         let snapshot = LayoutEngine::new().compute(&node, (100.0, 100.0)).unwrap();
-        let path = LayoutInspector::node_path(&snapshot, 42);
+        let path = LayoutInspector::node_path(&snapshot, NodeId::new(42));
         assert_eq!(path.len(), 1);
-        assert_eq!(path[0].0, 42);
+        assert_eq!(path[0].0, NodeId::new(42));
     }
 
     #[test]
     fn node_path_returns_empty_for_unknown() {
         let snapshot = LayoutSnapshot::default();
-        let path = LayoutInspector::node_path(&snapshot, 999);
+        let path = LayoutInspector::node_path(&snapshot, NodeId::new(999));
         assert!(path.is_empty());
     }
 

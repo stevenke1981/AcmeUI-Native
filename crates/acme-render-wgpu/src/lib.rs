@@ -1,12 +1,12 @@
 //! GPU surface lifecycle and the small batched rectangle renderer used by AcmeUI.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+use std::collections::HashSet;
 use std::{any::Any, sync::Arc};
 
 use acme_text::{AtlasFormat, PreparedText};
 use bytemuck::{Pod, Zeroable};
 use thiserror::Error;
-use wgpu::util::DeviceExt;
 
 /// A renderer-owned rectangle expressed in logical pixels.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -65,6 +65,33 @@ impl Default for Frame {
     }
 }
 
+/// Per-frame rendering statistics.
+#[derive(Clone, Debug, Default)]
+pub struct RenderStats {
+    pub buffer_grows: u64,
+    pub bytes_uploaded: u64,
+    pub draw_calls: u64,
+    pub quad_count: u64,
+    pub glyph_count: u64,
+    /// Percentage of atlas uploads that were already resident (0.0-100.0).
+    pub atlas_hit_rate: f64,
+}
+
+impl RenderStats {
+    /// Compact one-line summary for debug / devtools.
+    pub fn summary(&self) -> String {
+        format!(
+            "quads={} glyphs={} draws={} grows={} uploaded={}B atlas_hit={:.1}%",
+            self.quad_count,
+            self.glyph_count,
+            self.draw_calls,
+            self.buffer_grows,
+            self.bytes_uploaded,
+            self.atlas_hit_rate,
+        )
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SurfaceStatus {
     Ready,
@@ -117,6 +144,10 @@ struct GlyphInstance {
 
 const ATLAS_SIZE: u32 = 2048;
 
+/// Initial per-buffer instance capacity (1024 instances approx 64 KiB each).
+const INITIAL_QUAD_CAPACITY: u64 = 1024;
+const INITIAL_GLYPH_CAPACITY: u64 = 1024;
+
 /// Owns a wgpu surface. Third-party GPU types never appear in its public API.
 pub struct Renderer {
     _instance: wgpu::Instance,
@@ -134,6 +165,13 @@ pub struct Renderer {
     status: SurfaceStatus,
     scale_factor: f32,
     device_lost: bool,
+    // Persistent double-buffered instance buffers.
+    quad_buffers: [wgpu::Buffer; 2],
+    glyph_buffers: [wgpu::Buffer; 2],
+    quad_capacities: [u64; 2],
+    glyph_capacities: [u64; 2],
+    current_frame: usize,
+    stats: RenderStats,
 }
 
 impl Renderer {
@@ -173,6 +211,24 @@ impl Renderer {
         surface.configure(&device, &config);
         let (pipeline, text_pipeline, alpha_atlas, rgba_atlas, alpha_bind_group, rgba_bind_group) =
             build_render_resources(&device, &config);
+        let quad_cap = INITIAL_QUAD_CAPACITY * std::mem::size_of::<Instance>() as u64;
+        let glyph_cap = INITIAL_GLYPH_CAPACITY * std::mem::size_of::<GlyphInstance>() as u64;
+        let mk_buf = |device: &wgpu::Device, size: u64, label: &str| {
+            device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some(label),
+                size,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX,
+                mapped_at_creation: false,
+            })
+        };
+        let quad_buffers = [
+            mk_buf(&device, quad_cap, "acme quad buffer"),
+            mk_buf(&device, quad_cap, "acme quad buffer"),
+        ];
+        let glyph_buffers = [
+            mk_buf(&device, glyph_cap, "acme glyph buffer"),
+            mk_buf(&device, glyph_cap, "acme glyph buffer"),
+        ];
         Ok(Self {
             _instance: instance,
             surface,
@@ -193,7 +249,17 @@ impl Renderer {
             },
             scale_factor: normalize_scale(scale_factor),
             device_lost: false,
+            quad_buffers,
+            glyph_buffers,
+            quad_capacities: [quad_cap, quad_cap],
+            glyph_capacities: [glyph_cap, glyph_cap],
+            current_frame: 0,
+            stats: RenderStats::default(),
         })
+    }
+
+    pub fn stats(&self) -> &RenderStats {
+        &self.stats
     }
 
     pub fn status(&self) -> SurfaceStatus {
@@ -237,46 +303,57 @@ impl Renderer {
                 return SurfaceAction::Skip;
             }
             wgpu::CurrentSurfaceTexture::Validation => {
-                eprintln!("acme-render-wgpu: surface acquisition validation failure");
+                tracing::warn!("surface acquisition validation failure");
                 return SurfaceAction::Skip;
             }
         };
+        // ---- atlas uploads with per-frame dedup ----
+        let mut uploaded_regions: HashSet<(u32, u32, u32, u32)> = HashSet::new();
+        let mut atlas_total = 0u64;
+        let mut atlas_skipped = 0u64;
+        let mut atlas_bytes = 0u64;
         for run in &frame.text {
-            self.upload_atlas(&run.prepared);
+            let (total, skipped, bytes) = self.upload_atlas(&run.prepared, &mut uploaded_regions);
+            atlas_total += total;
+            atlas_skipped += skipped;
+            atlas_bytes += bytes;
         }
+        self.stats.bytes_uploaded += atlas_bytes;
+        self.stats.atlas_hit_rate = if atlas_total > 0 {
+            (atlas_skipped as f64 / atlas_total as f64) * 100.0
+        } else {
+            100.0
+        };
+        // ---- prepare draw data ----
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        let instances: Vec<Instance> = frame.quads.iter().map(|q| self.quad_instance(q)).collect();
-        let buffer = self
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("acme quad instances"),
-                contents: bytemuck::cast_slice(&instances),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-        let clipped_buffers: Vec<_> = frame
-            .clipped_quads
-            .iter()
-            .filter_map(|clipped| {
-                let clip = scissor(
-                    clipped.clip,
-                    self.scale_factor,
-                    self.config.width,
-                    self.config.height,
-                )?;
-                let one = [self.quad_instance(&clipped.quad)];
-                let buffer = self
-                    .device
-                    .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                        label: Some("acme clipped quad"),
-                        contents: bytemuck::cast_slice(&one),
-                        usage: wgpu::BufferUsages::VERTEX,
-                    });
-                Some((buffer, clip))
-            })
-            .collect();
-        let mut text_buffers = Vec::new();
+        // Regular (unclipped) quads.
+        let regular_instances: Vec<Instance> =
+            frame.quads.iter().map(|q| self.quad_instance(q)).collect();
+        // Clip batching - group clipped quads by their clip (rounded to nearest integer).
+        // Store the scissor rect alongside so DPI scaling is respected.
+        let mut clip_groups: std::collections::HashMap<[u32; 4], (Vec<Instance>, [u32; 4])> =
+            std::collections::HashMap::new();
+        for clipped in &frame.clipped_quads {
+            let key = clip_key(clipped.clip);
+            if let Some(scissor_rect) = scissor(
+                clipped.clip,
+                self.scale_factor,
+                self.config.width,
+                self.config.height,
+            ) {
+                let entry = clip_groups
+                    .entry(key)
+                    .or_insert_with(|| (Vec::new(), scissor_rect));
+                entry.0.push(self.quad_instance(&clipped.quad));
+            }
+        }
+        // Collect text groups by (format, clip).
+        let mut text_groups: std::collections::HashMap<
+            (AtlasFormat, Option<[u32; 4]>),
+            Vec<GlyphInstance>,
+        > = std::collections::HashMap::new();
         for run in &frame.text {
             let clip = run.clip.and_then(|value| {
                 scissor(
@@ -298,17 +375,76 @@ impl Renderer {
                     self.config.height,
                 );
                 if !glyphs.is_empty() {
-                    let buffer =
-                        self.device
-                            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                                label: Some("acme glyph instances"),
-                                contents: bytemuck::cast_slice(&glyphs),
-                                usage: wgpu::BufferUsages::VERTEX,
-                            });
-                    text_buffers.push((buffer, glyphs.len() as u32, format, clip));
+                    text_groups
+                        .entry((format, clip))
+                        .or_default()
+                        .extend(glyphs);
                 }
             }
         }
+        // ---- flatten and write persistent quad buffer ----
+        let buf_idx = self.current_frame;
+        let instance_size = std::mem::size_of::<Instance>() as u64;
+        let mut all_quads: Vec<Instance> = regular_instances;
+        struct ClipBatch {
+            scissor: [u32; 4],
+            start: u32,
+            count: u32,
+        }
+        let mut clip_batches: Vec<ClipBatch> = Vec::new();
+        for (quads, scissor_rect) in clip_groups.values() {
+            let start = all_quads.len() as u32;
+            let count = quads.len() as u32;
+            all_quads.extend_from_slice(quads);
+            clip_batches.push(ClipBatch {
+                scissor: *scissor_rect,
+                start,
+                count,
+            });
+        }
+        let quad_instances_needed = all_quads.len() as u64;
+        let needed_quad_bytes = quad_instances_needed * instance_size;
+        self.ensure_quad_capacity(needed_quad_bytes, buf_idx);
+        if !all_quads.is_empty() {
+            self.queue.write_buffer(
+                &self.quad_buffers[buf_idx],
+                0,
+                bytemuck::cast_slice(&all_quads),
+            );
+            self.stats.bytes_uploaded += needed_quad_bytes;
+        }
+        // ---- flatten and write persistent glyph buffer ----
+        let glyph_size = std::mem::size_of::<GlyphInstance>() as u64;
+        struct GlyphBatch {
+            format: AtlasFormat,
+            clip: Option<[u32; 4]>,
+            start: u32,
+            count: u32,
+        }
+        let mut all_glyphs: Vec<GlyphInstance> = Vec::new();
+        let mut glyph_batches: Vec<GlyphBatch> = Vec::new();
+        for ((format, clip), instances) in &text_groups {
+            let start = all_glyphs.len() as u32;
+            let count = instances.len() as u32;
+            all_glyphs.extend_from_slice(instances);
+            glyph_batches.push(GlyphBatch {
+                format: *format,
+                clip: *clip,
+                start,
+                count,
+            });
+        }
+        let needed_glyph_bytes = all_glyphs.len() as u64 * glyph_size;
+        self.ensure_glyph_capacity(needed_glyph_bytes, buf_idx);
+        if !all_glyphs.is_empty() {
+            self.queue.write_buffer(
+                &self.glyph_buffers[buf_idx],
+                0,
+                bytemuck::cast_slice(&all_glyphs),
+            );
+            self.stats.bytes_uploaded += needed_glyph_bytes;
+        }
+        // ---- render pass ----
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -336,36 +472,57 @@ impl Renderer {
                 occlusion_query_set: None,
                 multiview_mask: None,
             });
-            if !instances.is_empty() {
+            let mut draw_count = 0u64;
+            // - draw regular quads (full viewport) -
+            let regular_count = frame.quads.len() as u32;
+            if regular_count > 0 {
                 pass.set_pipeline(&self.pipeline);
-                pass.set_vertex_buffer(0, buffer.slice(..));
-                pass.draw(0..6, 0..instances.len() as u32);
+                pass.set_vertex_buffer(0, self.quad_buffers[buf_idx].slice(..));
+                pass.draw(0..6, 0..regular_count);
+                draw_count += 1;
             }
-            for (clipped_buffer, clip) in &clipped_buffers {
-                pass.set_scissor_rect(clip[0], clip[1], clip[2], clip[3]);
+            // - draw each clip batch with its scissor rect -
+            for batch in &clip_batches {
+                pass.set_scissor_rect(
+                    batch.scissor[0],
+                    batch.scissor[1],
+                    batch.scissor[2],
+                    batch.scissor[3],
+                );
                 pass.set_pipeline(&self.pipeline);
-                pass.set_vertex_buffer(0, clipped_buffer.slice(..));
-                pass.draw(0..6, 0..1);
+                pass.set_vertex_buffer(0, self.quad_buffers[buf_idx].slice(..));
+                pass.draw(0..6, batch.start..batch.start + batch.count);
+                draw_count += 1;
             }
+            // - draw text batches -
             pass.set_scissor_rect(0, 0, self.config.width, self.config.height);
-            for (text_buffer, count, format, clip) in &text_buffers {
-                let clip = clip.unwrap_or([0, 0, self.config.width, self.config.height]);
+            for batch in &glyph_batches {
+                let clip = batch
+                    .clip
+                    .unwrap_or([0, 0, self.config.width, self.config.height]);
                 pass.set_scissor_rect(clip[0], clip[1], clip[2], clip[3]);
                 pass.set_pipeline(&self.text_pipeline);
                 pass.set_bind_group(
                     0,
-                    match format {
+                    match batch.format {
                         AtlasFormat::Alpha8 => &self.alpha_bind_group,
                         AtlasFormat::Rgba8 => &self.rgba_bind_group,
                     },
                     &[],
                 );
-                pass.set_vertex_buffer(0, text_buffer.slice(..));
-                pass.draw(0..6, 0..*count);
+                pass.set_vertex_buffer(0, self.glyph_buffers[buf_idx].slice(..));
+                pass.draw(0..6, batch.start..batch.start + batch.count);
+                draw_count += 1;
             }
+            self.stats.draw_calls = draw_count;
         }
         self.queue.submit(Some(encoder.finish()));
         output.present();
+        // ---- update stats ----
+        self.stats.quad_count = quad_instances_needed;
+        self.stats.glyph_count = all_glyphs.len() as u64;
+        // ---- flip frame ring ----
+        self.current_frame ^= 1;
         if reconfigure_after_present {
             self.surface.configure(&self.device, &self.config);
             SurfaceAction::Reconfigure
@@ -391,6 +548,38 @@ impl Renderer {
                 self.config.width as f32,
                 self.config.height as f32,
             ],
+        }
+    }
+
+    /// Grow the current quad buffer if needed_bytes exceeds capacity.
+    fn ensure_quad_capacity(&mut self, needed_bytes: u64, buf_idx: usize) {
+        if needed_bytes > self.quad_capacities[buf_idx] {
+            let new_cap = (self.quad_capacities[buf_idx] as f64 * 1.5) as u64;
+            let new_cap = new_cap.max(needed_bytes);
+            self.quad_buffers[buf_idx] = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("acme quad buffer"),
+                size: new_cap,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX,
+                mapped_at_creation: false,
+            });
+            self.quad_capacities[buf_idx] = new_cap;
+            self.stats.buffer_grows += 1;
+        }
+    }
+
+    /// Grow the current glyph buffer if needed_bytes exceeds capacity.
+    fn ensure_glyph_capacity(&mut self, needed_bytes: u64, buf_idx: usize) {
+        if needed_bytes > self.glyph_capacities[buf_idx] {
+            let new_cap = (self.glyph_capacities[buf_idx] as f64 * 1.5) as u64;
+            let new_cap = new_cap.max(needed_bytes);
+            self.glyph_buffers[buf_idx] = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("acme glyph buffer"),
+                size: new_cap,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX,
+                mapped_at_creation: false,
+            });
+            self.glyph_capacities[buf_idx] = new_cap;
+            self.stats.buffer_grows += 1;
         }
     }
 
@@ -435,6 +624,28 @@ impl Renderer {
         self.alpha_bind_group = alpha_bind_group;
         self.rgba_bind_group = rgba_bind_group;
 
+        // Recreate persistent buffers for the new device.
+        let quad_cap = INITIAL_QUAD_CAPACITY * std::mem::size_of::<Instance>() as u64;
+        let glyph_cap = INITIAL_GLYPH_CAPACITY * std::mem::size_of::<GlyphInstance>() as u64;
+        for i in 0..2 {
+            self.quad_buffers[i] = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("acme quad buffer"),
+                size: quad_cap,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX,
+                mapped_at_creation: false,
+            });
+            self.glyph_buffers[i] = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("acme glyph buffer"),
+                size: glyph_cap,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::VERTEX,
+                mapped_at_creation: false,
+            });
+            self.quad_capacities[i] = quad_cap;
+            self.glyph_capacities[i] = glyph_cap;
+        }
+        self.current_frame = 0;
+        self.stats = RenderStats::default();
+
         self.device_lost = false;
         self.status = SurfaceStatus::Ready;
         tracing::info!("GPU device recovery successful");
@@ -448,7 +659,14 @@ impl Renderer {
         self.status = SurfaceStatus::Recovering;
     }
 
-    fn upload_atlas(&self, prepared: &PreparedText) {
+    fn upload_atlas(
+        &self,
+        prepared: &PreparedText,
+        uploaded: &mut HashSet<(u32, u32, u32, u32)>,
+    ) -> (u64, u64, u64) {
+        let mut total = 0u64;
+        let mut skipped = 0u64;
+        let mut atlas_bytes = 0u64;
         for upload in &prepared.uploads {
             if upload.width == 0
                 || upload.height == 0
@@ -463,7 +681,12 @@ impl Renderer {
             };
             let expected = upload.width as usize * upload.height as usize * bytes_per_pixel;
             if upload.pixels.len() != expected {
-                eprintln!("acme-render-wgpu: rejected malformed glyph atlas upload");
+                tracing::warn!("rejected malformed glyph atlas upload");
+                continue;
+            }
+            total += 1;
+            if !uploaded.insert((upload.x, upload.y, upload.width, upload.height)) {
+                skipped += 1;
                 continue;
             }
             self.queue.write_texture(
@@ -492,7 +715,9 @@ impl Renderer {
                     depth_or_array_layers: 1,
                 },
             );
+            atlas_bytes += upload.width as u64 * upload.height as u64 * bytes_per_pixel as u64;
         }
+        (total, skipped, atlas_bytes)
     }
 }
 
@@ -711,6 +936,16 @@ fn scissor(rect: [f32; 4], scale: f32, width: u32, height: u32) -> Option<[u32; 
         .ceil()
         .clamp(0.0, height as f32) as u32;
     (right > x && bottom > y).then_some([x, y, right - x, bottom - y])
+}
+
+/// Round clip rect components to nearest integer for use as a grouping key.
+fn clip_key(clip: [f32; 4]) -> [u32; 4] {
+    [
+        (clip[0].round().max(0.0)) as u32,
+        (clip[1].round().max(0.0)) as u32,
+        clip[2].round().max(0.0) as u32,
+        clip[3].round().max(0.0) as u32,
+    ]
 }
 
 fn normalize_scale(value: f32) -> f32 {

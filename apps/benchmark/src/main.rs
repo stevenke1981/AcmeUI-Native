@@ -4,7 +4,7 @@
 
 use std::time::Instant;
 
-use acme_core::{RetainedTree, ViewNode};
+use acme_core::{NodeId, RetainedTree, ViewNode};
 use acme_layout::{LayoutEngine, LayoutNode, LayoutStyle, Length};
 use acme_platform::{Application, FrameContext, PlatformEvent, WindowConfig};
 use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun};
@@ -106,7 +106,7 @@ fn build_layout_tree(count: usize) -> LayoutNode {
 }
 
 fn build_subtree(next: &mut u64, count: usize, fanout: usize) -> LayoutNode {
-    let id = *next;
+    let id = NodeId::new(*next);
     *next += 1;
 
     let remaining = count.saturating_sub(1);

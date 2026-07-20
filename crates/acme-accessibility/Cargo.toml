@@ -9,5 +9,6 @@ accesskit.workspace = true
 accesskit_winit.workspace = true
 acme-core = { path = "../acme-core" }
 acme-layout = { path = "../acme-layout" }
+acme-platform = { path = "../acme-platform" }
 acme-widgets = { path = "../acme-widgets" }
 acme-theme = { path = "../acme-theme" }

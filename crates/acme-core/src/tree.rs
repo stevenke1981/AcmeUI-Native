@@ -6,6 +6,9 @@ impl NodeId {
     pub fn get(self) -> u64 {
         self.0
     }
+    pub fn new(value: u64) -> Self {
+        Self(value)
+    }
 }
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct WidgetKey(String);

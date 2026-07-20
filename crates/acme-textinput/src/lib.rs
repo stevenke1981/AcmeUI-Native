@@ -7,9 +7,24 @@
 
 use acme_platform::{Clipboard, PlatformKey};
 use acme_render_wgpu::{Frame, Quad, TextRun};
-use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle, TextWrap};
+use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextLayout, TextStyle, TextWrap};
 use acme_theme::{Theme, ThemeColor};
 use unicode_segmentation::UnicodeSegmentation;
+
+// ---------------------------------------------------------------------------
+// EditTransaction — undo/redo record
+// ---------------------------------------------------------------------------
+
+/// A single undo/redo transaction capturing the state before and after a mutation.
+#[derive(Clone, Debug)]
+struct EditTransaction {
+    old_text: String,
+    new_text: String,
+    old_cursor: usize,
+    new_cursor: usize,
+    old_selection: Option<(usize, usize)>,
+    new_selection: Option<(usize, usize)>,
+}
 
 // ---------------------------------------------------------------------------
 // TextInputState
@@ -24,10 +39,10 @@ pub struct TextInputState {
     /// The underlying text buffer.
     pub text: String,
     /// Byte offset of the cursor into `text`.
-    pub cursor: usize,
+    cursor: usize,
     /// Optional byte-range selection `(start, end)`.
     /// `start` is always ≤ `end`.
-    pub selection: Option<(usize, usize)>,
+    selection: Option<(usize, usize)>,
     /// IME preedit text (displayed inline but not yet committed).
     pub preedit: String,
     /// Optional cursor position within the preedit text as byte offsets.
@@ -38,6 +53,24 @@ pub struct TextInputState {
     pub password: bool,
     /// The character used for password masking (default `'•'`).
     pub password_char: char,
+    /// Placeholder text shown when the text buffer is empty.
+    pub placeholder: String,
+    /// If `true`, all mutation methods return `false` without modifying state.
+    pub readonly: bool,
+    /// Visual flag — when `true` the border is rendered in the `danger` colour.
+    pub invalid: bool,
+    /// Horizontal scroll offset in logical pixels.
+    pub scroll_offset: f32,
+    /// Maximum undo history entries (default 50).
+    max_undo: usize,
+    /// Undo transaction stack.
+    undo_stack: Vec<EditTransaction>,
+    /// Redo transaction stack.
+    redo_stack: Vec<EditTransaction>,
+    /// Cached shaped text layout, auto-invalidated by text comparison.
+    /// The `String` is the `render_text` that was shaped (display text or
+    /// placeholder).  Set to `None` initially; populated on first render.
+    pub(crate) cached_layout: Option<(String, TextLayout)>,
 }
 
 impl Default for TextInputState {
@@ -51,6 +84,14 @@ impl Default for TextInputState {
             focused: false,
             password: false,
             password_char: '•',
+            placeholder: String::new(),
+            readonly: false,
+            invalid: false,
+            scroll_offset: 0.0,
+            max_undo: 50,
+            undo_stack: Vec::new(),
+            redo_stack: Vec::new(),
+            cached_layout: None,
         }
     }
 }
@@ -61,10 +102,179 @@ impl TextInputState {
         Self::default()
     }
 
+    // ---- Accessors ----
+
+    /// Return the current cursor byte offset.
+    pub fn cursor(&self) -> usize {
+        self.cursor
+    }
+
+    /// Return the current selection range, if any.
+    pub fn selection(&self) -> Option<(usize, usize)> {
+        self.selection
+    }
+
+    /// Returns `true` when a selection is active.
+    pub fn has_selection(&self) -> bool {
+        self.selection.is_some()
+    }
+
+    // ---- Undo / Redo ----
+
+    /// Undo the last mutation.
+    ///
+    /// Returns `true` if a transaction was available and was reverted.
+    pub fn undo(&mut self) -> bool {
+        let tx = match self.undo_stack.pop() {
+            Some(t) => t,
+            None => return false,
+        };
+        // tx: old → new  (state before mutation → state after mutation)
+        // Current state = tx.new. We restore to tx.old.
+        // Push reverse (old → new) onto redo stack so redo can go back.
+        self.redo_stack.push(EditTransaction {
+            old_text: tx.old_text.clone(),
+            new_text: tx.new_text.clone(),
+            old_cursor: tx.old_cursor,
+            new_cursor: tx.new_cursor,
+            old_selection: tx.old_selection,
+            new_selection: tx.new_selection,
+        });
+        // Restore old state (state before the mutation)
+        self.text = tx.old_text;
+        self.cursor = tx.old_cursor;
+        self.selection = tx.old_selection;
+        self.preedit.clear();
+        self.preedit_cursor = None;
+        true
+    }
+
+    /// Redo the last undone mutation.
+    ///
+    /// Returns `true` if a transaction was available and was re-applied.
+    pub fn redo(&mut self) -> bool {
+        let tx = match self.redo_stack.pop() {
+            Some(t) => t,
+            None => return false,
+        };
+        // tx: old → new  where old = restored state, new = mutation state
+        // Current state = tx.old (the restored state).
+        // We restore to tx.new (the mutation state).
+        // Push reverse (new → old) onto undo_stack so undo can revert this redo.
+        self.undo_stack.push(EditTransaction {
+            old_text: tx.new_text.clone(),
+            new_text: tx.old_text.clone(),
+            old_cursor: tx.new_cursor,
+            new_cursor: tx.old_cursor,
+            old_selection: tx.new_selection,
+            new_selection: tx.old_selection,
+        });
+        // Restore new state (state before the undo that created this redo entry)
+        self.text = tx.new_text;
+        self.cursor = tx.new_cursor;
+        self.selection = tx.new_selection;
+        self.preedit.clear();
+        self.preedit_cursor = None;
+        true
+    }
+
+    /// Clear the entire undo/redo history.
+    pub fn clear_history(&mut self) {
+        self.undo_stack.clear();
+        self.redo_stack.clear();
+    }
+
+    // ---- Mouse / touch click & drag selection ----
+
+    /// Move the cursor to a specific byte offset (clamped to `text.len()`).
+    ///
+    /// Any active selection is cleared.
+    pub fn move_cursor_to_offset(&mut self, byte_offset: usize) {
+        self.cursor = byte_offset.min(self.text.len());
+        self.selection = None;
+    }
+
+    /// Set an explicit selection range.
+    ///
+    /// Both `start` and `end` are clamped to `text.len()` and `start ≤ end`
+    /// is enforced. The cursor is placed at `end`.
+    pub fn set_selection_range(&mut self, start: usize, end: usize) {
+        let clamped_end = end.min(self.text.len());
+        let clamped_start = start.min(clamped_end);
+        if clamped_start < clamped_end {
+            self.selection = Some((clamped_start, clamped_end));
+        } else {
+            self.selection = None;
+        }
+        self.cursor = clamped_end;
+    }
+
+    /// Select the word around the given byte offset (double-click).
+    ///
+    /// Uses `unicode_segmentation` word boundary indices.
+    /// If no valid word is found, the selection is cleared and the cursor
+    /// is placed at `offset`.
+    pub fn select_word_at_offset(&mut self, offset: usize) {
+        if self.text.is_empty() {
+            self.cursor = 0;
+            self.selection = None;
+            return;
+        }
+        let clamped = offset.min(self.text.len());
+        // Collect word-boundary indices
+        let words: Vec<(usize, &str)> = self.text.split_word_bound_indices().collect();
+        for &(start, word) in &words {
+            let end = start + word.len();
+            if (start..=end).contains(&clamped) {
+                self.selection = Some((start, end));
+                self.cursor = end;
+                return;
+            }
+        }
+        // Fallback: no word found → just position the cursor
+        self.cursor = clamped;
+        self.selection = None;
+    }
+
+    // ---- IME caret area ----
+
+    /// Compute the caret rectangle `[x, y, width, height]` at the current
+    /// cursor position in logical pixels.
+    ///
+    /// This is designed to be passed to
+    /// `window.set_ime_cursor_area()` on the platform side.
+    pub fn ime_caret_area(
+        &self,
+        fonts: &mut FontSystem,
+        style: &TextStyle,
+        scale: f32,
+    ) -> [f32; 4] {
+        let display = self.display_text();
+        let x = byte_offset_to_x(&display, self.cursor, fonts, style, scale);
+        // Height is approximated from the style
+        let h = style.line_height;
+        // The y is 0 because the owner (Gallery/Playground) positions it
+        // relative to the content area.  Width is a small constant (cursor width).
+        [x, 0.0, 1.5, h]
+    }
+
     /// Insert a single character at the cursor, replacing any active selection.
     ///
     /// Returns `true` if the state was modified.
     pub fn insert_char(&mut self, c: char) -> bool {
+        if self.readonly {
+            return false;
+        }
+        debug_assert!(
+            self.cursor <= self.text.len(),
+            "cursor {} exceeds text length {}",
+            self.cursor,
+            self.text.len()
+        );
+        let old_text = self.text.clone();
+        let old_cursor = self.cursor;
+        let old_selection = self.selection;
+
         self.replace_selection();
         if self.cursor > self.text.len() {
             self.cursor = self.text.len();
@@ -72,6 +282,8 @@ impl TextInputState {
         self.text.insert(self.cursor, c);
         self.cursor += c.len_utf8();
         self.selection = None;
+
+        self.push_undo_with_state(old_text, old_cursor, old_selection);
         true
     }
 
@@ -80,8 +292,25 @@ impl TextInputState {
     /// If a selection is active, deletes the selection instead.
     /// Returns `true` if the state was modified.
     pub fn delete_before_cursor(&mut self) -> bool {
+        if self.readonly {
+            return false;
+        }
+        debug_assert!(
+            self.cursor <= self.text.len(),
+            "cursor {} exceeds text length {}",
+            self.cursor,
+            self.text.len()
+        );
+        let old_text = self.text.clone();
+        let old_cursor = self.cursor;
+        let old_selection = self.selection;
+
         if self.selection.is_some() {
-            return self.delete_selection();
+            let result = self.delete_selection();
+            if result {
+                self.push_undo_with_state(old_text, old_cursor, old_selection);
+            }
+            return result;
         }
         if self.cursor == 0 || self.text.is_empty() {
             return false;
@@ -89,6 +318,8 @@ impl TextInputState {
         let offset = prev_grapheme_boundary(&self.text, self.cursor);
         self.text.drain(offset..self.cursor);
         self.cursor = offset;
+
+        self.push_undo_with_state(old_text, old_cursor, old_selection);
         true
     }
 
@@ -97,14 +328,33 @@ impl TextInputState {
     /// If a selection is active, deletes the selection instead.
     /// Returns `true` if the state was modified.
     pub fn delete_after_cursor(&mut self) -> bool {
+        if self.readonly {
+            return false;
+        }
+        debug_assert!(
+            self.cursor <= self.text.len(),
+            "cursor {} exceeds text length {}",
+            self.cursor,
+            self.text.len()
+        );
+        let old_text = self.text.clone();
+        let old_cursor = self.cursor;
+        let old_selection = self.selection;
+
         if self.selection.is_some() {
-            return self.delete_selection();
+            let result = self.delete_selection();
+            if result {
+                self.push_undo_with_state(old_text, old_cursor, old_selection);
+            }
+            return result;
         }
         if self.cursor >= self.text.len() || self.text.is_empty() {
             return false;
         }
         let end = next_grapheme_boundary(&self.text, self.cursor);
         self.text.drain(self.cursor..end);
+
+        self.push_undo_with_state(old_text, old_cursor, old_selection);
         true
     }
 
@@ -147,6 +397,152 @@ impl TextInputState {
         self.selection = Some((0, self.text.len()));
     }
 
+    // ---- Selection extension (Shift+arrow) ----
+
+    /// Move cursor one grapheme left and extend the selection.
+    fn extend_selection_left(&mut self) {
+        if self.text.is_empty() || self.cursor == 0 {
+            return;
+        }
+        let old = self.cursor;
+        self.cursor = prev_grapheme_boundary(&self.text, self.cursor);
+        if old == self.cursor {
+            return;
+        }
+        let anchor = match self.selection {
+            None => old,
+            Some((start, end)) => {
+                // The anchor is the end opposite to where the cursor was.
+                if old == start { end } else { start }
+            }
+        };
+        self.selection = Some(if self.cursor < anchor {
+            (self.cursor, anchor)
+        } else {
+            (anchor, self.cursor)
+        });
+    }
+
+    /// Move cursor one grapheme right and extend the selection.
+    fn extend_selection_right(&mut self) {
+        if self.text.is_empty() || self.cursor >= self.text.len() {
+            return;
+        }
+        let old = self.cursor;
+        self.cursor = next_grapheme_boundary(&self.text, self.cursor);
+        if old == self.cursor {
+            return;
+        }
+        let anchor = match self.selection {
+            None => old,
+            Some((start, end)) => {
+                if old == start {
+                    end
+                } else {
+                    start
+                }
+            }
+        };
+        self.selection = Some(if self.cursor < anchor {
+            (self.cursor, anchor)
+        } else {
+            (anchor, self.cursor)
+        });
+    }
+
+    /// Extend the selection to the start of the text.
+    fn extend_selection_to_start(&mut self) {
+        if self.text.is_empty() {
+            return;
+        }
+        let anchor = match self.selection {
+            None => self.cursor,
+            Some((_start, end)) => end, // keep the right-most end as anchor
+        };
+        self.cursor = 0;
+        self.selection = Some((0, anchor));
+    }
+
+    /// Extend the selection to the end of the text.
+    fn extend_selection_to_end(&mut self) {
+        if self.text.is_empty() {
+            return;
+        }
+        let anchor = match self.selection {
+            None => self.cursor,
+            Some((start, _end)) => start, // keep the left-most start as anchor
+        };
+        self.cursor = self.text.len();
+        self.selection = Some((anchor, self.text.len()));
+    }
+
+    // ---- Word-level navigation (Ctrl+arrow) ----
+
+    /// Jump to the previous word boundary.
+    fn jump_word_left(&mut self) {
+        if self.text.is_empty() || self.cursor == 0 {
+            return;
+        }
+        self.selection = None;
+        self.cursor = prev_word_boundary(&self.text, self.cursor);
+    }
+
+    /// Jump to the next word boundary.
+    fn jump_word_right(&mut self) {
+        if self.text.is_empty() || self.cursor >= self.text.len() {
+            return;
+        }
+        self.selection = None;
+        self.cursor = next_word_boundary(&self.text, self.cursor);
+    }
+
+    // ---- Word-level deletion (Ctrl+Backspace / Ctrl+Delete) ----
+
+    /// Delete the word immediately before the cursor.
+    fn delete_prev_word(&mut self) -> bool {
+        if self.readonly {
+            return false;
+        }
+        if self.selection.is_some() {
+            return self.delete_selection();
+        }
+        if self.cursor == 0 || self.text.is_empty() {
+            return false;
+        }
+        let old_text = self.text.clone();
+        let old_cursor = self.cursor;
+        let old_selection = self.selection;
+
+        let word_start = prev_word_boundary(&self.text, self.cursor);
+        self.text.drain(word_start..self.cursor);
+        self.cursor = word_start;
+
+        self.push_undo_with_state(old_text, old_cursor, old_selection);
+        true
+    }
+
+    /// Delete the word immediately after the cursor.
+    fn delete_next_word(&mut self) -> bool {
+        if self.readonly {
+            return false;
+        }
+        if self.selection.is_some() {
+            return self.delete_selection();
+        }
+        if self.cursor >= self.text.len() || self.text.is_empty() {
+            return false;
+        }
+        let old_text = self.text.clone();
+        let old_cursor = self.cursor;
+        let old_selection = self.selection;
+
+        let word_end = next_word_boundary(&self.text, self.cursor);
+        self.text.drain(self.cursor..word_end);
+
+        self.push_undo_with_state(old_text, old_cursor, old_selection);
+        true
+    }
+
     // ---- IME support ----
 
     /// Set IME preedit text and optional cursor position within it.
@@ -161,9 +557,19 @@ impl TextInputState {
     /// Commit the current IME preedit text, inserting it into the text buffer
     /// at the cursor position (replacing any active selection).
     pub fn commit_preedit(&mut self) {
-        if self.preedit.is_empty() {
+        if self.readonly || self.preedit.is_empty() {
             return;
         }
+        debug_assert!(
+            self.cursor <= self.text.len(),
+            "cursor {} exceeds text length {}",
+            self.cursor,
+            self.text.len()
+        );
+        let old_text = self.text.clone();
+        let old_cursor = self.cursor;
+        let old_selection = self.selection;
+
         self.replace_selection();
         let text = std::mem::take(&mut self.preedit);
         if self.cursor > self.text.len() {
@@ -173,6 +579,8 @@ impl TextInputState {
         self.cursor += text.len();
         self.preedit_cursor = None;
         self.selection = None;
+
+        self.push_undo_with_state(old_text, old_cursor, old_selection);
     }
 
     /// Cancel the current IME preedit without committing.
@@ -211,6 +619,32 @@ impl TextInputState {
     }
 
     // ---- internal helpers ----
+
+    /// Record an undo transaction for the state *before* a mutation.
+    ///
+    /// The old state is passed explicitly (`old_text`, `old_cursor`,
+    /// `old_selection`); the *new* state is read from `self` after the
+    /// mutation has finished.  The redo stack is cleared.
+    fn push_undo_with_state(
+        &mut self,
+        old_text: String,
+        old_cursor: usize,
+        old_selection: Option<(usize, usize)>,
+    ) {
+        let tx = EditTransaction {
+            old_text,
+            new_text: self.text.clone(),
+            old_cursor,
+            new_cursor: self.cursor,
+            old_selection,
+            new_selection: self.selection,
+        };
+        self.undo_stack.push(tx);
+        if self.undo_stack.len() > self.max_undo {
+            self.undo_stack.remove(0);
+        }
+        self.redo_stack.clear();
+    }
 
     /// If a selection exists, delete it and place the cursor at the start.
     /// Returns `true` if a selection was deleted.
@@ -268,7 +702,7 @@ fn intersect_rect(a: [f32; 4], b: [f32; 4]) -> [f32; 4] {
 #[allow(clippy::too_many_arguments)]
 pub fn render_text_input(
     frame: &mut Frame,
-    state: &TextInputState,
+    state: &mut TextInputState,
     fonts: &mut FontSystem,
     atlas: &mut GlyphAtlas,
     rect: [f32; 4], // [x, y, width, height] in logical pixels
@@ -286,12 +720,26 @@ pub fn render_text_input(
     let border_width = 1.0;
 
     let text_color = theme_color_to_array(&theme.colors.text);
-    let border_color = if focused {
+    let disabled_text = theme_color_to_array(&theme.colors.disabled_text);
+    let text_muted = theme_color_to_array(&theme.colors.text_muted);
+    let bg_color = theme_color_to_array(&theme.colors.surface);
+
+    // Border colour: invalid > focus > default
+    let border_color = if state.invalid {
+        theme_color_to_array(&theme.colors.danger)
+    } else if focused {
         theme_color_to_array(&theme.colors.focus)
     } else {
         theme_color_to_array(&theme.colors.border)
     };
-    let bg_color = theme_color_to_array(&theme.colors.surface);
+
+    // Slightly dimmed border when readonly
+    let border_color = if state.readonly {
+        let [r, g, b, a] = border_color;
+        [r * 0.6, g * 0.6, b * 0.6, a]
+    } else {
+        border_color
+    };
 
     // 1. Background
     frame.quads.push(Quad::solid(rect, bg_color));
@@ -304,9 +752,6 @@ pub fn render_text_input(
         border_width,
         border_color,
     });
-
-    // 3. Text content
-    let display = state.display_text();
 
     // Build style from theme typography tokens
     let font_size = theme.typography.body_size;
@@ -329,23 +774,58 @@ pub fn render_text_input(
         None => content_clip,
     };
 
+    // 3. Text content (or placeholder)
+    let display = state.display_text();
+    let is_empty = display.is_empty();
+    let has_placeholder = !state.placeholder.is_empty();
+
+    // If text is empty and a placeholder is set, render that instead.
+    let render_text = if is_empty && has_placeholder {
+        &state.placeholder
+    } else {
+        &display
+    };
+
+    // Choose colour: placeholder gets muted; readonly gets disabled
+    let render_color = if is_empty && has_placeholder {
+        text_muted
+    } else if state.readonly {
+        disabled_text
+    } else {
+        text_color
+    };
+
     // We want the text to be vertically centered in the content area.
     // Shape to get the text height, then compute y offset.
     let constraints = TextConstraints {
         max_width: Some(content_w),
         wrap: TextWrap::None,
     };
-    let layout = fonts.shape(&display, &style, constraints, scale);
-    let text_height = layout.height;
+    // Use cached layout if the render_text hasn't changed — avoids re-shaping
+    // every frame for static or infrequently-changing text.
+    if state
+        .cached_layout
+        .as_ref()
+        .is_none_or(|(t, _)| t != render_text)
+    {
+        let new_layout = fonts.shape(render_text, &style, constraints, scale);
+        state.cached_layout = Some((render_text.to_string(), new_layout));
+    }
+    let cached = &state.cached_layout.as_ref().unwrap().1;
+    let text_height = cached.height;
     // Vertically center
     let text_y = content_y + (content_h - text_height).max(0.0) / 2.0;
 
-    // Prepare glyphs
-    let prepared = fonts.prepare(&layout, atlas);
+    // Apply horizontal scroll offset (text scrolls left, so content_x shifts)
+    let scroll_offset = state.scroll_offset;
+    let text_origin_x = content_x - scroll_offset;
+
+    // Prepare glyphs from cached layout
+    let prepared = fonts.prepare(cached, atlas);
 
     frame.text.push(TextRun {
-        origin: [content_x, text_y],
-        color: text_color,
+        origin: [text_origin_x, text_y],
+        color: render_color,
         clip: Some(effective_clip),
         prepared,
     });
@@ -361,7 +841,7 @@ pub fn render_text_input(
             if sel_w > 0.0 {
                 frame.clipped_quads.push(
                     Quad::solid(
-                        [content_x + start_x, content_y, sel_w, content_h],
+                        [text_origin_x + start_x, content_y, sel_w, content_h],
                         [0.3, 0.5, 0.9, 0.25], // light blue selection tint
                     )
                     .with_clip(effective_clip),
@@ -373,7 +853,7 @@ pub fn render_text_input(
     // 5. Cursor blink (simple cursor: always visible when focused)
     if focused {
         let cx = byte_offset_to_x_inner(&display, state.cursor, fonts, &style, scale);
-        let cursor_x_pos = content_x + cx;
+        let cursor_x_pos = text_origin_x + cx;
         // Only draw cursor if it's within the visible content area
         if cursor_x_pos < content_x + content_w {
             frame.clipped_quads.push(
@@ -383,20 +863,51 @@ pub fn render_text_input(
         }
     }
 
-    // 6. IME preedit underline
+    // 6. IME preedit underline with composition cursor
     if !state.preedit.is_empty() {
         let preedit_x = byte_offset_to_x_inner(&display, state.cursor, fonts, &style, scale);
         let preedit_layout = fonts.shape(&state.preedit, &style, TextConstraints::default(), scale);
         let preedit_w = preedit_layout.width;
         if preedit_w > 0.0 {
-            let underline_y = content_y + content_h - 1.5;
+            let underline_y = content_y + content_h - 2.5;
+            // Main underline
             frame.clipped_quads.push(
                 Quad::solid(
-                    [content_x + preedit_x, underline_y, preedit_w, 1.5],
+                    [text_origin_x + preedit_x, underline_y, preedit_w, 1.0],
                     text_color,
                 )
                 .with_clip(effective_clip),
             );
+            // Thicker segment at the preedit cursor position, if known
+            if let Some((pc_start, pc_end)) = state.preedit_cursor {
+                let preedit_cx_start = byte_offset_to_x_inner(
+                    &state.preedit,
+                    pc_start.min(state.preedit.len()),
+                    fonts,
+                    &style,
+                    scale,
+                );
+                let preedit_cx_end = byte_offset_to_x_inner(
+                    &state.preedit,
+                    pc_end.min(state.preedit.len()),
+                    fonts,
+                    &style,
+                    scale,
+                );
+                let seg_w = (preedit_cx_end - preedit_cx_start).max(1.5);
+                frame.clipped_quads.push(
+                    Quad::solid(
+                        [
+                            text_origin_x + preedit_x + preedit_cx_start,
+                            underline_y - 1.0,
+                            seg_w,
+                            3.0,
+                        ],
+                        text_color,
+                    )
+                    .with_clip(effective_clip),
+                );
+            }
         }
     }
 }
@@ -448,17 +959,25 @@ pub fn byte_offset_to_x(
 ///
 /// # Keyboard map
 ///
-/// | Key               | Action                 |
-/// |-------------------|------------------------|
-/// | `ArrowLeft`       | `cursor_prev()`        |
-/// | `ArrowRight`      | `cursor_next()`        |
-/// | `Backspace`       | `delete_before_cursor()` |
-/// | `Delete`          | `delete_after_cursor()`  |
-/// | `Home`            | `cursor_home()`        |
-/// | `End`             | `cursor_end()`         |
-/// | `Escape`          | Blur (clear focus)     |
-/// | `Tab`             | (handled by focus manager — no-op here) |
-/// | `Enter`           | (submitted — no-op here) |
+/// | Key                     | Action                        |
+/// |-------------------------|-------------------------------|
+/// | `ArrowLeft`             | `cursor_prev()`               |
+/// | `ArrowRight`            | `cursor_next()`               |
+/// | `Shift`+`ArrowLeft`     | Extend selection left         |
+/// | `Shift`+`ArrowRight`    | Extend selection right        |
+/// | `Shift`+`Home`          | Extend selection to start     |
+/// | `Shift`+`End`           | Extend selection to end       |
+/// | `Ctrl`+`ArrowLeft`      | Jump to previous word boundary |
+/// | `Ctrl`+`ArrowRight`     | Jump to next word boundary    |
+/// | `Backspace`             | `delete_before_cursor()`      |
+/// | `Delete`                | `delete_after_cursor()`       |
+/// | `Ctrl`+`Backspace`      | Delete previous word          |
+/// | `Ctrl`+`Delete`         | Delete next word              |
+/// | `Home`                  | `cursor_home()`               |
+/// | `End`                   | `cursor_end()`                |
+/// | `Escape`                | Blur (clear focus)            |
+/// | `Tab`                   | (handled by focus manager — no-op here) |
+/// | `Enter`                 | (submitted — no-op here)      |
 ///
 /// When `ctrl` is `true` and the state is focused, the following text-based
 /// shortcuts are available (via `key_text`):
@@ -477,6 +996,7 @@ pub fn handle_key(
     pressed: bool,
     _clipboard: Option<&Clipboard>,
     ctrl: bool,
+    shift: bool,
 ) -> bool {
     if !pressed {
         return false;
@@ -502,40 +1022,72 @@ pub fn handle_key(
             if !state.focused {
                 return false;
             }
-            state.cursor_prev();
-            true
+            if ctrl {
+                state.jump_word_left();
+                true
+            } else if shift {
+                state.extend_selection_left();
+                true
+            } else {
+                state.cursor_prev();
+                true
+            }
         }
         PlatformKey::ArrowRight => {
             if !state.focused {
                 return false;
             }
-            state.cursor_next();
-            true
+            if ctrl {
+                state.jump_word_right();
+                true
+            } else if shift {
+                state.extend_selection_right();
+                true
+            } else {
+                state.cursor_next();
+                true
+            }
         }
         PlatformKey::Backspace => {
             if !state.focused {
                 return false;
             }
-            state.delete_before_cursor()
+            if ctrl {
+                state.delete_prev_word()
+            } else {
+                state.delete_before_cursor()
+            }
         }
         PlatformKey::Delete => {
             if !state.focused {
                 return false;
             }
-            state.delete_after_cursor()
+            if ctrl {
+                state.delete_next_word()
+            } else {
+                state.delete_after_cursor()
+            }
         }
         PlatformKey::Home => {
             if !state.focused {
                 return false;
             }
-            state.cursor_home();
+            if shift {
+                state.extend_selection_to_start();
+            } else {
+                state.cursor_home();
+            }
             true
         }
         PlatformKey::End => {
             if !state.focused {
                 return false;
             }
-            state.cursor_end();
+            if shift {
+                state.extend_selection_to_end();
+            } else {
+                state.cursor_end();
+            }
             true
         }
         PlatformKey::Space | PlatformKey::Other => {
@@ -589,11 +1141,18 @@ pub fn handle_keyboard_shortcut(
             true
         }
         "x" => {
+            if state.readonly {
+                return false;
+            }
             if let Some((start, end)) = state.selection
                 && start < state.text.len()
                 && end <= state.text.len()
                 && start < end
             {
+                let old_text = state.text.clone();
+                let old_cursor = state.cursor;
+                let old_selection = state.selection;
+
                 let cut = state.text[start..end].to_string();
                 if let Some(clip) = clipboard {
                     let _ = clip.set_text(&cut);
@@ -601,6 +1160,8 @@ pub fn handle_keyboard_shortcut(
                 state.text.drain(start..end);
                 state.cursor = start;
                 state.selection = None;
+
+                state.push_undo_with_state(old_text, old_cursor, old_selection);
             }
             true
         }
@@ -621,9 +1182,19 @@ pub fn handle_keyboard_shortcut(
 /// Inserts `text` at the cursor position, replacing any active selection.
 /// Returns `true` if the state was modified.
 pub fn handle_text(state: &mut TextInputState, text: &str) -> bool {
-    if text.is_empty() {
+    if text.is_empty() || state.readonly {
         return false;
     }
+    debug_assert!(
+        state.cursor <= state.text.len(),
+        "cursor {} exceeds text length {}",
+        state.cursor,
+        state.text.len()
+    );
+    let old_text = state.text.clone();
+    let old_cursor = state.cursor;
+    let old_selection = state.selection;
+
     state.replace_selection();
     if state.cursor > state.text.len() {
         state.cursor = state.text.len();
@@ -631,6 +1202,8 @@ pub fn handle_text(state: &mut TextInputState, text: &str) -> bool {
     state.text.insert_str(state.cursor, text);
     state.cursor += text.len();
     state.selection = None;
+
+    state.push_undo_with_state(old_text, old_cursor, old_selection);
     true
 }
 
@@ -667,6 +1240,31 @@ fn next_grapheme_boundary(text: &str, offset: usize) -> usize {
         }
     }
     text.len()
+}
+
+// ---------------------------------------------------------------------------
+// Word-boundary helpers (used by Ctrl+arrow and Ctrl+Backspace/Delete)
+// ---------------------------------------------------------------------------
+
+/// Return the byte offset of the word boundary immediately before `offset`.
+///
+/// Uses [`UnicodeSegmentation::split_word_bound_indices`].
+fn prev_word_boundary(text: &str, offset: usize) -> usize {
+    let clamped = offset.min(text.len());
+    text.split_word_bound_indices()
+        .take_while(|(i, _)| *i < clamped)
+        .last()
+        .map(|(i, _)| i)
+        .unwrap_or(0)
+}
+
+/// Return the byte offset of the word boundary immediately after `offset`.
+fn next_word_boundary(text: &str, offset: usize) -> usize {
+    let clamped = offset.min(text.len());
+    text.split_word_bound_indices()
+        .find(|(i, _)| *i > clamped)
+        .map(|(i, _)| i)
+        .unwrap_or(text.len())
 }
 
 // ---------------------------------------------------------------------------
@@ -1095,7 +1693,14 @@ mod tests {
     fn handle_key_escape_blurs() {
         let mut s = TextInputState::new();
         s.focused = true;
-        assert!(handle_key(&mut s, &PlatformKey::Escape, true, None, false));
+        assert!(handle_key(
+            &mut s,
+            &PlatformKey::Escape,
+            true,
+            None,
+            false,
+            false
+        ));
         assert!(!s.focused);
     }
 
@@ -1103,19 +1708,40 @@ mod tests {
     fn handle_key_escape_noop_when_not_focused() {
         let mut s = TextInputState::new();
         s.focused = false;
-        assert!(!handle_key(&mut s, &PlatformKey::Escape, true, None, false));
+        assert!(!handle_key(
+            &mut s,
+            &PlatformKey::Escape,
+            true,
+            None,
+            false,
+            false
+        ));
     }
 
     #[test]
     fn handle_key_tab_is_noop() {
         let mut s = TextInputState::new();
-        assert!(!handle_key(&mut s, &PlatformKey::Tab, true, None, false));
+        assert!(!handle_key(
+            &mut s,
+            &PlatformKey::Tab,
+            true,
+            None,
+            false,
+            false
+        ));
     }
 
     #[test]
     fn handle_key_enter_is_noop() {
         let mut s = TextInputState::new();
-        assert!(!handle_key(&mut s, &PlatformKey::Enter, true, None, false));
+        assert!(!handle_key(
+            &mut s,
+            &PlatformKey::Enter,
+            true,
+            None,
+            false,
+            false
+        ));
     }
 
     #[test]
@@ -1127,6 +1753,7 @@ mod tests {
             &PlatformKey::Escape,
             false,
             None,
+            false,
             false
         ));
     }
@@ -1144,6 +1771,7 @@ mod tests {
             &PlatformKey::ArrowLeft,
             true,
             None,
+            false,
             false
         ));
         assert_eq!(s.cursor, 2);
@@ -1160,6 +1788,7 @@ mod tests {
             &PlatformKey::ArrowLeft,
             true,
             None,
+            false,
             false
         ));
         assert_eq!(s.cursor, 3);
@@ -1176,6 +1805,7 @@ mod tests {
             &PlatformKey::ArrowRight,
             true,
             None,
+            false,
             false
         ));
         assert_eq!(s.cursor, 3);
@@ -1192,6 +1822,7 @@ mod tests {
             &PlatformKey::Backspace,
             true,
             None,
+            false,
             false
         ));
         assert_eq!(s.text, "hell");
@@ -1209,6 +1840,7 @@ mod tests {
             &PlatformKey::Backspace,
             true,
             None,
+            false,
             false
         ));
     }
@@ -1219,7 +1851,14 @@ mod tests {
         s.text = "hello".to_string();
         s.cursor = 0;
         s.focused = true;
-        assert!(handle_key(&mut s, &PlatformKey::Delete, true, None, false));
+        assert!(handle_key(
+            &mut s,
+            &PlatformKey::Delete,
+            true,
+            None,
+            false,
+            false
+        ));
         assert_eq!(s.text, "ello");
         assert_eq!(s.cursor, 0);
     }
@@ -1230,7 +1869,14 @@ mod tests {
         s.text = "hello".to_string();
         s.cursor = 3;
         s.focused = true;
-        assert!(handle_key(&mut s, &PlatformKey::Home, true, None, false));
+        assert!(handle_key(
+            &mut s,
+            &PlatformKey::Home,
+            true,
+            None,
+            false,
+            false
+        ));
         assert_eq!(s.cursor, 0);
     }
 
@@ -1240,7 +1886,14 @@ mod tests {
         s.text = "hello".to_string();
         s.cursor = 0;
         s.focused = true;
-        assert!(handle_key(&mut s, &PlatformKey::End, true, None, false));
+        assert!(handle_key(
+            &mut s,
+            &PlatformKey::End,
+            true,
+            None,
+            false,
+            false
+        ));
         assert_eq!(s.cursor, 5);
     }
 
@@ -1251,7 +1904,7 @@ mod tests {
         s.cursor = 5;
         s.selection = Some((2, 8));
         s.focused = true;
-        handle_key(&mut s, &PlatformKey::ArrowLeft, true, None, false);
+        handle_key(&mut s, &PlatformKey::ArrowLeft, true, None, false, false);
         assert_eq!(s.selection, None);
     }
 
@@ -1373,5 +2026,375 @@ mod tests {
         handle_text(&mut s, clipboard_content);
         assert_eq!(s.text, "hello world");
         assert_eq!(s.cursor, 11);
+    }
+
+    // ---- New: accessors ----
+
+    #[test]
+    fn accessors_return_expected_values() {
+        let mut s = TextInputState::new();
+        assert_eq!(s.cursor(), 0);
+        assert_eq!(s.selection(), None);
+        assert!(!s.has_selection());
+
+        s.text = "hello".to_string();
+        s.cursor = 3;
+        assert_eq!(s.cursor(), 3);
+
+        s.selection = Some((1, 4));
+        assert_eq!(s.selection(), Some((1, 4)));
+        assert!(s.has_selection());
+    }
+
+    // ---- New: readonly guard ----
+
+    #[test]
+    fn readonly_prevents_insert_char() {
+        let mut s = TextInputState::new();
+        s.text = "abc".to_string();
+        s.cursor = 1;
+        s.readonly = true;
+        assert!(!s.insert_char('x'));
+        assert_eq!(s.text, "abc");
+    }
+
+    #[test]
+    fn readonly_prevents_delete_before() {
+        let mut s = TextInputState::new();
+        s.text = "abc".to_string();
+        s.cursor = 2;
+        s.readonly = true;
+        assert!(!s.delete_before_cursor());
+        assert_eq!(s.text, "abc");
+    }
+
+    #[test]
+    fn readonly_prevents_delete_after() {
+        let mut s = TextInputState::new();
+        s.text = "abc".to_string();
+        s.cursor = 1;
+        s.readonly = true;
+        assert!(!s.delete_after_cursor());
+        assert_eq!(s.text, "abc");
+    }
+
+    #[test]
+    fn readonly_prevents_handle_text() {
+        let mut s = TextInputState::new();
+        s.text = "abc".to_string();
+        s.cursor = 1;
+        s.readonly = true;
+        assert!(!handle_text(&mut s, "xyz"));
+        assert_eq!(s.text, "abc");
+    }
+
+    #[test]
+    fn readonly_prevents_commit_preedit() {
+        let mut s = TextInputState::new();
+        s.text = "abc".to_string();
+        s.cursor = 1;
+        s.readonly = true;
+        s.set_preedit("xyz", None);
+        s.commit_preedit();
+        assert_eq!(s.text, "abc");
+    }
+
+    #[test]
+    fn readonly_prevents_keyboard_cut() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 5;
+        s.selection = Some((0, 5));
+        s.focused = true;
+        s.readonly = true;
+        // Cut returns false when readonly because the mutation is rejected
+        assert!(!handle_keyboard_shortcut(&mut s, "x", None));
+        assert_eq!(s.text, "hello");
+    }
+
+    // ---- New: undo / redo ----
+
+    #[test]
+    fn undo_redo_basic() {
+        let mut s = TextInputState::new();
+        s.insert_char('a');
+        s.insert_char('b');
+        s.insert_char('c');
+        assert_eq!(s.text, "abc");
+        assert_eq!(s.cursor, 3);
+
+        assert!(s.undo());
+        assert_eq!(s.text, "ab");
+        assert_eq!(s.cursor, 2);
+
+        assert!(s.undo());
+        assert_eq!(s.text, "a");
+        assert_eq!(s.cursor, 1);
+
+        assert!(s.redo());
+        assert_eq!(s.text, "ab");
+        assert_eq!(s.cursor, 2);
+    }
+
+    #[test]
+    fn undo_redo_empty_stacks() {
+        let mut s = TextInputState::new();
+        assert!(!s.undo());
+        assert!(!s.redo());
+    }
+
+    #[test]
+    fn undo_after_delete() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 5;
+        s.delete_before_cursor();
+        assert_eq!(s.text, "hell");
+        s.undo();
+        assert_eq!(s.text, "hello");
+    }
+
+    #[test]
+    fn undo_redo_clear_history() {
+        let mut s = TextInputState::new();
+        s.insert_char('a');
+        s.insert_char('b');
+        s.clear_history();
+        assert!(!s.undo());
+        assert!(!s.redo());
+    }
+
+    #[test]
+    fn redo_cleared_on_new_mutation() {
+        let mut s = TextInputState::new();
+        s.insert_char('a');
+        s.undo();
+        assert_eq!(s.text, "");
+        // New mutation clears redo stack
+        s.insert_char('b');
+        assert!(!s.redo());
+        assert_eq!(s.text, "b");
+    }
+
+    #[test]
+    fn undo_after_handle_text() {
+        let mut s = TextInputState::new();
+        s.text = "ab".to_string();
+        s.cursor = 1;
+        handle_text(&mut s, "123");
+        assert_eq!(s.text, "a123b");
+        s.undo();
+        assert_eq!(s.text, "ab");
+        assert_eq!(s.cursor, 1);
+    }
+
+    // ---- New: mouse click/drag selection ----
+
+    #[test]
+    fn move_cursor_to_offset_basic() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 0;
+        s.move_cursor_to_offset(3);
+        assert_eq!(s.cursor, 3);
+        assert_eq!(s.selection, None);
+    }
+
+    #[test]
+    fn move_cursor_to_offset_clamps() {
+        let mut s = TextInputState::new();
+        s.text = "hi".to_string();
+        s.move_cursor_to_offset(999);
+        assert_eq!(s.cursor, 2);
+    }
+
+    #[test]
+    fn move_cursor_to_offset_clears_selection() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.selection = Some((1, 4));
+        s.move_cursor_to_offset(2);
+        assert_eq!(s.selection, None);
+    }
+
+    #[test]
+    fn set_selection_range_basic() {
+        let mut s = TextInputState::new();
+        s.text = "hello world".to_string();
+        s.set_selection_range(2, 7);
+        assert_eq!(s.selection, Some((2, 7)));
+        assert_eq!(s.cursor, 7);
+    }
+
+    #[test]
+    fn set_selection_range_clamps() {
+        let mut s = TextInputState::new();
+        s.text = "hi".to_string();
+        s.set_selection_range(0, 999);
+        assert_eq!(s.selection, Some((0, 2)));
+        assert_eq!(s.cursor, 2);
+    }
+
+    #[test]
+    fn set_selection_range_empty_when_start_equals_end() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.set_selection_range(3, 3);
+        assert_eq!(s.selection, None);
+    }
+
+    #[test]
+    fn select_word_at_offset_double_click() {
+        let mut s = TextInputState::new();
+        s.text = "hello world foo".to_string();
+        s.select_word_at_offset(7); // inside "world"
+        assert_eq!(s.selection, Some((6, 11)));
+        assert_eq!(s.cursor, 11);
+    }
+
+    #[test]
+    fn select_word_at_offset_empty_text() {
+        let mut s = TextInputState::new();
+        s.select_word_at_offset(0);
+        assert_eq!(s.selection, None);
+        assert_eq!(s.cursor, 0);
+    }
+
+    // ---- New: extended keyboard shortcuts ----
+
+    #[test]
+    fn shift_arrow_left_extends_selection() {
+        let mut s = TextInputState::new();
+        s.text = "hello world".to_string();
+        s.cursor = 5;
+        s.focused = true;
+        handle_key(&mut s, &PlatformKey::ArrowLeft, true, None, false, true);
+        assert_eq!(s.selection, Some((4, 5)));
+    }
+
+    #[test]
+    fn shift_arrow_right_extends_selection() {
+        let mut s = TextInputState::new();
+        s.text = "hello world".to_string();
+        s.cursor = 5;
+        s.focused = true;
+        handle_key(&mut s, &PlatformKey::ArrowRight, true, None, false, true);
+        assert_eq!(s.selection, Some((5, 6)));
+    }
+
+    #[test]
+    fn shift_home_extends_to_start() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 3;
+        s.focused = true;
+        handle_key(&mut s, &PlatformKey::Home, true, None, false, true);
+        assert_eq!(s.selection, Some((0, 3)));
+        assert_eq!(s.cursor, 0);
+    }
+
+    #[test]
+    fn shift_end_extends_to_end() {
+        let mut s = TextInputState::new();
+        s.text = "hello".to_string();
+        s.cursor = 2;
+        s.focused = true;
+        handle_key(&mut s, &PlatformKey::End, true, None, false, true);
+        assert_eq!(s.selection, Some((2, 5)));
+        assert_eq!(s.cursor, 5);
+    }
+
+    #[test]
+    fn ctrl_arrow_left_jumps_word() {
+        let mut s = TextInputState::new();
+        s.text = "hello world foo".to_string();
+        s.cursor = 15;
+        s.focused = true;
+        handle_key(&mut s, &PlatformKey::ArrowLeft, true, None, true, false);
+        // Should jump from end to start of "foo"
+        assert_eq!(s.cursor, 12); // "foo" starts at 12
+    }
+
+    #[test]
+    fn ctrl_arrow_right_jumps_word() {
+        let mut s = TextInputState::new();
+        s.text = "hello world".to_string();
+        s.cursor = 0;
+        s.focused = true;
+        handle_key(&mut s, &PlatformKey::ArrowRight, true, None, true, false);
+        // Should jump from start to end of first word "hello"
+        assert_eq!(s.cursor, 5);
+    }
+
+    #[test]
+    fn ctrl_backspace_deletes_prev_word() {
+        let mut s = TextInputState::new();
+        s.text = "hello world".to_string();
+        s.cursor = 11;
+        s.focused = true;
+        handle_key(&mut s, &PlatformKey::Backspace, true, None, true, false);
+        assert_eq!(s.text, "hello ");
+        assert_eq!(s.cursor, 6);
+    }
+
+    #[test]
+    fn ctrl_delete_deletes_next_word() {
+        let mut s = TextInputState::new();
+        s.text = "hello world".to_string();
+        s.cursor = 0;
+        s.focused = true;
+        handle_key(&mut s, &PlatformKey::Delete, true, None, true, false);
+        assert_eq!(s.text, " world");
+        assert_eq!(s.cursor, 0);
+    }
+
+    // ---- New: placeholder state ----
+
+    #[test]
+    fn placeholder_default_is_empty() {
+        let s = TextInputState::new();
+        assert_eq!(s.placeholder, "");
+    }
+
+    #[test]
+    fn invalid_default_is_false() {
+        let s = TextInputState::new();
+        assert!(!s.invalid);
+    }
+
+    #[test]
+    fn scroll_offset_default_is_zero() {
+        let s = TextInputState::new();
+        assert_eq!(s.scroll_offset, 0.0);
+    }
+
+    // ---- New: word boundary helpers ----
+
+    #[test]
+    fn prev_word_boundary_empty() {
+        assert_eq!(prev_word_boundary("", 0), 0);
+    }
+
+    #[test]
+    fn next_word_boundary_empty() {
+        assert_eq!(next_word_boundary("", 0), 0);
+    }
+
+    #[test]
+    fn prev_word_boundary_works() {
+        // "hello world" — split_word_bound_indices gives:
+        //   (0, "hello"), (5, " "), (6, "world")
+        // So the previous word boundary from 11 is 6 (start of "world"),
+        // from 6 it's 5 (the space boundary), from 0 it's 0.
+        assert_eq!(prev_word_boundary("hello world", 11), 6);
+        assert_eq!(prev_word_boundary("hello world", 6), 5);
+        assert_eq!(prev_word_boundary("hello world", 0), 0);
+    }
+
+    #[test]
+    fn next_word_boundary_works() {
+        assert_eq!(next_word_boundary("hello world", 0), 5);
+        assert_eq!(next_word_boundary("hello world", 6), 11);
+        assert_eq!(next_word_boundary("hello world", 11), 11);
     }
 }

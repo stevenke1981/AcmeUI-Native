@@ -4,7 +4,8 @@
 //! navigation, CJK/emoji rendering, and real-time state display.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
-use acme_layout::{Edges, LayoutEngine, LayoutKind, LayoutStyle, Length, Overflow};
+use acme_core::NodeId;
+use acme_layout::{Edges, LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
 use acme_platform::{Application, FrameContext, PlatformEvent, PlatformKey, WindowConfig};
 use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
@@ -83,42 +84,8 @@ impl Playground {
     // -----------------------------------------------------------------------
     // Widget tree
     // -----------------------------------------------------------------------
-    // ID mapping (pre-order traversal of to_layout):
-    //
-    //   1: Column(root)          "playground"
-    //     2: Row(toolbar)
-    //       3: Button(theme)              ← index 0
-    //       4: Label(status)
-    //     5: Label(title)
-    //     6: Label(subtitle)
-    //     7: Separator
-    //     8: Column(content)      scrollable
-    //       9: Label(section-hdr) "▸ Button Variants"
-    //      10: Row(btn-row)
-    //        11: Button(primary)          ← index 1
-    //        12: Button(secondary)        ← index 2
-    //        13: Button(ghost)            ← index 3
-    //        14: Button(danger)           ← index 4
-    //      15: Label(section-hdr) "▸ Interactive Demo"
-    //      16: Row(demo-row)
-    //        17: Button(clicker)          ← index 5
-    //        18: Button(reset)            ← index 6
-    //        19: Button(toggle-danger)    ← index 7
-    //      20: Label(section-hdr) "▸ Card Container"
-    //      21: Card(demo-card)
-    //        22: Label(card-0)
-    //        23: Label(card-1)
-    //        24: Label(card-2)
-    //      25: Label(section-hdr) "▸ CJK & Emoji"
-    //      26: Label(cjk-1)
-    //      27: Label(cjk-2)
-    //      28: Label(korean)
-    //      29: Label(emoji)
-    //      30: Label(mixed)
-    //      31: Separator
-    //      32: Label(state-footer)
-    //
-    // Interactive button IDs: 3, 11, 12, 13, 14, 17, 18, 19
+    // IDs are computed by extract_playground_ids() from the LayoutNode tree.
+    // See PlaygroundNodeIds for the structural mapping.
 
     fn build_tree(&self) -> WidgetNode<PlaygroundMessage> {
         column()
@@ -321,6 +288,119 @@ impl Playground {
 }
 
 // ---------------------------------------------------------------------------
+// Pre-computed node IDs for the Playground's widget tree
+// ---------------------------------------------------------------------------
+
+/// Structural node IDs matching `WidgetNode::to_layout(NodeId::new(1))`.
+struct PlaygroundNodeIds {
+    /// Toolbar row
+    toolbar: NodeId,
+    /// Status label inside toolbar
+    status: NodeId,
+    /// Title label
+    title: NodeId,
+    /// Subtitle label
+    subtitle: NodeId,
+    /// Toolbar separator
+    sep1: NodeId,
+    /// Content column (scrollable)
+    content: NodeId,
+    /// Position of buttons in the button_ids array
+    button_ids: [NodeId; 8],
+    /// Card node
+    card: NodeId,
+    /// Card children
+    card_children: [NodeId; 3],
+    /// Separator inside content
+    sep2: NodeId,
+    /// Footer label
+    footer: NodeId,
+    /// Section header node IDs: Button Variants, Interactive Demo, Card, CJK
+    section_headers: [NodeId; 4],
+    /// CJK & Emoji label IDs (5 labels)
+    cjk_labels: [NodeId; 5],
+}
+
+/// Extract structural IDs from the layout root.
+///
+/// Root layout structure from `build_tree()`:
+///   Column root (1)
+///     ├── Row("toolbar") (2)
+///     │   ├── Button("theme") (3)   ← button index 0
+///     │   └── Label(status) (4)
+///     ├── Label(title) (5)
+///     ├── Label(subtitle) (6)
+///     ├── Separator (7)
+///     └── Column("content") (8)  [scrollable]
+///         ├── Label(section-1) (9)
+///         ├── Row("btn-row") (10)
+///         │   ├── Button("primary") (11)   ← button index 1
+///         │   ├── Button("secondary") (12) ← button index 2
+///         │   ├── Button("ghost") (13)     ← button index 3
+///         │   └── Button("danger") (14)    ← button index 4
+///         ├── Label(section-2) (15)
+///         ├── Row("demo-row") (16)
+///         │   ├── Button("clicker") (17)   ← button index 5
+///         │   ├── Button("reset") (18)     ← button index 6
+///         │   └── Button("toggle-danger") (19) ← button index 7
+///         ├── Label(section-3) (20)
+///         ├── Card("demo-card") (21)
+///         │   ├── Label(card-0) (22)
+///         │   ├── Label(card-1) (23)
+///         │   └── Label(card-2) (24)
+///         ├── Label(section-4) (25)
+///         ├── Label(cjk-1) (26)
+///         ├── Label(cjk-2) (27)
+///         ├── Label(korean) (28)
+///         ├── Label(emoji) (29)
+///         ├── Label(mixed) (30)
+///         ├── Separator (31)
+///         └── Label(footer) (32)
+fn extract_playground_ids(root: &LayoutNode) -> PlaygroundNodeIds {
+    let toolbar = &root.children[0];
+    let content_col = &root.children[4];
+    PlaygroundNodeIds {
+        toolbar: toolbar.id,
+        status: toolbar.children[1].id,
+        title: root.children[1].id,
+        subtitle: root.children[2].id,
+        sep1: root.children[3].id,
+        content: content_col.id,
+        button_ids: [
+            toolbar.children[0].id,                 // 3
+            content_col.children[1].children[0].id, // 11
+            content_col.children[1].children[1].id, // 12
+            content_col.children[1].children[2].id, // 13
+            content_col.children[1].children[3].id, // 14
+            content_col.children[5].children[0].id, // 17
+            content_col.children[5].children[1].id, // 18
+            content_col.children[5].children[2].id, // 19
+        ],
+        card: content_col.children[8].id, // 21
+        card_children: [
+            content_col.children[8].children[0].id, // 22
+            content_col.children[8].children[1].id, // 23
+            content_col.children[8].children[2].id, // 24
+        ],
+        sep2: content_col.children[16].id,   // 31
+        footer: content_col.children[17].id, // 32
+        section_headers: [
+            content_col.children[0].id,  // 9
+            content_col.children[4].id,  // 15
+            content_col.children[7].id,  // 20
+            content_col.children[10].id, // 25
+        ],
+        cjk_labels: [
+            content_col.children[11].id, // 26
+            content_col.children[12].id, // 27
+            content_col.children[13].id, // 28
+            content_col.children[14].id, // 29
+            content_col.children[15].id, // 30
+        ],
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Application trait implementation
 // ---------------------------------------------------------------------------
 
@@ -392,8 +472,7 @@ impl Application for Playground {
         let colors = theme.colors;
 
         // ── 1. Build and style the layout tree ──
-        let mut next_id = 1;
-        let mut root = self.build_tree().to_layout(&mut next_id);
+        let mut root = self.build_tree().to_layout(NodeId::new(1));
 
         // Root column — fill the window
         root.style = LayoutStyle {
@@ -527,17 +606,17 @@ impl Application for Playground {
             .layout
             .compute(&root, (width, height))
             .expect("finite Playground viewport");
+        let ids = extract_playground_ids(&root);
 
         // ── 3. Extract button hit-test rects ──
-        let button_ids = [3u64, 11, 12, 13, 14, 17, 18, 19];
-        for (index, id) in button_ids.into_iter().enumerate() {
-            if let Some(rect) = snapshot.get(id) {
+        for (index, btn_id) in ids.button_ids.into_iter().enumerate() {
+            if let Some(rect) = snapshot.get(btn_id) {
                 self.buttons[index] = [rect.x, rect.y, rect.width, rect.height];
             }
         }
 
         // ── 4. Scroll metrics ──
-        if let Some(metrics) = snapshot.scroll_metrics(8) {
+        if let Some(metrics) = snapshot.scroll_metrics(ids.content) {
             self.max_scroll = (metrics.content_height - metrics.viewport_height).max(0.0);
         }
         self.scroll = self.scroll.clamp(0.0, self.max_scroll);
@@ -549,7 +628,7 @@ impl Application for Playground {
         };
 
         // ── Toolbar background ──
-        if let Some(header_rect) = snapshot.get(2) {
+        if let Some(header_rect) = snapshot.get(ids.toolbar) {
             frame.quads.push(Quad {
                 rect: [
                     header_rect.x,
@@ -670,8 +749,7 @@ impl Application for Playground {
         }
 
         // ── Fixed header text ──
-        // Title (ID 5)
-        if let Some(title_rect) = snapshot.get(5) {
+        if let Some(title_rect) = snapshot.get(ids.title) {
             self.add_text(
                 &mut frame,
                 "AcmeUI Native Playground",
@@ -683,8 +761,7 @@ impl Application for Playground {
             );
         }
 
-        // Subtitle (ID 6)
-        if let Some(sub_rect) = snapshot.get(6) {
+        if let Some(sub_rect) = snapshot.get(ids.subtitle) {
             self.add_text(
                 &mut frame,
                 "Interactive Widget Testing · 繁體中文 🎨",
@@ -696,8 +773,7 @@ impl Application for Playground {
             );
         }
 
-        // Status label in toolbar (ID 4)
-        if let Some(status_rect) = snapshot.get(4) {
+        if let Some(status_rect) = snapshot.get(ids.status) {
             self.add_text(
                 &mut frame,
                 &format!(
@@ -714,8 +790,7 @@ impl Application for Playground {
             );
         }
 
-        // Separator (ID 7)
-        if let Some(sep_rect) = snapshot.get(7) {
+        if let Some(sep_rect) = snapshot.get(ids.sep1) {
             frame.quads.push(Quad::solid(
                 [sep_rect.x, sep_rect.y, sep_rect.width, 1.0],
                 rgba(colors.border),
@@ -723,18 +798,18 @@ impl Application for Playground {
         }
 
         // ── Scroll viewport ──
-        if let Some(vp) = snapshot.get(8) {
+        if let Some(vp) = snapshot.get(ids.content) {
             let clip = [vp.x, vp.y, vp.width, vp.height];
             let scroll = self.scroll;
 
             // Section headers
-            let section_ids = [
-                (9u64, "▸ Button Variants"),
-                (15, "▸ Interactive Demo"),
-                (20, "▸ Card Container"),
-                (25, "▸ CJK & Emoji Rendering"),
+            let section_texts = [
+                (ids.section_headers[0], "▸ Button Variants"),
+                (ids.section_headers[1], "▸ Interactive Demo"),
+                (ids.section_headers[2], "▸ Card Container"),
+                (ids.section_headers[3], "▸ CJK & Emoji Rendering"),
             ];
-            for (sid, text) in &section_ids {
+            for (sid, text) in &section_texts {
                 if let Some(r) = snapshot.get(*sid) {
                     let y = r.y - scroll;
                     self.add_text(
@@ -749,8 +824,8 @@ impl Application for Playground {
                 }
             }
 
-            // Card background (ID 21)
-            if let Some(card_rect) = snapshot.get(21) {
+            // Card background
+            if let Some(card_rect) = snapshot.get(ids.card) {
                 let y = card_rect.y - scroll;
                 frame.clipped_quads.push(ClippedQuad {
                     quad: Quad {
@@ -762,20 +837,27 @@ impl Application for Playground {
                     },
                     clip,
                 });
-                // Card content labels (IDs 22, 23, 24)
-                for cid in [22u64, 23, 24] {
-                    if let Some(cr) = snapshot.get(cid) {
+                // Card content labels
+                let card_texts = [
+                    (
+                        ids.card_children[0],
+                        "Card — a rounded surface with column layout and padding.",
+                    ),
+                    (
+                        ids.card_children[1],
+                        "Cards can contain any widgets: labels, buttons, rows, columns.",
+                    ),
+                    (
+                        ids.card_children[2],
+                        "Supports nesting, gap spacing, and semantic padding.",
+                    ),
+                ];
+                for (cid, text) in &card_texts {
+                    if let Some(cr) = snapshot.get(*cid) {
                         let cy = cr.y - scroll;
                         self.add_text(
                             &mut frame,
-                            match cid {
-                                22 => "Card — a rounded surface with column layout and padding.",
-                                23 => {
-                                    "Cards can contain any widgets: labels, buttons, rows, columns."
-                                }
-                                24 => "Supports nesting, gap spacing, and semantic padding.",
-                                _ => "",
-                            },
+                            text,
                             [cr.x + 4.0, cy + 2.0],
                             theme.typography.body_size,
                             colors.text,
@@ -786,13 +868,13 @@ impl Application for Playground {
                 }
             }
 
-            // CJK & Emoji labels (IDs 26-30)
+            // CJK & Emoji labels
             let cjk_emoji_texts = [
-                (26u64, "繁體中文：系統介面與文字渲染測試 🀄"),
-                (27, "日本語：システムインターフェース 🗾"),
-                (28, "한국어: 사용자 인터페이스 테스트 🎯"),
-                (29, "Emoji: 🚀🎨🙂🎉🔥💯⭐🧪✨🎭👋🌟😊🎮"),
-                (30, "Mixed: Hello 你好 こんにちは 🌍 123 ABC"),
+                (ids.cjk_labels[0], "繁體中文：系統介面與文字渲染測試 🀄"),
+                (ids.cjk_labels[1], "日本語：システムインターフェース 🗾"),
+                (ids.cjk_labels[2], "한국어: 사용자 인터페이스 테스트 🎯"),
+                (ids.cjk_labels[3], "Emoji: 🚀🎨🙂🎉🔥💯⭐🧪✨🎭👋🌟😊🎮"),
+                (ids.cjk_labels[4], "Mixed: Hello 你好 こんにちは 🌍 123 ABC"),
             ];
             for (cid, text) in &cjk_emoji_texts {
                 if let Some(r) = snapshot.get(*cid) {
@@ -809,8 +891,8 @@ impl Application for Playground {
                 }
             }
 
-            // Separator in content area (ID 31)
-            if let Some(sep2) = snapshot.get(31) {
+            // Separator in content area
+            if let Some(sep2) = snapshot.get(ids.sep2) {
                 let y = sep2.y - scroll;
                 frame.clipped_quads.push(ClippedQuad {
                     quad: Quad::solid([sep2.x, y, sep2.width, 1.0], rgba(colors.border)),
@@ -818,8 +900,8 @@ impl Application for Playground {
                 });
             }
 
-            // State footer (ID 32)
-            if let Some(footer) = snapshot.get(32) {
+            // State footer
+            if let Some(footer) = snapshot.get(ids.footer) {
                 let y = footer.y - scroll;
                 self.add_text(
                     &mut frame,

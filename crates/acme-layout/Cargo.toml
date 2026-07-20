@@ -7,3 +7,4 @@ license.workspace = true
 [dependencies]
 taffy.workspace = true
 acme-core = { path = "../acme-core" }
+acme-text = { path = "../acme-text" }
