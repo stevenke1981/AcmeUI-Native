@@ -241,8 +241,17 @@ impl TextInputState {
     /// Compute the caret rectangle `[x, y, width, height]` at the current
     /// cursor position in logical pixels.
     ///
-    /// This is designed to be passed to
-    /// `window.set_ime_cursor_area()` on the platform side.
+    /// Coordinates are relative to the **content origin** (left edge of the
+    /// visible text area, i.e. field origin + horizontal padding). The returned
+    /// `x` already subtracts [`Self::scroll_offset`], matching
+    /// `render_text_input` where glyphs are drawn at
+    /// `content_x - scroll_offset`.
+    ///
+    /// `y` is `0.0` (top of the content line box); height comes from
+    /// `style.line_height`. Width is a small constant (caret width).
+    ///
+    /// Owners convert to window client space by adding the content origin:
+    /// `[content_x + rect[0], content_y + rect[1], rect[2], rect[3]]`.
     pub fn ime_caret_area(
         &self,
         fonts: &mut FontSystem,
@@ -250,11 +259,10 @@ impl TextInputState {
         scale: f32,
     ) -> [f32; 4] {
         let display = self.display_text();
-        let x = byte_offset_to_x(&display, self.cursor, fonts, style, scale);
-        // Height is approximated from the style
+        let raw_x = byte_offset_to_x(&display, self.cursor, fonts, style, scale);
+        // Match render_text_input: text_origin_x = content_x - scroll_offset.
+        let x = raw_x - self.scroll_offset;
         let h = style.line_height;
-        // The y is 0 because the owner (Gallery/Playground) positions it
-        // relative to the content area.  Width is a small constant (cursor width).
         [x, 0.0, 1.5, h]
     }
 
@@ -2396,5 +2404,66 @@ mod tests {
         assert_eq!(next_word_boundary("hello world", 0), 5);
         assert_eq!(next_word_boundary("hello world", 6), 11);
         assert_eq!(next_word_boundary("hello world", 11), 11);
+    }
+
+    // ---- IME caret area geometry ----
+
+    #[test]
+    fn ime_caret_area_empty_near_origin() {
+        let s = TextInputState::new();
+        let mut fonts = FontSystem::new();
+        let style = TextStyle::default();
+        let [x, y, w, h] = s.ime_caret_area(&mut fonts, &style, 1.0);
+        assert!(x.abs() < 0.5, "empty caret x should be near 0, got {x}");
+        assert_eq!(y, 0.0);
+        assert!((w - 1.5).abs() < f32::EPSILON);
+        assert!((h - style.line_height).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn ime_caret_area_x_increases_after_ascii_insert() {
+        let mut s = TextInputState::new();
+        let mut fonts = FontSystem::new();
+        let style = TextStyle::default();
+        let [x0, _, _, _] = s.ime_caret_area(&mut fonts, &style, 1.0);
+        for ch in ['a', 'b', 'c', 'd'] {
+            assert!(s.insert_char(ch));
+        }
+        let [x1, _, _, h] = s.ime_caret_area(&mut fonts, &style, 1.0);
+        assert!(
+            x1 > x0 + 1.0,
+            "caret x should advance after ASCII insert: x0={x0}, x1={x1}"
+        );
+        assert!((h - style.line_height).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn ime_caret_area_accounts_for_scroll_offset() {
+        let mut s = TextInputState::new();
+        let mut fonts = FontSystem::new();
+        let style = TextStyle::default();
+        for ch in "hello world".chars() {
+            assert!(s.insert_char(ch));
+        }
+        let [x_unscrolled, _, _, _] = s.ime_caret_area(&mut fonts, &style, 1.0);
+        s.scroll_offset = 12.5;
+        let [x_scrolled, _, _, _] = s.ime_caret_area(&mut fonts, &style, 1.0);
+        assert!(
+            (x_unscrolled - x_scrolled - 12.5).abs() < 0.01,
+            "scroll_offset must reduce caret x: unscrolled={x_unscrolled}, scrolled={x_scrolled}"
+        );
+    }
+
+    #[test]
+    fn ime_caret_area_height_from_style_line_height() {
+        let s = TextInputState::new();
+        let mut fonts = FontSystem::new();
+        let style = TextStyle {
+            font_size: 18.0,
+            line_height: 27.0,
+            ..TextStyle::default()
+        };
+        let [_, _, _, h] = s.ime_caret_area(&mut fonts, &style, 1.0);
+        assert!((h - 27.0).abs() < f32::EPSILON);
     }
 }

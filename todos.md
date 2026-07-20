@@ -37,14 +37,14 @@
 ## P1
 - [x] TextInput (cursor, selection, clipboard, IME preedit, password)
 - [x] Clipboard (arboard integration in acme-platform)
-- [x] Traditional Chinese IME (architecture + Gallery demo + manual validation)
+- [x] Traditional Chinese IME (architecture + Gallery demo + caret geometry wiring; **manual 注音 validation still pending**)
 - [x] Tooltip
 - [x] Popover
 - [x] Menu
 - [x] Dialog
 - [x] AccessKit
 - [x] acme-devtools crate (FrameMetrics, WidgetTreeDump, LayoutInspector, RenderDiagnostics)
-- [x] apps/benchmark (layout, reconciliation, frame build benchmarks)
+- [x] apps/benchmark (layout, reconciliation, frame build microbenches; no CI thresholds yet)
 - [x] apps/playground (interactive widget testing app)
 
 ## P2
@@ -54,4 +54,13 @@
 - [x] DataGrid (sortable columns, row selection, grid role)
 - [x] Animation (tween engine, easing, looping, yoyo)
 - [x] Multi-window (WindowId, per-window state, close handling, tests)
-- [ ] Surface recreation automated test (manual device loss recovery pathway built)
+- [x] Surface recreation automated test (pure state machine + atlas invalidation contract + `on_gpu_recovered` hook)
+
+## Remaining / next
+- [ ] Manual Traditional Chinese 注音 IME validation on Windows
+- [ ] Manual DPI interaction at 125/150/200% Windows scaling
+- [ ] Glyph atlas eviction/aging when full
+- [ ] Navigation widgets (NavRail, Sidebar, TabBar, Breadcrumb)
+- [ ] Gallery Data category real Tree/Table/DataGrid demos
+- [ ] Benchmark headless CI thresholds
+- [ ] Screenshot golden / pixel regression

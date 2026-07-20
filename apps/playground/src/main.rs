@@ -6,7 +6,9 @@
 
 use acme_core::NodeId;
 use acme_layout::{Edges, LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
-use acme_platform::{Application, FrameContext, PlatformEvent, PlatformKey, WindowConfig};
+use acme_platform::{
+    Application, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
+};
 use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
 use acme_theme::{Theme, ThemeColor};
@@ -459,6 +461,13 @@ impl Application for Playground {
             PlatformEvent::Resized { .. } => true,
             _ => false,
         }
+    }
+
+    fn on_gpu_recovered(&mut self, _window: WindowId) {
+        // The renderer rebuilt empty GPU atlases after device loss; drop the CPU
+        // atlas so the next frame re-uploads every glyph instead of referencing
+        // blank texture regions.
+        self.atlas.clear();
     }
 
     fn frame(&mut self, context: FrameContext) -> Frame {

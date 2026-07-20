@@ -558,4 +558,55 @@ mod tests {
         assert!(second.uploads.is_empty());
         assert_eq!(first.glyphs, second.glyphs);
     }
+
+    #[test]
+    fn atlas_clear_forces_reupload_after_recovery() {
+        // Encodes the GPU-recovery invalidation contract: after the CPU atlas is
+        // cleared (as the app must do post device-loss), the next identical
+        // prepare must re-emit uploads and advance the atlas generation so the
+        // (now empty) GPU atlas gets repopulated instead of referencing blanks.
+        let mut fonts = FontSystem::new();
+        let layout = fonts.shape(
+            "Recover",
+            &TextStyle::default(),
+            TextConstraints::default(),
+            1.0,
+        );
+        let mut atlas = GlyphAtlas::new(512, 512);
+
+        let first = fonts.prepare(&layout, &mut atlas);
+        assert!(
+            !first.uploads.is_empty(),
+            "first prepare must upload glyphs"
+        );
+        let gen_before = atlas.generation();
+
+        // Cache hit — no uploads on immediate identical prepare.
+        let second = fonts.prepare(&layout, &mut atlas);
+        assert!(
+            second.uploads.is_empty(),
+            "cache hit must not re-upload glyphs"
+        );
+        assert_eq!(second.atlas_generation, gen_before);
+
+        // Simulate device-loss recovery: the app clears its CPU atlas.
+        atlas.clear();
+        assert!(atlas.is_empty());
+        assert!(
+            atlas.generation() > gen_before,
+            "clear must advance the atlas generation"
+        );
+
+        // After invalidation, glyphs must be re-uploaded with a higher generation.
+        let third = fonts.prepare(&layout, &mut atlas);
+        assert!(
+            !third.uploads.is_empty(),
+            "post-clear prepare must re-upload glyphs"
+        );
+        assert!(
+            third.atlas_generation > first.atlas_generation,
+            "post-clear prepare must report a higher atlas generation"
+        );
+        assert_eq!(third.glyphs.len(), first.glyphs.len());
+    }
 }

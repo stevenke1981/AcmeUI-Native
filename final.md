@@ -30,17 +30,18 @@ threshold or controlled hardware baseline.
 
 ## Known limitations
 
-- Deterministic surface-loss recreation is not yet complete; resize, zero-size
-  suspension, outdated/suboptimal reconfiguration and validation diagnostics exist.
-- Traditional Chinese IME has architecture-only support (preedit/commit/cancel events in
-  PlatformEvent, TextInputState handles IME composition) but has not received manual 注音
-  validation.
+- Surface/device recovery has a **deterministic pure state machine** and CPU-atlas
+  invalidation contract, but real wgpu device-loss detection (uncaptured error) and
+  manual GPU recovery on Windows are still pending.
+- Traditional Chinese IME has architecture + caret geometry wiring (preedit/commit,
+  `ime_caret_area`, Gallery field-relative candidate rect) but has **not** received
+  manual 注音 validation (AGENTS.md forbids claiming otherwise).
 - Manual interaction at physical 125/150/200% Windows display scaling remains to be
   performed; automated DPI conversion and glyph-scale tests do not replace it.
-- Tree, Table, DataGrid not yet implemented.
-- Application::run() multi-window support is designed (WindowId on all events) but the
-  concrete Runtime loop still drives a single window; the `windows()` default returns an
-  empty iterator.
+- Tree, Table, DataGrid are implemented with unit tests; Gallery Data pages are still
+  placeholder component templates (widgets not yet demoed live).
+- Multi-window: `WindowId` on events, runtime multi-config support, and non-empty
+  `windows()` default exist; interactive multi-window smoke is still manual.
 
 ## Risks
 
@@ -154,9 +155,29 @@ threshold or controlled hardware baseline.
 - `cargo test --workspace`: passed (319 unit tests, 0 failed across 11 crates).
 - Full gallery navigation with 8 categories and 4 templates compiles.
 
+## Hardening batch (post v0.2)
+
+### Surface / device recovery truth
+- **Pure state machine**: private `AcquireOutcome` + `resolve_surface_action(suspended, device_lost, acquire)` covers Skip/DeviceLost/Reconfigure/Rendered without GPU.
+- **`gpu_epoch`**: increments after successful `on_device_lost()`; `complete_recovery_state` unit-tested GPU-free.
+- **Blank-text fix**: `Application::on_gpu_recovered` default hook; Gallery/Playground call `atlas.clear()` so next frame re-uploads glyphs after empty GPU atlases are rebuilt.
+- **Atlas contract test**: `atlas_clear_forces_reupload_after_recovery` proves cache-hit → clear → re-upload + generation bump.
+
+### IME caret wiring (not manual 注音 validation)
+- **`Application::ime_cursor_area() -> Option<[f32;4]>`**: app-authoritative; mouse is fallback only via `resolve_ime_cursor_area`.
+- **`ime_caret_area`**: accounts for `scroll_offset`; Gallery composes field origin + padding + caret.
+- **Tests**: caret x advances with text, scroll reduces x, height from line_height; platform prefers app rect over mouse.
+- **Explicitly unvalidated**: Traditional Chinese 注音 candidate UI on real Windows IME.
+
+### Verification (hardening)
+- `cargo fmt --all -- --check`: passed.
+- `cargo check --workspace --all-targets`: passed.
+- `cargo clippy --workspace --all-targets -- -D warnings`: passed.
+- `cargo test --workspace`: passed (**331** unit tests, 0 failed; 1 ignored doctest).
+
 ## Remaining (next milestone)
 
-Deterministic surface/device recreation automated test, UI pixel test / screenshot golden file
-comparison, performance baseline (clean build, warm incremental, frame preparation),
-`cargo-deny` / `cargo-audit` dependency auditing, WSL/macOS/CI pipeline,
-manual DPI validation at 125/150/200% Windows display scaling.
+Real wgpu device-loss detection hook, manual 注音 IME validation, manual DPI at
+125/150/200%, Gallery Data live demos, navigation widgets, glyph atlas eviction,
+screenshot golden comparison, performance baseline thresholds, `cargo-deny` /
+`cargo-audit`, WSL/macOS/CI matrix.

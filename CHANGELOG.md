@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.2.1 — Recovery + IME caret hardening (2026-07-20)
+
+### Surface / device recovery truth
+- Extracted pure `resolve_surface_action` state machine (suspended / device_lost / acquire outcomes) — GPU-free unit tests cover all transitions
+- Added `Renderer::gpu_epoch()`; increments after successful device recovery
+- Added `Application::on_gpu_recovered(window)` hook; Gallery and Playground clear CPU `GlyphAtlas` to prevent blank text after GPU atlas rebuild
+- Added `atlas_clear_forces_reupload_after_recovery` contract test in `acme-text`
+- Replaced checkbox-only surface recovery claim with behavioral tests (real hardware device loss still manual)
+
+### IME caret geometry wiring
+- Added `Application::ime_cursor_area() -> Option<[f32; 4]>` (app-authoritative)
+- Added `resolve_ime_cursor_area(app_rect, mouse)` — mouse is fallback only
+- `TextInputState::ime_caret_area` now subtracts `scroll_offset`
+- Gallery returns field-relative caret rect (origin + padding + caret)
+- **Does not claim** Traditional Chinese 注音 manual validation
+
+### Docs truthfulness
+- Corrected `todos.md` IME and surface-recovery checkboxes
+- Renamed misleading "Manually Validated" STATUS section to "Automated Only (manual still pending)"
+- Removed stale final.md claims (Tree/Table unimplemented, empty `windows()` iterator)
+
+### Verification
+- 331 unit tests pass workspace-wide; fmt/check/clippy `-D warnings` clean
+
 ## v0.2.0 — Agent Improvement Pack v0.2 (2026-07-20)
 
 ### P0-03: Renderer Buffering & Batching

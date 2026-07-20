@@ -181,9 +181,26 @@ pub trait Application: 'static {
     /// Called when the application should update the IME cursor area for a window.
     ///
     /// `rect` is `[x, y, width, height]` in logical pixels relative to the window's
-    /// client area. The framework calls this during IME composition so the platform
-    /// input method can position its candidate window.
+    /// client area. The framework calls this during IME composition after resolving
+    /// the area via [`Application::ime_cursor_area`] (app-authoritative) with a
+    /// mouse-position fallback. Existing apps may ignore this notification.
     fn set_ime_cursor_area(&mut self, _window: WindowId, _rect: [f32; 4]) {}
+
+    /// Return the preferred IME candidate area for `window` in logical pixels
+    /// relative to the window client area (`[x, y, width, height]`).
+    ///
+    /// `None` means the platform should use its fallback (mouse cursor position).
+    /// Apps with a focused text field should return the caret rectangle so the
+    /// system IME candidate window tracks the text caret rather than the pointer.
+    fn ime_cursor_area(&self, _window: WindowId) -> Option<[f32; 4]> {
+        None
+    }
+
+    /// Called after the renderer successfully recreates GPU resources.
+    ///
+    /// Applications owning CPU-side caches that mirror GPU resources should
+    /// invalidate them here so the next frame repopulates the new GPU resources.
+    fn on_gpu_recovered(&mut self, _window: WindowId) {}
     fn frame(&mut self, context: FrameContext) -> Frame;
 }
 
@@ -203,6 +220,32 @@ pub fn run<A: Application>(app: A) -> Result<(), PlatformError> {
         .run_app(&mut runtime)
         .map_err(|error| PlatformError::EventLoop(error.to_string()))?;
     Ok(())
+}
+
+fn notify_gpu_recovered<A: Application>(app: &mut A, window: WindowId) {
+    app.on_gpu_recovered(window);
+}
+
+/// Resolve the IME candidate rectangle: prefer the app-provided caret area,
+/// otherwise fall back to a 1×24 logical rect at the mouse cursor.
+///
+/// Pure helper so unit tests can verify wiring without a GPU or event loop.
+pub fn resolve_ime_cursor_area(app_rect: Option<[f32; 4]>, mouse: (f32, f32)) -> [f32; 4] {
+    app_rect.unwrap_or([mouse.0, mouse.1, 1.0, 24.0])
+}
+
+fn apply_ime_cursor_area<A: Application>(
+    app: &mut A,
+    window: &Window,
+    win_id: WindowId,
+    mouse: (f32, f32),
+) {
+    let rect = resolve_ime_cursor_area(app.ime_cursor_area(win_id), mouse);
+    app.set_ime_cursor_area(win_id, rect);
+    window.set_ime_cursor_area(
+        LogicalPosition::new(rect[0] as f64, rect[1] as f64),
+        LogicalSize::new(rect[2] as f64, rect[3] as f64),
+    );
 }
 
 struct WindowState {
@@ -518,13 +561,9 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                     let win_id = state.id;
                     let dirty = app.event(PlatformEvent::ImeEnabled(win_id));
                     state.dirty |= dirty;
-                    // Set IME cursor area at current cursor position as a sensible default.
-                    let (cx, cy) = state.cursor;
-                    app.set_ime_cursor_area(win_id, [cx, cy, 1.0, 24.0]);
-                    state.window.set_ime_cursor_area(
-                        LogicalPosition::new(cx as f64, cy as f64),
-                        LogicalSize::new(1.0, 24.0),
-                    );
+                    // App-authoritative caret rect; mouse only as fallback.
+                    let mouse = state.cursor;
+                    apply_ime_cursor_area(app, &state.window, win_id, mouse);
                     if state.dirty {
                         state.window.request_redraw();
                     }
@@ -549,13 +588,9 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             WindowEvent::Ime(Ime::Preedit(text, cursor)) => {
                 if let Some(state) = windows.get_mut(&id) {
                     let win_id = state.id;
-                    // Update IME cursor area to track cursor during composition
-                    let (cx, cy) = state.cursor;
-                    app.set_ime_cursor_area(win_id, [cx, cy, 1.0, 24.0]);
-                    state.window.set_ime_cursor_area(
-                        LogicalPosition::new(cx as f64, cy as f64),
-                        LogicalSize::new(1.0, 24.0),
-                    );
+                    // Prefer app caret geometry over mouse during composition.
+                    let mouse = state.cursor;
+                    apply_ime_cursor_area(app, &state.window, win_id, mouse);
                     // Legacy event (backward compat)
                     let dirty = app.event(PlatformEvent::ImePreedit(text.clone()));
                     // Enhanced event
@@ -622,6 +657,9 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                         tracing::warn!("GPU device lost, attempting recovery...");
                         match state.renderer.on_device_lost() {
                             Ok(()) => {
+                                // The renderer rebuilt EMPTY GPU atlases; the app owns the
+                                // CPU atlas and must invalidate it so glyphs re-upload.
+                                notify_gpu_recovered(app, win_id);
                                 state.dirty = true;
                                 state.window.request_redraw();
                             }
@@ -714,6 +752,39 @@ mod tests {
     }
 
     #[test]
+    fn on_gpu_recovered_default_is_noop_and_overridable() {
+        struct RecoveryApp {
+            recovered: Vec<WindowId>,
+        }
+        impl Application for RecoveryApp {
+            fn on_gpu_recovered(&mut self, window: WindowId) {
+                self.recovered.push(window);
+            }
+            fn frame(&mut self, _ctx: FrameContext) -> Frame {
+                Frame::default()
+            }
+        }
+
+        // Default impl is a no-op (compiles + does nothing).
+        struct DefaultApp;
+        impl Application for DefaultApp {
+            fn frame(&mut self, _ctx: FrameContext) -> Frame {
+                Frame::default()
+            }
+        }
+        let mut default_app = DefaultApp;
+        notify_gpu_recovered(&mut default_app, WindowId(1)); // must not panic
+
+        // Overridden impl records recovery notifications through the runtime helper.
+        let mut app = RecoveryApp {
+            recovered: Vec::new(),
+        };
+        notify_gpu_recovered(&mut app, WindowId(3));
+        notify_gpu_recovered(&mut app, WindowId(5));
+        assert_eq!(app.recovered, vec![WindowId(3), WindowId(5)]);
+    }
+
+    #[test]
     fn frame_context_carries_window_id() {
         let id = WindowId(7);
         let ctx = FrameContext {
@@ -726,5 +797,48 @@ mod tests {
         assert!((ctx.logical_width - 800.0).abs() < f32::EPSILON);
         assert!((ctx.logical_height - 600.0).abs() < f32::EPSILON);
         assert!((ctx.scale_factor - 2.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn resolve_ime_cursor_area_prefers_app_rect_over_mouse() {
+        let app = Some([10.0, 20.0, 3.0, 24.0]);
+        let resolved = resolve_ime_cursor_area(app, (999.0, 888.0));
+        assert_eq!(resolved, [10.0, 20.0, 3.0, 24.0]);
+    }
+
+    #[test]
+    fn resolve_ime_cursor_area_falls_back_to_mouse_when_none() {
+        let resolved = resolve_ime_cursor_area(None, (42.0, 84.0));
+        assert_eq!(resolved, [42.0, 84.0, 1.0, 24.0]);
+    }
+
+    #[test]
+    fn ime_cursor_area_default_is_none() {
+        struct DefaultApp;
+        impl Application for DefaultApp {
+            fn frame(&mut self, _ctx: FrameContext) -> Frame {
+                Frame::default()
+            }
+        }
+        let app = DefaultApp;
+        assert_eq!(app.ime_cursor_area(WindowId(1)), None);
+        let resolved = resolve_ime_cursor_area(app.ime_cursor_area(WindowId(1)), (5.0, 6.0));
+        assert_eq!(resolved, [5.0, 6.0, 1.0, 24.0]);
+    }
+
+    #[test]
+    fn ime_cursor_area_override_is_used_by_resolver() {
+        struct CaretApp;
+        impl Application for CaretApp {
+            fn ime_cursor_area(&self, _window: WindowId) -> Option<[f32; 4]> {
+                Some([10.0, 20.0, 3.0, 24.0])
+            }
+            fn frame(&mut self, _ctx: FrameContext) -> Frame {
+                Frame::default()
+            }
+        }
+        let app = CaretApp;
+        let resolved = resolve_ime_cursor_area(app.ime_cursor_area(WindowId(0)), (1.0, 2.0));
+        assert_eq!(resolved, [10.0, 20.0, 3.0, 24.0]);
     }
 }

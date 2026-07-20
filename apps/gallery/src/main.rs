@@ -15,7 +15,7 @@ use acme_accessibility::AccessibilityAdapter;
 use acme_core::NodeId;
 use acme_layout::{LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
 use acme_platform::{
-    Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig,
+    Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
 };
 use acme_render_wgpu::{Frame, Quad, TextRun};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
@@ -181,7 +181,11 @@ struct Gallery {
     // Text Input / IME state
     text_input: TextInputState,
     text_input_rect: [f32; 4],
+    /// Window-client IME caret rect `[x,y,w,h]` when text input is focused.
+    ime_caret_window_rect: Option<[f32; 4]>,
     ime_text: String,
+    /// Last frame scale factor (for caret geometry outside `frame`).
+    last_scale_factor: f32,
 
     // Systems
     fonts: FontSystem,
@@ -212,7 +216,9 @@ impl Gallery {
             button_info: Vec::new(),
             text_input: TextInputState::new(),
             text_input_rect: [0.0; 4],
+            ime_caret_window_rect: None,
             ime_text: String::new(),
+            last_scale_factor: 1.0,
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::new(2048, 2048),
             layout: LayoutEngine::new(),
@@ -848,6 +854,37 @@ impl Gallery {
             GalleryMessage::FocusDemo | GalleryMessage::DpiInfo => true,
         }
     }
+
+    /// Recompute window-client IME caret rect from field origin + content-local
+    /// caret geometry. Called after focus/text changes and each text-input frame.
+    fn refresh_ime_caret_cache(&mut self) {
+        if !self.text_input.focused {
+            self.ime_caret_window_rect = None;
+            return;
+        }
+        let [fx, fy, fw, fh] = self.text_input_rect;
+        if fw <= 0.0 || fh <= 0.0 {
+            self.ime_caret_window_rect = None;
+            return;
+        }
+        let theme = if self.dark {
+            Theme::dark()
+        } else {
+            Theme::light()
+        };
+        let font_size = theme.typography.body_size;
+        let style = TextStyle {
+            font_size,
+            line_height: font_size * theme.typography.line_height,
+            ..TextStyle::default()
+        };
+        // Content origin matches render_text_input (field + padding).
+        let padding = theme.spacing.sm;
+        let [cx, cy, cw, ch] =
+            self.text_input
+                .ime_caret_area(&mut self.fonts, &style, self.last_scale_factor);
+        self.ime_caret_window_rect = Some([fx + padding + cx, fy + padding + cy, cw, ch.max(1.0)]);
+    }
 }
 
 // ── Application Trait ───────────────────────────────────────────────────────
@@ -887,6 +924,7 @@ impl Application for Gallery {
                             && self.cursor.1 <= ty + th
                     };
                     self.text_input.focused = in_text;
+                    self.refresh_ime_caret_cache();
                     self.pressed = self.hit();
                     true
                 } else {
@@ -909,6 +947,7 @@ impl Application for Gallery {
             } => {
                 if self.text_input.focused {
                     self.text_input.focused = false;
+                    self.refresh_ime_caret_cache();
                 }
                 let count = self.button_info.len();
                 if count > 0 {
@@ -942,32 +981,35 @@ impl Application for Gallery {
                 if !self.text_input.focused {
                     return false;
                 }
-                if ctrl
+                let changed = if ctrl
                     && let Some(t) = text
                     && matches!(t.as_str(), "a" | "c" | "v" | "x")
                 {
-                    return handle_keyboard_shortcut(
+                    handle_keyboard_shortcut(&mut self.text_input, t, self.clipboard.as_ref())
+                } else {
+                    handle_key(
                         &mut self.text_input,
-                        t,
+                        key,
+                        pressed,
                         self.clipboard.as_ref(),
-                    );
+                        ctrl,
+                        shift,
+                    )
+                };
+                if changed {
+                    self.refresh_ime_caret_cache();
                 }
-                handle_key(
-                    &mut self.text_input,
-                    key,
-                    pressed,
-                    self.clipboard.as_ref(),
-                    ctrl,
-                    shift,
-                )
+                changed
             }
             PlatformEvent::ImePreedit(text) => {
                 self.text_input.set_preedit(&text, None);
+                self.refresh_ime_caret_cache();
                 true
             }
             PlatformEvent::ImeCommit(text) => {
                 handle_text(&mut self.text_input, &text);
                 self.ime_text = self.text_input.text.clone();
+                self.refresh_ime_caret_cache();
                 true
             }
             PlatformEvent::Resized { .. } => true,
@@ -975,9 +1017,24 @@ impl Application for Gallery {
         }
     }
 
+    fn ime_cursor_area(&self, _window: WindowId) -> Option<[f32; 4]> {
+        if !self.text_input.focused {
+            return None;
+        }
+        self.ime_caret_window_rect
+    }
+
+    fn on_gpu_recovered(&mut self, _window: WindowId) {
+        // The renderer rebuilt empty GPU atlases after device loss; drop the CPU
+        // atlas so the next frame re-uploads every glyph instead of referencing
+        // blank texture regions.
+        self.atlas.clear();
+    }
+
     fn frame(&mut self, context: FrameContext) -> Frame {
         let width = context.logical_width;
         let height = context.logical_height;
+        self.last_scale_factor = context.scale_factor;
 
         // ── 1. Build widget tree ──
         let description = self.description();
@@ -1207,6 +1264,8 @@ impl Application for Gallery {
                         focused,
                         None,
                     );
+                    // Keep IME candidate rect in sync with the rendered caret.
+                    self.refresh_ime_caret_cache();
                     if !self.ime_text.is_empty() {
                         add_text(
                             &mut self.fonts,
@@ -1220,6 +1279,12 @@ impl Application for Gallery {
                         );
                     }
                 }
+            }
+        } else {
+            // Not on the TextInput page — clear field geometry / IME cache.
+            self.text_input_rect = [0.0; 4];
+            if self.ime_caret_window_rect.is_some() {
+                self.ime_caret_window_rect = None;
             }
         }
 

@@ -108,6 +108,43 @@ pub enum SurfaceAction {
     DeviceLost,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum AcquireOutcome {
+    Success,
+    Suboptimal,
+    OutdatedOrLost,
+    TimeoutOrOccluded,
+    Validation,
+}
+
+fn resolve_surface_action(
+    suspended: bool,
+    device_lost: bool,
+    acquire: AcquireOutcome,
+) -> SurfaceAction {
+    if suspended {
+        return SurfaceAction::Skip;
+    }
+    if device_lost {
+        return SurfaceAction::DeviceLost;
+    }
+    match acquire {
+        AcquireOutcome::Success | AcquireOutcome::Suboptimal => SurfaceAction::Rendered,
+        AcquireOutcome::OutdatedOrLost => SurfaceAction::Reconfigure,
+        AcquireOutcome::TimeoutOrOccluded | AcquireOutcome::Validation => SurfaceAction::Skip,
+    }
+}
+
+fn complete_recovery_state(
+    device_lost: &mut bool,
+    status: &mut SurfaceStatus,
+    gpu_epoch: &mut u64,
+) {
+    *device_lost = false;
+    *status = SurfaceStatus::Ready;
+    *gpu_epoch = gpu_epoch.wrapping_add(1);
+}
+
 #[derive(Debug, Error)]
 pub enum RenderError {
     #[error("unsupported window surface target")]
@@ -165,6 +202,7 @@ pub struct Renderer {
     status: SurfaceStatus,
     scale_factor: f32,
     device_lost: bool,
+    gpu_epoch: u64,
     // Persistent double-buffered instance buffers.
     quad_buffers: [wgpu::Buffer; 2],
     glyph_buffers: [wgpu::Buffer; 2],
@@ -249,6 +287,7 @@ impl Renderer {
             },
             scale_factor: normalize_scale(scale_factor),
             device_lost: false,
+            gpu_epoch: 0,
             quad_buffers,
             glyph_buffers,
             quad_capacities: [quad_cap, quad_cap],
@@ -266,6 +305,11 @@ impl Renderer {
         self.status
     }
 
+    /// Monotonically increases after each successful GPU device recovery.
+    pub fn gpu_epoch(&self) -> u64 {
+        self.gpu_epoch
+    }
+
     pub fn resize(&mut self, width: u32, height: u32, scale_factor: f32) {
         self.size = (width, height);
         self.scale_factor = normalize_scale(scale_factor);
@@ -280,32 +324,46 @@ impl Renderer {
     }
 
     pub fn render(&mut self, frame: &Frame) -> SurfaceAction {
-        if self.status == SurfaceStatus::Suspended {
-            return SurfaceAction::Skip;
-        }
-        if self.device_lost {
-            return SurfaceAction::DeviceLost;
+        let suspended = self.status == SurfaceStatus::Suspended;
+        // Decide fast-exit actions without touching the surface where possible.
+        let pre_acquire_action =
+            resolve_surface_action(suspended, self.device_lost, AcquireOutcome::Success);
+        if pre_acquire_action != SurfaceAction::Rendered {
+            return pre_acquire_action;
         }
         let mut reconfigure_after_present = false;
-        let output = match self.surface.get_current_texture() {
+        let acquired = self.surface.get_current_texture();
+        let outcome = match &acquired {
+            wgpu::CurrentSurfaceTexture::Success(_) => AcquireOutcome::Success,
+            wgpu::CurrentSurfaceTexture::Suboptimal(_) => AcquireOutcome::Suboptimal,
+            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
+                AcquireOutcome::OutdatedOrLost
+            }
+            wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
+                AcquireOutcome::TimeoutOrOccluded
+            }
+            wgpu::CurrentSurfaceTexture::Validation => AcquireOutcome::Validation,
+        };
+        let action = resolve_surface_action(suspended, self.device_lost, outcome);
+        if action != SurfaceAction::Rendered {
+            // Handle the reconfigure side effect for the outdated/lost case.
+            if outcome == AcquireOutcome::OutdatedOrLost {
+                self.status = SurfaceStatus::Recovering;
+                self.surface.configure(&self.device, &self.config);
+                self.status = SurfaceStatus::Ready;
+            } else if outcome == AcquireOutcome::Validation {
+                tracing::warn!("surface acquisition validation failure");
+            }
+            return action;
+        }
+        let output = match acquired {
             wgpu::CurrentSurfaceTexture::Success(frame) => frame,
             wgpu::CurrentSurfaceTexture::Suboptimal(frame) => {
                 reconfigure_after_present = true;
                 frame
             }
-            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
-                self.status = SurfaceStatus::Recovering;
-                self.surface.configure(&self.device, &self.config);
-                self.status = SurfaceStatus::Ready;
-                return SurfaceAction::Reconfigure;
-            }
-            wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
-                return SurfaceAction::Skip;
-            }
-            wgpu::CurrentSurfaceTexture::Validation => {
-                tracing::warn!("surface acquisition validation failure");
-                return SurfaceAction::Skip;
-            }
+            // Unreachable: any non-render outcome returned above.
+            _ => return SurfaceAction::Skip,
         };
         // ---- atlas uploads with per-frame dedup ----
         let mut uploaded_regions: HashSet<(u32, u32, u32, u32)> = HashSet::new();
@@ -646,8 +704,7 @@ impl Renderer {
         self.current_frame = 0;
         self.stats = RenderStats::default();
 
-        self.device_lost = false;
-        self.status = SurfaceStatus::Ready;
+        complete_recovery_state(&mut self.device_lost, &mut self.status, &mut self.gpu_epoch);
         tracing::info!("GPU device recovery successful");
         Ok(())
     }
@@ -992,6 +1049,72 @@ mod tests {
     fn device_lost_action_is_distinct() {
         assert_ne!(SurfaceAction::DeviceLost, SurfaceAction::Exit);
         assert_ne!(SurfaceAction::DeviceLost, SurfaceAction::Reconfigure);
+    }
+
+    #[test]
+    fn resolve_surface_action_covers_all_transitions() {
+        use AcquireOutcome::*;
+        let outcomes = [
+            Success,
+            Suboptimal,
+            OutdatedOrLost,
+            TimeoutOrOccluded,
+            Validation,
+        ];
+
+        // Suspended always wins → Skip, regardless of device_lost or acquire.
+        for &acquire in &outcomes {
+            for &device_lost in &[false, true] {
+                assert_eq!(
+                    resolve_surface_action(true, device_lost, acquire),
+                    SurfaceAction::Skip,
+                    "suspended must Skip (device_lost={device_lost}, acquire={acquire:?})"
+                );
+            }
+        }
+
+        // Not suspended, device_lost → DeviceLost, regardless of acquire.
+        for &acquire in &outcomes {
+            assert_eq!(
+                resolve_surface_action(false, true, acquire),
+                SurfaceAction::DeviceLost,
+                "device_lost must map to DeviceLost (acquire={acquire:?})"
+            );
+        }
+
+        // Not suspended, not device_lost → depends on acquire outcome.
+        assert_eq!(
+            resolve_surface_action(false, false, Success),
+            SurfaceAction::Rendered
+        );
+        assert_eq!(
+            resolve_surface_action(false, false, Suboptimal),
+            SurfaceAction::Rendered
+        );
+        assert_eq!(
+            resolve_surface_action(false, false, OutdatedOrLost),
+            SurfaceAction::Reconfigure
+        );
+        assert_eq!(
+            resolve_surface_action(false, false, TimeoutOrOccluded),
+            SurfaceAction::Skip
+        );
+        assert_eq!(
+            resolve_surface_action(false, false, Validation),
+            SurfaceAction::Skip
+        );
+    }
+
+    #[test]
+    fn recovery_resets_pure_state_and_bumps_epoch() {
+        // Mimic post-device-loss state: device_lost=true, status=Recovering.
+        let mut device_lost = true;
+        let mut status = SurfaceStatus::Recovering;
+        let mut gpu_epoch = 7u64;
+        complete_recovery_state(&mut device_lost, &mut status, &mut gpu_epoch);
+        assert!(!device_lost, "device_lost must clear after recovery");
+        assert_eq!(status, SurfaceStatus::Ready, "status must return to Ready");
+        assert_eq!(gpu_epoch, 8, "gpu_epoch must increment by one");
     }
 
     #[test]
