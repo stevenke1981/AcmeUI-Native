@@ -3,8 +3,11 @@
 //! Each module provides a builder struct that converts into [`WidgetNode<M>`]
 //! using existing AcmeUI-Native primitives.
 
+pub mod autocomplete;
 pub mod checkbox;
 pub mod combobox;
+pub mod multi_select;
+pub mod pin_input;
 pub mod form_message;
 pub mod icon_button;
 pub mod number_input;
@@ -20,8 +23,11 @@ pub mod switch;
 pub mod textarea;
 pub mod toggle_button;
 
+pub use autocomplete::*;
 pub use checkbox::*;
 pub use combobox::*;
+pub use multi_select::*;
+pub use pin_input::*;
 pub use form_message::*;
 pub use icon_button::*;
 pub use number_input::*;
