@@ -1,0 +1,11 @@
+[package]
+name = "acme-ui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+acme-core = { path = "../acme-core" }
+acme-widgets = { path = "../acme-widgets" }
+acme-layout = { path = "../acme-layout" }
+acme-theme = { path = "../acme-theme" }
+acme-text = { path = "../acme-text" }

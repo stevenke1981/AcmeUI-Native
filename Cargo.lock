@@ -259,6 +259,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "acme-ui"
+version = "0.1.0"
+dependencies = [
+ "acme-core",
+ "acme-layout",
+ "acme-text",
+ "acme-theme",
+ "acme-widgets",
+]
+
+[[package]]
+name = "acme-ui-gallery"
+version = "0.1.0"
+dependencies = [
+ "acme-core",
+ "acme-layout",
+ "acme-platform",
+ "acme-render-wgpu",
+ "acme-text",
+ "acme-textinput",
+ "acme-theme",
+ "acme-ui",
+ "acme-widgets",
+]
+
+[[package]]
 name = "acme-widgets"
 version = "0.1.0"
 dependencies = [

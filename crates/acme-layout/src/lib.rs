@@ -351,7 +351,9 @@ fn build(
     }
     // Text leaf nodes: store the measure spec as context so
     // `compute_with_text` can intrinsically size them.
-    if node.children.is_empty() && let Some(spec) = &node.measure {
+    if node.children.is_empty()
+        && let Some(spec) = &node.measure
+    {
         let mut style = to_taffy(&node.style);
         if absolute {
             style.position = Position::Absolute;

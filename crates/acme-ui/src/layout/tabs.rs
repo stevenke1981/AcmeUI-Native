@@ -1,0 +1,99 @@
+//! Tabs component — a row of tab buttons with an underline on the selected tab.
+
+use crate::WidgetNode;
+
+/// Builder for a tabs row.
+pub struct TabsBuilder<M> {
+    pub tabs: Vec<String>,
+    pub selected: usize,
+    _phantom: std::marker::PhantomData<M>,
+}
+
+/// Create a tabs builder.
+pub fn tabs<M: Clone + 'static>() -> TabsBuilder<M> {
+    TabsBuilder {
+        tabs: vec![],
+        selected: 0,
+        _phantom: std::marker::PhantomData,
+    }
+}
+
+impl<M: Clone> TabsBuilder<M> {
+    /// Add a tab label.
+    pub fn tab(mut self, label: impl Into<String>) -> Self {
+        self.tabs.push(label.into());
+        self
+    }
+
+    /// Set the selected tab index.
+    pub fn selected(mut self, index: usize) -> Self {
+        self.selected = index;
+        self
+    }
+
+    /// Build the widget node tree.
+    pub fn build(self) -> WidgetNode<M> {
+        let mut row = crate::row::<M>().gap(4.0);
+        for (i, tab_label) in self.tabs.iter().enumerate() {
+            let is_selected = i == self.selected;
+            let btn = crate::button(format!("tab_{i}").as_str(), tab_label.clone());
+            let mut tab_col = crate::column::<M>().child(btn).gap(2.0);
+            if is_selected {
+                tab_col = tab_col.child(crate::separator::<M>());
+            }
+            row = row.child(tab_col.build());
+        }
+        row.build()
+    }
+}
+
+impl<M: Clone + 'static> From<TabsBuilder<M>> for WidgetNode<M> {
+    fn from(b: TabsBuilder<M>) -> Self {
+        b.build()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::WidgetNode;
+    use acme_core::NodeId;
+
+    #[derive(Clone, Debug, PartialEq)]
+    enum Msg {}
+
+    #[test]
+    fn tabs_has_non_zero_layout_rect() {
+        let node: WidgetNode<Msg> = tabs::<Msg>()
+            .tab("Overview")
+            .tab("Details")
+            .tab("Settings")
+            .selected(1)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // Row container with 3 columns inside
+        assert_eq!(layout.children.len(), 3);
+        // Non-selected tabs: 1 child each (button only)
+        assert_eq!(layout.children[0].children.len(), 1);
+        // Selected tab (index 1): button + separator = 2 children
+        assert_eq!(layout.children[1].children.len(), 2);
+        // Non-selected tab (index 2): 1 child
+        assert_eq!(layout.children[2].children.len(), 1);
+    }
+
+    #[test]
+    fn tabs_selected_has_underline() {
+        let node: WidgetNode<Msg> = tabs::<Msg>().tab("A").tab("B").selected(0).into();
+        let layout = node.to_layout(NodeId::new(1));
+        // First tab column has button + separator = 2 children
+        assert_eq!(layout.children[0].children.len(), 2);
+        // Second tab column has button only = 1 child
+        assert_eq!(layout.children[1].children.len(), 1);
+    }
+
+    #[test]
+    fn tabs_builds_row() {
+        let node: WidgetNode<Msg> = tabs::<Msg>().tab("X").tab("Y").build();
+        assert!(matches!(node, WidgetNode::Row(_)));
+    }
+}

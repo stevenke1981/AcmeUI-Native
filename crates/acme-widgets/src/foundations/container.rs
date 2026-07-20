@@ -1,6 +1,6 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
-use acme_layout::{Edges, LayoutKind, LayoutStyle};
+use acme_layout::{Edges, LayoutKind, LayoutStyle, Length};
 
 /// A container holds children and arranges them according to the layout kind.
 #[derive(Clone, Debug, PartialEq)]
@@ -9,6 +9,12 @@ pub struct Container<M> {
     pub children: Vec<WidgetNode<M>>,
     pub gap: f32,
     pub padding: Edges,
+    /// Optional explicit width. When set, the container uses this width
+    /// instead of relying on content-intrinsic sizing.
+    pub width: Option<f32>,
+    /// Optional explicit height. When set, the container uses this height
+    /// instead of relying on content-intrinsic sizing.
+    pub height: Option<f32>,
 }
 impl<M> Default for Container<M> {
     fn default() -> Self {
@@ -17,6 +23,8 @@ impl<M> Default for Container<M> {
             children: vec![],
             gap: 0.0,
             padding: Edges::default(),
+            width: None,
+            height: None,
         }
     }
 }
@@ -46,6 +54,8 @@ impl<M> Container<M> {
             kind,
             gap: self.gap,
             padding: self.padding,
+            width: self.width.map_or(Length::Auto, Length::px),
+            height: self.height.map_or(Length::Auto, Length::px),
             ..Default::default()
         }
     }
@@ -71,6 +81,22 @@ impl<M> ContainerBuilder<M> {
     }
     pub fn padding(mut self, value: f32) -> Self {
         self.container = self.container.padding(value);
+        self
+    }
+    /// Set an explicit width for the container.
+    pub fn width(mut self, value: f32) -> Self {
+        self.container.width = Some(crate::finite(value));
+        self
+    }
+    /// Set an explicit height for the container.
+    pub fn height(mut self, value: f32) -> Self {
+        self.container.height = Some(crate::finite(value));
+        self
+    }
+    /// Set both explicit width and height.
+    pub fn size(mut self, w: f32, h: f32) -> Self {
+        self.container.width = Some(crate::finite(w));
+        self.container.height = Some(crate::finite(h));
         self
     }
     pub fn build(self) -> WidgetNode<M> {
