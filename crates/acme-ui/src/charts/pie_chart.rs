@@ -83,7 +83,7 @@ impl<M: Clone + 'static> PieChartBuilder<M> {
             }
         }
         if pie_bar.trim().is_empty() {
-            pie_bar.push_str("\u{2588}");
+            pie_bar.push('\u{2588}');
         }
         col = col.child(label_with_size::<M>(pie_bar, 18.0));
 

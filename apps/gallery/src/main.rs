@@ -486,7 +486,7 @@ impl Gallery {
             (
                 "Anatomy",
                 column()
-                    .gap(4.0)
+                    .gap(8.0)
                     .child(label("NavRail — vertical destinations"))
                     .child(label("  key, items[], selected, collapsed"))
                     .child(label("  item: label + optional icon / message / disabled"))
@@ -529,7 +529,7 @@ impl Gallery {
             (
                 "Anatomy",
                 column()
-                    .gap(4.0)
+                    .gap(8.0)
                     .child(label("Sidebar — fixed-width panel"))
                     .child(label("  key, width (default 224), header, children[]"))
                     .build(),
@@ -576,7 +576,7 @@ impl Gallery {
             (
                 "Anatomy",
                 column()
-                    .gap(4.0)
+                    .gap(8.0)
                     .child(label("TabBar — horizontal tab strip"))
                     .child(label("  key, tabs[], selected index"))
                     .child(label("  selected tab rendered as [Label]"))
@@ -616,7 +616,7 @@ impl Gallery {
             (
                 "Anatomy",
                 column()
-                    .gap(4.0)
+                    .gap(8.0)
                     .child(label("Breadcrumb — path trail with separators"))
                     .child(label("  key, segments[], separator (default \"/\")"))
                     .build(),
@@ -947,7 +947,7 @@ impl Gallery {
         content: WidgetNode<GalleryMessage>,
     ) -> WidgetNode<GalleryMessage> {
         column()
-            .gap(spacing(self.density, 8.0))
+            .gap(spacing(self.density, 10.0))
             .child(label_with_size(title, 16.0))
             .child(separator())
             .child(content)
@@ -1283,14 +1283,14 @@ fn light_dark_demo() -> WidgetNode<GalleryMessage> {
         .gap(16.0)
         .child(
             column()
-                .gap(4.0)
+                .gap(8.0)
                 .child(label_with_size("☀ Light", 16.0))
                 .child(label("Component in light theme"))
                 .build(),
         )
         .child(
             column()
-                .gap(4.0)
+                .gap(8.0)
                 .child(label_with_size("🌙 Dark", 16.0))
                 .child(label("Component in dark theme"))
                 .build(),
@@ -1514,14 +1514,14 @@ impl Gallery {
         } else {
             Theme::light()
         };
-        let font_size = theme.typography.body_size;
+        let font_size = theme.typography.body;
         let style = TextStyle {
             font_size,
             line_height: font_size * theme.typography.line_height,
             ..TextStyle::default()
         };
         // Content origin matches render_text_input (field + padding).
-        let padding = theme.spacing.sm;
+        let padding = theme.spacing.px2;
         let [cx, cy, cw, ch] =
             self.text_input
                 .ime_caret_area(&mut self.fonts, &style, self.last_scale_factor);
@@ -1751,9 +1751,9 @@ impl Application for Gallery {
 
         // ── 3. Build layout context from theme ──
         let layout_context = WidgetLayoutContext {
-            body_font_size: theme.typography.body_size,
-            body_line_height: theme.typography.body_size * theme.typography.line_height,
-            label_font_size: theme.typography.label_size,
+            body_font_size: theme.typography.body,
+            body_line_height: theme.typography.body * theme.typography.line_height,
+            label_font_size: theme.typography.label,
             control_height: 40.0,
             scale_factor: context.scale_factor,
         };
@@ -1840,7 +1840,7 @@ impl Application for Gallery {
                 &mut frame,
                 "AcmeUI",
                 ([r.x + 4.0, r.y + 2.0], 18.0),
-                colors.text,
+                colors.foreground,
                 context.scale_factor,
                 None,
                 theme.typography.line_height,
@@ -1862,14 +1862,14 @@ impl Application for Gallery {
             let bg = if is_selected {
                 colors.accent
             } else if st.hovered {
-                colors.surface_hover
+                colors.ghost_hover
             } else {
                 colors.surface
             };
             let fg = if is_selected {
-                colors.on_accent
+                colors.primary_foreground
             } else {
-                colors.text
+                colors.foreground
             };
             frame.quads.push(quad_rect(
                 [r.x, r.y, r.width, r.height],
@@ -1881,7 +1881,7 @@ impl Application for Gallery {
                     1.0
                 },
                 if st.focused {
-                    colors.focus
+                    colors.ring
                 } else {
                     colors.border
                 },
@@ -1891,7 +1891,7 @@ impl Application for Gallery {
                 &mut self.atlas,
                 &mut frame,
                 CATEGORIES[i].name,
-                ([r.x + 12.0, r.y + 9.0], theme.typography.label_size),
+                ([r.x + 12.0, r.y + 9.0], theme.typography.label),
                 fg,
                 context.scale_factor,
                 None,
@@ -2014,7 +2014,7 @@ impl Application for Gallery {
                             &mut frame,
                             &format!("Committed: {}", self.ime_text),
                             ([ph.x + 2.0, y + ph.height + 6.0], 14.0),
-                            colors.text_muted,
+                            colors.muted_foreground,
                             context.scale_factor,
                             None,
                             theme.typography.line_height,
@@ -2129,6 +2129,7 @@ fn apply_gallery_styles(root: &mut LayoutNode, width: f32, height: f32) {
     for i in 2..=9 {
         sb.children[i].style.width = Length::px(SIDEBAR_WIDTH - 24.0);
         sb.children[i].style.height = Length::px(40.0);
+
     }
 
     // Content area: fills remaining width
@@ -2208,16 +2209,18 @@ fn render_content(
                 return;
             }
             if let Some(rect) = snapshot.get(layout.id) {
-                let fs = l.font_size.unwrap_or(theme.typography.body_size);
-                // Top-align: Label rect now has min_height so y is the top.
-                let y_text = rect.y - scroll_y;
+                let fs = l.font_size.unwrap_or(theme.typography.body);
+                // Vertical center within the label rect using theme line height.
+                let line_h = fs * theme.typography.line_height;
+                let y_text = rect.y - scroll_y + (rect.height - line_h).max(0.0) * 0.5;
+                let text_color = l.color.unwrap_or(colors.foreground);
                 add_text(
                     fonts,
                     atlas,
                     frame,
                     &l.text,
                     ([rect.x + 4.0, y_text], fs),
-                    colors.text,
+                    text_color,
                     scale,
                     Some(clip),
                     theme.typography.line_height,
@@ -2258,7 +2261,7 @@ fn render_content(
                     atlas,
                     frame,
                     &btn.label,
-                    ([rect.x + 10.0, y + 8.0], theme.typography.label_size),
+                    ([rect.x + 10.0, y + 8.0], theme.typography.label),
                     resolved.foreground,
                     scale,
                     Some(clip),
@@ -2326,10 +2329,10 @@ fn render_content(
                     if selected {
                         frame.quads.push(quad_rect(
                             [rect.x, y, rect.width.max(1.0), rect.height.max(1.0)],
-                            colors.surface_hover,
+                            colors.ghost_hover,
                             0.0,
                             0.0,
-                            colors.surface_hover,
+                            colors.ghost_hover,
                         ));
                     }
                     // Expand/collapse chevron affordance for parents.
@@ -2340,8 +2343,8 @@ fn render_content(
                             atlas,
                             frame,
                             mark,
-                            ([rect.x + 2.0, y + 2.0], theme.typography.body_size),
-                            colors.text_muted,
+                            ([rect.x + 2.0, y + 2.0], theme.typography.body),
+                            colors.muted_foreground,
                             scale,
                             Some(clip),
                             theme.typography.line_height,
@@ -2405,10 +2408,10 @@ fn render_content(
                     let y = rr.y - scroll_y;
                     frame.quads.push(quad_rect(
                         [rr.x, y, rr.width.max(1.0), rr.height.max(1.0)],
-                        colors.surface_hover,
+                        colors.ghost_hover,
                         0.0,
                         0.0,
-                        colors.surface_hover,
+                        colors.ghost_hover,
                     ));
                 }
                 for (cell, cell_layout) in data_row.cells.iter().zip(row_layout.children.iter()) {
@@ -2496,9 +2499,9 @@ fn render_content(
                             &l.text,
                             (
                                 [rect.x + 4.0, y + 2.0],
-                                l.font_size.unwrap_or(theme.typography.body_size),
+                                l.font_size.unwrap_or(theme.typography.body),
                             ),
-                            colors.text,
+                            colors.foreground,
                             scale,
                             Some(list_clip),
                             theme.typography.line_height,
@@ -2552,15 +2555,17 @@ fn paint_label_like(
                 return;
             }
             if let Some(rect) = snapshot.get(layout.id) {
-                let fs = l.font_size.unwrap_or(theme.typography.body_size);
-                let y_text = rect.y - scroll_y;
+                let fs = l.font_size.unwrap_or(theme.typography.body);
+                // Vertical center within the label rect using theme line height.
+                let line_h = fs * theme.typography.line_height;
+                let y_text = rect.y - scroll_y + (rect.height - line_h).max(0.0) * 0.5;
                 add_text(
                     fonts,
                     atlas,
                     frame,
                     &l.text,
                     ([rect.x + 4.0, y_text], fs),
-                    theme.colors.text,
+                    theme.colors.foreground,
                     scale,
                     Some(clip),
                     theme.typography.line_height,

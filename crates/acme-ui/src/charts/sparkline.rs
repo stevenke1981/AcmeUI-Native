@@ -53,7 +53,7 @@ impl<M: Clone + 'static> SparklineBuilder<M> {
 
         // For each data value, pick a block character representing its
         // relative height in 4 quartiles.
-        for (_i, val) in self.data.iter().enumerate() {
+        for val in self.data.iter() {
             let ratio = (val / max_v).clamp(0.0, 1.0);
             let block = if ratio > 0.75 {
                 "\u{2588}" // Full block
@@ -64,7 +64,7 @@ impl<M: Clone + 'static> SparklineBuilder<M> {
             } else {
                 "\u{2591}" // Light shade
             };
-            let text = format!("{}", block);
+            let text = block.to_string();
 
             spark_row = spark_row.child(label_with_size::<M>(text, self.height.max(8.0)));
         }

@@ -1,6 +1,7 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
 use acme_layout::Edges;
+use acme_theme::ThemeColor;
 
 /// Card style variant.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -21,6 +22,12 @@ pub struct Card<M> {
     pub children: Vec<WidgetNode<M>>,
     pub gap: f32,
     pub padding: Edges,
+    /// Optional explicit background color override.
+    /// When `None`, the renderer derives the color from `variant`.
+    pub background_color: Option<ThemeColor>,
+    /// Optional explicit border radius override.
+    /// When `None`, the renderer uses the default card radius.
+    pub border_radius: Option<f32>,
 }
 
 /// Builder for Card widgets.
@@ -48,6 +55,16 @@ impl<M> CardBuilder<M> {
         self.card.variant = value;
         self
     }
+    /// Set an explicit background color override.
+    pub fn background_color(mut self, color: ThemeColor) -> Self {
+        self.card.background_color = Some(color);
+        self
+    }
+    /// Set an explicit border radius override.
+    pub fn border_radius(mut self, radius: f32) -> Self {
+        self.card.border_radius = Some(crate::finite(radius));
+        self
+    }
     pub fn build(self) -> WidgetNode<M> {
         WidgetNode::Card(self.card)
     }
@@ -67,6 +84,8 @@ pub fn card<M>() -> CardBuilder<M> {
             children: vec![],
             gap: 0.0,
             padding: Edges::default(),
+            background_color: None,
+            border_radius: None,
         },
     }
 }

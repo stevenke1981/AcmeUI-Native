@@ -724,19 +724,19 @@ pub fn render_text_input(
         return;
     }
 
-    let padding = theme.spacing.sm; // 8px vertical/horizontal inner padding
+    let padding = theme.spacing.px2; // 8px vertical/horizontal inner padding
     let border_width = 1.0;
 
-    let text_color = theme_color_to_array(&theme.colors.text);
+    let text_color = theme_color_to_array(&theme.colors.foreground);
     let disabled_text = theme_color_to_array(&theme.colors.disabled_text);
-    let text_muted = theme_color_to_array(&theme.colors.text_muted);
+    let text_muted = theme_color_to_array(&theme.colors.muted_foreground);
     let bg_color = theme_color_to_array(&theme.colors.surface);
 
     // Border colour: invalid > focus > default
     let border_color = if state.invalid {
         theme_color_to_array(&theme.colors.danger)
     } else if focused {
-        theme_color_to_array(&theme.colors.focus)
+        theme_color_to_array(&theme.colors.ring)
     } else {
         theme_color_to_array(&theme.colors.border)
     };
@@ -762,7 +762,7 @@ pub fn render_text_input(
     });
 
     // Build style from theme typography tokens
-    let font_size = theme.typography.body_size;
+    let font_size = theme.typography.body;
     let style = TextStyle {
         font_size,
         line_height: font_size * theme.typography.line_height,

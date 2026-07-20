@@ -17,8 +17,8 @@ use acme_ui::charts::{
     area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline, BarEntry, ChartPoint, PieSlice,
 };
 use acme_widgets::{
-    button, column, label, label_with_size, row, scroll_view, separator, ButtonState, CardVariant,
-    WidgetNode,
+    button, card, column, label, label_with_size, row, scroll_view, separator, ButtonSize,
+    ButtonState, ButtonVariant, CardVariant, WidgetNode,
 };
 
 fn main() -> Result<(), acme_platform::PlatformError> {
@@ -37,6 +37,10 @@ struct CategoryInfo {
 }
 
 const CATEGORIES: &[CategoryInfo] = &[
+    CategoryInfo {
+        name: "Design System",
+        pages: &["Tokens", "Colors", "Typography", "Spacing"],
+    },
     CategoryInfo {
         name: "Foundations",
         pages: &["Typography", "Colors"],
@@ -100,7 +104,7 @@ struct Gallery {
 impl Gallery {
     fn new() -> Self {
         Self {
-            selected_category: 5, // Start on Charts page
+            selected_category: 6, // Start on Charts page
             dark: false,
             cursor: (0.0, 0.0),
             hovered: None,
@@ -165,12 +169,13 @@ impl Gallery {
 
     fn render_page(&self) -> WidgetNode<GalleryMessage> {
         match self.selected_category {
-            0 => self.foundations_page(),
-            1 => self.inputs_page(),
-            2 => self.layout_page(),
-            3 => self.overlay_page(),
-            4 => self.data_page(),
-            5 => self.charts_page(),
+            0 => self.design_system_page(),
+            1 => self.foundations_page(),
+            2 => self.inputs_page(),
+            3 => self.layout_page(),
+            4 => self.overlay_page(),
+            5 => self.data_page(),
+            6 => self.charts_page(),
             _ => label("Unknown category"),
         }
     }
@@ -185,22 +190,56 @@ impl Gallery {
                 self.page_section(
                     "Typography",
                     column()
-                        .gap(6.0)
-                        .child(label_with_size("Heading 24px", 24.0))
-                        .child(label_with_size("Subheading 18px", 18.0))
-                        .child(label_with_size("Body 16px (default)", 16.0))
-                        .child(label_with_size("Caption 13px", 13.0))
-                        .child(label_with_size("Small 12px", 12.0))
+                        .gap(8.0)
+                        .child(label("The complete type scale from the V2 design system:"))
+                        .child(label_with_size("h1 28px — Page titles and hero headings", 28.0))
+                        .child(label_with_size("h2 22px — Major section headers", 22.0))
+                        .child(label_with_size("h3 18px — Card and panel titles", 18.0))
+                        .child(label_with_size("h4 16px — Subsection headings", 16.0))
+                        .child(label_with_size("Body 14px — Default reading text", 14.0))
+                        .child(label_with_size("Caption 12px — Helper, timestamps", 12.0))
+                        .child(label_with_size("Small 11px — Legal, meta", 11.0))
                         .build(),
                 ),
             )
             .child(
                 self.page_section(
-                    "Colors",
+                    "Color Palette",
                     column()
-                        .gap(6.0)
-                        .child(label("Theme colors are applied at render time."))
-                        .child(label("Toggle dark/light via toolbar."))
+                        .gap(12.0)
+                        .child(label("Semantic color tokens respond to light/dark mode."))
+                        .child(
+                            label_with_size("Surface Colors", 16.0),
+                        )
+                        .child(
+                            row()
+                                .gap(12.0)
+                                .child(self.color_card("Background", CardVariant::Outlined))
+                                .child(self.color_card("Surface", CardVariant::Elevated))
+                                .build(),
+                        )
+                        .child(
+                            label_with_size("Interactive Colors", 16.0),
+                        )
+                        .child(
+                            row()
+                                .gap(8.0)
+                                .child(
+                                    button("fc_primary", "Primary")
+                                        .primary()
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("fc_secondary", "Secondary")
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("fc_danger", "Danger")
+                                        .variant(ButtonVariant::Danger)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .build(),
+                        )
                         .build(),
                 ),
             )
@@ -209,35 +248,96 @@ impl Gallery {
 
     fn inputs_page(&self) -> WidgetNode<GalleryMessage> {
         column()
-            .gap(16.0)
+            .gap(24.0)
             .padding(24.0)
             .child(label_with_size("Inputs", 24.0))
             .child(separator())
             .child(
                 self.page_section(
-                    "Button",
+                    "Button Variants",
                     column()
-                        .gap(8.0)
-                        .child(label("Standard button component:"))
-                        .child(button("demo_btn", "Click Me").on_click(GalleryMessage::DpiInfo))
+                        .gap(12.0)
+                        .child(label("Four tone variants cover common interaction patterns:"))
                         .child(
-                            button("demo_primary", "Primary")
-                                .primary()
-                                .on_click(GalleryMessage::DpiInfo),
+                            row()
+                                .gap(8.0)
+                                .child(
+                                    button("iv_primary", "Primary")
+                                        .primary()
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("iv_secondary", "Secondary")
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("iv_ghost", "Ghost")
+                                        .variant(ButtonVariant::Ghost)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("iv_danger", "Danger")
+                                        .variant(ButtonVariant::Danger)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .build(),
                         )
                         .build(),
                 ),
             )
             .child(
                 self.page_section(
-                    "Variants",
+                    "Button Sizes",
                     column()
-                        .gap(8.0)
-                        .child(button("v1", "Default").on_click(GalleryMessage::DpiInfo))
+                        .gap(12.0)
+                        .child(label("Four size tiers from compact to prominent:"))
                         .child(
-                            button("v2", "Primary")
-                                .primary()
-                                .on_click(GalleryMessage::DpiInfo),
+                            row()
+                                .gap(8.0)
+                                .child(
+                                    button("is_xs", "XS")
+                                        .size(ButtonSize::XS)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("is_sm", "Small")
+                                        .size(ButtonSize::Small)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("is_md", "Medium")
+                                        .size(ButtonSize::Medium)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("is_lg", "Large")
+                                        .size(ButtonSize::Large)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .build(),
+                        )
+                        .build(),
+                ),
+            )
+            .child(
+                self.page_section(
+                    "Button States",
+                    column()
+                        .gap(12.0)
+                        .child(label("Default idle state and loading indicator:"))
+                        .child(
+                            row()
+                                .gap(8.0)
+                                .child(
+                                    button("ist_default", "Default")
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("ist_loading", "Loading …")
+                                        .loading(true)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .build(),
                         )
                         .build(),
                 ),
@@ -464,6 +564,154 @@ impl Gallery {
             .build()
     }
 
+    fn design_system_page(&self) -> WidgetNode<GalleryMessage> {
+        column()
+            .gap(24.0)
+            .padding(24.0)
+            .child(label_with_size("Design System", 24.0))
+            .child(separator())
+            .child(label("All semantic design tokens defined by the V2 theme."))
+            // ── Color Palette ────────────────────────────────────────────
+            .child(
+                self.page_section(
+                    "Color Palette",
+                    column()
+                        .gap(16.0)
+                        .child(
+                            label_with_size("Base Surface Colors", 16.0),
+                        )
+                        .child(
+                            row()
+                                .gap(12.0)
+                                .child(self.color_card("Background", CardVariant::Outlined))
+                                .child(self.color_card("Surface", CardVariant::Elevated))
+                                .child(self.color_card("Elevated", CardVariant::Interactive))
+                                .build(),
+                        )
+                        .child(
+                            label_with_size("Semantic Colors", 16.0),
+                        )
+                        .child(
+                            row()
+                                .gap(8.0)
+                                .child(
+                                    button("ds_primary", "Primary")
+                                        .primary()
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("ds_secondary", "Secondary")
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("ds_ghost", "Ghost")
+                                        .variant(ButtonVariant::Ghost)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("ds_danger", "Danger")
+                                        .variant(ButtonVariant::Danger)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .build(),
+                        )
+                        .child(
+                            label_with_size("Status Colors", 16.0),
+                        )
+                        .child(
+                            row()
+                                .gap(12.0)
+                                .child(self.swatch("success", "Success"))
+                                .child(self.swatch("warning", "Warning"))
+                                .child(self.swatch("danger", "Danger"))
+                                .child(self.swatch("info", "Info"))
+                                .build(),
+                        )
+                        .child(
+                            label_with_size("Utility Colors", 16.0),
+                        )
+                        .child(
+                            row()
+                                .gap(12.0)
+                                .child(self.swatch("muted_foreground", "Muted Fg"))
+                                .child(self.swatch("border", "Border"))
+                                .child(self.swatch("ring", "Ring"))
+                                .child(self.swatch("input", "Input"))
+                                .build(),
+                        )
+                        .build(),
+                ),
+            )
+            // ── Typography ──────────────────────────────────────────────
+            .child(
+                self.page_section(
+                    "Typography Scale",
+                    column()
+                        .gap(8.0)
+                        .child(label_with_size("Heading 1 (h1) — 28px  Page title", 28.0))
+                        .child(label_with_size("Heading 2 (h2) — 22px  Section title", 22.0))
+                        .child(label_with_size("Heading 3 (h3) — 18px  Card title", 18.0))
+                        .child(label_with_size("Heading 4 (h4) — 16px  Subsection", 16.0))
+                        .child(label_with_size("Body — 14px  Default body text", 14.0))
+                        .child(label_with_size("Body Small — 13px  Compact body", 13.0))
+                        .child(label_with_size("Label — 13px  Form label", 13.0))
+                        .child(label_with_size("Caption — 12px  Helper text, badges", 12.0))
+                        .child(label_with_size("Small — 11px  Legal, timestamps", 11.0))
+                        .build(),
+                ),
+            )
+            // ── Spacing ─────────────────────────────────────────────────
+            .child(
+                self.page_section(
+                    "Spacing Grid",
+                    column()
+                        .gap(8.0)
+                        .child(label("The design system uses a 4px base grid. Common spacing tokens:"))
+                        .child(self.spacing_demo("half ", 2))
+                        .child(self.spacing_demo("px   ", 4))
+                        .child(self.spacing_demo("px1  ", 6))
+                        .child(self.spacing_demo("px2  ", 8))
+                        .child(self.spacing_demo("px3  ", 12))
+                        .child(self.spacing_demo("px4  ", 16))
+                        .child(self.spacing_demo("px5  ", 20))
+                        .child(self.spacing_demo("px6  ", 24))
+                        .child(self.spacing_demo("px8  ", 32))
+                        .child(self.spacing_demo("px10 ", 40))
+                        .build(),
+                ),
+            )
+            // ── Border Radius ───────────────────────────────────────────
+            .child(
+                self.page_section(
+                    "Border Radius",
+                    column()
+                        .gap(8.0)
+                        .child(label("Corner radii for surfaces and components:"))
+                        .child(label("none — 0px    Sharp elements"))
+                        .child(label("sm   — 4px    Inputs, data-view cards"))
+                        .child(label("md   — 6px    Buttons, default components"))
+                        .child(label("lg   — 8px    Cards, dialogs"))
+                        .child(label("xl   — 12px   Modals, large surfaces"))
+                        .child(label("full — 999px  Badges, pills, avatars"))
+                        .build(),
+                ),
+            )
+            // ── Shadow / Elevation ──────────────────────────────────────
+            .child(
+                self.page_section(
+                    "Shadow / Elevation",
+                    column()
+                        .gap(8.0)
+                        .child(label("sm   0 1px  2px  rgba(0,0,0,0.04)  Subtle cards"))
+                        .child(label("md   0 4px  12px rgba(0,0,0,0.06)  Popovers, menus"))
+                        .child(label("lg   0 8px  24px rgba(0,0,0,0.08)  Dialogs, modals"))
+                        .child(label("xl   0 16px 48px rgba(0,0,0,0.10)  Notifications, tooltips"))
+                        .build(),
+                ),
+            )
+            .build()
+    }
+
     fn page_section(
         &self,
         title: &str,
@@ -474,6 +722,32 @@ impl Gallery {
             .child(label_with_size(title, 16.0))
             .child(separator())
             .child(content)
+            .build()
+    }
+
+    // ── Helpers for Design System page ──────────────────────────────────
+
+    /// Create a color swatch label: a small colored square + descriptive text.
+    /// Uses a special encoding prefix (`\x01`) that `render_content` detects.
+    fn swatch(&self, color_name: &str, display: &str) -> WidgetNode<GalleryMessage> {
+        label(format!("\x01{}|{}", color_name, display))
+    }
+
+    /// Create a small card showing a base surface color.
+    fn color_card(&self, label_text: &str, variant: CardVariant) -> WidgetNode<GalleryMessage> {
+        card()
+            .variant(variant)
+            .padding(16.0)
+            .child(label(label_text))
+            .build()
+    }
+
+    /// Create a visual spacing demo: row with separators showing gap width.
+    fn spacing_demo(&self, label_text: &str, px: u32) -> WidgetNode<GalleryMessage> {
+        let text = format!("{} {:>2}px — {:━>2$}", label_text, px, px as usize);
+        row()
+            .gap(8.0)
+            .child(label(text))
             .build()
     }
 
@@ -584,9 +858,9 @@ impl Application for Gallery {
 
         // 3. Layout context
         let layout_context = WidgetLayoutContext {
-            body_font_size: theme.typography.body_size,
-            body_line_height: theme.typography.body_size * theme.typography.line_height,
-            label_font_size: theme.typography.label_size,
+            body_font_size: theme.typography.body,
+            body_line_height: theme.typography.body * theme.typography.line_height,
+            label_font_size: theme.typography.label,
             control_height: 36.0,
             scale_factor: context.scale_factor,
         };
@@ -661,7 +935,7 @@ impl Application for Gallery {
                 &mut frame,
                 "AcmeUI",
                 ([ox, oy], 18.0),
-                colors.text,
+                colors.foreground,
                 context.scale_factor,
                 None,
                 theme.typography.line_height,
@@ -682,14 +956,14 @@ impl Application for Gallery {
             let bg = if is_selected {
                 colors.accent
             } else if st.hovered {
-                colors.surface_hover
+                colors.ghost_hover
             } else {
                 colors.surface
             };
             let fg = if is_selected {
-                colors.on_accent
+                colors.primary_foreground
             } else {
-                colors.text
+                colors.foreground
             };
             frame.quads.push(quad_rect(
                 [r.x, r.y, r.width, r.height],
@@ -702,8 +976,8 @@ impl Application for Gallery {
             let measured = self.fonts.measure(
                 label,
                 &TextStyle {
-                    font_size: theme.typography.label_size,
-                    line_height: theme.typography.label_size * theme.typography.line_height,
+                    font_size: theme.typography.label,
+                    line_height: theme.typography.label * theme.typography.line_height,
                     ..TextStyle::default()
                 },
                 TextConstraints::default(),
@@ -719,7 +993,7 @@ impl Application for Gallery {
                 &mut self.atlas,
                 &mut frame,
                 label,
-                ([ox, oy], theme.typography.label_size),
+                ([ox, oy], theme.typography.label),
                 fg,
                 context.scale_factor,
                 None,
@@ -743,7 +1017,7 @@ impl Application for Gallery {
         for (ti, (&btn_id, &label_text)) in
             ids.toolbar_buttons.iter().zip(tb_labels.iter()).enumerate()
         {
-            let btn_idx = 6 + ti;
+            let btn_idx = 7 + ti;
             let Some(r) = snapshot.get(btn_id) else {
                 continue;
             };
@@ -792,7 +1066,7 @@ impl Application for Gallery {
         // 16. Page content
         if let Some(sv_rect) = snapshot.get(ids.scroll_view) {
             let clip = [sv_rect.x, sv_rect.y, sv_rect.width, sv_rect.height];
-            let mut btn_idx = 8;
+            let mut btn_idx = 9;
             render_content(
                 &mut frame,
                 &description,
@@ -819,7 +1093,7 @@ impl Application for Gallery {
 struct GalleryNodeIds {
     sidebar: NodeId,
     sidebar_label: NodeId,
-    sidebar_buttons: [NodeId; 6],
+    sidebar_buttons: [NodeId; 7],
     toolbar: NodeId,
     toolbar_buttons: [NodeId; 2],
     scroll_view: NodeId,
@@ -839,6 +1113,7 @@ fn extract_gallery_ids(root: &LayoutNode) -> GalleryNodeIds {
             sb.children[5].id,
             sb.children[6].id,
             sb.children[7].id,
+            sb.children[8].id,
         ],
         toolbar: tb.id,
         toolbar_buttons: [tb.children[0].id, tb.children[1].id],
@@ -871,7 +1146,7 @@ fn apply_gallery_styles(root: &mut LayoutNode, width: f32, height: f32) {
         },
         ..Default::default()
     };
-    for i in 2..8 {
+    for i in 2..9 {
         sb.children[i].style.width = Length::px(SIDEBAR_WIDTH - 24.0);
         sb.children[i].style.height = Length::px(38.0);
     }
@@ -942,15 +1217,54 @@ fn render_content(
     match widget {
         WidgetNode::Label(l) => {
             if let Some(rect) = snapshot.get(layout.id) {
-                let fs = l.font_size.unwrap_or(theme.typography.body_size);
+                let fs = l.font_size.unwrap_or(theme.typography.body);
                 let y_text = rect.y - scroll_y;
+                let text_color = l.color.unwrap_or(colors.foreground);
+
+                // Color swatch label: "\x01{color_name}|{display_text}"
+                if l.text.starts_with('\x01') {
+                    if let Some(rest) = l.text.get(1..) {
+                        if let Some((color_name, display)) = rest.split_once('|') {
+                            if let Some(swatch_color) =
+                                resolve_swatch_color(theme, color_name)
+                            {
+                                let swatch_size = fs * 0.85;
+                                let swatch_x = rect.x + 4.0;
+                                let swatch_y =
+                                    y_text + (fs * 1.5 - swatch_size).max(0.0) / 2.0;
+                                let swatch_radius = theme.radii.sm.min(swatch_size / 2.0);
+                                frame.quads.push(quad_rect(
+                                    [swatch_x, swatch_y, swatch_size, swatch_size],
+                                    swatch_color,
+                                    swatch_radius,
+                                    0.0,
+                                    swatch_color,
+                                ));
+                                let text_x = swatch_x + swatch_size + 8.0;
+                                add_text(
+                                    fonts,
+                                    atlas,
+                                    frame,
+                                    display,
+                                    ([text_x, y_text], fs),
+                                    text_color,
+                                    scale,
+                                    Some(clip),
+                                    theme.typography.line_height,
+                                );
+                                return;
+                            }
+                        }
+                    }
+                }
+
                 add_text(
                     fonts,
                     atlas,
                     frame,
                     &l.text,
                     ([rect.x + 4.0, y_text], fs),
-                    colors.text,
+                    text_color,
                     scale,
                     Some(clip),
                     theme.typography.line_height,
@@ -983,7 +1297,7 @@ fn render_content(
                     atlas,
                     frame,
                     &btn.label,
-                    ([rect.x + 10.0, y + 8.0], theme.typography.label_size),
+                    ([rect.x + 10.0, y + 8.0], theme.typography.label),
                     resolved.foreground,
                     scale,
                     Some(clip),
@@ -1007,16 +1321,23 @@ fn render_content(
         WidgetNode::Card(c) => {
             if let Some(rect) = snapshot.get(layout.id) {
                 let y = rect.y - scroll_y;
-                let (bg, border) = match c.variant {
-                    CardVariant::Elevated => (colors.surface, colors.border),
-                    CardVariant::Outlined => (colors.background, colors.border),
-                    CardVariant::Interactive => (colors.surface, colors.accent),
-                    _ => (colors.surface, colors.border),
+                // Use explicit background_color when set, otherwise derive from variant
+                let (bg, border) = if let Some(custom_bg) = c.background_color {
+                    (custom_bg, colors.border)
+                } else {
+                    match c.variant {
+                        CardVariant::Elevated => (colors.surface, colors.border),
+                        CardVariant::Outlined => (colors.background, colors.border),
+                        CardVariant::Interactive => (colors.surface, colors.accent),
+                        _ => (colors.surface, colors.border),
+                    }
                 };
+                // Use explicit border_radius when set, otherwise default to sm
+                let radius = c.border_radius.unwrap_or(theme.radii.sm);
                 frame.quads.push(quad_rect(
                     [rect.x, y, rect.width, rect.height],
                     bg,
-                    theme.radii.sm,
+                    radius,
                     1.0,
                     border,
                 ));
@@ -1135,6 +1456,36 @@ fn add_text(
         color: rgba(color),
         clip,
     });
+}
+
+/// Map a color name to its `ThemeColor` value from the current theme.
+/// Used by the Design System page color swatches.
+fn resolve_swatch_color(theme: &Theme, name: &str) -> Option<ThemeColor> {
+    let c = theme.colors;
+    match name {
+        "primary" => Some(c.primary),
+        "secondary" => Some(c.secondary),
+        "accent" => Some(c.accent),
+        "muted" => Some(c.muted),
+        "muted_foreground" => Some(c.muted_foreground),
+        "background" => Some(c.background),
+        "foreground" => Some(c.foreground),
+        "surface" => Some(c.surface),
+        "border" => Some(c.border),
+        "ring" => Some(c.ring),
+        "input" => Some(c.input),
+        "success" => Some(c.success),
+        "warning" => Some(c.warning),
+        "danger" => Some(c.danger),
+        "info" => Some(c.info),
+        "success_soft" => Some(c.success_soft),
+        "warning_soft" => Some(c.warning_soft),
+        "danger_soft" => Some(c.danger_soft),
+        "info_soft" => Some(c.info_soft),
+        "primary_foreground" => Some(c.primary_foreground),
+        "surface_elevated" => Some(c.surface_elevated),
+        _ => None,
+    }
 }
 
 fn rgba(color: ThemeColor) -> [f32; 4] {

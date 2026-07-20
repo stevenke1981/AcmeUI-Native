@@ -66,7 +66,7 @@ impl<M: Clone + 'static> AreaChartBuilder<M> {
 
         // Stack the area blocks: for each data point show a filled bar
         // proportional to value, then the label beneath.
-        for (_i, pt) in self.data.iter().enumerate() {
+        for pt in self.data.iter() {
             let ratio = (pt.value / max_v).clamp(0.0, 1.0);
             let block_count = (ratio * 24.0).round() as usize;
             let area_line = if block_count > 0 {

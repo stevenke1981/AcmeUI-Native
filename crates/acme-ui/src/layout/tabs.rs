@@ -2,10 +2,25 @@
 
 use crate::WidgetNode;
 
+/// Tab bar visual variant.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TabVariant {
+    /// Underline on the selected tab.
+    #[default]
+    Underlined,
+    /// Pill-shaped background on the selected tab.
+    Pill,
+    /// Segmented-control style (contiguous buttons).
+    Segmented,
+}
+
 /// Builder for a tabs row.
 pub struct TabsBuilder<M> {
     pub tabs: Vec<String>,
     pub selected: usize,
+    pub size: crate::ControlSize,
+    pub variant: TabVariant,
+    pub full_width: bool,
     _phantom: std::marker::PhantomData<M>,
 }
 
@@ -14,6 +29,9 @@ pub fn tabs<M: Clone + 'static>() -> TabsBuilder<M> {
     TabsBuilder {
         tabs: vec![],
         selected: 0,
+        size: crate::ControlSize::Md,
+        variant: TabVariant::default(),
+        full_width: false,
         _phantom: std::marker::PhantomData,
     }
 }
@@ -31,14 +49,37 @@ impl<M: Clone> TabsBuilder<M> {
         self
     }
 
+    /// Set the tab size (affects tab height).
+    pub fn size(mut self, value: crate::ControlSize) -> Self {
+        self.size = value;
+        self
+    }
+
+    /// Set the tab bar visual variant.
+    pub fn variant(mut self, value: TabVariant) -> Self {
+        self.variant = value;
+        self
+    }
+
+    /// Make tabs stretch to fill available width.
+    pub fn full_width(mut self, value: bool) -> Self {
+        self.full_width = value;
+        self
+    }
+
     /// Build the widget node tree.
     pub fn build(self) -> WidgetNode<M> {
-        let mut row = crate::row::<M>().gap(4.0);
+        let gap = if self.variant == TabVariant::Segmented {
+            0.0
+        } else {
+            4.0
+        };
+        let mut row = crate::row::<M>().gap(gap);
         for (i, tab_label) in self.tabs.iter().enumerate() {
             let is_selected = i == self.selected;
             let btn = crate::button(format!("tab_{i}").as_str(), tab_label.clone());
             let mut tab_col = crate::column::<M>().child(btn).gap(2.0);
-            if is_selected {
+            if is_selected && self.variant == TabVariant::Underlined {
                 tab_col = tab_col.child(crate::separator::<M>());
             }
             row = row.child(tab_col.build());

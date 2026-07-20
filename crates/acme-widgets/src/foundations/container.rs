@@ -110,6 +110,8 @@ impl<M> ContainerBuilder<M> {
                 gap: self.container.gap,
                 padding: self.container.padding,
                 variant: crate::CardVariant::Plain,
+                background_color: None,
+                border_radius: None,
             }),
         }
     }

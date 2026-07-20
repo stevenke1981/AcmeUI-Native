@@ -13,6 +13,7 @@ pub struct SwitchBuilder<M> {
     pub label: String,
     pub checked: bool,
     pub disabled: bool,
+    pub size: crate::ControlSize,
     pub on_click: Option<M>,
 }
 
@@ -23,6 +24,7 @@ pub fn switch<M: Clone + 'static>(id: impl Into<WidgetKey>, checked: bool) -> Sw
         label: String::new(),
         checked,
         disabled: false,
+        size: crate::ControlSize::Md,
         on_click: None,
     }
 }
@@ -37,6 +39,12 @@ impl<M: Clone + 'static> SwitchBuilder<M> {
     /// Set whether the switch is disabled.
     pub fn disabled(mut self, value: bool) -> Self {
         self.disabled = value;
+        self
+    }
+
+    /// Set the switch size (affects track/thumb dimensions).
+    pub fn size(mut self, value: crate::ControlSize) -> Self {
+        self.size = value;
         self
     }
 

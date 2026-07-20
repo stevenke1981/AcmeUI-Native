@@ -4,7 +4,7 @@
 //! - track (Card, horizontal background bar)
 //! - fill (Card, accent bar with width proportional to value)
 //! - thumb (Card, circle handle)
-//! The parent app manages value state and drag interaction.
+//!   The parent app manages value state and drag interaction.
 
 use acme_core::WidgetKey;
 use acme_widgets::*;
@@ -16,6 +16,8 @@ pub struct SliderBuilder<M> {
     pub min: f32,
     pub max: f32,
     pub step: f32,
+    pub show_value: bool,
+    pub size: crate::ControlSize,
     pub on_change: Option<M>,
 }
 
@@ -29,6 +31,8 @@ pub fn slider<M: Clone + 'static>(id: impl Into<WidgetKey>) -> SliderBuilder<M> 
         min: 0.0,
         max: 100.0,
         step: 1.0,
+        show_value: false,
+        size: crate::ControlSize::Md,
         on_change: None,
     }
 }
@@ -55,6 +59,18 @@ impl<M: Clone + 'static> SliderBuilder<M> {
     /// Set the step increment (default 1).
     pub fn step(mut self, v: f32) -> Self {
         self.step = v;
+        self
+    }
+
+    /// Show or hide the current value label.
+    pub fn show_value(mut self, value: bool) -> Self {
+        self.show_value = value;
+        self
+    }
+
+    /// Set the slider track size.
+    pub fn size(mut self, value: crate::ControlSize) -> Self {
+        self.size = value;
         self
     }
 

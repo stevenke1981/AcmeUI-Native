@@ -8,6 +8,8 @@ pub struct PaginationBuilder<M> {
     pub id: WidgetKey,
     pub current: usize,
     pub total: usize,
+    pub size: crate::ControlSize,
+    pub show_first_last: bool,
     pub on_page_change: Option<M>,
 }
 
@@ -17,6 +19,8 @@ pub fn pagination<M: Clone + 'static>(id: impl Into<WidgetKey>) -> PaginationBui
         id: id.into(),
         current: 1,
         total: 1,
+        size: crate::ControlSize::Md,
+        show_first_last: false,
         on_page_change: None,
     }
 }
@@ -34,6 +38,18 @@ impl<M: Clone> PaginationBuilder<M> {
         self
     }
 
+    /// Set the pagination control size.
+    pub fn size(mut self, value: crate::ControlSize) -> Self {
+        self.size = value;
+        self
+    }
+
+    /// Show or hide the first / last page buttons.
+    pub fn show_first_last(mut self, value: bool) -> Self {
+        self.show_first_last = value;
+        self
+    }
+
     /// Set the message fired on page change.
     pub fn on_page_change(mut self, msg: M) -> Self {
         self.on_page_change = Some(msg);
@@ -44,6 +60,21 @@ impl<M: Clone> PaginationBuilder<M> {
     pub fn build(self) -> WidgetNode<M> {
         let id_prefix = self.id.as_str().to_string();
         let mut row = crate::row::<M>().gap(4.0);
+
+        // First page button
+        if self.show_first_last {
+            let first_key = format!("{id_prefix}_first");
+            let first_disabled = self.current <= 1;
+            if let Some(ref msg) = self.on_page_change {
+                let mut b = crate::button(first_key.as_str(), "«");
+                if first_disabled {
+                    b = b.disabled(true);
+                }
+                row = row.child(b.on_click(msg.clone()));
+            } else {
+                row = row.child(crate::button(first_key.as_str(), "«").disabled(first_disabled));
+            }
+        }
 
         // Previous button
         let prev_key = format!("{id_prefix}_prev");
@@ -79,6 +110,21 @@ impl<M: Clone> PaginationBuilder<M> {
             row = row.child(b.on_click(msg.clone()));
         } else {
             row = row.child(crate::button(next_key.as_str(), "▸").disabled(next_disabled));
+        }
+
+        // Last page button
+        if self.show_first_last {
+            let last_key = format!("{id_prefix}_last");
+            let last_disabled = self.current >= self.total;
+            if let Some(ref msg) = self.on_page_change {
+                let mut b = crate::button(last_key.as_str(), "»");
+                if last_disabled {
+                    b = b.disabled(true);
+                }
+                row = row.child(b.on_click(msg.clone()));
+            } else {
+                row = row.child(crate::button(last_key.as_str(), "»").disabled(last_disabled));
+            }
         }
 
         row.build()

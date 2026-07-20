@@ -190,7 +190,7 @@ impl<M> WidgetNode<M> {
             ),
             Self::Label(l) => {
                 let font_size = l.font_size.unwrap_or(16.0);
-                let line_height = (font_size * 1.4).ceil();
+                let line_height = (font_size * 1.5).ceil();
                 LayoutNode::leaf(
                     id,
                     LayoutStyle {
@@ -510,6 +510,7 @@ impl<M> WidgetNode<M> {
             Self::Label(l) => {
                 let font_size = l.font_size.unwrap_or(context.body_font_size);
                 let line_height = l.line_height.unwrap_or(context.body_line_height);
+                let min_h = (font_size * 1.5).ceil();
                 let spec = TextMeasureSpec {
                     text: l.text.clone(),
                     font_size,
@@ -520,6 +521,8 @@ impl<M> WidgetNode<M> {
                 LayoutNode::text_leaf(
                     id,
                     LayoutStyle {
+                        min_height: Length::px(min_h),
+                        flex_shrink: 0.0,
                         ..Default::default()
                     },
                     spec,
@@ -840,7 +843,7 @@ mod tests {
         let theme = Theme::dark();
         assert_eq!(
             b.resolve_style(&theme, ButtonState::default()).background,
-            theme.colors.button_primary_bg
+            theme.colors.primary
         );
         assert_eq!(
             b.resolve_style(
@@ -851,7 +854,7 @@ mod tests {
                 }
             )
             .background,
-            theme.colors.accent_hover
+            theme.colors.primary_hover
         );
         // Pressed uses a separate token from hover
         assert_eq!(
@@ -863,7 +866,7 @@ mod tests {
                 }
             )
             .background,
-            theme.colors.button_pressed
+            theme.colors.primary_pressed
         );
     }
     #[test]

@@ -746,7 +746,7 @@ impl Application for Playground {
                 &mut frame,
                 &label_text,
                 [rect[0] + 14.0, rect[1] + 13.0],
-                theme.typography.label_size,
+                theme.typography.label,
                 if disabled {
                     colors.disabled_text
                 } else {
@@ -764,7 +764,7 @@ impl Application for Playground {
                 "AcmeUI Native Playground",
                 [title_rect.x, title_rect.y + 2.0],
                 22.0,
-                colors.text,
+                colors.foreground,
                 context.scale_factor,
                 None,
             );
@@ -775,8 +775,8 @@ impl Application for Playground {
                 &mut frame,
                 "Interactive Widget Testing · 繁體中文 🎨",
                 [sub_rect.x, sub_rect.y + 2.0],
-                theme.typography.body_size,
-                colors.text_muted,
+                theme.typography.body,
+                colors.muted_foreground,
                 context.scale_factor,
                 None,
             );
@@ -792,8 +792,8 @@ impl Application for Playground {
                     if self.danger_mode { "ON" } else { "OFF" },
                 ),
                 [status_rect.x, status_rect.y + 13.0],
-                theme.typography.label_size,
-                colors.text_muted,
+                theme.typography.label,
+                colors.muted_foreground,
                 context.scale_factor,
                 None,
             );
@@ -825,8 +825,8 @@ impl Application for Playground {
                         &mut frame,
                         text,
                         [r.x + 4.0, y + 2.0],
-                        theme.typography.body_size,
-                        colors.text,
+                        theme.typography.body,
+                        colors.foreground,
                         context.scale_factor,
                         Some(clip),
                     );
@@ -868,8 +868,8 @@ impl Application for Playground {
                             &mut frame,
                             text,
                             [cr.x + 4.0, cy + 2.0],
-                            theme.typography.body_size,
-                            colors.text,
+                            theme.typography.body,
+                            colors.foreground,
                             context.scale_factor,
                             Some(clip),
                         );
@@ -892,8 +892,8 @@ impl Application for Playground {
                         &mut frame,
                         text,
                         [r.x + 4.0, y + 2.0],
-                        theme.typography.body_size,
-                        colors.text,
+                        theme.typography.body,
+                        colors.foreground,
                         context.scale_factor,
                         Some(clip),
                     );
@@ -929,8 +929,8 @@ impl Application for Playground {
                         },
                     ),
                     [footer.x + 4.0, y + 2.0],
-                    theme.typography.label_size,
-                    colors.text_muted,
+                    theme.typography.label,
+                    colors.muted_foreground,
                     context.scale_factor,
                     Some(clip),
                 );

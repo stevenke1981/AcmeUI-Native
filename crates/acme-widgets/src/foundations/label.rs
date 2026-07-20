@@ -1,6 +1,7 @@
 use crate::WidgetNode;
 use acme_layout::ShapedText;
 use acme_layout::TextWrapMode;
+use acme_theme::ThemeColor;
 
 /// Controls how text wraps when the label's content exceeds its available width.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -40,6 +41,9 @@ pub struct Label {
     /// Cached shaped text, populated by the renderer for reuse across frames.
     /// Invalidated when `text` or `font_size` changes.
     pub cached: Option<ShapedText>,
+    /// Optional text color override.
+    /// When `None`, the renderer uses the default foreground color.
+    pub color: Option<ThemeColor>,
 }
 /// Manual `PartialEq` — skips `cached` (rendering cache, not identity).
 impl PartialEq for Label {
@@ -49,6 +53,7 @@ impl PartialEq for Label {
             && self.line_height == other.line_height
             && self.wrap == other.wrap
             && self.max_lines == other.max_lines
+            && self.color == other.color
     }
 }
 
@@ -61,6 +66,7 @@ pub fn label<M>(text: impl Into<String>) -> WidgetNode<M> {
         wrap: LabelWrap::default(),
         max_lines: None,
         cached: None,
+        color: None,
     })
 }
 
@@ -73,6 +79,7 @@ pub fn label_with_size<M>(text: impl Into<String>, font_size: f32) -> WidgetNode
         wrap: LabelWrap::default(),
         max_lines: None,
         cached: None,
+        color: None,
     })
 }
 
@@ -94,6 +101,7 @@ pub fn label_builder<M>(text: impl Into<String>) -> LabelBuilder<M> {
             wrap: LabelWrap::default(),
             max_lines: None,
             cached: None,
+            color: None,
         },
         _phantom: std::marker::PhantomData,
     }
@@ -121,6 +129,12 @@ impl<M> LabelBuilder<M> {
     /// Set the maximum number of visible lines before truncation.
     pub fn max_lines(mut self, value: usize) -> Self {
         self.label.max_lines = Some(value);
+        self
+    }
+
+    /// Set an explicit text color override.
+    pub fn color(mut self, color: ThemeColor) -> Self {
+        self.label.color = Some(color);
         self
     }
 

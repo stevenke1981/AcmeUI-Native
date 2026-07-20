@@ -82,7 +82,7 @@ impl<M: Clone + 'static> LineChartBuilder<M> {
         ));
 
         // Render a small inline representation using dots/ticks
-        for (_i, pt) in self.data.iter().enumerate() {
+        for pt in self.data.iter() {
             let ratio = (pt.value / max_v).clamp(0.0, 1.0);
             let tick = if self.show_dots {
                 "\u{25CF}"

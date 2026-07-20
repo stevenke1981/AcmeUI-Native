@@ -11,14 +11,25 @@ pub enum ButtonVariant {
     Danger,
 }
 
-/// Button size.
+/// Button size matching AcmeUIKit design tokens.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum ButtonSize {
-    XS,
-    Small,
+    XS,      // 24px
+    Small,   // 30px
     #[default]
-    Medium,
-    Large,
+    Medium,  // 36px
+    Large,   // 42px
+}
+
+impl ButtonSize {
+    pub fn px(&self) -> f32 {
+        match self {
+            Self::XS => 24.0,
+            Self::Small => 30.0,
+            Self::Medium => 36.0,
+            Self::Large => 42.0,
+        }
+    }
 }
 
 /// Interactive state for button hit-testing.
@@ -114,31 +125,30 @@ impl<M> Button<M> {
         }
     }
     /// Resolve visual style from theme and state.
-    /// Uses separate `button_pressed` token for pressed state (not `button_hover`).
+    /// Uses V2 semantic color tokens from `acme-theme`.
     pub fn resolve_style(&self, theme: &Theme, state: ButtonState) -> ResolvedButtonStyle {
         let c = theme.colors;
         let background = if self.disabled {
             c.disabled_bg
         } else if state.pressed {
-            // Pressed uses a separate token from hover
             match self.variant {
-                ButtonVariant::Primary => c.button_pressed,
-                ButtonVariant::Danger => c.button_pressed,
-                ButtonVariant::Secondary | ButtonVariant::Ghost => c.button_pressed,
+                ButtonVariant::Primary => c.primary_pressed,
+                ButtonVariant::Danger => c.danger_pressed,
+                ButtonVariant::Secondary | ButtonVariant::Ghost => c.ghost_pressed,
             }
         } else if state.hovered {
             match self.variant {
-                ButtonVariant::Primary => c.accent_hover,
-                ButtonVariant::Danger => c.danger,
-                ButtonVariant::Secondary => c.surface_hover,
-                ButtonVariant::Ghost => c.background,
+                ButtonVariant::Primary => c.primary_hover,
+                ButtonVariant::Danger => c.danger_hover,
+                ButtonVariant::Secondary => c.ghost_hover,
+                ButtonVariant::Ghost => c.ghost_hover,
             }
         } else {
             match self.variant {
-                ButtonVariant::Primary => c.button_primary_bg,
-                ButtonVariant::Danger => c.button_danger_bg,
-                ButtonVariant::Secondary => c.button_secondary_bg,
-                ButtonVariant::Ghost => c.button_ghost_bg,
+                ButtonVariant::Primary => c.primary,
+                ButtonVariant::Danger => c.danger,
+                ButtonVariant::Secondary => c.secondary,
+                ButtonVariant::Ghost => ThemeColor::rgba(0.0, 0.0, 0.0, 0.0),
             }
         };
         ResolvedButtonStyle {
@@ -146,14 +156,14 @@ impl<M> Button<M> {
             foreground: if self.disabled {
                 c.disabled_text
             } else if self.variant == ButtonVariant::Primary {
-                c.on_accent
+                c.primary_foreground
             } else if self.variant == ButtonVariant::Danger {
-                c.on_danger
+                ThemeColor::rgb(255, 255, 255)
             } else {
-                c.text
+                c.foreground
             },
             border: c.border,
-            focus: c.focus,
+            focus: c.ring,
         }
     }
 }

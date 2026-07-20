@@ -51,6 +51,7 @@ impl<M: Clone> ToastBuilder<M> {
             Tone::Success => "✔",
             Tone::Warning => "⚠",
             Tone::Danger => "✕",
+            Tone::Info => "ℹ",
         };
 
         let icon_label = crate::label::<M>(icon_char);

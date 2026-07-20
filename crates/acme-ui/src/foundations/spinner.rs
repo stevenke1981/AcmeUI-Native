@@ -4,30 +4,45 @@ use crate::WidgetNode;
 
 /// Builder for a spinner widget.
 pub struct SpinnerBuilder<M> {
-    pub size: f32,
+    pub size: crate::ControlSize,
+    pub tone: crate::Tone,
     _phantom: std::marker::PhantomData<M>,
 }
 
 /// Create a spinner builder.
 pub fn spinner<M>() -> SpinnerBuilder<M> {
     SpinnerBuilder {
-        size: 16.0,
+        size: crate::ControlSize::Md,
+        tone: crate::Tone::Neutral,
         _phantom: std::marker::PhantomData,
     }
 }
 
 impl<M: Clone + 'static> SpinnerBuilder<M> {
-    /// Set the spinner size in pixels.
-    pub fn size(mut self, px: f32) -> Self {
-        self.size = px;
+    /// Set the spinner size using a standard ControlSize.
+    pub fn size(mut self, value: crate::ControlSize) -> Self {
+        self.size = value;
+        self
+    }
+
+    /// Set the spinner tone.
+    pub fn tone(mut self, value: crate::Tone) -> Self {
+        self.tone = value;
         self
     }
 
     /// Build the spinner widget.
     pub fn build(self) -> WidgetNode<M> {
+        let font_size = match self.size {
+            crate::ControlSize::Xs => 22.0,
+            crate::ControlSize::Sm => 28.0,
+            crate::ControlSize::Md => 34.0,
+            crate::ControlSize::Lg => 40.0,
+            crate::ControlSize::Xl => 48.0,
+        } * 0.75;
         let mut lbl = crate::label("⟳");
         if let WidgetNode::Label(ref mut l) = lbl {
-            l.font_size = Some(self.size);
+            l.font_size = Some(font_size);
         }
         lbl
     }
@@ -61,7 +76,7 @@ mod tests {
 
     #[test]
     fn spinner_has_non_zero_layout_rect() {
-        let node: WidgetNode<TestMsg> = spinner().size(24.0).build();
+        let node: WidgetNode<TestMsg> = spinner().size(crate::ControlSize::Xs).build();
         let ctx = test_context();
         let layout = node.to_layout_with_context(NodeId::new(1), &ctx);
         let mut fonts = acme_text::FontSystem::new();

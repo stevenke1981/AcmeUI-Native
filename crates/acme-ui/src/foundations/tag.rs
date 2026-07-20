@@ -6,6 +6,8 @@ use crate::WidgetNode;
 pub struct TagBuilder<M> {
     pub label: String,
     pub removable: bool,
+    pub size: crate::ControlSize,
+    pub tone: crate::Tone,
     pub color: Option<acme_theme::ThemeColor>,
     _phantom: std::marker::PhantomData<M>,
 }
@@ -15,6 +17,8 @@ pub fn tag<M>(label: impl Into<String>) -> TagBuilder<M> {
     TagBuilder {
         label: label.into(),
         removable: false,
+        size: crate::ControlSize::Md,
+        tone: crate::Tone::Neutral,
         color: None,
         _phantom: std::marker::PhantomData,
     }
@@ -27,7 +31,55 @@ impl<M: Clone + 'static> TagBuilder<M> {
         self
     }
 
-    /// Set the tag color.
+    /// Set size to Small.
+    pub fn small(mut self) -> Self {
+        self.size = crate::ControlSize::Sm;
+        self
+    }
+
+    /// Set size to Medium.
+    pub fn medium(mut self) -> Self {
+        self.size = crate::ControlSize::Md;
+        self
+    }
+
+    /// Set size to Large.
+    pub fn large(mut self) -> Self {
+        self.size = crate::ControlSize::Lg;
+        self
+    }
+
+    /// Set the tone to Primary.
+    pub fn primary(mut self) -> Self {
+        self.tone = crate::Tone::Primary;
+        self
+    }
+
+    /// Set the tone to Success.
+    pub fn success(mut self) -> Self {
+        self.tone = crate::Tone::Success;
+        self
+    }
+
+    /// Set the tone to Warning.
+    pub fn warning(mut self) -> Self {
+        self.tone = crate::Tone::Warning;
+        self
+    }
+
+    /// Set the tone to Danger.
+    pub fn danger(mut self) -> Self {
+        self.tone = crate::Tone::Danger;
+        self
+    }
+
+    /// Set the tone explicitly.
+    pub fn tone(mut self, tone: crate::Tone) -> Self {
+        self.tone = tone;
+        self
+    }
+
+    /// Set the tag color (overrides tone-based color).
     pub fn color(mut self, color: acme_theme::ThemeColor) -> Self {
         self.color = Some(color);
         self
@@ -35,7 +87,13 @@ impl<M: Clone + 'static> TagBuilder<M> {
 
     /// Build the tag widget.
     pub fn build(self) -> WidgetNode<M> {
-        let mut r = crate::row().gap(4.0).child(crate::label(&self.label));
+        let gap = match self.size {
+            crate::ControlSize::Xs | crate::ControlSize::Sm => 2.0,
+            crate::ControlSize::Md => 4.0,
+            crate::ControlSize::Lg => 6.0,
+            crate::ControlSize::Xl => 8.0,
+        };
+        let mut r = crate::row().gap(gap).child(crate::label(&self.label));
         if self.removable {
             r = r.child(crate::button("tag-close", "✕"));
         }
