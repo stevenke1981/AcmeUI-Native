@@ -31,3 +31,13 @@ Use `apple_template("Dashboard")` for a quieter hierarchy with a tighter
 12px rhythm, 20px shell inset, and stable `acmeui-apple-template` root key.
 Colors remain semantic and platform-neutral; materials and motion are left to
 the active theme and renderer.
+
+## Platform templates
+
+- `windows11_template(...)`: 16px rhythm and 24px inset for a spacious,
+  layered desktop workspace.
+- `ubuntu25_template(...)`: 12px rhythm and 24px inset for a compact,
+  efficient developer-oriented workspace.
+
+Both expose stable root keys and keep platform-specific behavior out of the
+public API.

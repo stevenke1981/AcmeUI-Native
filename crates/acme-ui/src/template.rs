@@ -115,6 +115,79 @@ pub fn apple_template<M>(title: impl Into<String>) -> AppleTemplate<M> {
     AppleTemplate::new(title)
 }
 
+macro_rules! platform_template {
+    ($name:ident, $constructor:ident, $key:literal, $gap:literal, $padding:literal, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Clone, Debug, PartialEq)]
+        pub struct $name<M> {
+            title: String,
+            subtitle: Option<String>,
+            children: Vec<WidgetNode<M>>,
+        }
+
+        impl<M> $name<M> {
+            /// Create a platform-inspired template with a title.
+            pub fn new(title: impl Into<String>) -> Self {
+                Self {
+                    title: title.into(),
+                    subtitle: None,
+                    children: Vec::new(),
+                }
+            }
+
+            /// Add supporting text below the title.
+            pub fn subtitle(mut self, subtitle: impl Into<String>) -> Self {
+                self.subtitle = Some(subtitle.into());
+                self
+            }
+
+            /// Append a page/content node.
+            pub fn child(mut self, child: impl Into<WidgetNode<M>>) -> Self {
+                self.children.push(child.into());
+                self
+            }
+
+            /// Build the stable platform-style declarative root node.
+            pub fn build(self) -> WidgetNode<M> {
+                let mut root = column::<M>()
+                    .key($key)
+                    .gap($gap)
+                    .padding($padding)
+                    .child(label(self.title));
+                if let Some(subtitle) = self.subtitle {
+                    root = root.child(label(subtitle));
+                }
+                for child in self.children {
+                    root = root.child(child);
+                }
+                root.build()
+            }
+        }
+
+        /// Start the platform-inspired AcmeUI application template.
+        pub fn $constructor<M>(title: impl Into<String>) -> $name<M> {
+            $name::new(title)
+        }
+    };
+}
+
+platform_template!(
+    Windows11Template,
+    windows11_template,
+    "acmeui-windows11-template",
+    16.0,
+    24.0,
+    "Windows 11-inspired shell with layered spacing and a clear content hierarchy."
+);
+platform_template!(
+    Ubuntu25Template,
+    ubuntu25_template,
+    "acmeui-ubuntu25-template",
+    12.0,
+    24.0,
+    "Ubuntu 25-inspired shell with compact rhythm and efficient workspace density."
+);
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -143,5 +216,23 @@ mod tests {
             "acmeui-apple-template"
         );
         assert_eq!(node.children().len(), 3);
+    }
+
+    #[test]
+    fn platform_templates_have_stable_keys() {
+        let windows = windows11_template::<()>("Windows")
+            .child(label("Content"))
+            .build();
+        let ubuntu = ubuntu25_template::<()>("Ubuntu")
+            .child(label("Content"))
+            .build();
+        assert_eq!(
+            windows.key().expect("template key").as_str(),
+            "acmeui-windows11-template"
+        );
+        assert_eq!(
+            ubuntu.key().expect("template key").as_str(),
+            "acmeui-ubuntu25-template"
+        );
     }
 }
