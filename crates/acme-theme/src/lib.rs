@@ -7,6 +7,9 @@
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+/// Curated brand theme packs (Apple, Windows, Ubuntu, Material, editor themes).
+pub mod packs;
+
 /// The built-in appearance variants.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ThemeMode {
@@ -379,6 +382,16 @@ impl Theme {
             ThemeMode::Light => Self::light_colors(),
             ThemeMode::Dark => Self::dark_colors(),
         };
+        Self::from_colors(mode, colors, shadows)
+    }
+
+    /// Build a theme from explicit color and shadow tokens, using the default
+    /// spacing, radius, typography, animation, and control-height scales.
+    ///
+    /// Theme packs use this to supply brand palettes without repeating the
+    /// shared structural tokens. Callers may further mutate the returned
+    /// `Theme` (e.g. adjust `radii`) to match a brand's geometry.
+    pub fn from_colors(mode: ThemeMode, colors: ColorTokens, shadows: ShadowTokens) -> Self {
         Self {
             mode,
             colors,

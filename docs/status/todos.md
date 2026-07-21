@@ -445,3 +445,41 @@
 - [ ] ProgressRing SVG-style arc rendering (currently glyph approximation)
 - [ ] InputGroup real input focus management
 - [ ] SliderMarks drag interaction on marks
+
+## P11 — Brand theme packs (2026-07-22)
+
+> New `acme-theme::packs` module with 10 curated brand theme packs.
+> Each implements the `ThemePack` trait (light + dark variants) built from real
+> brand palettes via `Theme::from_colors`. No hardcoded colors in widgets —
+> all flow through semantic ColorTokens. Registry: `theme_by_name(name, mode)`.
+
+### Architecture
+- [x] `Theme::from_colors(mode, colors, shadows)` constructor (shared structural tokens)
+- [x] `ThemePack` trait (`name()` / `light()` / `dark()` / `theme(mode)`)
+- [x] `theme_by_name(name, mode) -> Option<Theme>` dynamic registry
+- [x] `available_themes() -> &[&str]` enumeration
+- [x] `shadow_ladder()` helper for per-level shadow opacity
+
+### Theme packs added (10)
+- [x] Apple (`packs/apple.rs`) — macOS/iOS system blue #007AFF, rounded geometry
+- [x] Windows 10 (`packs/windows10.rs`) — Fluent accent #0078D4, squared geometry
+- [x] Windows 11 (`packs/windows11.rs`) — WinUI accent #0067C0, Mica rounded
+- [x] Ubuntu (`packs/ubuntu.rs`) — Yaru orange #E95420 + aubergine accent
+- [x] Material (`packs/material.rs`) — M3 baseline purple #6750A4, pill radii
+- [x] Nord (`packs/nord.rs`) — arctic frost palette
+- [x] Dracula (`packs/dracula.rs`) — vibrant dark + purple #BD93F9
+- [x] Solarized (`packs/solarized.rs`) — precision light/dark #268BD2
+- [x] Gruvbox (`packs/gruvbox.rs`) — retro groove warm palette
+- [x] One Dark (`packs/one_dark.rs`) — Atom One Dark #61AFEF
+
+### Validation
+- [x] All 10 themes × 2 modes pass `Theme::validate()` (color range checks)
+- [x] Light/dark backgrounds differ for every theme
+- [x] Unknown theme names return `None`
+
+### Remaining enhancements
+- [ ] Wire theme packs into Gallery theme switcher (live preview)
+- [ ] Persist selected theme pack in app config
+- [ ] Add high-contrast accessibility variants per pack
+- [ ] Theme pack JSON import/export (user-defined themes)
+- [ ] Contrast-ratio validation (WCAG AA/AAA) in `Theme::validate()`
