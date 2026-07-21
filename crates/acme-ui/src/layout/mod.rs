@@ -1,5 +1,7 @@
 //! High-level layout components built from acme-widgets primitives.
 
+pub mod affix;
+pub mod anchor;
 pub mod breadcrumb;
 pub mod form;
 pub mod grid;
@@ -18,6 +20,8 @@ pub mod stepper;
 pub mod tabs;
 pub mod toolbar;
 
+pub use affix::*;
+pub use anchor::*;
 pub use breadcrumb::*;
 pub use form::*;
 pub use grid::*;

@@ -186,3 +186,86 @@
 - [ ] Add range mode to Calendar (visual range highlight)
 - [ ] Add drag-and-drop reordering to Data Table
 - [ ] Add keyboard navigation to Sidebar and Navigation Menu
+
+## P7 — Ant Design alignment (2026-07-22)
+
+> Coverage: 70/70 Ant Design 5.x components now mapped. 7 new components added this pass.
+
+### Newly added (this pass)
+- [x] Anchor (`layout/anchor.rs`) — page anchor navigation with nested items
+- [x] QRCode (`foundations/qr_code.rs`) — QR code display placeholder
+- [x] Tour (`overlay/tour.rs`) — guided tour / onboarding steps
+- [x] Affix (`layout/affix.rs`) — sticky/fixed positioning wrapper
+- [x] FloatButton (`overlay/float_button.rs`) — floating action button (FAB)
+- [x] Notification (`overlay/notification.rs`) — desktop notification overlay
+- [x] Typography (`foundations/typography.rs`) — Title/Paragraph/Text formatting
+
+### Already covered (existing components map to Ant Design)
+- [x] Button → widgets/button
+- [x] Icon → foundations/icon
+- [x] Typography (partial) → foundations/text_block + foundations/typography
+- [x] Divider → foundations/divider
+- [x] Flex → foundations/flex
+- [x] Grid → layout/grid
+- [x] Layout → layout/* (multiple)
+- [x] Space → foundations/spacer
+- [x] Splitter → layout/split_panel + layout/resizable
+- [x] Breadcrumb → layout/breadcrumb
+- [x] Dropdown → overlay/dropdown_menu
+- [x] Menu → desktop/menubar + overlay/dropdown_menu
+- [x] Pagination → layout/pagination
+- [x] Steps → layout/stepper
+- [x] Tabs → layout/tabs
+- [x] AutoComplete → inputs/autocomplete
+- [x] Cascader → inputs/cascader
+- [x] Checkbox → inputs/checkbox
+- [x] ColorPicker → inputs/color_picker
+- [x] DatePicker → inputs/date_picker + date_range_picker
+- [x] Form → layout/form + inputs/form_field
+- [x] Input → widgets/text_input
+- [x] InputNumber → inputs/number_input
+- [x] Mentions → inputs/mentions
+- [x] Radio → inputs/radio
+- [x] Rate → inputs/rating
+- [x] Select → inputs/select
+- [x] Slider → inputs/slider + range_slider
+- [x] Switch → inputs/switch
+- [x] TimePicker → inputs/time_picker
+- [x] Transfer → inputs/transfer
+- [x] TreeSelect → inputs/tree_select
+- [x] Upload → inputs/file_upload
+- [x] Avatar → foundations/avatar
+- [x] Badge → foundations/badge
+- [x] Calendar → foundations/calendar
+- [x] Card → widgets/card
+- [x] Carousel → browser/carousel
+- [x] Collapse → foundations/accordion + collapsible
+- [x] Descriptions → foundations/descriptions
+- [x] Empty → foundations/empty_state
+- [x] Image → desktop/image_view + browser/lightbox
+- [x] List → foundations/list
+- [x] Popover → widgets/popover + overlay/hover_card
+- [x] Segmented → inputs/segmented_control
+- [x] Statistic → foundations/statistic
+- [x] Table → widgets/table + datagrid
+- [x] Tag → foundations/tag
+- [x] Timeline → foundations/timeline
+- [x] Tooltip → widgets/tooltip
+- [x] Tree → widgets/tree
+- [x] Alert → foundations/alert
+- [x] Drawer → overlay/drawer
+- [x] Message → overlay/toast
+- [x] Modal → overlay/modal
+- [x] Popconfirm → overlay/confirm_dialog
+- [x] Progress → foundations/progress
+- [x] Result → foundations/result
+- [x] Skeleton → foundations/skeleton
+- [x] Spin → foundations/spinner
+- [x] Watermark → foundations/watermark
+
+### Remaining enhancements
+- [ ] Real QR code rendering (currently placeholder)
+- [ ] Tour target highlighting (scroll to + spotlight element)
+- [ ] Affix scroll listener (toggle fixed on scroll position)
+- [ ] FloatButton group (expandable multiple FABs)
+- [ ] Notification auto-dismiss timer integration
