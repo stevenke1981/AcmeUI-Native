@@ -7,6 +7,7 @@
 pub mod dock;
 pub mod image_view;
 pub mod markdown_view;
+pub mod menubar;
 pub mod navigation_view;
 pub mod property_grid;
 pub mod resize_handle;
@@ -17,6 +18,7 @@ pub mod window_controls;
 pub use dock::*;
 pub use image_view::*;
 pub use markdown_view::*;
+pub use menubar::*;
 pub use navigation_view::*;
 pub use property_grid::*;
 pub use resize_handle::*;
