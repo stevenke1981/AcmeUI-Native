@@ -14,7 +14,8 @@ use acme_layout::{LayoutEngine, LayoutNode, LayoutStyle, Length, Overflow, Widge
 use acme_platform::{Application, FrameContext, PlatformEvent, WindowConfig, WindowId};
 use acme_render_wgpu::{Frame, Quad, TextRun, scene_from_frame};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
-use acme_theme::{Theme, ThemeColor};
+use acme_theme::packs::{available_themes, theme_by_name};
+use acme_theme::{Theme, ThemeColor, ThemeMode};
 use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
@@ -75,7 +76,36 @@ const CATEGORIES: &[CategoryInfo] = &[
 enum GalleryMessage {
     SelectCategory(usize),
     ToggleTheme,
+    CycleTheme,
     DpiInfo,
+}
+
+// ── Theme preference persistence ────────────────────────────────────────────
+
+const THEME_PREF_FILE: &str = "acme-gallery-theme.conf";
+
+/// Load the persisted theme preference (pack name, dark mode).
+///
+/// Returns `None` if the file is missing or unparseable; callers fall back to
+/// the default theme.
+fn load_theme_pref() -> Option<(String, bool)> {
+    let content = std::fs::read_to_string(THEME_PREF_FILE).ok()?;
+    let mut pack = None;
+    let mut dark = None;
+    for line in content.lines() {
+        if let Some(value) = line.strip_prefix("pack=") {
+            pack = Some(value.trim().to_string());
+        } else if let Some(value) = line.strip_prefix("dark=") {
+            dark = Some(value.trim() == "true");
+        }
+    }
+    Some((pack?, dark?))
+}
+
+/// Persist the theme preference to disk (best-effort; ignore write errors).
+fn save_theme_pref(pack: &str, dark: bool) {
+    let content = format!("pack={pack}\ndark={dark}\n");
+    let _ = std::fs::write(THEME_PREF_FILE, content);
 }
 
 // ── Hit regions ──────────────────────────────────────────────────────────────
@@ -91,6 +121,7 @@ struct HitRegion {
 struct Gallery {
     selected_category: usize,
     dark: bool,
+    theme_pack: String,
     cursor: (f32, f32),
     hovered: Option<usize>,
     pressed: Option<usize>,
@@ -105,9 +136,14 @@ struct Gallery {
 
 impl Gallery {
     fn new() -> Self {
+        // Restore persisted theme preference, falling back to defaults.
+        let (theme_pack, dark) = load_theme_pref()
+            .filter(|(pack, _)| pack == "default" || available_themes().contains(&pack.as_str()))
+            .unwrap_or_else(|| ("default".to_string(), false));
         Self {
             selected_category: 6, // Start on Charts page
-            dark: false,
+            dark,
+            theme_pack,
             cursor: (0.0, 0.0),
             hovered: None,
             pressed: None,
@@ -148,6 +184,8 @@ impl Gallery {
     }
 
     fn toolbar(&self) -> WidgetNode<GalleryMessage> {
+        let theme = self.current_theme();
+        let wcag_label = if theme.meets_wcag_aa() { "✓AA" } else { "⚠AA" };
         row()
             .key("toolbar")
             .gap(8.0)
@@ -156,8 +194,41 @@ impl Gallery {
                 button("theme_btn", if self.dark { "☀ Light" } else { "🌙 Dark" })
                     .on_click(GalleryMessage::ToggleTheme),
             )
+            .child(
+                button(
+                    "pack_btn",
+                    format!("🎨 {} {}", self.theme_pack, wcag_label),
+                )
+                .on_click(GalleryMessage::CycleTheme),
+            )
             .child(button("info_btn", "ℹ Info").on_click(GalleryMessage::DpiInfo))
             .build()
+    }
+
+    /// Resolve the active theme from the selected pack and light/dark mode.
+    fn current_theme(&self) -> Theme {
+        let mode = if self.dark {
+            ThemeMode::Dark
+        } else {
+            ThemeMode::Light
+        };
+        theme_by_name(&self.theme_pack, mode).unwrap_or_else(|| match mode {
+            ThemeMode::Dark => Theme::dark(),
+            ThemeMode::Light => Theme::light(),
+        })
+    }
+
+    /// Advance to the next theme pack ("default" → apple → windows10 → …).
+    fn cycle_theme(&mut self) {
+        // Build the ordered list: default first, then registered packs.
+        let mut order: Vec<String> = vec!["default".to_string()];
+        order.extend(available_themes().iter().map(|s| s.to_string()));
+        let pos = order
+            .iter()
+            .position(|p| p == &self.theme_pack)
+            .unwrap_or(0);
+        self.theme_pack = order[(pos + 1) % order.len()].clone();
+        save_theme_pref(&self.theme_pack, self.dark);
     }
 
     fn content_area(&self) -> WidgetNode<GalleryMessage> {
@@ -783,6 +854,11 @@ impl Gallery {
         match hr.message {
             GalleryMessage::ToggleTheme => {
                 self.dark = !self.dark;
+                save_theme_pref(&self.theme_pack, self.dark);
+                true
+            }
+            GalleryMessage::CycleTheme => {
+                self.cycle_theme();
                 true
             }
             GalleryMessage::SelectCategory(i) => {
@@ -848,12 +924,8 @@ impl Application for Gallery {
         // 1. Build widget tree
         let description = self.description();
 
-        // 2. Theme
-        let theme = if self.dark {
-            Theme::dark()
-        } else {
-            Theme::light()
-        };
+        // 2. Theme (resolved from selected pack + light/dark mode)
+        let theme = self.current_theme();
 
         // 3. Layout context
         let layout_context = WidgetLayoutContext {
@@ -1012,8 +1084,14 @@ impl Application for Gallery {
         }
 
         // 15. Toolbar buttons
-        let tb_labels = [if self.dark { "☀ Light" } else { "🌙 Dark" }, "ℹ Info"];
-        for (ti, (&btn_id, &label_text)) in
+        let tb_theme = self.current_theme();
+        let tb_wcag = if tb_theme.meets_wcag_aa() { "✓AA" } else { "⚠AA" };
+        let tb_labels = [
+            (if self.dark { "☀ Light" } else { "🌙 Dark" }).to_string(),
+            format!("🎨 {} {}", self.theme_pack, tb_wcag),
+            "ℹ Info".to_string(),
+        ];
+        for (ti, (&btn_id, label_text)) in
             ids.toolbar_buttons.iter().zip(tb_labels.iter()).enumerate()
         {
             let btn_idx = 7 + ti;
@@ -1065,7 +1143,8 @@ impl Application for Gallery {
         // 16. Page content
         if let Some(sv_rect) = snapshot.get(ids.scroll_view) {
             let clip = [sv_rect.x, sv_rect.y, sv_rect.width, sv_rect.height];
-            let mut btn_idx = 9;
+            // sidebar(0-6) + toolbar(7-9) = 10, content buttons start here.
+            let mut btn_idx = 10;
             render_content(
                 &mut frame,
                 &description,
@@ -1094,7 +1173,7 @@ struct GalleryNodeIds {
     sidebar_label: NodeId,
     sidebar_buttons: [NodeId; 7],
     toolbar: NodeId,
-    toolbar_buttons: [NodeId; 2],
+    toolbar_buttons: [NodeId; 3],
     scroll_view: NodeId,
 }
 
@@ -1115,7 +1194,7 @@ fn extract_gallery_ids(root: &LayoutNode) -> GalleryNodeIds {
             sb.children[8].id,
         ],
         toolbar: tb.id,
-        toolbar_buttons: [tb.children[0].id, tb.children[1].id],
+        toolbar_buttons: [tb.children[0].id, tb.children[1].id, tb.children[2].id],
         scroll_view: ca.children[1].id,
     }
 }

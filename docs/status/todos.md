@@ -478,8 +478,35 @@
 - [x] Unknown theme names return `None`
 
 ### Remaining enhancements
-- [ ] Wire theme packs into Gallery theme switcher (live preview)
-- [ ] Persist selected theme pack in app config
+- [x] Wire theme packs into Gallery theme switcher (live preview) — done in P12
+- [x] Persist selected theme pack in app config — done in P12
 - [ ] Add high-contrast accessibility variants per pack
 - [ ] Theme pack JSON import/export (user-defined themes)
-- [ ] Contrast-ratio validation (WCAG AA/AAA) in `Theme::validate()`
+- [x] Contrast-ratio validation (WCAG AA/AAA) — done in P12 (`contrast_ratio`, `ContrastLevel`, `Theme::wcag_report`)
+
+## P12 — Gallery theme integration, WCAG validation & design skill (2026-07-22)
+
+### WCAG contrast validation (acme-theme)
+- [x] `ThemeColor::relative_luminance()` — WCAG 2.1 luminance
+- [x] `contrast_ratio(a, b) -> f32` — 1.0–21.0 contrast ratio
+- [x] `ContrastLevel` enum (Aaa ≥7 / Aa ≥4.5 / AaLarge ≥3 / Fail) + `from_ratio` / `meets_aa`
+- [x] `Theme::contrast()`, `Theme::wcag_report()` (6 key pairs), `Theme::meets_wcag_aa()`
+- [x] Tests: black/white=21, identical=1, luminance extremes, level classification, built-in AA
+
+### Gallery theme switcher (apps/acme-gallery)
+- [x] Theme-pack cycle button in toolbar (🎨 <pack> ✓AA/⚠AA live WCAG indicator)
+- [x] `current_theme()` resolves pack + light/dark via `theme_by_name`
+- [x] `cycle_theme()` walks default → apple → windows10 → … (wraps)
+- [x] Persistence: `load_theme_pref()` / `save_theme_pref()` → `acme-gallery-theme.conf` (gitignored)
+- [x] Updated hardcoded render indices (toolbar_buttons [NodeId;3], tb_labels, content btn_idx 10)
+
+### AcmeUI-Native design skill
+- [x] `.qwen/skills/acmeui-native-design/SKILL.md` — crate architecture, component inventory,
+      builder pattern, theme system + packs, WCAG, "how to add a component", AGENTS.md rules
+- [x] `.gitignore` updated to commit `.qwen/skills/` (was fully ignored)
+
+### Remaining enhancements
+- [ ] High-contrast accessibility theme variants
+- [ ] Theme pack JSON import/export (user-defined themes)
+- [ ] Gallery: render theme pack swatches in Design System page
+- [ ] Skill: add runnable copy-paste examples per component category

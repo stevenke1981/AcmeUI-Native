@@ -5,7 +5,8 @@
 *.ilk
 *.log
 .DS_Store
-/.qwen/
+/.qwen/*
+!/.qwen/skills/
 /.cargo/
 /.opencode/
 /AcmeUI-Native-Agent-Improvement-Pack-v0.2/
@@ -14,3 +15,4 @@
 /AcmeUI-Native_Updated_Analysis_Pack/
 /AcmeUI-Native_Updated_Analysis_Pack_2026-07-21.zip
 /docs/CBM_*
+acme-gallery-theme.conf

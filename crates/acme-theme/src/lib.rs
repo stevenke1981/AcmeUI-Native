@@ -83,6 +83,63 @@ impl ThemeColor {
     pub fn with_alpha(self, alpha: f32) -> Self {
         Self { alpha, ..self }
     }
+    /// WCAG 2.1 relative luminance (0.0 = black, 1.0 = white).
+    ///
+    /// Alpha is ignored; luminance is computed from the RGB channels only.
+    pub fn relative_luminance(self) -> f32 {
+        fn channel(c: f32) -> f32 {
+            if c <= 0.03928 {
+                c / 12.92
+            } else {
+                ((c + 0.055) / 1.055).powf(2.4)
+            }
+        }
+        0.2126 * channel(self.red) + 0.7152 * channel(self.green) + 0.0722 * channel(self.blue)
+    }
+}
+
+/// WCAG contrast ratio between two colors, in the range 1.0–21.0.
+///
+/// 1.0 means no contrast (identical luminance); 21.0 is black-on-white.
+/// Alpha is ignored.
+pub fn contrast_ratio(a: ThemeColor, b: ThemeColor) -> f32 {
+    let la = a.relative_luminance();
+    let lb = b.relative_luminance();
+    let (lighter, darker) = if la >= lb { (la, lb) } else { (lb, la) };
+    (lighter + 0.05) / (darker + 0.05)
+}
+
+/// WCAG conformance level for a contrast ratio.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ContrastLevel {
+    /// ≥ 7.0 — enhanced (AAA) for normal text.
+    Aaa,
+    /// ≥ 4.5 — minimum (AA) for normal text.
+    Aa,
+    /// ≥ 3.0 — AA for large text / UI components only.
+    AaLarge,
+    /// < 3.0 — fails WCAG.
+    Fail,
+}
+
+impl ContrastLevel {
+    /// Classify a contrast ratio.
+    pub fn from_ratio(ratio: f32) -> Self {
+        if ratio >= 7.0 {
+            Self::Aaa
+        } else if ratio >= 4.5 {
+            Self::Aa
+        } else if ratio >= 3.0 {
+            Self::AaLarge
+        } else {
+            Self::Fail
+        }
+    }
+
+    /// True if this level meets WCAG AA for normal text (≥ 4.5).
+    pub fn meets_aa(self) -> bool {
+        matches!(self, Self::Aa | Self::Aaa)
+    }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -331,6 +388,40 @@ impl Theme {
             4 => self.control_heights.xl,
             _ => self.control_heights.md,
         }
+    }
+
+    /// WCAG contrast ratio between two colors in this theme's palette.
+    pub fn contrast(&self, fg: ThemeColor, bg: ThemeColor) -> f32 {
+        contrast_ratio(fg, bg)
+    }
+
+    /// Audit the key foreground/background pairs for WCAG conformance.
+    ///
+    /// Returns a list of `(pair_name, ratio, level)` for the most important
+    /// text-on-surface combinations. Use this to surface accessibility issues
+    /// in a theme pack or a Gallery preview.
+    pub fn wcag_report(&self) -> Vec<(&'static str, f32, ContrastLevel)> {
+        let c = &self.colors;
+        let pairs: [(&str, ThemeColor, ThemeColor); 6] = [
+            ("foreground/background", c.foreground, c.background),
+            ("surface_fg/surface", c.surface_foreground, c.surface),
+            ("primary_fg/primary", c.primary_foreground, c.primary),
+            ("secondary_fg/secondary", c.secondary_foreground, c.secondary),
+            ("muted_fg/muted", c.muted_foreground, c.muted),
+            ("accent_fg/accent", c.accent_foreground, c.accent),
+        ];
+        pairs
+            .into_iter()
+            .map(|(name, fg, bg)| {
+                let ratio = contrast_ratio(fg, bg);
+                (name, ratio, ContrastLevel::from_ratio(ratio))
+            })
+            .collect()
+    }
+
+    /// True if all key text pairs meet at least WCAG AA (≥ 4.5:1).
+    pub fn meets_wcag_aa(&self) -> bool {
+        self.wcag_report().iter().all(|(_, _, level)| level.meets_aa())
     }
 
     pub fn validate(&self) -> Result<(), ThemeValidationError> {
@@ -700,5 +791,55 @@ mod tests {
         let mut t = Theme::light();
         t.colors.primary.alpha = 1.5;
         assert_eq!(t.validate(), Err(ThemeValidationError::InvalidColor));
+    }
+
+    #[test]
+    fn contrast_ratio_black_white_is_21() {
+        let black = ThemeColor::rgb(0, 0, 0);
+        let white = ThemeColor::rgb(255, 255, 255);
+        let ratio = contrast_ratio(black, white);
+        assert!((ratio - 21.0).abs() < 0.1, "got {ratio}");
+    }
+
+    #[test]
+    fn contrast_ratio_identical_is_1() {
+        let c = ThemeColor::rgb(120, 120, 120);
+        assert!((contrast_ratio(c, c) - 1.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn relative_luminance_extremes() {
+        assert!(ThemeColor::rgb(255, 255, 255).relative_luminance() > 0.99);
+        assert!(ThemeColor::rgb(0, 0, 0).relative_luminance() < 0.01);
+    }
+
+    #[test]
+    fn contrast_level_classification() {
+        assert_eq!(ContrastLevel::from_ratio(8.0), ContrastLevel::Aaa);
+        assert_eq!(ContrastLevel::from_ratio(5.0), ContrastLevel::Aa);
+        assert_eq!(ContrastLevel::from_ratio(3.5), ContrastLevel::AaLarge);
+        assert_eq!(ContrastLevel::from_ratio(2.0), ContrastLevel::Fail);
+        assert!(ContrastLevel::Aa.meets_aa());
+        assert!(!ContrastLevel::AaLarge.meets_aa());
+    }
+
+    #[test]
+    fn builtin_themes_main_text_meets_wcag_aa() {
+        // The primary body-text pair must be readable in both built-in themes.
+        for theme in [Theme::light(), Theme::dark()] {
+            let ratio = contrast_ratio(theme.colors.foreground, theme.colors.background);
+            assert!(
+                ratio >= 4.5,
+                "{:?} foreground/background ratio {ratio} should meet AA",
+                theme.mode
+            );
+        }
+    }
+
+    #[test]
+    fn wcag_report_covers_key_pairs() {
+        let report = Theme::light().wcag_report();
+        assert_eq!(report.len(), 6);
+        assert!(report.iter().any(|(name, _, _)| *name == "foreground/background"));
     }
 }
