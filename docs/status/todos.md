@@ -403,3 +403,45 @@
 - [ ] DataList density variants (compact/relaxed)
 - [ ] Code syntax highlighting integration
 - [ ] Inset clip variants (rounded corners matching parent)
+
+## P10 — gpui-component absorption (2026-07-22)
+
+> Absorbed strengths from longbridge/gpui-component, re-implemented in AcmeUI Native
+> builder-pattern style. NO GPUI dependency added (per AGENTS.md constraint).
+> No hardcoded theme colors; all components use semantic variants/tones.
+
+### Newly added (this pass)
+- [x] CopyButton (`foundations/copy_button.rs`) — copy text with idle/copied feedback state
+- [x] Indicator (`foundations/indicator.rs`) — status dot (online/offline/busy/away) + ping + label
+- [x] ProgressRing (`foundations/progress_ring.rs`) — circular/radial progress (complements linear)
+- [x] InputGroup (`inputs/input_group.rs`) — input with prefix/suffix/leading/trailing addons
+- [x] SkeletonShape (`foundations/skeleton_shape.rs`) — loading placeholder (text/circle/rect/rounded)
+- [x] SliderMarks (`inputs/slider_marks.rs`) — slider with labeled tick marks
+- [x] KbdCombo (`foundations/kbd_combo.rs`) — keyboard shortcut combination display (Ctrl+Shift+P)
+
+### gpui-component strengths absorbed
+- Clipboard copy-with-feedback pattern → CopyButton
+- Rich status indicator (vs plain status_dot stub) → Indicator
+- Circular progress variant → ProgressRing
+- Input with addons (prefix/suffix) → InputGroup
+- Skeleton shape variants → SkeletonShape
+- Marked slider for precise selection → SliderMarks
+- Keyboard shortcut display → KbdCombo
+
+### Already covered (gpui-component components we already had)
+- [x] accordion, alert, avatar, badge, breadcrumb, button, calendar
+- [x] checkbox, collapsible, context_menu, date_picker
+- [x] description_list → foundations/descriptions
+- [x] dock → desktop/dock
+- [x] dropdown_menu, form, icon, image, input, kbd, label, list, menu, modal
+- [x] notification, number_input, popover, progress, radio, resizable
+- [x] scrollable → layout/scroll_area
+- [x] select, sidebar, skeleton, slider, switch, tab, table, text, toggle, tooltip
+- [x] webview → browser/web_frame
+
+### Remaining enhancements
+- [ ] CopyButton real clipboard write (wire to acme-platform arboard)
+- [ ] Indicator ping animation (wire to acme-animation tween)
+- [ ] ProgressRing SVG-style arc rendering (currently glyph approximation)
+- [ ] InputGroup real input focus management
+- [ ] SliderMarks drag interaction on marks
