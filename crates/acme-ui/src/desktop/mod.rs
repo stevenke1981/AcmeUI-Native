@@ -13,6 +13,8 @@ pub mod navigation_view;
 pub mod property_grid;
 pub mod resize_handle;
 pub mod sidenav;
+pub mod status_tray;
+pub mod taskbar;
 pub mod title_bar;
 pub mod window_controls;
 
@@ -25,5 +27,7 @@ pub use navigation_view::*;
 pub use property_grid::*;
 pub use resize_handle::*;
 pub use sidenav::*;
+pub use status_tray::*;
+pub use taskbar::*;
 pub use title_bar::*;
 pub use window_controls::*;

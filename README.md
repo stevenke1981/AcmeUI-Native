@@ -217,15 +217,15 @@ The `apps/gallery` (primary demo) has been fully converted from a 2593-line mono
 
 | Module | Components | Feature Gate | Default |
 |--------|-----------|-------------|---------|
-| `foundations/` | 26 (Alert, Badge, Calendar, Card, Icon, Link, Progress, Skeleton, Tag, …) | `foundations` | ✅ |
+| `foundations/` | 28 (Alert, Badge, Card, Hero, Icon, Progress, Skeleton, Tag, Watermark, …) | `foundations` | ✅ |
 | `inputs/` | 28 (ButtonGroup, Checkbox, Combobox, DatePicker, Radio, Slider, Switch, Select, …) | `inputs` | ✅ |
-| `layout/` | 12 (Form, Grid, Pagination, Tabs, Toolbar, SplitPanel, Stepper, …) | `layout` | ✅ |
-| `overlay/` | 8 (Drawer, Toast, ConfirmDialog, ContextMenu, HoverCard, …) | `overlay` | ✅ |
-| `desktop/` | 11 (TitleBar, Dock, Sidenav, Menubar, CommandBar, PropertyGrid, …) | `desktop` | — |
-| `charts/` | 6 (LineChart, PieChart, BarChart, Sparkline, AreaChart, Gauge) | `charts` | — |
-| `mobile/` | 3 (BottomNav, BottomSheet, PullToRefresh) | `mobile` | — |
-| `browser/` | 3 (Carousel, Lightbox, ZoomView) | `browser` | — |
-| **Total** | **97 component files** | 8 feature gates | 4 default |
+| `layout/` | 14 (Breadcrumb, Form, Grid, PageHeader, Section, Tabs, Toolbar, SplitPanel, …) | `layout` | ✅ |
+| `overlay/` | 10 (Drawer, Fullscreen, Modal, Toast, ConfirmDialog, ContextMenu, HoverCard, …) | `overlay` | ✅ |
+| `desktop/` | 13 (Taskbar, StatusTray, TitleBar, Dock, Sidenav, Menubar, CommandBar, …) | `desktop` | — |
+| `charts/` | 8 (LineChart, PieChart, BarChart, Sparkline, AreaChart, DonutChart, ScatterChart) | `charts` | — |
+| `mobile/` | 5 (ActionSheet, BottomNav, BottomSheet, PullToRefresh, SearchBar) | `mobile` | — |
+| `browser/` | 4 (Carousel, ImageGallery, Lightbox, ZoomView) | `browser` | — |
+| **Total** | **110 component files** | 8 feature gates | 4 default |
 
 Each component follows the **builder pattern**: `Component::new() → .option(value) → .on_event(message) → .build() → WidgetNode<M>`.
 
