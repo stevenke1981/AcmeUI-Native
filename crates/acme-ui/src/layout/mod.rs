@@ -3,6 +3,7 @@
 pub mod breadcrumb;
 pub mod form;
 pub mod grid;
+pub mod masonry;
 pub mod navigation_menu;
 pub mod page_header;
 pub mod pagination;
@@ -18,6 +19,7 @@ pub mod toolbar;
 pub use breadcrumb::*;
 pub use form::*;
 pub use grid::*;
+pub use masonry::*;
 pub use navigation_menu::*;
 pub use page_header::*;
 pub use pagination::*;

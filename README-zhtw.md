@@ -20,7 +20,7 @@ AcmeUI Native 是一套 **Rust 原生桌面 UI 框架**，透過 **wgpu**（Dire
 - **語意化設計 Token** — 淺色/深色/高對比主題
 - **AccessKit 無障礙** — 螢幕閱讀器支援
 - **動畫引擎** — 補間/緩動/彈跳/迴圈
-- **80+ 高階元件** — 經由 `acme-ui`（受 shadcn/ui + Material UI + Ant Design 啟發）
+- **150 個高階元件** — 經由 `acme-ui`（受 shadcn/ui + Material UI + Ant Design 啟發）
 
 ### 架構
 
@@ -30,7 +30,7 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 
 | 圖層 | Crate | 角色 |
 |------|-------|------|
-| UI 元件 | `acme-ui` | 80+ 高階 Widget（Slider、Switch、DatePicker、Toast、Dock…） |
+| UI 元件 | `acme-ui` | 150 個高階 Widget（Slider、Switch、DatePicker、Toast、Dock、Masonry、FileUpload、VideoPlayer、Heatmap…） |
 | Widget 基礎 | `acme-widgets` | WidgetNode 列舉、Builder DSL、Overlay 管理、視覺狀態 |
 | 文字編輯 | `acme-textinput` | 游標、選取、剪貼簿、IME 預編輯/提交、復原/重做（✓ 100 項測試） |
 | 排版 | `acme-layout` | 基於 Taffy 的 Flexbox 排版引擎 |
@@ -48,7 +48,7 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 | 應用 | 套件 | 用途 |
 |------|------|------|
 | `apps/gallery` | `acme-gallery` | 主要展示 —— 8 類別導覽、即時 Data/Nav 展示（Tree、Table、DataGrid、VirtualList）、截圖模式 |
-| `apps/acme-gallery` | `acme-ui-gallery` | V2 元件展示 —— 80+ 高階 `acme-ui` 元件 |
+| `apps/acme-gallery` | `acme-ui-gallery` | V2 元件展示 —— 150 個高階 `acme-ui` 元件 |
 | `apps/playground` | `playground` | 最小開發沙盒，快速實驗 |
 | `apps/benchmark` | `benchmark` | 無頭排版/調和/幀建置基準測試 |
 
@@ -85,6 +85,100 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
+## 元件庫使用說明
+
+`acme-ui` 是具備型別安全的宣告式元件層。使用元件時依序完成三件事：
+建立 Builder、用鏈式方法設定選項、將產生的 `WidgetNode<M>` 放入父容器。
+應用程式自行管理訊息列舉與狀態；元件透過 `on_click` 等事件方法送出訊息。
+
+### 1. 加入 crate 與 feature
+
+```toml
+[dependencies]
+acme-ui = { path = "crates/acme-ui", features = ["foundations", "inputs", "layout", "overlay"] }
+```
+
+上述四個 feature 為預設功能。`desktop`、`charts`、`mobile`、`browser` 為選用
+功能，只有需要時才加入，可控制編譯時間與執行檔大小。
+
+### 2. 組合畫面
+
+```rust
+use acme_ui::prelude::*;
+
+#[derive(Clone, Debug, PartialEq)]
+enum AppMessage { Save, Cancel }
+
+fn settings_view() -> WidgetNode<AppMessage> {
+    let actions = row::<AppMessage>()
+        .gap(8.0)
+        .child(button("cancel", "取消").on_click(AppMessage::Cancel))
+        .child(button("save", "儲存").primary().on_click(AppMessage::Save))
+        .build();
+
+    default_template::<AppMessage>("設定")
+        .subtitle("保持工作區專注")
+        .child(card::<AppMessage>().child(label("偏好設定")).build())
+        .child(actions)
+        .build()
+}
+```
+
+`column`、`row`、`stack` 是排版基礎；`card`、`label`、`button`、`scroll_view`
+是常用基礎元件。每個子項目都是節點，因此對話框、表單、導覽與頁面都使用
+同一套組合方式。
+
+### 3. 在應用程式處理訊息
+
+Builder 不會直接修改應用程式狀態，請在事件/更新層路由訊息：
+
+```rust
+match message {
+    AppMessage::Save => state.save(),
+    AppMessage::Cancel => state.close_settings(),
+}
+```
+
+如此可維持可預期的渲染流程：由狀態產生新的 Widget 樹，保留樹依 key
+調和節點身份，再渲染為 Scene。動態列表與互動控制項請使用明確 key。
+
+### 4. 選擇起始模板
+
+```rust
+let view = default_template::<AppMessage>("Dashboard");
+let apple = apple_template::<AppMessage>("Dashboard");
+let windows = windows11_template::<AppMessage>("Dashboard");
+let ubuntu = ubuntu25_template::<AppMessage>("Dashboard");
+```
+
+所有模板都提供 `.subtitle(...)`、`.child(...)`、`.build()`。模板只負責間距與
+層級，顏色由語意化主題 Token 管理。穩定 root key 分別是：
+`acmeui-default-template`、`acmeui-apple-template`、
+`acmeui-windows11-template`、`acmeui-ubuntu25-template`。
+
+### 5. 使用主題與 Token
+
+```rust
+let theme = default_theme();
+let dark = Theme::dark();
+assert!(theme.validate().is_ok());
+```
+
+將目前主題傳給渲染/元件解析層。不要在應用程式 Widget 內寫死顏色，應使用
+`ThemeColor` 與 `Theme` 的語意欄位，才能一致支援淺色、深色與高對比模式。
+
+### 6. 元件分類與展示
+
+- Foundations：label、card、badge、alert、progress、calendar、list。
+- Inputs：button、text input、slider、select、date/time picker、checkbox、
+  autocomplete、transfer、rating。
+- Layout：form、section、toolbar、tabs、split panel、settings page。
+- Overlay：modal、drawer、dropdown menu、tooltip、toast、command palette。
+- 選用家族：desktop chrome、charts、mobile surfaces、browser media。
+
+執行 `cargo run -p acme-ui-gallery` 查看完整元件展示；執行
+`cargo run -p acme-gallery` 查看執行環境、輸入、無障礙與資料元件展示。
+
 ---
 
 ## 專案狀態
@@ -94,7 +188,7 @@ cargo test --workspace
 | 核心框架 | ✅ **穩定** — 樹、排版、渲染、文字、主題、動畫、無障礙、Widget |
 | 文字輸入 + IME | ✅ **穩定** — 100 項測試、游標幾何、繁體中文預編輯/提交 |
 | 資料元件 | 🧪 **實驗性** — Tree、Table、DataGrid、VirtualList 附 Gallery 即時展示 |
-| UI 元件庫 | 🧪 **實驗性** — 80+ 元件（acme-ui），於 acme-ui-gallery 展示 |
+| UI 元件庫 | 🧪 **實驗性** — 150 個元件（acme-ui），於 acme-ui-gallery 展示 |
 | GPU 裝置遺失復原 | 🧪 **已接線** — 純測試狀態機 + `on_gpu_recovered` 鉤子；**手動驗證待完成** |
 | 繁體中文注音 IME | 🧪 **架構完成** — **手動驗證待完成** |
 | 螢幕截圖黃金測試 | 📋 **已搭建骨架** — 尚未納入 CI |
@@ -119,7 +213,7 @@ AcmeUI-Native/
 │   ├── acme-animation/     # 補間引擎
 │   ├── acme-style/         # 樣式抽象層
 │   ├── acme-widgets/       # WidgetNode 列舉 + Builder DSL
-│   ├── acme-ui/            # 80+ 高階元件
+│   ├── acme-ui/            # 150 個高階元件
 │   ├── acme-accessibility/ # AccessKit 橋接
 │   └── acme-devtools/      # 檢查器、指標、除錯器
 ├── apps/
@@ -204,15 +298,15 @@ AcmeUI-Native/
 
 | 模組 | 元件數 | 功能閘門 | 預設啟用 |
 |------|--------|----------|---------|
-| `foundations/` | 26（Alert、Badge、Calendar、Icon、Link、Progress、Skeleton、Tag…） | `foundations` | ✅ |
-| `inputs/` | 28（ButtonGroup、Checkbox、Combobox、DatePicker、Radio、Slider、Switch、Select…） | `inputs` | ✅ |
-| `layout/` | 12（Form、Grid、Pagination、Tabs、Toolbar、SplitPanel、Stepper…） | `layout` | ✅ |
+| `foundations/` | 42（Alert、Badge、Calendar、Divider、Icon、Link、Progress、Skeleton、Tag…） | `foundations` | ✅ |
+| `inputs/` | 29（ButtonGroup、Checkbox、Combobox、DatePicker、FileUpload、Radio、Slider、Switch、Select…） | `inputs` | ✅ |
+| `layout/` | 15（Form、Grid、Masonry、Pagination、Tabs、Toolbar、SplitPanel、Stepper…） | `layout` | ✅ |
 | `overlay/` | 8（Drawer、Toast、ConfirmDialog、ContextMenu、HoverCard…） | `overlay` | ✅ |
 | `desktop/` | 11（TitleBar、Dock、Sidenav、Menubar、CommandBar、PropertyGrid…） | `desktop` | — |
-| `charts/` | 6（LineChart、PieChart、BarChart、Sparkline、AreaChart、Gauge） | `charts` | — |
+| `charts/` | 20（LineChart、PieChart、BarChart、Sparkline、AreaChart、Gauge、Heatmap、RadarChart…） | `charts` | — |
 | `mobile/` | 3（BottomNav、BottomSheet、PullToRefresh） | `mobile` | — |
-| `browser/` | 3（Carousel、Lightbox、ZoomView） | `browser` | — |
-| **總計** | **97 個元件檔案** | 8 個功能閘門 | 4 個預設 |
+| `browser/` | 16（Carousel、Lightbox、ZoomView、VideoPlayer、AudioPlayer、PDFViewer…） | `browser` | — |
+| **總計** | **150 個元件檔案** | 8 個功能閘門 | 4 個預設 |
 
 每個元件遵循 **Builder 模式**：`Component::new() → .option(value) → .on_event(message) → .build() → WidgetNode<M>`。
 

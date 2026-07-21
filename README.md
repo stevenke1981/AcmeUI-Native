@@ -20,7 +20,7 @@ It combines:
 - **Semantic design tokens** — light/dark/high-contrast themes
 - **AccessKit accessibility** — screen reader support
 - **Animation engine** — tween/ease/bounce/yoyo/loop
-- **80+ high-level components** — via `acme-ui` (shadcn/ui + Material UI + Ant Design inspired)
+- **150 high-level components** — via `acme-ui` (shadcn/ui + Material UI + Ant Design inspired)
 
 ### Default Template (acme-ui 0.2.0)
 
@@ -53,7 +53,7 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 
 | Layer | Crate | Role |
 |-------|-------|------|
-| UI Components | `acme-ui` | 80+ high-level widgets (Slider, Switch, DatePicker, Toast, Dock …) |
+| UI Components | `acme-ui` | 150 high-level widgets (Slider, Switch, DatePicker, Toast, Dock, Masonry, FileUpload, VideoPlayer, Heatmap …) |
 | Widget Primitives | `acme-widgets` | WidgetNode enum, builder DSL, overlay manager, visual states |
 | Text Editing | `acme-textinput` | Cursor, selection, clipboard, IME preedit/commit, undo/redo (✓ 100 tests) |
 | Layout | `acme-layout` | Taffy-based flexbox layout engine |
@@ -71,7 +71,7 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 | App | Package | Purpose |
 |-----|---------|---------|
 | `apps/gallery` | `acme-gallery` | Primary demo — 8-category navigation, live data/nav demos (Tree, Table, DataGrid, VirtualList), screenshot mode |
-| `apps/acme-gallery` | `acme-ui-gallery` | V2 component showcase — 80+ high-level `acme-ui` components |
+| `apps/acme-gallery` | `acme-ui-gallery` | V2 component showcase — 150 high-level `acme-ui` components |
 | `apps/playground` | `playground` | Minimal dev sandbox for quick experiments |
 | `apps/benchmark` | `benchmark` | Headless layout/reconciliation/frame-build benchmarks |
 
@@ -108,6 +108,111 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
+## Using the Component Library
+
+`acme-ui` is a typed, declarative component layer. A component is built in
+three stages: choose a builder, configure it with chainable methods, then add
+the resulting `WidgetNode<M>` to a parent container. The application owns the
+message enum and state; components emit messages through `on_click` or other
+event methods.
+
+### 1. Add the crate and select features
+
+```toml
+[dependencies]
+acme-ui = { path = "crates/acme-ui", features = ["foundations", "inputs", "layout", "overlay"] }
+```
+
+The four feature families above are enabled by default. Add `desktop`,
+`charts`, `mobile`, or `browser` only when needed. This keeps compile time and
+binary size predictable.
+
+### 2. Compose a screen
+
+```rust
+use acme_ui::prelude::*;
+
+#[derive(Clone, Debug, PartialEq)]
+enum AppMessage {
+    Save,
+    Cancel,
+}
+
+fn settings_view() -> WidgetNode<AppMessage> {
+    let actions = row::<AppMessage>()
+        .gap(8.0)
+        .child(button("cancel", "Cancel").on_click(AppMessage::Cancel))
+        .child(button("save", "Save").primary().on_click(AppMessage::Save))
+        .build();
+
+    default_template::<AppMessage>("Settings")
+        .subtitle("Keep your workspace focused")
+        .child(card::<AppMessage>().child(label("Preferences")).build())
+        .child(actions)
+        .build()
+}
+```
+
+`column`, `row`, and `stack` are layout primitives. `card`, `label`, `button`,
+and `scroll_view` are common foundation primitives. Every child is a node, so
+the same composition model works for dialogs, forms, navigation, and pages.
+
+### 3. Handle messages in the application
+
+The builder does not mutate application state. Route emitted messages in your
+application event/update layer:
+
+```rust
+match message {
+    AppMessage::Save => state.save(),
+    AppMessage::Cancel => state.close_settings(),
+}
+```
+
+This keeps rendering deterministic: derive a new widget tree from state, let
+the retained tree reconcile identity by keys, and render the resulting scene.
+Use explicit keys for dynamic lists and interactive controls.
+
+### 4. Choose a starter template
+
+```rust
+let view = default_template::<AppMessage>("Dashboard");
+let apple = apple_template::<AppMessage>("Dashboard");
+let windows = windows11_template::<AppMessage>("Dashboard");
+let ubuntu = ubuntu25_template::<AppMessage>("Dashboard");
+```
+
+All templates expose `.subtitle(...)`, `.child(...)`, and `.build()`. They
+provide spacing and hierarchy only; colors remain semantic theme tokens. The
+stable root keys are `acmeui-default-template`, `acmeui-apple-template`,
+`acmeui-windows11-template`, and `acmeui-ubuntu25-template`.
+
+### 5. Use themes and tokens
+
+```rust
+let theme = default_theme();
+let dark = Theme::dark();
+assert!(theme.validate().is_ok());
+```
+
+Pass the active theme to the renderer/component resolution layer. Do not put
+literal color values inside application widgets; use `ThemeColor` and the
+semantic fields on `Theme` so light, dark, and high-contrast modes remain
+consistent.
+
+### 6. Find components and examples
+
+- Foundations: labels, cards, badges, alerts, progress, calendar, lists.
+- Inputs: buttons, text input, slider, select, date/time picker, checkbox,
+  autocomplete, transfer, rating.
+- Layout: forms, sections, toolbars, tabs, split panels, settings pages.
+- Overlay: modal, drawer, dropdown menu, tooltip, toast, command palette.
+- Optional families: desktop chrome, charts, mobile surfaces, browser media.
+
+Run `cargo run -p acme-ui-gallery` for the broad component showcase and
+`cargo run -p acme-gallery` for the runtime, input, accessibility, and data
+component demonstrations.
+
 ---
 
 ## Project Status
@@ -117,7 +222,7 @@ cargo test --workspace
 | Core framework | ✅ **Stable** — tree, layout, render, text, theme, animation, accessibility, widgets |
 | Text input + IME | ✅ **Stable** — 100 tests, caret geometry, Traditional Chinese preedit/commit |
 | Data components | 🧪 **Experimental** — Tree, Table, DataGrid, VirtualList with live Gallery demos |
-| UI component library | 🧪 **Experimental** — 80+ components (acme-ui), showcased in acme-ui-gallery |
+| UI component library | 🧪 **Experimental** — 150 components (acme-ui), showcased in acme-ui-gallery |
 | GPU device-loss recovery | 🧪 **Wired** — pure-test state machine + `on_gpu_recovered` hook; **manual validation pending** |
 | Traditional Chinese 注音 IME | 🧪 **Architecture done** — **manual validation pending** |
 | Screenshot golden tests | 📋 **Scaffolded** — not yet in CI |
@@ -142,7 +247,7 @@ AcmeUI-Native/
 │   ├── acme-animation/     # Tween engine
 │   ├── acme-style/         # Styling abstraction layer
 │   ├── acme-widgets/       # WidgetNode enum + builder DSL
-│   ├── acme-ui/            # 80+ high-level components
+│   ├── acme-ui/            # 150 high-level components
 │   ├── acme-accessibility/ # AccessKit bridge
 │   └── acme-devtools/      # Inspector, metrics, debugger
 ├── apps/
@@ -240,15 +345,15 @@ The `apps/gallery` (primary demo) has been fully converted from a 2593-line mono
 
 | Module | Count | Maturity | Feature Gate | Default |
 |--------|-------|----------|-------------|---------|
-| `foundations/` | 28 | S1 | `foundations` | ✅ |
-| `inputs/` | 28 | S2 | `inputs` | ✅ |
-| `layout/` | 14 | S1 | `layout` | ✅ |
+| `foundations/` | 42 | S1 | `foundations` | ✅ |
+| `inputs/` | 29 | S2 | `inputs` | ✅ |
+| `layout/` | 15 | S1 | `layout` | ✅ |
 | `overlay/` | 10 | S1 | `overlay` | ✅ |
 | `desktop/` | 13 | S1 | `desktop` | — |
-| `charts/` | 8 | S0 (experimental) | `charts` | — |
+| `charts/` | 20 | S0 (experimental) | `charts` | — |
 | `mobile/` | 5 | S1 (experimental) | `mobile` | — |
-| `browser/` | 4 | S0 (experimental) | `browser` | — |
-| **Total** | **110 component files** | — | 8 feature gates | 4 default |
+| `browser/` | 16 | S0 (experimental) | `browser` | — |
+| **Total** | **150 component files** | — | 8 feature gates | 4 default |
 
 > Component maturity levels: **S0** Scaffold, **S1** Visual, **S2** Interactive, **S3** Accessible, **S4** Production.  
 > Interactive features (pointer, keyboard, message dispatch) are listed per module.  
