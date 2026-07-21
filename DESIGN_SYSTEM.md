@@ -246,10 +246,13 @@ Soft variant (for badges, alerts):
 | Tree | P2 | ✅ | ✅ | ✅ | `tree().node().expanded()` |
 | DataGrid | P2 | — | ✅ | ✅ | `datagrid().column().row()` |
 | VirtualList | P2 | — | ✅ | ✅ | `virtual_list().children()` |
-| DatePicker | P2 | ✅ | ✅ | ✅ | Future |
-| ColorPicker | P2 | ✅ | ✅ | ✅ | Future |
+| DatePicker | P2 | ✅ | ✅ | ✅ | `date_picker().value().on_select()` |
+| ColorPicker | P2 | ✅ | ✅ | ✅ | `color_picker().value().on_change()` |
 | Dropdown | P1 | ✅ | ✅ | ✅ | Built on Menu + Popover |
 | CommandPalette | P2 | ✅ | — | — | Built |
+| Calendar | P2 | ✅ | ✅ | — | `calendar(year, month).selected_day()` |
+| AspectRatio | P2 | ✅ | ✅ | — | `aspect_ratio(16.0/9.0).width().child()` |
+| Flex | P1 | ✅ | ✅ | ✅ | `h_flex().gap().child()` / `v_flex()` |
 
 ---
 

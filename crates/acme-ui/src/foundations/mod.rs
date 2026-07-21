@@ -2,14 +2,17 @@
 
 pub mod accordion;
 pub mod alert;
+pub mod aspect_ratio;
 pub mod avatar;
 pub mod badge;
+pub mod calendar;
 pub mod collapsible;
 pub mod descriptions;
 pub mod diff_viewer;
 pub mod drag_region;
 pub mod drop_zone;
 pub mod empty_state;
+pub mod flex;
 pub mod focus_ring;
 pub mod icon;
 pub mod kbd;
@@ -26,14 +29,17 @@ pub mod timeline;
 
 pub use accordion::*;
 pub use alert::*;
+pub use aspect_ratio::*;
 pub use avatar::*;
 pub use badge::*;
+pub use calendar::*;
 pub use collapsible::*;
 pub use descriptions::*;
 pub use diff_viewer::*;
 pub use drag_region::*;
 pub use drop_zone::*;
 pub use empty_state::*;
+pub use flex::*;
 pub use focus_ring::*;
 pub use icon::*;
 pub use kbd::*;
