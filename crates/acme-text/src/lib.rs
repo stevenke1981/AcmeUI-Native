@@ -343,6 +343,8 @@ struct AtlasEntry {
     left: i32,
     top: i32,
     format: AtlasFormat,
+    /// Frame index of last access — used for LRU-style eviction.
+    last_used: u64,
 }
 
 struct RasterizedGlyph {
@@ -355,6 +357,10 @@ struct RasterizedGlyph {
 }
 
 /// CPU-side shelf allocator bookkeeping for a renderer-owned texture.
+///
+/// Supports LRU-style eviction: call [`begin_frame`](Self::begin_frame) each
+/// frame, then [`evict_stale`](Self::evict_stale) when the atlas is near
+/// capacity to drop glyphs not accessed within `max_age` frames.
 pub struct GlyphAtlas {
     width: u32,
     height: u32,
@@ -363,6 +369,8 @@ pub struct GlyphAtlas {
     row_height: u32,
     generation: u64,
     next_id: u64,
+    /// Monotonic frame counter for LRU tracking.
+    frame: u64,
     entries: HashMap<CacheKey, AtlasEntry>,
 }
 
@@ -376,6 +384,7 @@ impl GlyphAtlas {
             row_height: 0,
             generation: 0,
             next_id: 1,
+            frame: 0,
             entries: HashMap::new(),
         }
     }
@@ -402,6 +411,43 @@ impl GlyphAtlas {
         self.cursor_y = 0;
         self.row_height = 0;
         self.generation = self.generation.wrapping_add(1);
+    }
+
+    /// Advance the frame counter. Call once per frame before rendering.
+    pub fn begin_frame(&mut self) {
+        self.frame = self.frame.wrapping_add(1);
+    }
+
+    /// Mark an entry as recently used (updates its LRU timestamp).
+    pub fn touch(&mut self, key: &CacheKey) {
+        if let Some(entry) = self.entries.get_mut(key) {
+            entry.last_used = self.frame;
+        }
+    }
+
+    /// Number of entries not accessed within `max_age` frames.
+    pub fn stale_count(&self, max_age: u64) -> usize {
+        self.entries
+            .values()
+            .filter(|e| self.frame.saturating_sub(e.last_used) > max_age)
+            .count()
+    }
+
+    /// Evict entries not accessed within `max_age` frames and reset the shelf
+    /// allocator. Returns the number of evicted entries. The generation is
+    /// bumped so the renderer knows to re-upload surviving glyphs.
+    pub fn evict_stale(&mut self, max_age: u64) -> usize {
+        let before = self.entries.len();
+        self.entries
+            .retain(|_, e| self.frame.saturating_sub(e.last_used) <= max_age);
+        let evicted = before - self.entries.len();
+        if evicted > 0 {
+            self.cursor_x = 0;
+            self.cursor_y = 0;
+            self.row_height = 0;
+            self.generation = self.generation.wrapping_add(1);
+        }
+        evicted
     }
 
     fn insert(
@@ -438,6 +484,7 @@ impl GlyphAtlas {
             left,
             top,
             format,
+            last_used: self.frame,
         };
         self.next_id = self.next_id.wrapping_add(1);
         self.cursor_x += width + 1;

@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct NodeId(u64);
@@ -10,18 +11,26 @@ impl NodeId {
         Self(value)
     }
 }
+/// Stable widget identifier — cheap to clone via `Arc<str>`.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct WidgetKey(String);
+pub struct WidgetKey(Arc<str>);
 impl WidgetKey {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
+    /// Create a key from any string-like type.
+    pub fn new(value: impl AsRef<str>) -> Self {
+        Self(Arc::from(value.as_ref()))
     }
+    /// Borrow the key as a string slice.
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 impl From<&str> for WidgetKey {
     fn from(value: &str) -> Self {
+        Self::new(value)
+    }
+}
+impl From<String> for WidgetKey {
+    fn from(value: String) -> Self {
         Self::new(value)
     }
 }
@@ -133,7 +142,9 @@ impl RetainedTree {
         }
         let mut cur = Some(id);
         while let Some(nid) = cur {
-            let node = self.nodes.get_mut(&nid).unwrap();
+            let Some(node) = self.nodes.get_mut(&nid) else {
+                break;
+            };
             node.dirty.insert(flags);
             cur = if flags.contains(DirtyFlags::LAYOUT) || flags.contains(DirtyFlags::CHILDREN) {
                 node.parent
@@ -200,7 +211,10 @@ impl RetainedTree {
             let (children, sub) =
                 self.reconcile_children(Some(id), &old_children, &view.children)?;
             merge(&mut result, sub);
-            let node = self.nodes.get_mut(&id).unwrap();
+            let node = self
+                .nodes
+                .get_mut(&id)
+                .expect("node just inserted or found in old_by_key");
             if node.kind != view.kind
                 || node.focusable != view.focusable
                 || node.disabled != view.disabled

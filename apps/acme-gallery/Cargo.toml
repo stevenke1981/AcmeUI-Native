@@ -1,10 +1,11 @@
 [package]
 name = "acme-ui-gallery"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
-acme-ui = { path = "../../crates/acme-ui" }
+acme-ui = { path = "../../crates/acme-ui", features = ["full"] }
 acme-core = { path = "../../crates/acme-core" }
 acme-layout = { path = "../../crates/acme-layout" }
 acme-theme = { path = "../../crates/acme-theme" }

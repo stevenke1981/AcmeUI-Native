@@ -3,12 +3,21 @@
 //! High-level UI components built on acme-widgets primitives.
 //! Design system inspired by shadcn/ui, Material UI, and Ant Design.
 
+#[cfg(feature = "browser")]
 pub mod browser;
+#[cfg(feature = "charts")]
 pub mod charts;
+#[cfg(feature = "desktop")]
 pub mod desktop;
+#[cfg(feature = "foundations")]
 pub mod foundations;
+#[cfg(feature = "inputs")]
 pub mod inputs;
+#[cfg(feature = "layout")]
 pub mod layout;
+#[cfg(feature = "mobile")]
+pub mod mobile;
+#[cfg(feature = "overlay")]
 pub mod overlay;
 
 // Re-export common types
@@ -18,6 +27,7 @@ pub use acme_theme::ThemeColor;
 pub use acme_widgets::*;
 
 // Re-export foundation types expected at the crate root
+#[cfg(feature = "foundations")]
 pub use foundations::icon::{icon, IconName};
 
 /// Tone palette for semantic coloring — inspired by shadcn/ui status colors.

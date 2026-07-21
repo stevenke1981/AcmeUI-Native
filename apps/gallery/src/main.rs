@@ -11,10 +11,14 @@
 //! All button hit-regions are collected via a single DFS walk across the
 //! widget+layout tree — no magic‑number indexing is used anywhere.
 
+mod pages;
+mod render;
+mod types;
+
 use acme_accessibility::AccessibilityAdapter;
 use acme_core::NodeId;
 use acme_layout::{
-    LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow, WidgetLayoutContext,
+    LayoutEngine, LayoutNode, WidgetLayoutContext,
 };
 use acme_platform::{
     Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
@@ -24,13 +28,20 @@ use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
 use acme_textinput::{
     TextInputState, handle_key, handle_keyboard_shortcut, handle_text, render_text_input,
 };
-use acme_theme::{Theme, ThemeColor, ThemeMode};
+use acme_theme::{Theme, ThemeColor};
 use acme_widgets::{
     ButtonState, ButtonVariant, DataGridColumn, DataGridRow, SortDirection, TabItem, TableColumn,
     TableRow, TreeNode, WidgetKey, WidgetNode, breadcrumb, button, column, datagrid, label,
     label_with_size, nav_item, nav_rail, row, scroll_view, separator, sidebar, tab_bar, table,
     tree, virtual_list,
 };
+
+use crate::pages::*;
+use crate::render::{
+    apply_gallery_styles, extract_gallery_ids, find_text_input_marker,
+    point_in_rect, scrolled_hit_rect,
+};
+use crate::types::*;
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -39,154 +50,6 @@ fn main() -> anyhow::Result<()> {
         .init();
     acme_platform::run(Gallery::new())?;
     Ok(())
-}
-
-// ── Constants ────────────────────────────────────────────────────────────────
-
-const SIDEBAR_WIDTH: f32 = 224.0;
-const TOOLBAR_HEIGHT: f32 = 48.0;
-/// Long Traditional Chinese string for testing widget string handling.
-const LONG_CHINESE_TEXT: &str =
-    "在一個寧靜的午後，古老的書架上擺滿了泛黃的書籍，每一本都承載著時代的記憶與智慧";
-
-/// Unique marker for the TextInput placeholder slot (must not appear in normal labels).
-const TEXT_INPUT_MARKER: &str = "\0_ti_ph_\0";
-
-/// Expandable tree node keys (bit `i` in `Gallery::tree_expanded`).
-const TREE_EXPAND_KEYS: &[&str] = &["docs", "docs_zh", "images", "code", "code_src"];
-/// Default: all expandable nodes open (matches the original static demo).
-const TREE_EXPAND_DEFAULT: u32 = 0b1_1111;
-
-const VLIST_ITEM_COUNT: usize = 250;
-const VLIST_ITEM_HEIGHT: f32 = 28.0;
-const VLIST_VIEWPORT_H: f32 = 360.0;
-const TABLE_ROW_COUNT: usize = 28;
-
-struct CategoryInfo {
-    name: &'static str,
-    pages: &'static [&'static str],
-}
-
-const CATEGORIES: &[CategoryInfo] = &[
-    CategoryInfo {
-        name: "Foundations",
-        pages: &["Typography", "Colors", "Icons", "Spacing", "Motion"],
-    },
-    CategoryInfo {
-        name: "Inputs",
-        pages: &[
-            "Button",
-            "TextInput",
-            "Checkbox",
-            "Radio",
-            "Switch",
-            "Slider",
-        ],
-    },
-    CategoryInfo {
-        name: "Navigation",
-        pages: &["NavRail", "Sidebar", "TabBar", "Breadcrumb"],
-    },
-    CategoryInfo {
-        name: "Overlay",
-        pages: &["Tooltip", "Popover", "Menu", "Dialog"],
-    },
-    CategoryInfo {
-        name: "Data",
-        pages: &["Tree", "Table", "DataGrid", "VirtualList"],
-    },
-    CategoryInfo {
-        name: "Patterns",
-        pages: &["Settings Page", "Dashboard", "IDE Layout", "SpeakType"],
-    },
-    CategoryInfo {
-        name: "Accessibility",
-        pages: &["Focus", "Screen Reader", "Keyboard Nav", "Reduced Motion"],
-    },
-    CategoryInfo {
-        name: "Stress Tests",
-        pages: &["1000 Labels", "Deep Nesting", "Rapid Updates", "Long Text"],
-    },
-];
-
-// ── Helper Types ────────────────────────────────────────────────────────────
-
-/// Spacing density for the gallery.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Density {
-    Compact,
-    Comfortable,
-}
-
-impl Density {
-    fn spacing_scale(self) -> f32 {
-        match self {
-            Self::Compact => 0.75,
-            Self::Comfortable => 1.0,
-        }
-    }
-    fn label(self) -> &'static str {
-        match self {
-            Self::Compact => "Compact",
-            Self::Comfortable => "Comfortable",
-        }
-    }
-    fn toggle(self) -> Self {
-        match self {
-            Self::Compact => Self::Comfortable,
-            Self::Comfortable => Self::Compact,
-        }
-    }
-}
-
-/// Configures a screenshot-style render of a single template at a fixed size.
-#[allow(dead_code)]
-struct ScreenshotConfig {
-    width: f32,
-    height: f32,
-    theme_variant: ThemeMode,
-    density: Density,
-    show_focus: bool,
-    show_error: bool,
-    show_loading: bool,
-    show_empty: bool,
-}
-
-/// All messages handled by the gallery.
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[allow(dead_code)]
-enum GalleryMessage {
-    SelectCategory(usize),
-    SelectPage(usize),
-    ToggleTheme,
-    ToggleDensity,
-    ToggleFocusRings,
-    FocusDemo,
-    DpiInfo,
-    /// NavRail destination index.
-    NavRailSelect(usize),
-    /// Primary TabBar tab index.
-    TabBarSelect(usize),
-    /// Secondary (zh) TabBar tab index.
-    TabBarZhSelect(usize),
-    /// Select a tree node by stable key.
-    TreeSelectKey(&'static str),
-    /// Toggle expand/collapse for a tree node key.
-    TreeToggleKey(&'static str),
-    /// Sort table by column index (toggles direction when repeated).
-    TableSort(usize),
-    /// Select table row by original (pre-sort) data index.
-    TableSelectRow(usize),
-}
-
-/// A hit region stored after layout each frame.
-///
-/// `scrolled` is true for targets inside the page `ScrollView`. Their layout
-/// rects are in content space; hit tests subtract `Gallery::scroll` from `y`.
-struct HitRegion {
-    rect: [f32; 4],
-    message: GalleryMessage,
-    scrolled: bool,
 }
 
 // ── Gallery State ───────────────────────────────────────────────────────────
@@ -1211,188 +1074,6 @@ impl Gallery {
     }
 }
 
-// ── Free‑standing page‑section helpers ─────────────────────────────────────
-
-fn standard_component_sections() -> Vec<(&'static str, WidgetNode<GalleryMessage>)> {
-    vec![
-        ("Anatomy", anatomy_diagram()),
-        ("Variants", variants_demo()),
-        ("Sizes", sizes_demo()),
-        ("Light / Dark", light_dark_demo()),
-        ("Density", density_demo()),
-        ("Keyboard Behavior", keyboard_behavior()),
-        ("Accessibility Properties", accessibility_props()),
-        ("Long Traditional Chinese Text", long_text_section()),
-        ("Screenshot Mode", screenshot_info()),
-    ]
-}
-
-fn anatomy_diagram() -> WidgetNode<GalleryMessage> {
-    column()
-        .gap(8.0)
-        .child(label("── Component Anatomy ──"))
-        .child(label("┌─────────────────────┐"))
-        .child(label("│  Container / Root   │"))
-        .child(label("│  ├─ Label / Content  │"))
-        .child(label("│  └─ (children...)    │"))
-        .child(label("└─────────────────────┘"))
-        .build()
-}
-
-fn variants_demo() -> WidgetNode<GalleryMessage> {
-    row()
-        .gap(8.0)
-        .child(
-            button("v_primary", "Primary")
-                .primary()
-                .on_click(GalleryMessage::DpiInfo),
-        )
-        .child(button("v_secondary", "Secondary").on_click(GalleryMessage::DpiInfo))
-        .child(
-            button("v_ghost", "Ghost")
-                .variant(ButtonVariant::Ghost)
-                .on_click(GalleryMessage::DpiInfo),
-        )
-        .child(
-            button("v_danger", "Danger")
-                .variant(ButtonVariant::Danger)
-                .on_click(GalleryMessage::DpiInfo),
-        )
-        .build()
-}
-
-fn sizes_demo() -> WidgetNode<GalleryMessage> {
-    column()
-        .gap(10.0)
-        .child(label("XS  ·  S  ·  M  ·  L  ·  XL"))
-        .child(
-            row()
-                .gap(8.0)
-                .child(label("[XS btn]"))
-                .child(label("[S btn]"))
-                .child(label("[M btn — default]"))
-                .child(label("[L btn]"))
-                .child(label("[XL btn]"))
-                .build(),
-        )
-        .build()
-}
-
-fn light_dark_demo() -> WidgetNode<GalleryMessage> {
-    row()
-        .gap(16.0)
-        .child(
-            column()
-                .gap(8.0)
-                .child(label_with_size("☀ Light", 16.0))
-                .child(label("Component in light theme"))
-                .build(),
-        )
-        .child(
-            column()
-                .gap(8.0)
-                .child(label_with_size("🌙 Dark", 16.0))
-                .child(label("Component in dark theme"))
-                .build(),
-        )
-        .build()
-}
-
-fn density_demo() -> WidgetNode<GalleryMessage> {
-    column()
-        .gap(8.0)
-        .child(label("Compact (0.75×) vs Comfortable (1.0×)"))
-        .child(label("Toggle via toolbar button above."))
-        .build()
-}
-
-fn keyboard_behavior() -> WidgetNode<GalleryMessage> {
-    column()
-        .gap(8.0)
-        .child(label("Space  ·  Activate focused widget"))
-        .child(label("Enter  ·  Submit / Confirm"))
-        .child(label("Tab    ·  Move focus forward"))
-        .child(label("⇧+Tab ·  Move focus backward"))
-        .child(label("Esc    ·  Dismiss overlay / cancel"))
-        .build()
-}
-
-fn accessibility_props() -> WidgetNode<GalleryMessage> {
-    column()
-        .gap(8.0)
-        .child(label(
-            "role=\"button\"  ·  aria-label=\"...\"  ·  tabindex=\"0\"",
-        ))
-        .child(label("aria-disabled  ·  aria-expanded  ·  aria-controls"))
-        .child(label(
-            "Focus ring visible  ·  Screen‑reader labels via AccessKit",
-        ))
-        .build()
-}
-
-fn long_text_section() -> WidgetNode<GalleryMessage> {
-    column()
-        .gap(8.0)
-        .child(label_with_size("Long Traditional Chinese string:", 14.0))
-        .child(label_with_size(LONG_CHINESE_TEXT, 14.0))
-        .build()
-}
-
-fn screenshot_info() -> WidgetNode<GalleryMessage> {
-    column()
-        .gap(8.0)
-        .child(label("Screenshot sizes: 1280×800 · 1024×700 · 800×600"))
-        .child(label("Toggle theme & density via toolbar before capture."))
-        .build()
-}
-
-/// Apply density scale factor to a base spacing value.
-fn spacing(density: Density, base: f32) -> f32 {
-    base * density.spacing_scale()
-}
-
-/// Static-ish table cell text for original row `i`, column `col`.
-fn table_cell_text(row: usize, col: usize) -> String {
-    const OWNERS: &[&str] = &["Ada", "Lin", "Sam", "Mei", "Kai", "Zoe"];
-    const STATUSES: &[&str] = &["Active", "Draft", "Review", "Done", "Blocked"];
-    match col {
-        0 => format!("Project {row:02}"),
-        1 => STATUSES[row % STATUSES.len()].to_string(),
-        2 => OWNERS[row % OWNERS.len()].to_string(),
-        _ => format!("2026-0{}-{:02}", (row % 9) + 1, (row % 28) + 1),
-    }
-}
-
-fn table_row_cells(row: usize) -> [String; 4] {
-    [
-        table_cell_text(row, 0),
-        table_cell_text(row, 1),
-        table_cell_text(row, 2),
-        table_cell_text(row, 3),
-    ]
-}
-
-/// Display order of original row indices under the current sort.
-fn table_display_order(sort_col: Option<usize>, sort_asc: bool) -> Vec<usize> {
-    let mut order: Vec<usize> = (0..TABLE_ROW_COUNT).collect();
-    if let Some(col) = sort_col {
-        order.sort_by(|&a, &b| {
-            let cmp = table_cell_text(a, col).cmp(&table_cell_text(b, col));
-            if sort_asc { cmp } else { cmp.reverse() }
-        });
-    }
-    order
-}
-
-fn point_in_rect(x: f32, y: f32, rect: [f32; 4]) -> bool {
-    x >= rect[0] && x <= rect[0] + rect[2] && y >= rect[1] && y <= rect[1] + rect[3]
-}
-
-/// Map a content-space layout rect into window space using page scroll.
-fn scrolled_hit_rect(rect: [f32; 4], scroll_y: f32) -> [f32; 4] {
-    [rect[0], rect[1] - scroll_y, rect[2], rect[3]]
-}
-
 // ── Event Handling ──────────────────────────────────────────────────────────
 
 impl Gallery {
@@ -2034,152 +1715,7 @@ impl Application for Gallery {
     }
 }
 
-// ── Layout ID Extractors ────────────────────────────────────────────────────
-//
-// These walk the *same* tree structure produced by to_layout(NodeId::new(1)).
-// Child indices are structural positions, not magic numbers.
 
-struct GalleryNodeIds {
-    #[allow(dead_code)]
-    _root: NodeId,
-    sidebar: NodeId,
-    sidebar_label: NodeId,
-    _sidebar_separator: NodeId,
-    sidebar_buttons: [NodeId; 8],
-    #[allow(dead_code)]
-    content_area: NodeId,
-    toolbar: NodeId,
-    toolbar_buttons: [NodeId; 3],
-    scroll_view: NodeId,
-}
-
-fn extract_gallery_ids(root: &LayoutNode) -> GalleryNodeIds {
-    let sb = &root.children[0];
-    let ca = &root.children[1];
-    let tb = &ca.children[0];
-    GalleryNodeIds {
-        _root: root.id,
-        sidebar: sb.id,
-        sidebar_label: sb.children[0].id,
-        _sidebar_separator: sb.children[1].id,
-        sidebar_buttons: [
-            sb.children[2].id,
-            sb.children[3].id,
-            sb.children[4].id,
-            sb.children[5].id,
-            sb.children[6].id,
-            sb.children[7].id,
-            sb.children[8].id,
-            sb.children[9].id,
-        ],
-        content_area: ca.id,
-        toolbar: tb.id,
-        toolbar_buttons: [tb.children[0].id, tb.children[1].id, tb.children[2].id],
-        scroll_view: ca.children[1].id,
-    }
-}
-
-/// Walk the widget+layout tree to find the text‑input marker label.
-fn find_text_input_marker(
-    widget: &WidgetNode<GalleryMessage>,
-    layout: &LayoutNode,
-) -> Option<NodeId> {
-    match widget {
-        WidgetNode::Label(l) if l.text == TEXT_INPUT_MARKER => Some(layout.id),
-        _ => {
-            let wc = widget.children();
-            for (w, l) in wc.iter().zip(layout.children.iter()) {
-                if let Some(id) = find_text_input_marker(w, l) {
-                    return Some(id);
-                }
-            }
-            None
-        }
-    }
-}
-
-// ── Style Application ───────────────────────────────────────────────────────
-
-fn apply_gallery_styles(root: &mut LayoutNode, width: f32, height: f32) {
-    // Root: Row fills window
-    root.style = LayoutStyle {
-        kind: LayoutKind::Row,
-        width: Length::px(width),
-        height: Length::px(height),
-        gap: 0.0,
-        ..Default::default()
-    };
-
-    // Sidebar: fixed width, full height
-    let sb = &mut root.children[0];
-    sb.style = LayoutStyle {
-        kind: LayoutKind::Column,
-        width: Length::px(SIDEBAR_WIDTH),
-        height: Length::px(height),
-        gap: 4.0,
-        padding: acme_layout::Edges {
-            left: 12.0,
-            right: 12.0,
-            top: 16.0,
-            bottom: 16.0,
-        },
-        ..Default::default()
-    };
-    // Category buttons
-    for i in 2..=9 {
-        sb.children[i].style.width = Length::px(SIDEBAR_WIDTH - 24.0);
-        sb.children[i].style.height = Length::px(40.0);
-
-    }
-
-    // Content area: fills remaining width
-    let cw = (width - SIDEBAR_WIDTH).max(400.0);
-    let ca = &mut root.children[1];
-    ca.style = LayoutStyle {
-        kind: LayoutKind::Column,
-        width: Length::px(cw),
-        height: Length::px(height),
-        gap: 0.0,
-        ..Default::default()
-    };
-
-    // Toolbar
-    let tb = &mut ca.children[0];
-    tb.style = LayoutStyle {
-        kind: LayoutKind::Row,
-        width: Length::px(cw),
-        height: Length::px(TOOLBAR_HEIGHT),
-        gap: 8.0,
-        padding: acme_layout::Edges {
-            left: 16.0,
-            right: 16.0,
-            top: 8.0,
-            bottom: 8.0,
-        },
-        ..Default::default()
-    };
-    for btn in &mut tb.children {
-        btn.style.width = Length::px(130.0);
-        btn.style.height = Length::px(32.0);
-    }
-
-    // Scroll view
-    let sh = (height - TOOLBAR_HEIGHT).max(100.0);
-    let sv = &mut ca.children[1];
-    sv.style = LayoutStyle {
-        kind: LayoutKind::Column,
-        width: Length::px(cw),
-        height: Length::px(sh),
-        overflow: Overflow::Scroll,
-        flex_grow: 1.0,
-        ..Default::default()
-    };
-
-    // Page-content first child — full width
-    if let Some(content) = sv.children.first_mut() {
-        content.style.width = Length::px(cw);
-    }
-}
 
 // ── Render Helpers ──────────────────────────────────────────────────────────
 

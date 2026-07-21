@@ -1,7 +1,20 @@
 [package]
 name = "acme-ui"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["foundations", "inputs", "layout", "overlay"]
+foundations = []
+inputs = []
+layout = []
+overlay = []
+charts = []
+desktop = []
+mobile = []
+browser = []
+full = ["foundations", "inputs", "layout", "overlay", "charts", "desktop", "mobile", "browser"]
 
 [dependencies]
 acme-core = { path = "../acme-core" }

@@ -819,7 +819,10 @@ pub fn render_text_input(
         let new_layout = fonts.shape(render_text, &style, constraints, scale);
         state.cached_layout = Some((render_text.to_string(), new_layout));
     }
-    let cached = &state.cached_layout.as_ref().unwrap().1;
+    let (_, cached) = state
+        .cached_layout
+        .as_ref()
+        .expect("cached_layout just populated above");
     let text_height = cached.height;
     // Vertically center
     let text_y = content_y + (content_h - text_height).max(0.0) / 2.0;

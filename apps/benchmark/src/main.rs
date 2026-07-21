@@ -8,7 +8,8 @@ use acme_core::{NodeId, RetainedTree, ViewNode};
 use acme_layout::{LayoutEngine, LayoutNode, LayoutStyle, Length};
 use acme_platform::{Application, FrameContext, PlatformEvent, WindowConfig};
 use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun};
-use acme_text::PreparedText;
+use acme_text::{FontSystem, GlyphAtlas, PreparedText, TextConstraints, TextStyle};
+use acme_widgets::{WidgetNode, button, column, label, row};
 use tracing::info;
 
 fn main() -> anyhow::Result<()> {
@@ -74,6 +75,12 @@ fn run_all_benchmarks(engine: &mut LayoutEngine) {
 
     // Frame build benchmark — quads, clipped quads, text runs
     frame_build_benchmark();
+
+    // Widget tree build benchmark
+    widget_tree_build_benchmark();
+
+    // Text shaping throughput benchmark
+    text_shaping_benchmark();
 }
 
 // ---------------------------------------------------------------------------
@@ -258,4 +265,72 @@ fn frame_build_benchmark() {
         frame.clipped_quads.len(),
         frame.text.len(),
     );
+}
+
+// ---------------------------------------------------------------------------
+// 4. Widget tree build benchmark
+// ---------------------------------------------------------------------------
+
+fn widget_tree_build_benchmark() {
+    let start = Instant::now();
+    let iterations = 500;
+
+    for i in 0..iterations {
+        let mut col = column().key(format!("root-{i}")).gap(4.0);
+        for j in 0..50 {
+            col = col.child(
+                row()
+                    .key(format!("row-{j}"))
+                    .gap(8.0)
+                    .child(label(format!("Label {j}")))
+                    .child(button(format!("btn-{j}"), format!("Button {j}")))
+                    .build(),
+            );
+        }
+        let _tree: WidgetNode<()> = col.build();
+    }
+
+    let elapsed = start.elapsed();
+    info!("Widget tree build — {iterations} trees × 50 rows in {elapsed:?}");
+}
+
+// ---------------------------------------------------------------------------
+// 5. Text shaping throughput benchmark
+// ---------------------------------------------------------------------------
+
+fn text_shaping_benchmark() {
+    let mut fonts = FontSystem::new();
+    let mut atlas = GlyphAtlas::new(2048, 2048);
+    let style = TextStyle {
+        font_size: 14.0,
+        ..TextStyle::default()
+    };
+    let constraints = TextConstraints::default();
+
+    let samples = [
+        "Hello, world! The quick brown fox jumps over the lazy dog.",
+        "在一個寧靜的午後，古老的書架上擺滿了泛黃的書籍",
+        "Rust is a systems programming language focused on safety.",
+        "1234567890 !@#$%^&*() 特殊字符テスト",
+    ];
+
+    // Warm-up
+    for text in &samples {
+        let layout = fonts.shape(text, &style, constraints, 1.0);
+        let _ = fonts.prepare(&layout, &mut atlas);
+    }
+
+    let iterations = 200;
+    let start = Instant::now();
+
+    for _ in 0..iterations {
+        for text in &samples {
+            let layout = fonts.shape(text, &style, constraints, 1.0);
+            let _ = fonts.prepare(&layout, &mut atlas);
+        }
+    }
+
+    let elapsed = start.elapsed();
+    let total_shapes = iterations * samples.len();
+    info!("Text shaping — {total_shapes} shapes in {elapsed:?}");
 }

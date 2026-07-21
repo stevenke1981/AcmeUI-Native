@@ -1,6 +1,8 @@
 //! GPU surface lifecycle and the small batched rectangle renderer used by AcmeUI.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+pub mod golden;
+
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{any::Any, sync::Arc};
