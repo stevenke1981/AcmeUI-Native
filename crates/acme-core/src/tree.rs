@@ -233,8 +233,9 @@ impl RetainedTree {
             node.disabled = view.disabled;
             ids.push(id);
         }
+        let ids_set: HashSet<NodeId> = ids.iter().copied().collect();
         for id in old {
-            if !ids.contains(id) {
+            if !ids_set.contains(id) {
                 self.remove_subtree(*id, &mut result.removed)
             }
         }

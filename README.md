@@ -215,17 +215,21 @@ The `apps/gallery` (primary demo) has been fully converted from a 2593-line mono
 
 ### UI Component Library (acme-ui)
 
-| Module | Components | Feature Gate | Default |
-|--------|-----------|-------------|---------|
-| `foundations/` | 28 (Alert, Badge, Card, Hero, Icon, Progress, Skeleton, Tag, Watermark, …) | `foundations` | ✅ |
-| `inputs/` | 28 (ButtonGroup, Checkbox, Combobox, DatePicker, Radio, Slider, Switch, Select, …) | `inputs` | ✅ |
-| `layout/` | 14 (Breadcrumb, Form, Grid, PageHeader, Section, Tabs, Toolbar, SplitPanel, …) | `layout` | ✅ |
-| `overlay/` | 10 (Drawer, Fullscreen, Modal, Toast, ConfirmDialog, ContextMenu, HoverCard, …) | `overlay` | ✅ |
-| `desktop/` | 13 (Taskbar, StatusTray, TitleBar, Dock, Sidenav, Menubar, CommandBar, …) | `desktop` | — |
-| `charts/` | 8 (LineChart, PieChart, BarChart, Sparkline, AreaChart, DonutChart, ScatterChart) | `charts` | — |
-| `mobile/` | 5 (ActionSheet, BottomNav, BottomSheet, PullToRefresh, SearchBar) | `mobile` | — |
-| `browser/` | 4 (Carousel, ImageGallery, Lightbox, ZoomView) | `browser` | — |
-| **Total** | **110 component files** | 8 feature gates | 4 default |
+| Module | Count | Maturity | Feature Gate | Default |
+|--------|-------|----------|-------------|---------|
+| `foundations/` | 28 | S1 | `foundations` | ✅ |
+| `inputs/` | 28 | S2 | `inputs` | ✅ |
+| `layout/` | 14 | S1 | `layout` | ✅ |
+| `overlay/` | 10 | S1 | `overlay` | ✅ |
+| `desktop/` | 13 | S1 | `desktop` | — |
+| `charts/` | 8 | S0 (experimental) | `charts` | — |
+| `mobile/` | 5 | S1 (experimental) | `mobile` | — |
+| `browser/` | 4 | S0 (experimental) | `browser` | — |
+| **Total** | **110 component files** | — | 8 feature gates | 4 default |
+
+> Component maturity levels: **S0** Scaffold, **S1** Visual, **S2** Interactive, **S3** Accessible, **S4** Production.  
+> Interactive features (pointer, keyboard, message dispatch) are listed per module.  
+> Accessibility (S3+), visual regression goldens, and benchmarks (S4) are not yet implemented for any component.
 
 Each component follows the **builder pattern**: `Component::new() → .option(value) → .on_event(message) → .build() → WidgetNode<M>`.
 

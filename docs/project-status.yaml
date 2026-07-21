@@ -1,0 +1,145 @@
+# project-status.yaml — Single source of truth for AcmeUI-Native
+# Last updated: 2026-07-21
+
+project:
+  name: AcmeUI-Native
+  version: 0.1.0-dev
+  status: early-alpha
+
+areas:
+  foundations:
+    maturity: S1
+    automated: partial
+    manual: not_started
+    note: "29 components (23 S1 visual, 6 S2 interactive); calendar.rs (269 lines, 10 tests) has no on_select"
+  inputs:
+    maturity: S2
+    automated: partial
+    manual: not_started
+    note: "28 components (27 S2, 1 S1); Slider/DatePicker partially fixed, segmented_control.rs missing on_select"
+  layout:
+    maturity: S1
+    automated: partial
+    manual: not_started
+    note: "14 components (10 S1 structural, 4 S2 with dispatch)"
+  overlay:
+    maturity: S1
+    automated: minimal
+    manual: not_started
+    note: "10 components (5 S2, 5 S1); context_menu/dropdown_menu/drawer/hover_card/toast are passive visual shells"
+  desktop:
+    maturity: S1
+    automated: minimal
+    manual: not_started
+    note: "13 components (6 S2, 7 S1); sidenav.rs (269 lines, 10 tests) missing on_select"
+  charts:
+    maturity: S0
+    automated: minimal
+    manual: not_started
+    feature: experimental
+    note: "8 components, all S1 static visual — no hover/click dispatch"
+  mobile:
+    maturity: S1
+    automated: minimal
+    manual: not_started
+    feature: experimental
+    note: "5 components, all S2 interactive but not integrated into production pipeline"
+  browser:
+    maturity: S0
+    automated: minimal
+    manual: not_started
+    feature: experimental
+    note: "4 components (3 S2, 1 S1); image_gallery.rs missing on_select"
+  textinput:
+    maturity: S2
+    automated: wired
+    manual: pending
+    note: "100 tests; undo/redo transaction direction fixed (P0-006), IME sequence tests pending"
+  accessibility:
+    maturity: S0
+    automated: wired
+    manual: not_started
+    status: experimental
+    note: "Actions partially fixed (node_id=0 documented); accesskit_winit lifecycle not connected; P0-008 partial"
+  layout_engine:
+    maturity: S1
+    automated: partial
+    manual: not_started
+    note: "Full Taffy rebuild each frame; persistent Taffy layout pending (P1-001)"
+  renderer:
+    maturity: S1
+    automated: partial
+    manual: not_started
+    note: "Display order not preserved (quads/clipped/text split by HashMap); ordered display list pending (P0-001)"
+  platform:
+    maturity: S2
+    automated: partial
+    manual: pending
+    note: "Events unified (P0-007), legacy+detailed dual dispatch removed; GPU recovery untested on real hardware"
+  ime:
+    maturity: S1
+    automated: wired
+    manual: pending
+    note: "Caret geometry wired; Traditional Chinese 注音 IME manual validation not yet done (checklist B)"
+  animation:
+    maturity: S0
+    automated: none
+    manual: not_started
+    note: "acme-animation tween engine exists as stable crate but not integrated into UI component pipeline"
+  devtools:
+    maturity: S1
+    automated: minimal
+    manual: not_started
+    note: "WidgetTreeDump, LayoutInspector, FrameMetrics, SurfaceStatus exist; no CI integration"
+
+p0_status:
+  - id: P0-001
+    title: Ordered Display List
+    status: in_progress
+    note: "Design doc done, Phase 1 types added; renderer still uses HashMap grouping"
+  - id: P0-002
+    title: RuntimeTree Integration
+    status: in_progress
+    note: "Design doc done, no implementation yet in Gallery main pipeline"
+  - id: P0-003
+    title: Component Maturity Audit
+    status: completed
+    note: "Report saved to docs/component_maturity_audit.md; README update pending"
+  - id: P0-004
+    title: Slider
+    status: partial
+    note: "Value normalization + fill computation done; pointer drag, keyboard, disabled, a11y pending"
+  - id: P0-005
+    title: DatePicker
+    status: partial
+    note: "Validation + 42-cell grid done; keyboard navigation, locale abstraction, a11y pending"
+  - id: P0-006
+    title: TextInput Undo/Redo
+    status: completed
+    note: "Transaction direction fixed + regression tests for undo->redo->undo sequence"
+  - id: P0-007
+    title: Unified Platform Events
+    status: completed
+    note: "Legacy variants removed, single dispatch; PlatformEvent unified (PointerEvent, ImeEvent, modifiers)"
+  - id: P0-008
+    title: Accessibility Truthfulness
+    status: partial
+    note: "STATUS=Experimental; Focus/Click target fixed (node_id=0 documented); accesskit_winit lifecycle not connected"
+  - id: P0-009
+    title: Status Single Source
+    status: completed
+    note: "This file created; STATUS/README sync script and CI gate pending"
+
+milestones:
+  - name: "Milestone A: Correctness Freeze"
+    status: partial
+    note: "Code fixes done (Slider, DatePicker, undo/redo, platform events), design docs done, remaining interaction/a11y items"
+  - name: "Milestone B: Runtime Integration"
+    status: not_started
+    note: "RuntimeTree + keyed reconciliation + persistent layout + ordered display list"
+  - name: "Milestone C: Interaction + Accessibility"
+    status: not_started
+    note: "Focus manager, keyboard nav, AccessKit winit adapter, Narrator validation, 15 core controls to S3"
+  - name: "Milestone D: Performance + Release"
+    status: not_started
+    note: "Criterion benchmarks, golden tests, feature matrix CI, semver review, DPI/IME/GPU sign-off"
