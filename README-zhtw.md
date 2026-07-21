@@ -100,7 +100,7 @@ cargo test --workspace
 | 螢幕截圖黃金測試 | 📋 **已搭建骨架** — 尚未納入 CI |
 | CI 基準測試 | 📋 **尚未** — 無效能門檻 |
 
-> **完整狀態：**[`STATUS.md`](STATUS.md) · **手動檢查清單：**[`docs/MANUAL_VALIDATION.md`](docs/MANUAL_VALIDATION.md)
+> **完整狀態：**[`STATUS.md`](status/STATUS.md) · **手動檢查清單：**[`MANUAL_VALIDATION.md`](MANUAL_VALIDATION.md)
 
 ---
 
@@ -132,7 +132,7 @@ AcmeUI-Native/
 ├── spec.md                 # 專案規格
 ├── plan.md                 # 開發計畫
 ├── todos.md                # 任務追蹤
-├── ARCHITECTURE.md         # 詳細架構說明
+├── docs/architecture/      # 詳細架構說明
 └── AGENTS.md               # Agent 工作流程規則
 ```
 
@@ -147,7 +147,7 @@ AcmeUI-Native/
 - **函數式管線**：事件處理分層為 `hit → activate → dispatch → match`（無單體 `&mut self`）
 - **GPU 友善**：批次處理一切；最小化狀態變更；持久緩衝區搭配 epoch 失效
 
-> **完整設計系統：**[`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md)
+> **完整設計系統：**[`DESIGN_SYSTEM.md`](architecture/DESIGN_SYSTEM.md)
 
 ---
 
@@ -250,8 +250,8 @@ Agent 關鍵文件：
 | [`spec.md`](spec.md) | 專案規格與閘門 |
 | [`plan.md`](plan.md) | 階段計畫（P0–P10） |
 | [`todos.md`](todos.md) | 任務追蹤含完成狀態 |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Crate 階層與資料流 |
-| [`STATUS.md`](STATUS.md) | 元件成熟度（穩定/實驗性/僅架構） |
+| [`ARCHITECTURE.md`](architecture/ARCHITECTURE.md) | Crate 階層與資料流 |
+| [`STATUS.md`](status/STATUS.md) | 元件成熟度（穩定/實驗性/僅架構） |
 | [`AGENTS.md`](AGENTS.md) | Agent 工作流程規則 |
 | [`docs/adr/`](docs/adr/) | 架構決策紀錄 |
 

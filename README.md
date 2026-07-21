@@ -100,7 +100,7 @@ cargo test --workspace
 | Screenshot golden tests | 📋 **Scaffolded** — not yet in CI |
 | CI benchmarks | 📋 **Not yet** — no performance thresholds |
 
-> **Full status:** [`STATUS.md`](STATUS.md) · **Manual checklists:** [`docs/MANUAL_VALIDATION.md`](docs/MANUAL_VALIDATION.md)
+> **Full status:** [`STATUS.md`](docs/status/STATUS.md) · **Manual checklists:** [`MANUAL_VALIDATION.md`](docs/MANUAL_VALIDATION.md)
 
 ---
 
@@ -132,7 +132,7 @@ AcmeUI-Native/
 ├── spec.md                 # Project specification
 ├── plan.md                 # Development plan
 ├── todos.md                # Task tracking
-├── ARCHITECTURE.md         # Detailed architecture
+├── docs/architecture/      # Architecture docs
 └── AGENTS.md               # Agent workflow rules
 ```
 
@@ -147,7 +147,7 @@ AcmeUI-Native/
 - **Functional pipeline**: Event handling layered as `hit → activate → dispatch → match` (no monolithic `&mut self`)
 - **GPU-friendly**: Batch everything; minimize state changes; persistent buffers with epoch-based invalidation
 
-> **Full design system:** [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md)
+> **Full design system:** [`DESIGN_SYSTEM.md`](docs/architecture/DESIGN_SYSTEM.md)
 
 ---
 
@@ -264,11 +264,11 @@ Key files for agent context:
 
 | File | Purpose |
 |------|---------|
-| [`spec.md`](spec.md) | Project specification and gates |
-| [`plan.md`](plan.md) | Phase plan (P0–P10) |
-| [`todos.md`](todos.md) | Task tracking with completion status |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Crate hierarchy and data flow |
-| [`STATUS.md`](STATUS.md) | Component maturity (stable/experimental/architecture-only) |
+| [`spec.md`](docs/specs/spec.md) | Project specification and gates |
+| [`plan.md`](docs/specs/plan.md) | Phase plan (P0–P10) |
+| [`todos.md`](docs/status/todos.md) | Task tracking with completion status |
+| [`ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md) | Crate hierarchy and data flow |
+| [`STATUS.md`](docs/status/STATUS.md) | Component maturity (stable/experimental/architecture-only) |
 | [`AGENTS.md`](AGENTS.md) | Agent workflow rules |
 | [`docs/adr/`](docs/adr/) | Architecture Decision Records |
 
