@@ -43,7 +43,7 @@ pub use acme_style::Style;
 // ============================================================================
 
 use acme_layout::{
-    Edges, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow, TextMeasureSpec,
+    Edges, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow, TextMeasureSpec, TextWrapMode,
     WidgetLayoutContext,
 };
 
@@ -542,13 +542,40 @@ impl<M> WidgetNode<M> {
                     ..Default::default()
                 },
             ),
-            Self::Button(_) => LayoutNode::leaf(
-                id,
-                LayoutStyle {
-                    height: Length::px(36.0),
+            Self::Button(v) => {
+                // Buttons are text-bearing leaves. Leaving their width as an
+                // unmeasured `auto` value makes them collapse to zero inside a
+                // row, which causes adjacent controls to paint on top of one
+                // another. Measure the label and reserve the same horizontal
+                // hit-area padding used by the renderer.
+                let mut style = LayoutStyle {
+                    height: Length::px(v.size.px()),
+                    padding: Edges {
+                        left: 10.0,
+                        right: 10.0,
+                        ..Edges::default()
+                    },
+                    flex_shrink: 0.0,
                     ..Default::default()
-                },
-            ),
+                };
+                if v.full_width {
+                    style.width = Length::Percent(100.0);
+                }
+                v.style.clone().apply_to_layout(&mut style);
+                let font_size = v.style.font_size.unwrap_or(context.label_font_size);
+                let line_height = v.style.line_height.unwrap_or(context.body_line_height);
+                LayoutNode::text_leaf(
+                    id,
+                    style,
+                    TextMeasureSpec {
+                        text: v.label.clone(),
+                        font_size,
+                        line_height,
+                        wrap: TextWrapMode::None,
+                        max_lines: Some(1),
+                    },
+                )
+            }
             Self::VirtualList(v) => LayoutNode::container(
                 id,
                 LayoutStyle {
@@ -835,6 +862,25 @@ mod tests {
         assert_eq!(tree.children().len(), 2);
         assert_eq!(tree.key().unwrap().as_str(), "root");
     }
+
+    #[test]
+    fn button_layout_measures_label_and_reserves_padding() {
+        let node = button::<Msg>("save", "儲存").on_click(Msg::Save);
+        let context = WidgetLayoutContext {
+            body_font_size: 14.0,
+            body_line_height: 21.0,
+            label_font_size: 13.0,
+            control_height: 36.0,
+            scale_factor: 1.0,
+        };
+        let layout = node.to_layout_with_context(NodeId::new(1), &context);
+
+        assert_eq!(layout.style.height, Length::px(36.0));
+        assert_eq!(layout.style.padding.left, 10.0);
+        assert_eq!(layout.style.padding.right, 10.0);
+        assert!(layout.measure.is_some(), "button labels must be measured");
+    }
+
     #[test]
     fn disabled_button_does_not_activate() {
         let node = button("save", "save").disabled(true).on_click(Msg::Save);
