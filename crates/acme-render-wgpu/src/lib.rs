@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{any::Any, sync::Arc};
 
+use acme_core::{DrawCommand, GlyphFormat as SceneGlyphFormat, Scene};
 use acme_text::{AtlasFormat, PreparedText};
 use bytemuck::{Pod, Zeroable};
 use thiserror::Error;
@@ -361,17 +362,20 @@ impl Renderer {
         self.status = SurfaceStatus::Ready;
     }
 
-    pub fn render(&mut self, frame: &Frame) -> SurfaceAction {
+    /// Render a [`Scene`] directly, bypassing the legacy [`Frame`] format.
+    ///
+    /// This is the primary render entry point.  The legacy [`render`](Self::render)
+    /// method bridges to this via [`batch::scene_from_frame`].
+    pub fn render_scene(&mut self, scene: &Scene) -> SurfaceAction {
+        // ---- surface acquire preamble ----
         let suspended = self.status == SurfaceStatus::Suspended;
         let lost = is_device_lost(&self.device_lost_flag);
-        // Decide fast-exit actions without touching the surface where possible.
         let pre_acquire_action = resolve_surface_action(suspended, lost, AcquireOutcome::Success);
         if pre_acquire_action != SurfaceAction::Rendered {
             return pre_acquire_action;
         }
         let mut reconfigure_after_present = false;
         let acquired = self.surface.get_current_texture();
-        // Re-check after acquire in case a callback fired concurrently.
         let lost = is_device_lost(&self.device_lost_flag);
         let outcome = match &acquired {
             wgpu::CurrentSurfaceTexture::Success(_) => AcquireOutcome::Success,
@@ -386,7 +390,6 @@ impl Renderer {
         };
         let action = resolve_surface_action(suspended, lost, outcome);
         if action != SurfaceAction::Rendered {
-            // Handle the reconfigure side effect for the outdated/lost case.
             if outcome == AcquireOutcome::OutdatedOrLost {
                 self.status = SurfaceStatus::Recovering;
                 self.surface.configure(&self.device, &self.config);
@@ -402,16 +405,17 @@ impl Renderer {
                 reconfigure_after_present = true;
                 frame
             }
-            // Unreachable: any non-render outcome returned above.
             _ => return SurfaceAction::Skip,
         };
-        // ---- atlas uploads with per-frame dedup ----
+
+        // ---- atlas upload from scene ----
         let mut uploaded_regions: HashSet<(u32, u32, u32, u32)> = HashSet::new();
         let mut atlas_total = 0u64;
         let mut atlas_skipped = 0u64;
         let mut atlas_bytes = 0u64;
-        for run in &frame.text {
-            let (total, skipped, bytes) = self.upload_atlas(&run.prepared, &mut uploaded_regions);
+        {
+            let (total, skipped, bytes) =
+                self.upload_scene_atlas(scene, &mut uploaded_regions);
             atlas_total += total;
             atlas_skipped += skipped;
             atlas_bytes += bytes;
@@ -422,84 +426,105 @@ impl Renderer {
         } else {
             100.0
         };
-        // ---- prepare draw data ----
-        let view = output
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-        // Regular (unclipped) quads.
-        let regular_instances: Vec<Instance> =
-            frame.quads.iter().map(|q| self.quad_instance(q)).collect();
-        // Clip batching - group clipped quads by their clip (rounded to nearest integer).
-        // Store the scissor rect alongside so DPI scaling is respected.
-        let mut clip_groups: std::collections::HashMap<[u32; 4], (Vec<Instance>, [u32; 4])> =
-            std::collections::HashMap::new();
-        for clipped in &frame.clipped_quads {
-            let key = clip_key(clipped.clip);
-            if let Some(scissor_rect) = scissor(
-                clipped.clip,
-                self.scale_factor,
-                self.config.width,
-                self.config.height,
-            ) {
-                let entry = clip_groups
-                    .entry(key)
-                    .or_insert_with(|| (Vec::new(), scissor_rect));
-                entry.0.push(self.quad_instance(&clipped.quad));
-            }
-        }
-        // Collect text groups by (format, clip).
-        let mut text_groups: std::collections::HashMap<
-            (AtlasFormat, Option<[u32; 4]>),
-            Vec<GlyphInstance>,
-        > = std::collections::HashMap::new();
-        for run in &frame.text {
-            let clip = run.clip.and_then(|value| {
-                scissor(
-                    value,
-                    self.scale_factor,
-                    self.config.width,
-                    self.config.height,
-                )
-            });
-            if run.clip.is_some() && clip.is_none() {
-                continue;
-            }
-            for format in [AtlasFormat::Alpha8, AtlasFormat::Rgba8] {
-                let glyphs = glyph_instances(
-                    run,
-                    format,
-                    self.scale_factor,
-                    self.config.width,
-                    self.config.height,
-                );
-                if !glyphs.is_empty() {
-                    text_groups
-                        .entry((format, clip))
-                        .or_default()
-                        .extend(glyphs);
-                }
-            }
-        }
-        // ---- flatten and write persistent quad buffer ----
-        let buf_idx = self.current_frame;
-        let instance_size = std::mem::size_of::<Instance>() as u64;
-        let mut all_quads: Vec<Instance> = regular_instances;
-        struct ClipBatch {
-            scissor: [u32; 4],
+
+        // ---- compile scene into ordered batches ----
+        let batches = batch::compile_scene(scene);
+        let scale = self.scale_factor;
+        let config_w = self.config.width;
+        let config_h = self.config.height;
+
+        // ---- extract instances per batch ----
+        struct QuadBatchDesc {
+            clip: Option<[u32; 4]>,
             start: u32,
             count: u32,
         }
-        let mut clip_batches: Vec<ClipBatch> = Vec::new();
-        for (quads, scissor_rect) in clip_groups.values() {
-            let start = all_quads.len() as u32;
-            let count = quads.len() as u32;
-            all_quads.extend_from_slice(quads);
-            clip_batches.push(ClipBatch {
-                scissor: *scissor_rect,
-                start,
-                count,
-            });
+        struct GlyphBatchDesc {
+            format: AtlasFormat,
+            clip: Option<[u32; 4]>,
+            start: u32,
+            count: u32,
         }
+
+        let mut all_quads: Vec<Instance> = Vec::new();
+        let mut all_glyphs: Vec<GlyphInstance> = Vec::new();
+        let mut quad_batches: Vec<QuadBatchDesc> = Vec::new();
+        let mut glyph_batches: Vec<GlyphBatchDesc> = Vec::new();
+
+        for batch in &batches {
+            let cmd_range = batch.command_start..batch.command_end;
+            match batch.pipeline {
+                batch::BatchPipeline::Quad => {
+                    let start = all_quads.len() as u32;
+                    for cmd_idx in cmd_range {
+                        if let DrawCommand::Quad(prim) = &scene.commands()[cmd_idx] {
+                            all_quads
+                                .push(quad_primitive_to_instance(prim, scale, config_w, config_h));
+                        }
+                    }
+                    let count = all_quads.len() as u32 - start;
+                    if count > 0 {
+                        quad_batches.push(QuadBatchDesc {
+                            clip: batch.clip,
+                            start,
+                            count,
+                        });
+                    }
+                }
+                batch::BatchPipeline::TextAlpha => {
+                    let start = all_glyphs.len() as u32;
+                    for cmd_idx in cmd_range {
+                        if let DrawCommand::Text(prim) = &scene.commands()[cmd_idx] {
+                            let glyphs = text_primitive_glyphs(
+                                prim,
+                                SceneGlyphFormat::Alpha8,
+                                scale,
+                                config_w,
+                                config_h,
+                            );
+                            all_glyphs.extend(glyphs);
+                        }
+                    }
+                    let count = all_glyphs.len() as u32 - start;
+                    if count > 0 {
+                        glyph_batches.push(GlyphBatchDesc {
+                            format: AtlasFormat::Alpha8,
+                            clip: batch.clip,
+                            start,
+                            count,
+                        });
+                    }
+                }
+                batch::BatchPipeline::TextRgba => {
+                    let start = all_glyphs.len() as u32;
+                    for cmd_idx in cmd_range {
+                        if let DrawCommand::Text(prim) = &scene.commands()[cmd_idx] {
+                            let glyphs = text_primitive_glyphs(
+                                prim,
+                                SceneGlyphFormat::Rgba8,
+                                scale,
+                                config_w,
+                                config_h,
+                            );
+                            all_glyphs.extend(glyphs);
+                        }
+                    }
+                    let count = all_glyphs.len() as u32 - start;
+                    if count > 0 {
+                        glyph_batches.push(GlyphBatchDesc {
+                            format: AtlasFormat::Rgba8,
+                            clip: batch.clip,
+                            start,
+                            count,
+                        });
+                    }
+                }
+            }
+        }
+
+        // ---- write double-buffered vertex buffers ----
+        let buf_idx = self.current_frame;
+        let instance_size = std::mem::size_of::<Instance>() as u64;
         let quad_instances_needed = all_quads.len() as u64;
         let needed_quad_bytes = quad_instances_needed * instance_size;
         self.ensure_quad_capacity(needed_quad_bytes, buf_idx);
@@ -511,27 +536,8 @@ impl Renderer {
             );
             self.stats.bytes_uploaded += needed_quad_bytes;
         }
-        // ---- flatten and write persistent glyph buffer ----
+
         let glyph_size = std::mem::size_of::<GlyphInstance>() as u64;
-        struct GlyphBatch {
-            format: AtlasFormat,
-            clip: Option<[u32; 4]>,
-            start: u32,
-            count: u32,
-        }
-        let mut all_glyphs: Vec<GlyphInstance> = Vec::new();
-        let mut glyph_batches: Vec<GlyphBatch> = Vec::new();
-        for ((format, clip), instances) in &text_groups {
-            let start = all_glyphs.len() as u32;
-            let count = instances.len() as u32;
-            all_glyphs.extend_from_slice(instances);
-            glyph_batches.push(GlyphBatch {
-                format: *format,
-                clip: *clip,
-                start,
-                count,
-            });
-        }
         let needed_glyph_bytes = all_glyphs.len() as u64 * glyph_size;
         self.ensure_glyph_capacity(needed_glyph_bytes, buf_idx);
         if !all_glyphs.is_empty() {
@@ -542,7 +548,11 @@ impl Renderer {
             );
             self.stats.bytes_uploaded += needed_glyph_bytes;
         }
+
         // ---- render pass ----
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -557,10 +567,10 @@ impl Renderer {
                     depth_slice: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: frame.clear[0] as f64,
-                            g: frame.clear[1] as f64,
-                            b: frame.clear[2] as f64,
-                            a: frame.clear[3] as f64,
+                            r: scene.clear.r as f64,
+                            g: scene.clear.g as f64,
+                            b: scene.clear.b as f64,
+                            a: scene.clear.a as f64,
                         }),
                         store: wgpu::StoreOp::Store,
                     },
@@ -570,52 +580,71 @@ impl Renderer {
                 occlusion_query_set: None,
                 multiview_mask: None,
             });
+
             let mut draw_count = 0u64;
-            // - draw regular quads (full viewport) -
-            let regular_count = frame.quads.len() as u32;
-            if regular_count > 0 {
-                pass.set_pipeline(&self.pipeline);
-                pass.set_vertex_buffer(0, self.quad_buffers[buf_idx].slice(..));
-                pass.draw(0..6, 0..regular_count);
-                draw_count += 1;
-            }
-            // - draw each clip batch with its scissor rect -
-            for batch in &clip_batches {
+
+            // Draw quad batches in order.
+            for b in &quad_batches {
+                let scissor_rect = match b.clip {
+                    Some(c) => scissor(
+                        [c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32],
+                        scale,
+                        config_w,
+                        config_h,
+                    )
+                    .unwrap_or([0, 0, config_w, config_h]),
+                    None => [0, 0, config_w, config_h],
+                };
                 pass.set_scissor_rect(
-                    batch.scissor[0],
-                    batch.scissor[1],
-                    batch.scissor[2],
-                    batch.scissor[3],
+                    scissor_rect[0],
+                    scissor_rect[1],
+                    scissor_rect[2],
+                    scissor_rect[3],
                 );
                 pass.set_pipeline(&self.pipeline);
                 pass.set_vertex_buffer(0, self.quad_buffers[buf_idx].slice(..));
-                pass.draw(0..6, batch.start..batch.start + batch.count);
+                pass.draw(0..6, b.start..b.start + b.count);
                 draw_count += 1;
             }
-            // - draw text batches -
-            pass.set_scissor_rect(0, 0, self.config.width, self.config.height);
-            for batch in &glyph_batches {
-                let clip = batch
-                    .clip
-                    .unwrap_or([0, 0, self.config.width, self.config.height]);
-                pass.set_scissor_rect(clip[0], clip[1], clip[2], clip[3]);
+
+            // Draw glyph batches in order.
+            for b in &glyph_batches {
+                let scissor_rect = match b.clip {
+                    Some(c) => scissor(
+                        [c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32],
+                        scale,
+                        config_w,
+                        config_h,
+                    )
+                    .unwrap_or([0, 0, config_w, config_h]),
+                    None => [0, 0, config_w, config_h],
+                };
+                pass.set_scissor_rect(
+                    scissor_rect[0],
+                    scissor_rect[1],
+                    scissor_rect[2],
+                    scissor_rect[3],
+                );
                 pass.set_pipeline(&self.text_pipeline);
                 pass.set_bind_group(
                     0,
-                    match batch.format {
+                    match b.format {
                         AtlasFormat::Alpha8 => &self.alpha_bind_group,
                         AtlasFormat::Rgba8 => &self.rgba_bind_group,
                     },
                     &[],
                 );
                 pass.set_vertex_buffer(0, self.glyph_buffers[buf_idx].slice(..));
-                pass.draw(0..6, batch.start..batch.start + batch.count);
+                pass.draw(0..6, b.start..b.start + b.count);
                 draw_count += 1;
             }
+
             self.stats.draw_calls = draw_count;
         }
+
         self.queue.submit(Some(encoder.finish()));
         output.present();
+
         // ---- update stats ----
         self.stats.quad_count = quad_instances_needed;
         self.stats.glyph_count = all_glyphs.len() as u64;
@@ -629,6 +658,14 @@ impl Renderer {
         }
     }
 
+    /// Legacy bridge: converts a [`Frame`] to a [`Scene`] via
+    /// [`batch::scene_from_frame`] and delegates to [`render_scene`](Self::render_scene).
+    pub fn render(&mut self, frame: &Frame) -> SurfaceAction {
+        let scene = batch::scene_from_frame(frame);
+        self.render_scene(&scene)
+    }
+
+    #[allow(dead_code)]
     fn quad_instance(&self, quad: &Quad) -> Instance {
         let clean = |value: f32| if value.is_finite() { value } else { 0.0 };
         Instance {
@@ -761,6 +798,7 @@ impl Renderer {
         self.status = SurfaceStatus::Recovering;
     }
 
+    #[allow(dead_code)]
     fn upload_atlas(
         &self,
         prepared: &PreparedText,
@@ -818,6 +856,77 @@ impl Renderer {
                 },
             );
             atlas_bytes += upload.width as u64 * upload.height as u64 * bytes_per_pixel as u64;
+        }
+        (total, skipped, atlas_bytes)
+    }
+
+    /// Upload atlas regions from a [`Scene`]'s text primitives, deduplicating
+    /// via `uploaded` regions set.  Returns (total_count, skipped_count, bytes_uploaded).
+    fn upload_scene_atlas(
+        &self,
+        scene: &Scene,
+        uploaded: &mut HashSet<(u32, u32, u32, u32)>,
+    ) -> (u64, u64, u64) {
+        let mut total = 0u64;
+        let mut skipped = 0u64;
+        let mut atlas_bytes = 0u64;
+        for cmd in scene.commands() {
+            if let DrawCommand::Text(prim) = cmd {
+                for upload in &prim.uploads {
+                    let x = upload.origin[0];
+                    let y = upload.origin[1];
+                    let w = upload.size[0];
+                    let h = upload.size[1];
+                    if w == 0
+                        || h == 0
+                        || x.saturating_add(w) > ATLAS_SIZE
+                        || y.saturating_add(h) > ATLAS_SIZE
+                    {
+                        continue;
+                    }
+                    let bytes_per_pixel = match upload.format {
+                        SceneGlyphFormat::Alpha8 => 1,
+                        SceneGlyphFormat::Rgba8 => 4,
+                    };
+                    let expected = w as usize * h as usize * bytes_per_pixel;
+                    if upload.pixels.len() != expected {
+                        tracing::warn!("rejected malformed glyph atlas upload");
+                        continue;
+                    }
+                    total += 1;
+                    if !uploaded.insert((x, y, w, h)) {
+                        skipped += 1;
+                        continue;
+                    }
+                    let atlas_format = match upload.format {
+                        SceneGlyphFormat::Alpha8 => AtlasFormat::Alpha8,
+                        SceneGlyphFormat::Rgba8 => AtlasFormat::Rgba8,
+                    };
+                    self.queue.write_texture(
+                        wgpu::TexelCopyTextureInfo {
+                            texture: match atlas_format {
+                                AtlasFormat::Alpha8 => &self.alpha_atlas,
+                                AtlasFormat::Rgba8 => &self.rgba_atlas,
+                            },
+                            mip_level: 0,
+                            origin: wgpu::Origin3d { x, y, z: 0 },
+                            aspect: wgpu::TextureAspect::All,
+                        },
+                        &upload.pixels,
+                        wgpu::TexelCopyBufferLayout {
+                            offset: 0,
+                            bytes_per_row: Some(w * bytes_per_pixel as u32),
+                            rows_per_image: Some(h),
+                        },
+                        wgpu::Extent3d {
+                            width: w,
+                            height: h,
+                            depth_or_array_layers: 1,
+                        },
+                    );
+                    atlas_bytes += w as u64 * h as u64 * bytes_per_pixel as u64;
+                }
+            }
         }
         (total, skipped, atlas_bytes)
     }
@@ -985,46 +1094,6 @@ fn create_atlas_bind_group(
     })
 }
 
-fn glyph_instances(
-    run: &TextRun,
-    format: AtlasFormat,
-    scale: f32,
-    width: u32,
-    height: u32,
-) -> Vec<GlyphInstance> {
-    let color = normalize_color(run.color);
-    run.prepared
-        .glyphs
-        .iter()
-        .filter(|glyph| glyph.format == format)
-        .map(|glyph| GlyphInstance {
-            rect: [
-                glyph.x as f32 + run.origin[0] * scale,
-                glyph.y as f32 + run.origin[1] * scale,
-                glyph.width as f32,
-                glyph.height as f32,
-            ],
-            uv: [
-                glyph.atlas_x as f32 / ATLAS_SIZE as f32,
-                glyph.atlas_y as f32 / ATLAS_SIZE as f32,
-                glyph.width as f32 / ATLAS_SIZE as f32,
-                glyph.height as f32 / ATLAS_SIZE as f32,
-            ],
-            color,
-            viewport_mode: [
-                width as f32,
-                height as f32,
-                if format == AtlasFormat::Rgba8 {
-                    1.0
-                } else {
-                    0.0
-                },
-                0.0,
-            ],
-        })
-        .collect()
-}
-
 fn scissor(rect: [f32; 4], scale: f32, width: u32, height: u32) -> Option<[u32; 4]> {
     if rect.iter().any(|value| !value.is_finite()) {
         return None;
@@ -1038,16 +1107,6 @@ fn scissor(rect: [f32; 4], scale: f32, width: u32, height: u32) -> Option<[u32; 
         .ceil()
         .clamp(0.0, height as f32) as u32;
     (right > x && bottom > y).then_some([x, y, right - x, bottom - y])
-}
-
-/// Round clip rect components to nearest integer for use as a grouping key.
-fn clip_key(clip: [f32; 4]) -> [u32; 4] {
-    [
-        (clip[0].round().max(0.0)) as u32,
-        (clip[1].round().max(0.0)) as u32,
-        clip[2].round().max(0.0) as u32,
-        clip[3].round().max(0.0) as u32,
-    ]
 }
 
 fn normalize_scale(value: f32) -> f32 {
@@ -1066,6 +1125,94 @@ fn normalize_color(mut color: [f32; 4]) -> [f32; 4] {
         };
     }
     color
+}
+
+/// Convert a [`QuadPrimitive`] (logical pixels, acme_core types) into a GPU
+/// [`Instance`] by applying scale factor and normalizing colors.
+fn quad_primitive_to_instance(
+    prim: &acme_core::QuadPrimitive,
+    scale: f32,
+    config_w: u32,
+    config_h: u32,
+) -> Instance {
+    let clean = |value: f32| if value.is_finite() { value } else { 0.0 };
+    Instance {
+        rect: [
+            clean(prim.rect.origin.x.get()) * scale,
+            clean(prim.rect.origin.y.get()) * scale,
+            clean(prim.rect.size.width.get()).max(0.0) * scale,
+            clean(prim.rect.size.height.get()).max(0.0) * scale,
+        ],
+        color: normalize_color([
+            prim.color.r,
+            prim.color.g,
+            prim.color.b,
+            prim.color.a,
+        ]),
+        border_color: normalize_color([
+            prim.border_color.r,
+            prim.border_color.g,
+            prim.border_color.b,
+            prim.border_color.a,
+        ]),
+        extras: [
+            clean(prim.radius).max(0.0) * scale,
+            clean(prim.border_width).max(0.0) * scale,
+            config_w as f32,
+            config_h as f32,
+        ],
+    }
+}
+
+/// Extract [`GlyphInstance`]s from a [`TextPrimitive`] for the given format.
+/// Applies origin offset and scale in the same way as the original
+/// `glyph_instances` helper.
+fn text_primitive_glyphs(
+    prim: &acme_core::TextPrimitive,
+    format: SceneGlyphFormat,
+    scale: f32,
+    width: u32,
+    height: u32,
+) -> Vec<GlyphInstance> {
+    let color = normalize_color([
+        prim.color.r,
+        prim.color.g,
+        prim.color.b,
+        prim.color.a,
+    ]);
+    let atlas_fmt = match format {
+        SceneGlyphFormat::Alpha8 => AtlasFormat::Alpha8,
+        SceneGlyphFormat::Rgba8 => AtlasFormat::Rgba8,
+    };
+    prim.glyphs
+        .iter()
+        .filter(|glyph| glyph.format == format)
+        .map(|glyph| GlyphInstance {
+            rect: [
+                glyph.x + prim.origin.x.get() * scale,
+                glyph.y + prim.origin.y.get() * scale,
+                glyph.width,
+                glyph.height,
+            ],
+            uv: [
+                glyph.atlas_x as f32 / ATLAS_SIZE as f32,
+                glyph.atlas_y as f32 / ATLAS_SIZE as f32,
+                glyph.width / ATLAS_SIZE as f32,
+                glyph.height / ATLAS_SIZE as f32,
+            ],
+            color,
+            viewport_mode: [
+                width as f32,
+                height as f32,
+                if atlas_fmt == AtlasFormat::Rgba8 {
+                    1.0
+                } else {
+                    0.0
+                },
+                0.0,
+            ],
+        })
+        .collect()
 }
 
 #[cfg(test)]
