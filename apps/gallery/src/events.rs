@@ -1,6 +1,5 @@
 //! Event handling methods for the Gallery struct.
 
-use acme_platform::PlatformKey;
 use acme_text::TextStyle;
 use acme_theme::Theme;
 

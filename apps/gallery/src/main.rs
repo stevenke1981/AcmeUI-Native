@@ -2,11 +2,29 @@
 //! component page templates, 4 reference app templates, and screenshot mode.
 //!
 //! Architecture:
-//!   Row (root)                                                        IDs
-//!     ├── Column (sidebar, 224px) — AcmeUI + 8 category buttons      child 0
-//!     └── Column (content area) — flex                               child 1
-//!         ├── Row (toolbar, 48px) — theme/density/focus toggles      child 0
-//!         └── ScrollView (content) — flex, overflow scroll           child 1
+//!
+//!   ┌──────────────────────────────────────────────────────────┐
+//!   │  Application::frame()  — pipeline orchestration          │
+//!   ├──────────────────────────────────────────────────────────┤
+//!   │  Gallery (this file)                                     │
+//!   │   ├── Widget tree builders  (description, sidebar, ...)  │  Layer 3
+//!   │   ├── Frame render methods  (render_sidebar, ...)        │   Widget → Frame
+//!   │   ├── event / activate     (events.rs)                   │
+//!   │   └── page dispatcher      (pages/component.rs)          │
+//!   ├──────────────────────────────────────────────────────────┤
+//!   │  render/ module                                          │
+//!   │   ├── content.rs   →  render_content (DFS dispatch)      │  Layer 2
+//!   │   ├── hit_test.rs  →  collect_hit_regions                │   Widget Rendering
+//!   │   ├── style.rs     →  push_widget_style / shadow         │
+//!   │   └── text.rs      →  add_text (shape → prepare → push)  │
+//!   ├──────────────────────────────────────────────────────────┤
+//!   │  render/ module (cont.)                                  │
+//!   │   ├── geometry.rs  →  quad_rect, rgba, point_in_rect     │  Layer 1
+//!   │   └── layout.rs    →  extract/apply gallery layout       │   Primitives
+//!   ├──────────────────────────────────────────────────────────┤
+//!   │  helpers.rs  —  spacing, standard_component_sections     │  Utilities
+//!   │  types.rs    —  GalleryMessage, HitRegion, Density       │
+//!   └──────────────────────────────────────────────────────────┘
 //!
 //! All button hit-regions are collected via a single DFS walk across the
 //! widget+layout tree — no magic‑number indexing is used anywhere.
@@ -20,31 +38,24 @@ mod types;
 
 use acme_accessibility::AccessibilityAdapter;
 use acme_core::NodeId;
-use acme_layout::{
-    LayoutEngine, LayoutNode, WidgetLayoutContext,
-};
+use acme_layout::{LayoutEngine, WidgetLayoutContext};
 use acme_platform::{
     Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
 };
-use acme_render_wgpu::{Frame, Quad, TextRun};
-use acme_style::prelude::ColorToken;
-use acme_style::prelude::Styled;
-use acme_style::ShadowDef;
-use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
+use acme_render_wgpu::Frame;
+use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::{
     TextInputState, handle_key, handle_keyboard_shortcut, handle_text, render_text_input,
 };
-use acme_theme::{Theme, ThemeColor};
+use acme_theme::Theme;
 use acme_widgets::{
-    ButtonState, WidgetKey, WidgetNode, button, column, label, label_with_size, row,
-    scroll_view, separator,
+    ButtonState, WidgetNode, button, column, label, label_with_size, row, scroll_view, separator,
 };
 
-use crate::helpers::*;
 use crate::render::{
-    apply_gallery_styles, extract_gallery_ids, find_text_input_marker,
-    point_in_rect, push_widget_style, render_content, collect_hit_regions,
-    collect_data_widget_hits, add_text, rgba, quad_rect, scrolled_hit_rect,
+    add_text, apply_gallery_styles, collect_data_widget_hits, collect_hit_regions,
+    extract_gallery_ids, find_text_input_marker, point_in_rect, quad_rect, render_content, rgba,
+    scrolled_hit_rect,
 };
 use crate::types::*;
 
@@ -280,6 +291,261 @@ impl Gallery {
     fn long_text_widget(text: &str) -> WidgetNode<GalleryMessage> {
         label_with_size(text, 14.0)
     }
+
+    // ── Frame rendering steps (extracted from frame()) ──────────────────────
+
+    /// Render sidebar background, title, and category buttons.
+    fn render_sidebar(
+        &mut self,
+        frame: &mut Frame,
+        snapshot: &acme_layout::LayoutSnapshot,
+        ids: &render::GalleryNodeIds,
+        theme: &Theme,
+        scale: f32,
+    ) {
+        let colors = theme.colors;
+
+        // Background
+        if let Some(r) = snapshot.get(ids.sidebar) {
+            frame.quads.push(quad_rect(
+                [r.x, r.y, r.width, r.height],
+                colors.surface,
+                0.0,
+                1.0,
+                colors.border,
+            ));
+        }
+
+        // Title
+        if let Some(r) = snapshot.get(ids.sidebar_label) {
+            add_text(
+                &mut self.fonts,
+                &mut self.atlas,
+                frame,
+                "AcmeUI",
+                ([r.x + 4.0, r.y + 2.0], 18.0),
+                colors.foreground,
+                scale,
+                None,
+                theme.typography.line_height,
+            );
+        }
+
+        // Category buttons
+        for (i, &btn_id) in ids.sidebar_buttons.iter().enumerate() {
+            let btn_idx = i;
+            let Some(r) = snapshot.get(btn_id) else {
+                continue;
+            };
+            let is_selected = i == self.selected_category;
+            let st = ButtonState {
+                hovered: self.hovered == Some(btn_idx),
+                pressed: self.pressed == Some(btn_idx),
+                focused: self.focused == btn_idx,
+            };
+            let bg = if is_selected {
+                colors.accent
+            } else if st.hovered {
+                colors.ghost_hover
+            } else {
+                colors.surface
+            };
+            let fg = if is_selected {
+                colors.primary_foreground
+            } else {
+                colors.foreground
+            };
+            frame.quads.push(quad_rect(
+                [r.x, r.y, r.width, r.height],
+                bg,
+                theme.radii.md,
+                if is_selected || (st.focused && self.show_focus_rings) {
+                    2.0
+                } else {
+                    1.0
+                },
+                if st.focused {
+                    colors.ring
+                } else {
+                    colors.border
+                },
+            ));
+            add_text(
+                &mut self.fonts,
+                &mut self.atlas,
+                frame,
+                CATEGORIES[i].name,
+                ([r.x + 12.0, r.y + 9.0], theme.typography.label),
+                fg,
+                scale,
+                None,
+                theme.typography.line_height,
+            );
+        }
+    }
+
+    /// Render toolbar background and buttons.
+    fn render_toolbar(
+        &mut self,
+        frame: &mut Frame,
+        snapshot: &acme_layout::LayoutSnapshot,
+        ids: &render::GalleryNodeIds,
+        theme: &Theme,
+        scale: f32,
+    ) {
+        let colors = theme.colors;
+
+        // Background
+        if let Some(r) = snapshot.get(ids.toolbar) {
+            frame.quads.push(quad_rect(
+                [r.x, r.y, r.width, r.height],
+                colors.surface,
+                0.0,
+                1.0,
+                colors.border,
+            ));
+        }
+
+        // Buttons
+        let tb_labels = [
+            if self.dark { "☀ Light" } else { "🌙 Dark" },
+            self.density.label(),
+            if self.show_focus_rings {
+                "Focus ✓"
+            } else {
+                "Focus ✗"
+            },
+        ];
+        for (i, (&btn_id, &label_text)) in
+            ids.toolbar_buttons.iter().zip(tb_labels.iter()).enumerate()
+        {
+            let btn_idx = 8 + i;
+            let Some(r) = snapshot.get(btn_id) else {
+                continue;
+            };
+            let st = ButtonState {
+                hovered: self.hovered == Some(btn_idx),
+                pressed: self.pressed == Some(btn_idx),
+                focused: self.focused == btn_idx,
+            };
+            let btn = button::<GalleryMessage>("", "");
+            let resolved = btn.resolve_style(theme, st);
+            frame.quads.push(quad_rect(
+                [r.x, r.y, r.width, r.height],
+                resolved.background,
+                theme.radii.md,
+                if st.focused && self.show_focus_rings {
+                    2.0
+                } else {
+                    1.0
+                },
+                if st.focused {
+                    resolved.focus
+                } else {
+                    resolved.border
+                },
+            ));
+            add_text(
+                &mut self.fonts,
+                &mut self.atlas,
+                frame,
+                label_text,
+                ([r.x + 12.0, r.y + 7.0], 13.0),
+                resolved.foreground,
+                scale,
+                None,
+                theme.typography.line_height,
+            );
+        }
+    }
+
+    /// Render scroll view page content (DFS widget dispatch).
+    #[allow(clippy::too_many_arguments)]
+    fn render_page_content(
+        &mut self,
+        frame: &mut Frame,
+        description: &WidgetNode<GalleryMessage>,
+        root: &acme_layout::LayoutNode,
+        snapshot: &acme_layout::LayoutSnapshot,
+        theme: &Theme,
+        scale: f32,
+        ids: &render::GalleryNodeIds,
+    ) {
+        if let Some(sv_rect) = snapshot.get(ids.scroll_view) {
+            let clip = [sv_rect.x, sv_rect.y, sv_rect.width, sv_rect.height];
+            let mut btn_idx = 11;
+            render_content(
+                frame,
+                description,
+                root,
+                snapshot,
+                theme,
+                scale,
+                self.scroll,
+                clip,
+                &mut btn_idx,
+                self.hovered,
+                self.pressed,
+                self.focused,
+                &mut self.fonts,
+                &mut self.atlas,
+                self.show_focus_rings,
+            );
+        }
+    }
+
+    /// Render text input override on the TextInput page (category 1, page 1).
+    fn render_text_input_overlay(
+        &mut self,
+        frame: &mut Frame,
+        description: &WidgetNode<GalleryMessage>,
+        root: &acme_layout::LayoutNode,
+        snapshot: &acme_layout::LayoutSnapshot,
+        theme: &Theme,
+        scale: f32,
+    ) {
+        #[allow(clippy::collapsible_if)]
+        if self.selected_category == 1 && self.selected_page == 1 {
+            if let Some(ph_id) = find_text_input_marker(description, root) {
+                if let Some(ph) = snapshot.get(ph_id) {
+                    let y = ph.y - self.scroll;
+                    let rect = [ph.x, y, ph.width, ph.height];
+                    self.text_input_rect = rect;
+                    let focused = self.text_input.focused;
+                    render_text_input(
+                        frame,
+                        &mut self.text_input,
+                        &mut self.fonts,
+                        &mut self.atlas,
+                        rect,
+                        theme,
+                        scale,
+                        focused,
+                        None,
+                    );
+                    self.refresh_ime_caret_cache();
+                    if !self.ime_text.is_empty() {
+                        add_text(
+                            &mut self.fonts,
+                            &mut self.atlas,
+                            frame,
+                            &format!("Committed: {}", self.ime_text),
+                            ([ph.x + 2.0, y + ph.height + 6.0], 14.0),
+                            theme.colors.muted_foreground,
+                            scale,
+                            None,
+                            theme.typography.line_height,
+                        );
+                    }
+                }
+            }
+        } else {
+            self.text_input_rect = [0.0; 4];
+            if self.ime_caret_window_rect.is_some() {
+                self.ime_caret_window_rect = None;
+            }
+        }
+    }
 }
 
 // ── Application Trait ───────────────────────────────────────────────────────
@@ -480,22 +746,23 @@ impl Application for Gallery {
         self.atlas.clear();
     }
 
+    /// Frame pipeline: build tree → theme → layout → hit-test → render layers.
     fn frame(&mut self, context: FrameContext) -> Frame {
         let width = context.logical_width;
         let height = context.logical_height;
         self.last_scale_factor = context.scale_factor;
 
-        // ── 1. Build widget tree ──
+        // ── Layer 1: Build widget tree ──
         let description = self.description();
 
-        // ── 2. Build Theme ──
+        // ── Layer 1: Build Theme ──
         let theme = if self.dark {
             Theme::dark()
         } else {
             Theme::light()
         };
 
-        // ── 3. Build layout context from theme ──
+        // ── Layer 2: Build layout context from theme ──
         let layout_context = WidgetLayoutContext {
             body_font_size: theme.typography.body,
             body_line_height: theme.typography.body * theme.typography.line_height,
@@ -504,13 +771,13 @@ impl Application for Gallery {
             scale_factor: context.scale_factor,
         };
 
-        // ── 4. Convert to layout tree with context ──
+        // ── Layer 2: Convert to layout tree with context ──
         let mut root = description.to_layout_with_context(NodeId::new(1), &layout_context);
 
-        // ── 5. Apply sizes, gaps, scroll flags ──
+        // ── Layer 2: Apply sizes, gaps, scroll flags ──
         apply_gallery_styles(&mut root, width, height);
 
-        // ── 6. Compute layout snapshot with intrinsic text measurement ──
+        // ── Layer 2: Compute layout snapshot ──
         let snapshot = self
             .layout
             .compute_with_text(
@@ -521,13 +788,13 @@ impl Application for Gallery {
             )
             .expect("finite Gallery viewport");
 
-        // ── 7. Accessibility ──
+        // ── Layer 3: Accessibility ──
         self.accessibility.update(&description, &snapshot);
 
-        // ── 8. Extract structural IDs for the fixed frame ──
+        // ── Layer 3: Extract structural IDs ──
         let ids = extract_gallery_ids(&root);
 
-        // ── 9. Collect hit regions ──
+        // ── Layer 3: Collect hit regions ──
         let mut button_info = Vec::new();
         collect_hit_regions(&description, &root, &snapshot, false, &mut button_info);
         self.tree_viewport_rect = [0.0; 4];
@@ -546,7 +813,7 @@ impl Application for Gallery {
         );
         self.button_info = button_info;
 
-        // ── 10. Scroll metrics ──
+        // ── Layer 3: Scroll metrics ──
         self.max_scroll = snapshot
             .scroll_metrics(ids.scroll_view)
             .map(|m| (m.content_height - m.viewport_height).max(0.0))
@@ -557,220 +824,27 @@ impl Application for Gallery {
             .map(|r| [r.x, r.y, r.width, r.height])
             .unwrap_or([0.0; 4]);
 
-        let colors = theme.colors;
-
-        // ── 11. Build frame ──
+        // ── Layer 4: Build frame ──
         let mut frame = Frame {
-            clear: rgba(colors.background),
+            clear: rgba(theme.colors.background),
             ..Frame::default()
         };
 
-        // ── 12. Sidebar background ──
-        if let Some(r) = snapshot.get(ids.sidebar) {
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                colors.surface,
-                0.0,
-                1.0,
-                colors.border,
-            ));
-        }
+        // ── Layer 4: Render sidebar ──
+        self.render_sidebar(&mut frame, &snapshot, &ids, &theme, context.scale_factor);
 
-        // ── 13. Sidebar title ──
-        if let Some(r) = snapshot.get(ids.sidebar_label) {
-            add_text(
-                &mut self.fonts,
-                &mut self.atlas,
-                &mut frame,
-                "AcmeUI",
-                ([r.x + 4.0, r.y + 2.0], 18.0),
-                colors.foreground,
-                context.scale_factor,
-                None,
-                theme.typography.line_height,
-            );
-        }
+        // ── Layer 4: Render toolbar ──
+        self.render_toolbar(&mut frame, &snapshot, &ids, &theme, context.scale_factor);
 
-        // ── 14. Sidebar category buttons ──
-        for (i, &btn_id) in ids.sidebar_buttons.iter().enumerate() {
-            let btn_idx = i;
-            let Some(r) = snapshot.get(btn_id) else {
-                continue;
-            };
-            let is_selected = i == self.selected_category;
-            let st = ButtonState {
-                hovered: self.hovered == Some(btn_idx),
-                pressed: self.pressed == Some(btn_idx),
-                focused: self.focused == btn_idx,
-            };
-            let bg = if is_selected {
-                colors.accent
-            } else if st.hovered {
-                colors.ghost_hover
-            } else {
-                colors.surface
-            };
-            let fg = if is_selected {
-                colors.primary_foreground
-            } else {
-                colors.foreground
-            };
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                bg,
-                theme.radii.md,
-                if is_selected || (st.focused && self.show_focus_rings) {
-                    2.0
-                } else {
-                    1.0
-                },
-                if st.focused {
-                    colors.ring
-                } else {
-                    colors.border
-                },
-            ));
-            add_text(
-                &mut self.fonts,
-                &mut self.atlas,
-                &mut frame,
-                CATEGORIES[i].name,
-                ([r.x + 12.0, r.y + 9.0], theme.typography.label),
-                fg,
-                context.scale_factor,
-                None,
-                theme.typography.line_height,
-            );
-        }
+        // ── Layer 4: Render page content ──
+        self.render_page_content(
+            &mut frame, &description, &root, &snapshot, &theme, context.scale_factor, &ids,
+        );
 
-        // ── 15. Toolbar background ──
-        if let Some(r) = snapshot.get(ids.toolbar) {
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                colors.surface,
-                0.0,
-                1.0,
-                colors.border,
-            ));
-        }
-
-        // ── 16. Toolbar buttons ──
-        let tb_labels = [
-            if self.dark { "☀ Light" } else { "🌙 Dark" },
-            self.density.label(),
-            if self.show_focus_rings {
-                "Focus ✓"
-            } else {
-                "Focus ✗"
-            },
-        ];
-        for (i, (&btn_id, &label_text)) in
-            ids.toolbar_buttons.iter().zip(tb_labels.iter()).enumerate()
-        {
-            let btn_idx = 8 + i;
-            let Some(r) = snapshot.get(btn_id) else {
-                continue;
-            };
-            let st = ButtonState {
-                hovered: self.hovered == Some(btn_idx),
-                pressed: self.pressed == Some(btn_idx),
-                focused: self.focused == btn_idx,
-            };
-            let btn = button::<GalleryMessage>("", "");
-            let resolved = btn.resolve_style(&theme, st);
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                resolved.background,
-                theme.radii.md,
-                if st.focused && self.show_focus_rings {
-                    2.0
-                } else {
-                    1.0
-                },
-                if st.focused {
-                    resolved.focus
-                } else {
-                    resolved.border
-                },
-            ));
-            add_text(
-                &mut self.fonts,
-                &mut self.atlas,
-                &mut frame,
-                label_text,
-                ([r.x + 12.0, r.y + 7.0], 13.0),
-                resolved.foreground,
-                context.scale_factor,
-                None,
-                theme.typography.line_height,
-            );
-        }
-
-        // ── 17. Page content inside scroll view ──
-        if let Some(sv_rect) = snapshot.get(ids.scroll_view) {
-            let clip = [sv_rect.x, sv_rect.y, sv_rect.width, sv_rect.height];
-            let mut btn_idx = 11;
-            render_content(
-                &mut frame,
-                &description,
-                &root,
-                &snapshot,
-                &theme,
-                context.scale_factor,
-                self.scroll,
-                clip,
-                &mut btn_idx,
-                self.hovered,
-                self.pressed,
-                self.focused,
-                &mut self.fonts,
-                &mut self.atlas,
-                self.show_focus_rings,
-            );
-        }
-
-        // ── 18. Text Input / IME override on the TextInput page ──
-        #[allow(clippy::collapsible_if)]
-        if self.selected_category == 1 && self.selected_page == 1 {
-            if let Some(ph_id) = find_text_input_marker(&description, &root) {
-                if let Some(ph) = snapshot.get(ph_id) {
-                    let y = ph.y - self.scroll;
-                    let rect = [ph.x, y, ph.width, ph.height];
-                    self.text_input_rect = rect;
-                    let focused = self.text_input.focused;
-                    render_text_input(
-                        &mut frame,
-                        &mut self.text_input,
-                        &mut self.fonts,
-                        &mut self.atlas,
-                        rect,
-                        &theme,
-                        context.scale_factor,
-                        focused,
-                        None,
-                    );
-                    self.refresh_ime_caret_cache();
-                    if !self.ime_text.is_empty() {
-                        add_text(
-                            &mut self.fonts,
-                            &mut self.atlas,
-                            &mut frame,
-                            &format!("Committed: {}", self.ime_text),
-                            ([ph.x + 2.0, y + ph.height + 6.0], 14.0),
-                            colors.muted_foreground,
-                            context.scale_factor,
-                            None,
-                            theme.typography.line_height,
-                        );
-                    }
-                }
-            }
-        } else {
-            self.text_input_rect = [0.0; 4];
-            if self.ime_caret_window_rect.is_some() {
-                self.ime_caret_window_rect = None;
-            }
-        }
+        // ── Layer 4: Render text input overlay ──
+        self.render_text_input_overlay(
+            &mut frame, &description, &root, &snapshot, &theme, context.scale_factor,
+        );
 
         frame
     }
