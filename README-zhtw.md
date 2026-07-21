@@ -151,6 +151,73 @@ AcmeUI-Native/
 
 ---
 
+---
+
+## 函數式與分層架構 — 轉換程度
+
+主要展示應用 `apps/gallery` 已完成從 **2593 行單體**到分層函數式架構的完整轉換：
+
+### 事件管線（第 1 → 4 層）
+
+| 圖層 | 檔案 | 角色 | 函式數 | `Gallery` 方法數 |
+|------|------|------|--------|-----------------|
+| **第 4 層** | `main.rs`（event match） | 純比對派發 | 0 | `event()`（每行 3 行） |
+| **第 3 層** | `events/dispatch.rs` | 各事件類型處理器 | **10 個 pub fn** | 0 |
+| **第 2 層** | `events/activate.rs` + `events/ime.rs` | 狀態轉換 | **2 個 pub fn** | 0 |
+| **第 1 層** | `events/hit.rs` | 純查詢 | **1 個 pub fn** | 0 |
+
+**全部 13 個事件處理器皆為自由函式** — 零個 `impl Gallery` 方法，零個 `&mut self`。
+
+### 渲染管線（第 1 → 4 層）
+
+| 圖層 | 模組 | 角色 | 函式數 |
+|------|------|------|--------|
+| **第 4 層** | `render/frame.rs` | 管線編排 | **8 個 pub fn** |
+| **第 3 層** | `render/content.rs` + `render/hit_test.rs` | Widget 渲染 | **6 個 pub fn** |
+| **第 2 層** | `render/style.rs` + `render/text.rs` | 樣式與文字輔助 | **3 個 pub fn** |
+| **第 1 層** | `render/geometry.rs` + `render/layout.rs` | 基礎圖元 | **6 個 pub fn** |
+
+**全部 23 個渲染函式皆為自由函式** — 零個 `impl Gallery` 方法。
+
+### main.rs 縮減
+
+| 指標 | 轉換前 | 轉換後 |
+|------|--------|--------|
+| 總行數 | 2,593 | **538**（-79%） |
+| `impl Gallery` 方法 | ~25 | 2（new, window_config）+ 3（Application trait） |
+| 自由函式 | 0 | **40+**（分散於 events/、render/、pages/、helpers/） |
+| 事件處理 | 內聯於 `event()` | **13 個自由函式**於 `events/dispatch.rs` |
+| 渲染步驟 | 內聯於 `frame()` | **23 個自由函式**於 `render/`（8 個檔案） |
+| 頁面建構器 | 內聯 | **9 個檔案**於 `pages/` |
+
+### 資料元件（acme-widgets）
+
+| 元件 | 行數 | Builder API | 狀態管理 | 測試數 |
+|------|------|-------------|----------|--------|
+| `data/tree.rs` | 563 | ✅ TreeNode, Tree | ✅ 展開/收合、選取、即時輸入 | 12 |
+| `data/table.rs` | 824 | ✅ TableColumn, TableRow | ✅ 排序、選取、調整大小、鍵盤導航 | 24 |
+| `data/datagrid.rs` | 663 | ✅ DataGridColumn, DataGridRow | ✅ 凍結儲存格、合併、雙向虛擬化 | 14 |
+| `data/virtual_list.rs` | 562 | ✅ 項目高度、overscan | ✅ 可視範圍、錨點、高度快取 | 15 |
+| **總計** | **2,612** | — | — | **65 項測試** |
+
+### UI 元件庫（acme-ui）
+
+| 模組 | 元件數 | 功能閘門 | 預設啟用 |
+|------|--------|----------|---------|
+| `foundations/` | 26（Alert、Badge、Calendar、Icon、Link、Progress、Skeleton、Tag…） | `foundations` | ✅ |
+| `inputs/` | 28（ButtonGroup、Checkbox、Combobox、DatePicker、Radio、Slider、Switch、Select…） | `inputs` | ✅ |
+| `layout/` | 12（Form、Grid、Pagination、Tabs、Toolbar、SplitPanel、Stepper…） | `layout` | ✅ |
+| `overlay/` | 8（Drawer、Toast、ConfirmDialog、ContextMenu、HoverCard…） | `overlay` | ✅ |
+| `desktop/` | 11（TitleBar、Dock、Sidenav、Menubar、CommandBar、PropertyGrid…） | `desktop` | — |
+| `charts/` | 6（LineChart、PieChart、BarChart、Sparkline、AreaChart、Gauge） | `charts` | — |
+| `mobile/` | 3（BottomNav、BottomSheet、PullToRefresh） | `mobile` | — |
+| `browser/` | 3（Carousel、Lightbox、ZoomView） | `browser` | — |
+| **總計** | **97 個元件檔案** | 8 個功能閘門 | 4 個預設 |
+
+每個元件遵循 **Builder 模式**：`Component::new() → .option(value) → .on_event(message) → .build() → WidgetNode<M>`。
+
+---
+
 ## 關鍵設計決策
 
 | 決策 | 理由 |

@@ -151,6 +151,86 @@ AcmeUI-Native/
 
 ---
 
+---
+
+## Functional & Layered Architecture — Conversion Extent
+
+The `apps/gallery` (primary demo) has been fully converted from a 2593-line monolith to a layered, functional architecture:
+
+### Event Pipeline (Layer 1 → 4)
+
+| Layer | File | Role | Functions | Methods on `Gallery` |
+|-------|------|------|-----------|---------------------|
+| **Layer 4** | `main.rs` (event match) | Pure match-to-dispatch | 0 | `event()` (3 lines per arm) |
+| **Layer 3** | `events/dispatch.rs` | Per-event-type handlers | **10 pub fn** | 0 |
+| **Layer 2** | `events/activate.rs` + `events/ime.rs` | State transition | **2 pub fn** | 0 |
+| **Layer 1** | `events/hit.rs` | Pure query | **1 pub fn** | 0 |
+
+**All 13 event handlers are free functions** — zero `impl Gallery` methods, zero `&mut self`.
+
+### Render Pipeline (Layer 1 → 4)
+
+| Layer | Module | Role | Functions |
+|-------|--------|------|-----------|
+| **Layer 4** | `render/frame.rs` | Pipeline orchestration | **8 pub fn** (build_theme, render_sidebar, …) |
+| **Layer 3** | `render/content.rs` + `render/hit_test.rs` | Widget rendering | **6 pub fn** |
+| **Layer 2** | `render/style.rs` + `render/text.rs` | Style & text helpers | **3 pub fn** |
+| **Layer 1** | `render/geometry.rs` + `render/layout.rs` | Primitives | **6 pub fn** |
+
+**All 23 render functions are free functions** — zero `impl Gallery` methods, zero `&mut self`.
+
+### Page Builders
+
+| File | Category | Functions added to `Gallery` |
+|------|----------|------------------------------|
+| `pages/component.rs` | Foundations + page dispatcher | 4 |
+| `pages/inputs.rs` | Inputs | 2 |
+| `pages/navigation.rs` | Navigation | 5 |
+| `pages/overlay.rs` | Overlay | 1 |
+| `pages/data.rs` | **Data** (Tree, Table, DataGrid, VirtualList) | 6 |
+| `pages/patterns.rs` | Patterns | 5 |
+| `pages/accessibility.rs` | Accessibility | 1 |
+| `pages/stress.rs` | Stress tests | 1 |
+
+### main.rs Reduction
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Total lines | 2,593 | **538** (-79%) |
+| `impl Gallery` methods | ~25 | 2 (new, window_config) + 3 (Application trait) |
+| Free functions | 0 | **40+** across events/, render/, pages/, helpers/ |
+| Event handlers | Inline in `event()` | **13 free functions** in `events/dispatch.rs` |
+| Render steps | Inline in `frame()` | **23 free functions** in `render/` (8 files) |
+| Gallery page builders | Inline | **9 files** in `pages/` |
+
+### Data Components (acme-widgets)
+
+| Component | Lines | Builder API | State Management | Tests |
+|-----------|-------|-------------|-----------------|-------|
+| `data/tree.rs` | 563 | ✅ TreeNode, Tree | ✅ Expand/collapse, selection, typeahead | 12 |
+| `data/table.rs` | 824 | ✅ TableColumn, TableRow | ✅ Sort, select, resize, keyboard nav | 24 |
+| `data/datagrid.rs` | 663 | ✅ DataGridColumn, DataGridRow | ✅ Frozen cells, merge, bidirectional virtual | 14 |
+| `data/virtual_list.rs` | 562 | ✅ Item height, overscan | ✅ Visible range, anchor, height cache | 15 |
+| **Total** | **2,612** | — | — | **65 tests** |
+
+### UI Component Library (acme-ui)
+
+| Module | Components | Feature Gate | Default |
+|--------|-----------|-------------|---------|
+| `foundations/` | 26 (Alert, Badge, Calendar, Card, Icon, Link, Progress, Skeleton, Tag, …) | `foundations` | ✅ |
+| `inputs/` | 28 (ButtonGroup, Checkbox, Combobox, DatePicker, Radio, Slider, Switch, Select, …) | `inputs` | ✅ |
+| `layout/` | 12 (Form, Grid, Pagination, Tabs, Toolbar, SplitPanel, Stepper, …) | `layout` | ✅ |
+| `overlay/` | 8 (Drawer, Toast, ConfirmDialog, ContextMenu, HoverCard, …) | `overlay` | ✅ |
+| `desktop/` | 11 (TitleBar, Dock, Sidenav, Menubar, CommandBar, PropertyGrid, …) | `desktop` | — |
+| `charts/` | 6 (LineChart, PieChart, BarChart, Sparkline, AreaChart, Gauge) | `charts` | — |
+| `mobile/` | 3 (BottomNav, BottomSheet, PullToRefresh) | `mobile` | — |
+| `browser/` | 3 (Carousel, Lightbox, ZoomView) | `browser` | — |
+| **Total** | **97 component files** | 8 feature gates | 4 default |
+
+Each component follows the **builder pattern**: `Component::new() → .option(value) → .on_event(message) → .build() → WidgetNode<M>`.
+
+---
+
 ## Key Design Decisions
 
 | Decision | Rationale |
