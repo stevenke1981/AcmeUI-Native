@@ -1,27 +1,32 @@
 //! Color and geometry helpers — pure functions for rendering primitives.
 
-use acme_render_wgpu::Quad;
+use acme_core::{Color, QuadPrimitive, Rect};
 use acme_theme::ThemeColor;
 
-/// Convert a [`ThemeColor`] to `[f32; 4]` RGBA.
-pub fn rgba(color: ThemeColor) -> [f32; 4] {
-    [color.red, color.green, color.blue, color.alpha]
+/// Convert a [`ThemeColor`] to [`Color`].
+pub fn rgba(color: ThemeColor) -> Color {
+    Color::rgba(color.red, color.green, color.blue, color.alpha)
 }
 
-/// Build a [`Quad`] from its parts.
+/// Convert a [`ThemeColor`] to [`Color`].
+pub fn theme_color_to_core(tc: ThemeColor) -> Color {
+    Color::rgba(tc.red, tc.green, tc.blue, tc.alpha)
+}
+
+/// Build a [`QuadPrimitive`] from its parts.
 pub fn quad_rect(
     rect: [f32; 4],
     fill: ThemeColor,
     radius: f32,
     border_width: f32,
     border_color: ThemeColor,
-) -> Quad {
-    Quad {
-        rect,
-        color: rgba(fill),
+) -> QuadPrimitive {
+    QuadPrimitive {
+        rect: Rect::new(rect[0], rect[1], rect[2], rect[3]),
+        color: theme_color_to_core(fill),
         radius,
         border_width,
-        border_color: rgba(border_color),
+        border_color: theme_color_to_core(border_color),
     }
 }
 

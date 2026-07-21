@@ -8,7 +8,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 
-use acme_render_wgpu::{Frame, Renderer, SurfaceAction};
+use acme_core::Scene;
+use acme_render_wgpu::{Renderer, SurfaceAction};
 use thiserror::Error;
 use winit::{
     application::ApplicationHandler,
@@ -203,7 +204,7 @@ pub trait Application: 'static {
     /// Applications owning CPU-side caches that mirror GPU resources should
     /// invalidate them here so the next frame repopulates the new GPU resources.
     fn on_gpu_recovered(&mut self, _window: WindowId) {}
-    fn frame(&mut self, context: FrameContext) -> Frame;
+    fn frame(&mut self, context: FrameContext) -> Scene;
 }
 
 #[derive(Debug, Error)]
@@ -634,13 +635,13 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                 }
                 let scale = state.window.scale_factor() as f32;
                 let win_id = state.id;
-                let frame = app.frame(FrameContext {
+                let scene = app.frame(FrameContext {
                     window: win_id,
                     logical_width: size.width as f32 / scale,
                     logical_height: size.height as f32 / scale,
                     scale_factor: scale,
                 });
-                match state.renderer.render(&frame) {
+                match state.renderer.render_scene(&scene) {
                     SurfaceAction::Reconfigure => state.window.request_redraw(),
                     SurfaceAction::Exit => event_loop.exit(),
                     SurfaceAction::DeviceLost => {
@@ -730,8 +731,8 @@ mod tests {
                     },
                 ]
             }
-            fn frame(&mut self, _ctx: FrameContext) -> Frame {
-                Frame::default()
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
             }
         }
         let app = MultiWindowApp;
@@ -750,16 +751,16 @@ mod tests {
             fn on_gpu_recovered(&mut self, window: WindowId) {
                 self.recovered.push(window);
             }
-            fn frame(&mut self, _ctx: FrameContext) -> Frame {
-                Frame::default()
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
             }
         }
 
         // Default impl is a no-op (compiles + does nothing).
         struct DefaultApp;
         impl Application for DefaultApp {
-            fn frame(&mut self, _ctx: FrameContext) -> Frame {
-                Frame::default()
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
             }
         }
         let mut default_app = DefaultApp;
@@ -806,8 +807,8 @@ mod tests {
     fn ime_cursor_area_default_is_none() {
         struct DefaultApp;
         impl Application for DefaultApp {
-            fn frame(&mut self, _ctx: FrameContext) -> Frame {
-                Frame::default()
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
             }
         }
         let app = DefaultApp;
@@ -823,8 +824,8 @@ mod tests {
             fn ime_cursor_area(&self, _window: WindowId) -> Option<[f32; 4]> {
                 Some([10.0, 20.0, 3.0, 24.0])
             }
-            fn frame(&mut self, _ctx: FrameContext) -> Frame {
-                Frame::default()
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
             }
         }
         let app = CaretApp;

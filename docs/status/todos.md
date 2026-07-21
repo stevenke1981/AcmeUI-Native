@@ -65,6 +65,6 @@
 - [ ] Manual Traditional Chinese 注音 IME validation on Windows (checklist B)
 - [ ] Manual GPU device-loss recovery on Windows (checklist A)
 - [ ] Manual DPI interaction at 125/150/200% Windows scaling
-- [ ] Glyph atlas eviction/aging when full
+- [x] Glyph atlas eviction/aging when full
 - [ ] Benchmark headless CI thresholds
 - [ ] Screenshot golden / pixel regression

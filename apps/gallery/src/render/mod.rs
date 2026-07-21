@@ -41,5 +41,5 @@ pub use hit_test::{collect_data_widget_hits, collect_hit_regions};
 pub use text::add_text;
 
 // ── Layer 1: Geometry and layout ──
-pub use geometry::{point_in_rect, quad_rect, rgba, scrolled_hit_rect};
+pub use geometry::{point_in_rect, quad_rect, rgba, scrolled_hit_rect, theme_color_to_core};
 pub use layout::{apply_gallery_styles, extract_gallery_ids};

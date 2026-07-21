@@ -11,5 +11,4 @@ acme-text = { path = "../acme-text" }
 acme-theme = { path = "../acme-theme" }
 acme-widgets = { path = "../acme-widgets" }
 acme-platform = { path = "../acme-platform" }
-acme-render-wgpu = { path = "../acme-render-wgpu" }
 unicode-segmentation.workspace = true

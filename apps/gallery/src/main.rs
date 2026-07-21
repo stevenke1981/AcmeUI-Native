@@ -47,12 +47,11 @@ mod rt_shadow;
 mod types;
 
 use acme_accessibility::AccessibilityAdapter;
-use acme_core::{NodeId, RetainedTree};
+use acme_core::{Color, NodeId, RetainedTree, Scene};
 use acme_layout::LayoutEngine;
 use acme_platform::{
     Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
 };
-use acme_render_wgpu::Frame;
 use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::TextInputState;
 use acme_widgets::{
@@ -67,7 +66,7 @@ use crate::events::{
 use crate::render::{
     apply_gallery_styles, build_layout_context, build_theme, collect_data_widget_hits,
     collect_hit_regions, compute_scroll_state, compute_toolbar_labels,
-    extract_gallery_ids, rgba,
+    extract_gallery_ids,
     RenderCtx,
     render_sidebar, render_toolbar, render_page_content, render_text_input_overlay,
 };
@@ -431,11 +430,14 @@ impl Application for Gallery {
         self.atlas.clear();
     }
 
-    /// Frame pipeline: build tree → theme → layout → hit-test → render layers.
-    fn frame(&mut self, context: FrameContext) -> Frame {
+    /// Frame pipeline: build tree → theme → layout → hit-test → render scene.
+    fn frame(&mut self, context: FrameContext) -> Scene {
         let width = context.logical_width;
         let height = context.logical_height;
         self.last_scale_factor = context.scale_factor;
+
+        // ── Frame 0: Advance atlas LRU frame counter ──
+        self.atlas.begin_frame();
 
         // ── Layer 1: Build widget tree ──
         let description = self.description();
@@ -502,16 +504,18 @@ impl Application for Gallery {
         self.scroll = clamped_scroll;
         self.scroll_clip_rect = scroll_clip;
 
-        // ── Layer 4: Build frame ──
-        let mut frame = Frame {
-            clear: rgba(theme.colors.background),
-            ..Frame::default()
-        };
+        // ── Layer 4: Build scene ──
+        let mut scene = Scene::with_clear(Color::rgba(
+            theme.colors.background.red,
+            theme.colors.background.green,
+            theme.colors.background.blue,
+            theme.colors.background.alpha,
+        ));
 
         // ── Layer 4: Create render context (bundles all per-frame state) ──
         let toolbar_labels = compute_toolbar_labels(self.dark, self.density, self.show_focus_rings);
         let mut ctx = RenderCtx {
-            frame: &mut frame,
+            scene: &mut scene,
             fonts: &mut self.fonts,
             atlas: &mut self.atlas,
             snapshot: &snapshot,
@@ -556,6 +560,6 @@ impl Application for Gallery {
             self.last_scale_factor,
         );
 
-        frame
+        scene
     }
 }

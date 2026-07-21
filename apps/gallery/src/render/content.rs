@@ -1,8 +1,7 @@
 //! Widget-content rendering — DFS dispatch that paints each widget variant.
 
-use acme_core::NodeId;
+use acme_core::{DrawCommand, NodeId, Scene};
 use acme_layout::{LayoutNode, LayoutSnapshot};
-use acme_render_wgpu::Frame;
 use acme_text::{FontSystem, GlyphAtlas};
 use acme_theme::Theme;
 use acme_widgets::ButtonState;
@@ -16,7 +15,7 @@ use crate::types::{GalleryMessage, TEXT_INPUT_MARKER};
 /// DFS walk of page content inside the scroll view.
 #[allow(clippy::too_many_arguments)]
 pub fn render_content(
-    frame: &mut Frame,
+    scene: &mut Scene,
     widget: &WidgetNode<GalleryMessage>,
     layout: &LayoutNode,
     snapshot: &LayoutSnapshot,
@@ -60,7 +59,7 @@ pub fn render_content(
                 add_text(
                     fonts,
                     atlas,
-                    frame,
+                    scene,
                     &l.text,
                     ([rect.x + 4.0, y_text], fs),
                     text_color,
@@ -84,7 +83,7 @@ pub fn render_content(
                     focused: focused == idx,
                 };
                 let resolved = btn.resolve_style(theme, st);
-                frame.quads.push(quad_rect(
+                scene.push(DrawCommand::Quad(quad_rect(
                     [rect.x, y, rect.width, rect.height],
                     resolved.background,
                     theme.radii.md,
@@ -98,11 +97,11 @@ pub fn render_content(
                     } else {
                         resolved.border
                     },
-                ));
+                )));
                 add_text(
                     fonts,
                     atlas,
-                    frame,
+                    scene,
                     &btn.label,
                     ([rect.x + 10.0, y + 8.0], theme.typography.label),
                     resolved.foreground,
@@ -115,18 +114,18 @@ pub fn render_content(
         WidgetNode::Separator(_) => {
             if let Some(rect) = snapshot.get(layout.id) {
                 let y = rect.y - scroll_y;
-                frame.quads.push(quad_rect(
+                scene.push(DrawCommand::Quad(quad_rect(
                     [rect.x, y, rect.width, 1.0],
                     colors.border,
                     0.0,
                     0.0,
                     colors.border,
-                ));
+                )));
             }
         }
         WidgetNode::Tooltip(t) => {
             render_content(
-                frame,
+                scene,
                 &t.child,
                 layout,
                 snapshot,
@@ -145,7 +144,7 @@ pub fn render_content(
         }
         WidgetNode::Popover(p) => {
             render_content(
-                frame,
+                scene,
                 &p.children[0],
                 layout,
                 snapshot,
@@ -170,20 +169,20 @@ pub fn render_content(
                     let y = rect.y - scroll_y;
                     let selected = t.selected.as_ref() == Some(&node.key);
                     if selected {
-                        frame.quads.push(quad_rect(
+                        scene.push(DrawCommand::Quad(quad_rect(
                             [rect.x, y, rect.width.max(1.0), rect.height.max(1.0)],
                             colors.ghost_hover,
                             0.0,
                             0.0,
                             colors.ghost_hover,
-                        ));
+                        )));
                     }
                     if node.has_children {
                         let mark = if node.expanded { "▾" } else { "▸" };
                         add_text(
                             fonts,
                             atlas,
-                            frame,
+                            scene,
                             mark,
                             ([rect.x + 2.0, y + 2.0], theme.typography.body),
                             colors.muted_foreground,
@@ -194,7 +193,7 @@ pub fn render_content(
                     }
                 }
                 paint_label_like(
-                    frame,
+                    scene,
                     &node.content,
                     child_layout,
                     snapshot,
@@ -210,19 +209,19 @@ pub fn render_content(
         // Table: layout is header-row + data-row containers.
         WidgetNode::Table(t) => {
             render_table_content(
-                frame, t, layout, snapshot, theme, scale, scroll_y, clip, fonts, atlas,
+                scene, t, layout, snapshot, theme, scale, scroll_y, clip, fonts, atlas,
             );
         }
         // DataGrid: same row/column container layout as Table.
         WidgetNode::DataGrid(g) => {
             render_datagrid_content(
-                frame, g, layout, snapshot, theme, scale, scroll_y, clip, fonts, atlas,
+                scene, g, layout, snapshot, theme, scale, scroll_y, clip, fonts, atlas,
             );
         }
         // VirtualList: to_layout emits an empty container; paint the visible window.
         WidgetNode::VirtualList(v) => {
             render_vlist_content(
-                frame, v, layout, snapshot, theme, scale, scroll_y, clip, fonts, atlas,
+                scene, v, layout, snapshot, theme, scale, scroll_y, clip, fonts, atlas,
             );
         }
         _ => {
@@ -238,12 +237,12 @@ pub fn render_content(
                 };
                 let y = rect.y - scroll_y;
                 let r = [rect.x, y, rect.width, rect.height];
-                push_widget_style(frame, style, r, theme);
+                push_widget_style(scene, style, r, theme);
             }
             let wc = widget.children();
             for (w, l) in wc.iter().zip(layout.children.iter()) {
                 render_content(
-                    frame,
+                    scene,
                     w,
                     l,
                     snapshot,
@@ -267,7 +266,7 @@ pub fn render_content(
 /// Paint a Label (or nested Label-in-container) at a layout leaf position.
 #[allow(clippy::too_many_arguments)]
 pub fn paint_label_like(
-    frame: &mut Frame,
+    scene: &mut Scene,
     widget: &WidgetNode<GalleryMessage>,
     layout: &LayoutNode,
     snapshot: &LayoutSnapshot,
@@ -290,7 +289,7 @@ pub fn paint_label_like(
                 add_text(
                     fonts,
                     atlas,
-                    frame,
+                    scene,
                     &l.text,
                     ([rect.x + 4.0, y_text], fs),
                     theme.colors.foreground,
@@ -307,7 +306,7 @@ pub fn paint_label_like(
             }
             for (w, l) in wc.iter().zip(layout.children.iter()) {
                 paint_label_like(
-                    frame, w, l, snapshot, theme, scale, scroll_y, clip, fonts, atlas,
+                    scene, w, l, snapshot, theme, scale, scroll_y, clip, fonts, atlas,
                 );
             }
         }
@@ -339,7 +338,7 @@ use acme_widgets::{DataGrid, Table, VirtualList};
 
 #[allow(clippy::too_many_arguments)]
 fn render_table_content(
-    frame: &mut Frame,
+    scene: &mut Scene,
     t: &Table<GalleryMessage>,
     layout: &LayoutNode,
     snapshot: &LayoutSnapshot,
@@ -356,17 +355,17 @@ fn render_table_content(
         if let Some(header_row) = layout.children.get(row_i) {
             if let Some(hr) = snapshot.get(header_row.id) {
                 let y = hr.y - scroll_y;
-                frame.quads.push(quad_rect(
+                scene.push(DrawCommand::Quad(quad_rect(
                     [hr.x, y, hr.width.max(1.0), hr.height.max(1.0)],
                     colors.surface,
                     0.0,
                     1.0,
                     colors.border,
-                ));
+                )));
             }
             for (col, cell_layout) in t.columns.iter().zip(header_row.children.iter()) {
                 paint_label_like(
-                    frame,
+                    scene,
                     &col.header,
                     cell_layout,
                     snapshot,
@@ -389,17 +388,17 @@ fn render_table_content(
             && let Some(rr) = snapshot.get(row_layout.id)
         {
             let y = rr.y - scroll_y;
-            frame.quads.push(quad_rect(
+            scene.push(DrawCommand::Quad(quad_rect(
                 [rr.x, y, rr.width.max(1.0), rr.height.max(1.0)],
                 colors.ghost_hover,
                 0.0,
                 0.0,
                 colors.ghost_hover,
-            ));
+            )));
         }
         for (cell, cell_layout) in data_row.cells.iter().zip(row_layout.children.iter()) {
             paint_label_like(
-                frame,
+                scene,
                 cell,
                 cell_layout,
                 snapshot,
@@ -419,7 +418,7 @@ fn render_table_content(
 
 #[allow(clippy::too_many_arguments)]
 fn render_datagrid_content(
-    frame: &mut Frame,
+    scene: &mut Scene,
     g: &DataGrid<GalleryMessage>,
     layout: &LayoutNode,
     snapshot: &LayoutSnapshot,
@@ -435,7 +434,7 @@ fn render_datagrid_content(
         if let Some(header_row) = layout.children.get(row_i) {
             for (col, cell_layout) in g.columns.iter().zip(header_row.children.iter()) {
                 paint_label_like(
-                    frame,
+                    scene,
                     &col.header,
                     cell_layout,
                     snapshot,
@@ -456,7 +455,7 @@ fn render_datagrid_content(
         };
         for (cell, cell_layout) in data_row.cells.iter().zip(row_layout.children.iter()) {
             paint_label_like(
-                frame,
+                scene,
                 cell,
                 cell_layout,
                 snapshot,
@@ -476,7 +475,7 @@ fn render_datagrid_content(
 
 #[allow(clippy::too_many_arguments)]
 fn render_vlist_content(
-    frame: &mut Frame,
+    scene: &mut Scene,
     v: &VirtualList<GalleryMessage>,
     layout: &LayoutNode,
     snapshot: &LayoutSnapshot,
@@ -506,7 +505,7 @@ fn render_vlist_content(
                 add_text(
                     fonts,
                     atlas,
-                    frame,
+                    scene,
                     &l.text,
                     (
                         [rect.x + 4.0, y + 2.0],

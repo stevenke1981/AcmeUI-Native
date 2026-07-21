@@ -208,6 +208,7 @@ impl FontSystem {
         let mut uploads = Vec::new();
         for glyph in &layout.raster_glyphs {
             let entry = if let Some(entry) = atlas.entries.get(&glyph.cache_key).copied() {
+                atlas.touch(&glyph.cache_key);
                 Some(entry)
             } else {
                 let image = self
@@ -358,9 +359,16 @@ struct RasterizedGlyph {
 
 /// CPU-side shelf allocator bookkeeping for a renderer-owned texture.
 ///
-/// Supports LRU-style eviction: call [`begin_frame`](Self::begin_frame) each
-/// frame, then [`evict_stale`](Self::evict_stale) when the atlas is near
-/// capacity to drop glyphs not accessed within `max_age` frames.
+/// Provides LRU-style eviction: call [`begin_frame`](Self::begin_frame) each
+/// frame, then [`evict_stale`](Self::evict_stale) (or rely on the automatic
+/// eviction in [`insert`](Self::insert)) when the atlas is near capacity to
+/// drop glyphs not accessed within `max_age` frames.
+///
+/// **Note:** Because the shelf allocator cannot reclaim fragmented space, any
+/// eviction invalidates *all* atlas entries — surviving glyphs are re-uploaded
+/// on subsequent frames. Call [`begin_frame`](Self::begin_frame) once per
+/// frame and [`touch`](Self::touch) on cache hits to keep the LRU timestamps
+/// accurate.
 pub struct GlyphAtlas {
     width: u32,
     height: u32,
@@ -433,21 +441,18 @@ impl GlyphAtlas {
             .count()
     }
 
-    /// Evict entries not accessed within `max_age` frames and reset the shelf
-    /// allocator. Returns the number of evicted entries. The generation is
-    /// bumped so the renderer knows to re-upload surviving glyphs.
+    /// Evict entries not accessed within `max_age` frames.
+    ///
+    /// Because the shelf allocator cannot reclaim fragmented space, the entire
+    /// atlas is cleared when any entries are evicted — surviving glyphs will be
+    /// re-uploaded on subsequent frames. Returns the number of evicted entries.
+    /// The generation is bumped so the renderer can detect the invalidation.
     pub fn evict_stale(&mut self, max_age: u64) -> usize {
-        let before = self.entries.len();
-        self.entries
-            .retain(|_, e| self.frame.saturating_sub(e.last_used) <= max_age);
-        let evicted = before - self.entries.len();
-        if evicted > 0 {
-            self.cursor_x = 0;
-            self.cursor_y = 0;
-            self.row_height = 0;
-            self.generation = self.generation.wrapping_add(1);
+        let stale = self.stale_count(max_age);
+        if stale > 0 {
+            self.clear();
         }
-        evicted
+        stale
     }
 
     fn insert(
@@ -473,7 +478,21 @@ impl GlyphAtlas {
             self.row_height = 0;
         }
         if self.cursor_y + height > self.height {
-            return None;
+            // Atlas full — try to evict stale entries (60 frames ≈ 1s at 60fps).
+            // `evict_stale` clears all entries and resets the allocator if any
+            // stale entries were evicted, so we can retry the insert from (0,0).
+            if self.evict_stale(60) > 0 {
+                // Allocator was reset; re-check row-wrapping.
+                if self.cursor_x + width > self.width {
+                    self.cursor_x = 0;
+                    self.cursor_y = 0;
+                }
+                if self.cursor_y + height > self.height {
+                    return None; // Glyph still doesn't fit (shouldn't happen after clear)
+                }
+            } else {
+                return None; // No stale entries to evict
+            }
         }
         let entry = AtlasEntry {
             id: self.next_id,
@@ -669,5 +688,144 @@ mod tests {
             "post-clear prepare must report a higher atlas generation"
         );
         assert_eq!(third.glyphs.len(), first.glyphs.len());
+    }
+
+    #[test]
+    fn atlas_evict_stale_clears_all_entries() {
+        let mut fonts = FontSystem::new();
+        let layout = fonts.shape(
+            "Evict",
+            &TextStyle::default(),
+            TextConstraints::default(),
+            1.0,
+        );
+        let mut atlas = GlyphAtlas::new(512, 512);
+
+        // First prepare: upload glyphs.
+        let first = fonts.prepare(&layout, &mut atlas);
+        assert!(!first.uploads.is_empty());
+        assert_eq!(atlas.len(), first.glyphs.len());
+        let gen_before = atlas.generation();
+
+        // Advance frames so entries become stale (max_age = 1 frame).
+        atlas.begin_frame(); // frame 1
+        atlas.begin_frame(); // frame 2
+
+        assert!(
+            atlas.stale_count(1) > 0,
+            "entries should be stale after 2 frames with max_age=1"
+        );
+
+        // Evict stale entries — should clear everything.
+        let evicted = atlas.evict_stale(1);
+        assert!(
+            evicted > 0,
+            "must have evicted at least one entry"
+        );
+        assert!(
+            atlas.is_empty(),
+            "all entries must be cleared after eviction"
+        );
+        assert!(
+            atlas.generation() > gen_before,
+            "evict_stale must advance the atlas generation"
+        );
+    }
+
+    #[test]
+    fn atlas_auto_evict_on_full() {
+        let mut fonts = FontSystem::new();
+        // Tiny atlas so it fills up fast.
+        let mut atlas = GlyphAtlas::new(32, 32);
+
+        // Fill the atlas until it is full.
+        let mut full = false;
+        for letter in 'A'..='Z' {
+            let letter_layout = fonts.shape(
+                &letter.to_string(),
+                &TextStyle::default(),
+                TextConstraints::default(),
+                1.0,
+            );
+            let prepared = fonts.prepare(&letter_layout, &mut atlas);
+            if prepared.uploads.is_empty() && !prepared.glyphs.is_empty() {
+                continue; // all cached
+            }
+            if fonts.diagnostics().atlas_full_glyphs > 0 {
+                full = true;
+                break;
+            }
+        }
+        if !full {
+            // 32×32 atlas didn't fill with A-Z (very compact glyphs).
+            return;
+        }
+
+        // Advance frame counter past the 60-frame max_age used by auto-eviction.
+        for _ in 0..61 {
+            atlas.begin_frame();
+        }
+
+        let stale_before = atlas.stale_count(60);
+        assert!(
+            stale_before > 0,
+            "expected stale entries in a full atlas after 61 frames, got {stale_before}"
+        );
+
+        // Insert a new glyph — should trigger auto-eviction (stale entries exist).
+        let new_layout = fonts.shape(
+            "!",
+            &TextStyle::default(),
+            TextConstraints::default(),
+            1.0,
+        );
+        let after = fonts.prepare(&new_layout, &mut atlas);
+        assert!(
+            !after.uploads.is_empty(),
+            "new glyph should have been uploaded after auto-eviction"
+        );
+        assert!(
+            !after.glyphs.is_empty(),
+            "new glyph should be present after auto-eviction"
+        );
+        // Generation should have been bumped by the eviction.
+        assert!(
+            after.atlas_generation > 0,
+            "atlas generation must be >0 after eviction"
+        );
+    }
+
+    #[test]
+    fn atlas_touch_updates_last_used() {
+        let mut fonts = FontSystem::new();
+        let layout = fonts.shape(
+            "Touch",
+            &TextStyle::default(),
+            TextConstraints::default(),
+            1.0,
+        );
+        let mut atlas = GlyphAtlas::new(512, 512);
+
+        let first = fonts.prepare(&layout, &mut atlas);
+        assert!(!first.uploads.is_empty());
+        assert_eq!(first.glyphs.len(), atlas.len());
+
+        // Advance frame counter.
+        atlas.begin_frame();
+
+        // Second prepare: should touch all cache keys, updating last_used.
+        let second = fonts.prepare(&layout, &mut atlas);
+        assert!(
+            second.uploads.is_empty(),
+            "cache hit must not re-upload"
+        );
+
+        // After one frame advance, entries should NOT be stale (they were touched).
+        atlas.begin_frame();
+        assert_eq!(
+            atlas.stale_count(1),
+            0,
+            "touched entries must not be stale"
+        );
     }
 }

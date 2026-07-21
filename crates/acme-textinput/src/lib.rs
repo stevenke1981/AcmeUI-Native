@@ -5,8 +5,8 @@
 //! and text insertion.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+use acme_core::{Color, DrawCommand, GlyphDraw, GlyphFormat, Point, QuadPrimitive, Rect, Scene, TextPrimitive, AtlasUpload as SceneAtlasUpload};
 use acme_platform::{Clipboard, PlatformKey};
-use acme_render_wgpu::{Frame, Quad, TextRun};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextLayout, TextStyle, TextWrap};
 use acme_theme::{Theme, ThemeColor};
 use unicode_segmentation::UnicodeSegmentation;
@@ -706,14 +706,14 @@ fn intersect_rect(a: [f32; 4], b: [f32; 4]) -> [f32; 4] {
     }
 }
 
-/// Renders a TextInput cursor and selection into a [`Frame`].
+/// Renders a TextInput cursor and selection into a [`Scene`].
 ///
 /// `rect` is `[x, y, width, height]` in logical pixels.
 /// `clip` is an optional outer clip rectangle; the content area is further
 /// clipped to the inner padding region.
 #[allow(clippy::too_many_arguments)]
 pub fn render_text_input(
-    frame: &mut Frame,
+    scene: &mut Scene,
     state: &mut TextInputState,
     fonts: &mut FontSystem,
     atlas: &mut GlyphAtlas,
@@ -753,17 +753,23 @@ pub fn render_text_input(
         border_color
     };
 
-    // 1. Background
-    frame.quads.push(Quad::solid(rect, bg_color));
+    // 1. Background quad
+    scene.push(DrawCommand::Quad(QuadPrimitive {
+        rect: Rect::new(rect[0], rect[1], rect[2], rect[3]),
+        color: Color::rgba(bg_color[0], bg_color[1], bg_color[2], bg_color[3]),
+        radius: 0.0,
+        border_width: 0.0,
+        border_color: Color::TRANSPARENT,
+    }));
 
-    // 2. Border
-    frame.quads.push(Quad {
-        rect,
-        color: [0.0, 0.0, 0.0, 0.0], // fully transparent fill
+    // 2. Border quad
+    scene.push(DrawCommand::Quad(QuadPrimitive {
+        rect: Rect::new(rect[0], rect[1], rect[2], rect[3]),
+        color: Color::rgba(0.0, 0.0, 0.0, 0.0),
         radius: theme.radii.sm,
         border_width,
-        border_color,
-    });
+        border_color: Color::rgba(border_color[0], border_color[1], border_color[2], border_color[3]),
+    }));
 
     // Build style from theme typography tokens
     let font_size = theme.typography.body;
@@ -838,12 +844,49 @@ pub fn render_text_input(
     // Prepare glyphs from cached layout
     let prepared = fonts.prepare(cached, atlas);
 
-    frame.text.push(TextRun {
-        origin: [text_origin_x, text_y],
-        color: render_color,
-        clip: Some(effective_clip),
-        prepared,
-    });
+    // Convert prepared text to scene types
+    let mut glyphs = Vec::new();
+    let mut uploads = Vec::new();
+    for region in &prepared.uploads {
+        let pfmt = match region.format {
+            acme_text::AtlasFormat::Alpha8 => GlyphFormat::Alpha8,
+            acme_text::AtlasFormat::Rgba8 => GlyphFormat::Rgba8,
+        };
+        uploads.push(SceneAtlasUpload {
+            page: 0,
+            origin: [region.x, region.y],
+            size: [region.width, region.height],
+            format: pfmt,
+            pixels: region.pixels.clone(),
+        });
+    }
+    for glyph in &prepared.glyphs {
+        let gfmt = match glyph.format {
+            acme_text::AtlasFormat::Alpha8 => GlyphFormat::Alpha8,
+            acme_text::AtlasFormat::Rgba8 => GlyphFormat::Rgba8,
+        };
+        glyphs.push(GlyphDraw {
+            x: glyph.x as f32,
+            y: glyph.y as f32,
+            width: glyph.width as f32,
+            height: glyph.height as f32,
+            atlas_x: glyph.atlas_x,
+            atlas_y: glyph.atlas_y,
+            format: gfmt,
+        });
+    }
+
+    // Push clip, then text, then pop clip
+    scene.push(DrawCommand::PushClip(Rect::new(
+        effective_clip[0], effective_clip[1], effective_clip[2], effective_clip[3],
+    )));
+    scene.push(DrawCommand::Text(TextPrimitive {
+        origin: Point::new(text_origin_x, text_y),
+        color: Color::rgba(render_color[0], render_color[1], render_color[2], render_color[3]),
+        glyphs,
+        uploads,
+    }));
+    scene.push(DrawCommand::PopClip);
 
     // 4. Selection highlight
     if let Some((sel_start, sel_end)) = state.selection {
@@ -854,13 +897,17 @@ pub fn render_text_input(
             let end_x = byte_offset_to_x_inner(&display, clamped_end, fonts, &style, scale);
             let sel_w = end_x - start_x;
             if sel_w > 0.0 {
-                frame.clipped_quads.push(
-                    Quad::solid(
-                        [text_origin_x + start_x, content_y, sel_w, content_h],
-                        [0.3, 0.5, 0.9, 0.25], // light blue selection tint
-                    )
-                    .with_clip(effective_clip),
-                );
+                scene.push(DrawCommand::PushClip(Rect::new(
+                    effective_clip[0], effective_clip[1], effective_clip[2], effective_clip[3],
+                )));
+                scene.push(DrawCommand::Quad(QuadPrimitive {
+                    rect: Rect::new(text_origin_x + start_x, content_y, sel_w, content_h),
+                    color: Color::rgba(0.3, 0.5, 0.9, 0.25),
+                    radius: 0.0,
+                    border_width: 0.0,
+                    border_color: Color::TRANSPARENT,
+                }));
+                scene.push(DrawCommand::PopClip);
             }
         }
     }
@@ -871,10 +918,17 @@ pub fn render_text_input(
         let cursor_x_pos = text_origin_x + cx;
         // Only draw cursor if it's within the visible content area
         if cursor_x_pos < content_x + content_w {
-            frame.clipped_quads.push(
-                Quad::solid([cursor_x_pos, content_y, 1.5, content_h], text_color)
-                    .with_clip(effective_clip),
-            );
+            scene.push(DrawCommand::PushClip(Rect::new(
+                effective_clip[0], effective_clip[1], effective_clip[2], effective_clip[3],
+            )));
+            scene.push(DrawCommand::Quad(QuadPrimitive {
+                rect: Rect::new(cursor_x_pos, content_y, 1.5, content_h),
+                color: Color::rgba(text_color[0], text_color[1], text_color[2], text_color[3]),
+                radius: 0.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            }));
+            scene.push(DrawCommand::PopClip);
         }
     }
 
@@ -886,13 +940,17 @@ pub fn render_text_input(
         if preedit_w > 0.0 {
             let underline_y = content_y + content_h - 2.5;
             // Main underline
-            frame.clipped_quads.push(
-                Quad::solid(
-                    [text_origin_x + preedit_x, underline_y, preedit_w, 1.0],
-                    text_color,
-                )
-                .with_clip(effective_clip),
-            );
+            scene.push(DrawCommand::PushClip(Rect::new(
+                effective_clip[0], effective_clip[1], effective_clip[2], effective_clip[3],
+            )));
+            scene.push(DrawCommand::Quad(QuadPrimitive {
+                rect: Rect::new(text_origin_x + preedit_x, underline_y, preedit_w, 1.0),
+                color: Color::rgba(text_color[0], text_color[1], text_color[2], text_color[3]),
+                radius: 0.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            }));
+            scene.push(DrawCommand::PopClip);
             // Thicker segment at the preedit cursor position, if known
             if let Some((pc_start, pc_end)) = state.preedit_cursor {
                 let preedit_cx_start = byte_offset_to_x_inner(
@@ -910,18 +968,22 @@ pub fn render_text_input(
                     scale,
                 );
                 let seg_w = (preedit_cx_end - preedit_cx_start).max(1.5);
-                frame.clipped_quads.push(
-                    Quad::solid(
-                        [
-                            text_origin_x + preedit_x + preedit_cx_start,
-                            underline_y - 1.0,
-                            seg_w,
-                            3.0,
-                        ],
-                        text_color,
-                    )
-                    .with_clip(effective_clip),
-                );
+                scene.push(DrawCommand::PushClip(Rect::new(
+                    effective_clip[0], effective_clip[1], effective_clip[2], effective_clip[3],
+                )));
+                scene.push(DrawCommand::Quad(QuadPrimitive {
+                    rect: Rect::new(
+                        text_origin_x + preedit_x + preedit_cx_start,
+                        underline_y - 1.0,
+                        seg_w,
+                        3.0,
+                    ),
+                    color: Color::rgba(text_color[0], text_color[1], text_color[2], text_color[3]),
+                    radius: 0.0,
+                    border_width: 0.0,
+                    border_color: Color::TRANSPARENT,
+                }));
+                scene.push(DrawCommand::PopClip);
             }
         }
     }
@@ -1280,20 +1342,6 @@ fn next_word_boundary(text: &str, offset: usize) -> usize {
         .find(|(i, _)| *i > clamped)
         .map(|(i, _)| i)
         .unwrap_or(text.len())
-}
-
-// ---------------------------------------------------------------------------
-// Quad extension helper for clipped quads
-// ---------------------------------------------------------------------------
-
-trait IntoClippedQuad {
-    fn with_clip(self, clip: [f32; 4]) -> acme_render_wgpu::ClippedQuad;
-}
-
-impl IntoClippedQuad for Quad {
-    fn with_clip(self, clip: [f32; 4]) -> acme_render_wgpu::ClippedQuad {
-        acme_render_wgpu::ClippedQuad { quad: self, clip }
-    }
 }
 
 // ---------------------------------------------------------------------------

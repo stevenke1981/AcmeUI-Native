@@ -3,9 +3,8 @@
 //! All functions are pure with respect to `Gallery` — state is passed explicitly
 //! via [`RenderCtx`] so that rendering logic is decoupled from app state.
 
-use acme_core::NodeId;
+use acme_core::{DrawCommand, NodeId, Scene};
 use acme_layout::{LayoutNode, LayoutSnapshot, WidgetLayoutContext};
-use acme_render_wgpu::Frame;
 use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::{render_text_input, TextInputState};
 use acme_theme::Theme;
@@ -22,8 +21,8 @@ use crate::types::{CATEGORIES, GalleryMessage, Density};
 /// Per-frame rendering context — bundles all parameters needed by render
 /// functions so they never access `Gallery` directly (pure).
 pub struct RenderCtx<'a> {
-    // Output frame
-    pub frame: &'a mut Frame,
+    // Output scene
+    pub scene: &'a mut Scene,
 
     // Font / glyph systems (mutated by add_text / render_text_input)
     pub fonts: &'a mut FontSystem,
@@ -64,13 +63,13 @@ pub fn render_sidebar(ctx: &mut RenderCtx) {
 
     // Background
     if let Some(r) = ctx.snapshot.get(ctx.ids.sidebar) {
-        ctx.frame.quads.push(quad_rect(
+        ctx.scene.push(DrawCommand::Quad(quad_rect(
             [r.x, r.y, r.width, r.height],
             colors.surface,
             0.0,
             1.0,
             colors.border,
-        ));
+        )));
     }
 
     // Title
@@ -78,7 +77,7 @@ pub fn render_sidebar(ctx: &mut RenderCtx) {
         add_text(
             ctx.fonts,
             ctx.atlas,
-            ctx.frame,
+            ctx.scene,
             "AcmeUI",
             ([r.x + 4.0, r.y + 2.0], 18.0),
             colors.foreground,
@@ -112,7 +111,7 @@ pub fn render_sidebar(ctx: &mut RenderCtx) {
         } else {
             colors.foreground
         };
-        ctx.frame.quads.push(quad_rect(
+        ctx.scene.push(DrawCommand::Quad(quad_rect(
             [r.x, r.y, r.width, r.height],
             bg,
             ctx.theme.radii.md,
@@ -126,11 +125,11 @@ pub fn render_sidebar(ctx: &mut RenderCtx) {
             } else {
                 colors.border
             },
-        ));
+        )));
         add_text(
             ctx.fonts,
             ctx.atlas,
-            ctx.frame,
+            ctx.scene,
             CATEGORIES[i].name,
             ([r.x + 12.0, r.y + 9.0], ctx.theme.typography.label),
             fg,
@@ -147,13 +146,13 @@ pub fn render_toolbar(ctx: &mut RenderCtx) {
 
     // Background
     if let Some(r) = ctx.snapshot.get(ctx.ids.toolbar) {
-        ctx.frame.quads.push(quad_rect(
+        ctx.scene.push(DrawCommand::Quad(quad_rect(
             [r.x, r.y, r.width, r.height],
             colors.surface,
             0.0,
             1.0,
             colors.border,
-        ));
+        )));
     }
 
     // Buttons
@@ -171,7 +170,7 @@ pub fn render_toolbar(ctx: &mut RenderCtx) {
         };
         let btn = button::<GalleryMessage>("", "");
         let resolved = btn.resolve_style(ctx.theme, st);
-        ctx.frame.quads.push(quad_rect(
+        ctx.scene.push(DrawCommand::Quad(quad_rect(
             [r.x, r.y, r.width, r.height],
             resolved.background,
             ctx.theme.radii.md,
@@ -185,11 +184,11 @@ pub fn render_toolbar(ctx: &mut RenderCtx) {
             } else {
                 resolved.border
             },
-        ));
+        )));
         add_text(
             ctx.fonts,
             ctx.atlas,
-            ctx.frame,
+            ctx.scene,
             label_text,
             ([r.x + 12.0, r.y + 7.0], 13.0),
             resolved.foreground,
@@ -206,7 +205,7 @@ pub fn render_page_content(ctx: &mut RenderCtx) {
         let clip = [sv_rect.x, sv_rect.y, sv_rect.width, sv_rect.height];
         let mut btn_idx = 11;
         render_content(
-            ctx.frame,
+            ctx.scene,
             ctx.description,
             ctx.root,
             ctx.snapshot,
@@ -236,7 +235,7 @@ pub fn render_text_input_overlay(ctx: &mut RenderCtx) {
                 *ctx.text_input_rect = rect;
                 let focused = ctx.text_input.focused;
                 render_text_input(
-                    ctx.frame,
+                    ctx.scene,
                     ctx.text_input,
                     ctx.fonts,
                     ctx.atlas,
@@ -252,7 +251,7 @@ pub fn render_text_input_overlay(ctx: &mut RenderCtx) {
                     add_text(
                         ctx.fonts,
                         ctx.atlas,
-                        ctx.frame,
+                        ctx.scene,
                         &format!("Committed: {}", ctx.ime_text),
                         ([ph.x + 2.0, y + ph.height + 6.0], 14.0),
                         ctx.theme.colors.muted_foreground,

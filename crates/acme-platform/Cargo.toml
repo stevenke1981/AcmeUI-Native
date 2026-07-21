@@ -10,4 +10,5 @@ thiserror.workspace = true
 pollster.workspace = true
 tracing.workspace = true
 arboard.workspace = true
+acme-core = { path = "../acme-core" }
 acme-render-wgpu = { path = "../acme-render-wgpu" }

@@ -193,6 +193,7 @@ dependencies = [
 name = "acme-platform"
 version = "0.1.0"
 dependencies = [
+ "acme-core",
  "acme-render-wgpu",
  "arboard",
  "pollster",
@@ -254,7 +255,6 @@ dependencies = [
  "acme-core",
  "acme-layout",
  "acme-platform",
- "acme-render-wgpu",
  "acme-text",
  "acme-theme",
  "acme-widgets",
