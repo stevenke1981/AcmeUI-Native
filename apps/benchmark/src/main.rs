@@ -7,7 +7,7 @@ use std::time::Instant;
 use acme_core::{NodeId, RetainedTree, ViewNode};
 use acme_layout::{LayoutEngine, LayoutNode, LayoutStyle, Length};
 use acme_platform::{Application, FrameContext, PlatformEvent, WindowConfig};
-use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun};
+use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun, scene_from_frame};
 use acme_text::{FontSystem, GlyphAtlas, PreparedText, TextConstraints, TextStyle};
 use acme_widgets::{WidgetNode, button, column, label, row};
 use tracing::info;
@@ -51,14 +51,14 @@ impl Application for BenchmarkApp {
         false
     }
 
-    fn frame(&mut self, _context: FrameContext) -> Frame {
+    fn frame(&mut self, _context: FrameContext) -> acme_core::Scene {
         if !self.done {
             self.done = true;
             run_all_benchmarks(&mut self.engine);
             info!("Benchmarks complete — exiting");
             std::process::exit(0);
         }
-        Frame::default()
+        scene_from_frame(&Frame::default())
     }
 }
 

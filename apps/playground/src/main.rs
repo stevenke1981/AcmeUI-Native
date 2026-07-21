@@ -9,7 +9,7 @@ use acme_layout::{Edges, LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Leng
 use acme_platform::{
     Application, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
 };
-use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun};
+use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun, scene_from_frame};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
 use acme_theme::{Theme, ThemeColor};
 use acme_widgets::{
@@ -470,7 +470,7 @@ impl Application for Playground {
         self.atlas.clear();
     }
 
-    fn frame(&mut self, context: FrameContext) -> Frame {
+    fn frame(&mut self, context: FrameContext) -> acme_core::Scene {
         let width = context.logical_width;
         let height = context.logical_height;
         let theme = if self.dark {
@@ -937,7 +937,7 @@ impl Application for Playground {
             }
         }
 
-        frame
+        scene_from_frame(&frame)
     }
 }
 

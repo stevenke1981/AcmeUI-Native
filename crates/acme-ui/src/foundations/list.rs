@@ -3,9 +3,9 @@
 //! Each item can have an optional leading icon, label text, description, and
 //! selected indicator.
 
+use crate::{IconName, icon};
 use acme_core::WidgetKey;
 use acme_widgets::*;
-use crate::{icon, IconName};
 
 // ---------------------------------------------------------------------------
 // ListItem

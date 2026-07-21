@@ -79,9 +79,7 @@ impl<M: Clone + 'static> StatusTrayBuilder<M> {
 impl<M: Clone + 'static> From<StatusTrayBuilder<M>> for WidgetNode<M> {
     fn from(b: StatusTrayBuilder<M>) -> Self {
         let theme = acme_theme::Theme::light();
-        let mut row = crate::row::<M>()
-            .key(b.id)
-            .gap(4.0);
+        let mut row = crate::row::<M>().key(b.id).gap(4.0);
 
         for indicator in &b.indicators {
             let resolved = crate::resolve_tone(&theme, indicator.tone, true);

@@ -121,11 +121,7 @@ impl<M: Clone + 'static> DonutChartBuilder<M> {
             .child(
                 crate::column::<M>()
                     .child(label_with_size::<M>(&ring_segments, 16.0))
-                    .child(
-                        crate::label_builder(&center_text)
-                            .font_size(22.0)
-                            .build(),
-                    )
+                    .child(crate::label_builder(&center_text).font_size(22.0).build())
                     .child(label_with_size::<M>(
                         format!("Donut — {} slices", self.slices.len()),
                         12.0,
@@ -181,7 +177,11 @@ mod tests {
     #[test]
     fn donut_chart_single_slice() {
         let node: WidgetNode<TestMsg> = donut_chart::<TestMsg>("dc")
-            .slice(DonutSlice::new("Only", 100.0, ThemeColor::rgb(75, 192, 192)))
+            .slice(DonutSlice::new(
+                "Only",
+                100.0,
+                ThemeColor::rgb(75, 192, 192),
+            ))
             .into();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.children.len(), 2); // ring + legend

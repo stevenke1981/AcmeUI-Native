@@ -163,11 +163,8 @@ mod tests {
 
     #[test]
     fn pin_input_shows_masked_digits() {
-        let node: WidgetNode<TestMsg> = pin_input("pin")
-            .length(4)
-            .value("1234")
-            .masked(true)
-            .into();
+        let node: WidgetNode<TestMsg> =
+            pin_input("pin").length(4).value("1234").masked(true).into();
         let WidgetNode::Row(container) = &node else {
             panic!("expected Row");
         };

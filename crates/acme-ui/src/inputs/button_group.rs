@@ -104,9 +104,7 @@ impl<M: Clone + 'static> From<ButtonGroupBuilder<M>> for WidgetNode<M> {
 
             // Border radius: first gets left/top, last gets right/bottom,
             // middle items have no radius between them.
-            let radius = if item_count == 1 || item_count == 0 {
-                4.0
-            } else if i == 0 || i == item_count - 1 {
+            let radius = if item_count == 0 || item_count == 1 || i == 0 || i == item_count - 1 {
                 4.0
             } else {
                 0.0

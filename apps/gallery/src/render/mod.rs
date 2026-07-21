@@ -23,14 +23,12 @@ mod text;
 
 // ── Layer 4: Frame rendering (pure RenderCtx functions) ──
 pub use frame::{
-    build_layout_context, build_theme, compute_scroll_state, compute_toolbar_labels,
-    render_page_content, render_sidebar, render_text_input_overlay, render_toolbar, RenderCtx,
+    RenderCtx, build_layout_context, build_theme, compute_scroll_state, compute_toolbar_labels,
+    render_page_content, render_sidebar, render_text_input_overlay, render_toolbar,
 };
 
 // ── Layer 3: Widget rendering ──
-pub use content::{
-    find_text_input_marker, render_content, tree_key_static,
-};
+pub use content::{find_text_input_marker, render_content, tree_key_static};
 
 // ── Layer 2: Hit testing ──
 pub use hit_test::{collect_data_widget_hits, collect_hit_regions};
@@ -41,5 +39,5 @@ pub use hit_test::{collect_data_widget_hits, collect_hit_regions};
 pub use text::add_text;
 
 // ── Layer 1: Geometry and layout ──
-pub use geometry::{point_in_rect, quad_rect, rgba, scrolled_hit_rect, theme_color_to_core};
+pub use geometry::{point_in_rect, quad_rect, scrolled_hit_rect};
 pub use layout::{apply_gallery_styles, extract_gallery_ids};

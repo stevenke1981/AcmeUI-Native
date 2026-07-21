@@ -1,11 +1,9 @@
 //! Data category page builders (Tree, Table, DataGrid, VirtualList).
 
+use acme_widgets::{DataGridColumn, DataGridRow, SortDirection, TableColumn, TableRow, TreeNode};
 use acme_widgets::{
-    WidgetNode, WidgetKey, button, column, datagrid, label, label_with_size, row, separator, table,
+    WidgetKey, WidgetNode, button, column, datagrid, label, label_with_size, row, separator, table,
     tree, virtual_list,
-};
-use acme_widgets::{
-    DataGridColumn, DataGridRow, SortDirection, TableColumn, TableRow, TreeNode,
 };
 
 use crate::helpers::{spacing, table_display_order, table_row_cells};

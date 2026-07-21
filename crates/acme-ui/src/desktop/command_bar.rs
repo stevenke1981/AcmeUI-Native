@@ -49,9 +49,7 @@ impl<M: Clone + 'static> CommandBarBuilder<M> {
     /// Add an action button with the given icon, label, and click message.
     pub fn action(mut self, icon: impl Into<String>, label: impl Into<String>, msg: M) -> Self {
         let key = format!("cmd-action-{}", self.items.len());
-        let btn = button(key, label)
-            .leading_icon(icon)
-            .on_click(msg);
+        let btn = button(key, label).leading_icon(icon).on_click(msg);
         self.items.push(btn);
         self
     }
@@ -132,7 +130,7 @@ mod tests {
         let row = &layout.children[0];
         assert_eq!(row.style.kind, LayoutKind::Row);
         // At minimum: the search TextInput
-        assert!(row.children.len() >= 1);
+        assert!(!row.children.is_empty());
     }
 
     #[test]

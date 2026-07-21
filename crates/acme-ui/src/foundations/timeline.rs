@@ -3,9 +3,9 @@
 //! Each item renders as a Row with a colored marker Card on the left and a
 //! Column of title, description, and timestamp on the right.
 
-use std::marker::PhantomData;
 use acme_core::WidgetKey;
 use acme_widgets::*;
+use std::marker::PhantomData;
 
 /// Kind of timeline item marker.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -100,13 +100,8 @@ fn kind_to_variant(kind: TimelineItemKind) -> CardVariant {
 }
 
 /// Render a single timeline item as a Row.
-fn render_item<M: Clone + 'static>(
-    _index: usize,
-    item: &TimelineItem,
-) -> WidgetNode<M> {
-    let mut right = column::<M>()
-        .gap(2.0)
-        .child(label::<M>(item.title.clone()));
+fn render_item<M: Clone + 'static>(_index: usize, item: &TimelineItem) -> WidgetNode<M> {
+    let mut right = column::<M>().gap(2.0).child(label::<M>(item.title.clone()));
 
     if let Some(desc) = &item.description {
         right = right.child(label::<M>(desc.clone()));

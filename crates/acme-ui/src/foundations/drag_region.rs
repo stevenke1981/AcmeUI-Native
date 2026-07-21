@@ -53,13 +53,12 @@ impl<M: Clone + 'static> DragRegionBuilder<M> {
 
 impl<M: Clone + 'static> From<DragRegionBuilder<M>> for WidgetNode<M> {
     fn from(b: DragRegionBuilder<M>) -> Self {
-        let mut inner = card::<M>()
-            .variant(CardVariant::Muted)
-            .child(label_builder::<M>("⋯")
+        let mut inner = card::<M>().variant(CardVariant::Muted).child(
+            label_builder::<M>("⋯")
                 .font_size(14.0)
                 .color(acme_theme::Theme::light().colors.muted_foreground)
                 .build(),
-            );
+        );
 
         if let Some(child) = b.child {
             inner = inner.child(child);
@@ -112,9 +111,7 @@ mod tests {
 
     #[test]
     fn drag_region_with_child() {
-        let node: WidgetNode<TestMsg> = drag_region("dr")
-            .child(label::<TestMsg>("Content"))
-            .into();
+        let node: WidgetNode<TestMsg> = drag_region("dr").child(label::<TestMsg>("Content")).into();
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column variant");
         };

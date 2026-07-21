@@ -22,6 +22,23 @@ It combines:
 - **Animation engine** — tween/ease/bounce/yoyo/loop
 - **80+ high-level components** — via `acme-ui` (shadcn/ui + Material UI + Ant Design inspired)
 
+### Default Template (acme-ui 0.2.0)
+
+New applications can start from the built-in semantic template and prelude:
+
+```rust
+use acme_ui::prelude::*;
+
+let view = default_template("Dashboard")
+    .subtitle("A calm, consistent starting point")
+    .child(card::<AppMessage>().build())
+    .build();
+```
+
+The template provides a stable root key, semantic light theme defaults, and a
+token-driven surface for composing foundations, inputs, layout, and overlay
+components. See [`DEFAULT_TEMPLATE.md`](docs/architecture/DEFAULT_TEMPLATE.md).
+
 ### Architecture
 
 ```text

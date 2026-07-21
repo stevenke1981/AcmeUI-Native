@@ -54,21 +54,17 @@ use acme_platform::{
 };
 use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::TextInputState;
-use acme_widgets::{
-    WidgetNode, column, row, scroll_view,
-};
+use acme_widgets::{WidgetNode, column, row, scroll_view};
 
 use crate::events::{
-    compute_ime_caret_rect, handle_enter_space_key, handle_general_key, handle_ime_commit,
-    handle_ime_preedit, handle_pointer_moved, handle_pointer_pressed, handle_pointer_released,
-    handle_scroll_event, handle_tab_key, handle_tree_arrow_key, ActivationCtx,
+    ActivationCtx, compute_ime_caret_rect, handle_enter_space_key, handle_general_key,
+    handle_ime_commit, handle_ime_preedit, handle_pointer_moved, handle_pointer_pressed,
+    handle_pointer_released, handle_scroll_event, handle_tab_key, handle_tree_arrow_key,
 };
 use crate::render::{
-    apply_gallery_styles, build_layout_context, build_theme, collect_data_widget_hits,
-    collect_hit_regions, compute_scroll_state, compute_toolbar_labels,
-    extract_gallery_ids,
-    RenderCtx,
-    render_sidebar, render_toolbar, render_page_content, render_text_input_overlay,
+    RenderCtx, apply_gallery_styles, build_layout_context, build_theme, collect_data_widget_hits,
+    collect_hit_regions, compute_scroll_state, compute_toolbar_labels, extract_gallery_ids,
+    render_page_content, render_sidebar, render_text_input_overlay, render_toolbar,
 };
 use crate::types::*;
 
@@ -217,7 +213,6 @@ impl Gallery {
     // Foundations category: pages/foundations.rs
     // Inputs category: pages/inputs.rs
     // etc.
-
 }
 
 // ── Application Trait ───────────────────────────────────────────────────────
@@ -341,7 +336,12 @@ impl Application for Gallery {
                         table_sort_asc: &mut self.table_sort_asc,
                         table_selected_row: &mut self.table_selected_row,
                     };
-                    handle_enter_space_key(&self.text_input, &self.button_info, self.focused, act_ctx)
+                    handle_enter_space_key(
+                        &self.text_input,
+                        &self.button_info,
+                        self.focused,
+                        act_ctx,
+                    )
                 } else {
                     false
                 }
@@ -409,9 +409,7 @@ impl Application for Gallery {
                 // layout snapshot and scroll the nearest scroll container so
                 // that the target rect becomes visible.
                 self.scroll = 0.0;
-                tracing::debug!(
-                    "AccessibilityScrollIntoView(id={node_id}): scroll reset to 0"
-                );
+                tracing::debug!("AccessibilityScrollIntoView(id={node_id}): scroll reset to 0");
                 true
             }
             PlatformEvent::Resized { .. } => true,

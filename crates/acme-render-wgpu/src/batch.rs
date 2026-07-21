@@ -7,8 +7,8 @@
 //!
 //! Also provides [`scene_from_frame`] to bridge the legacy [`Frame`] format.
 
-use acme_core::{ClipStack, DrawCommand, GlyphFormat, Scene};
 use crate::Frame;
+use acme_core::{ClipStack, DrawCommand, GlyphFormat, Scene};
 
 /// The GPU pipeline used to draw a batch.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -53,6 +53,7 @@ impl RenderBatch {
     /// Try to extend this batch with the next command.  Returns `true` if
     /// the command was compatible and the batch was extended, `false` if
     /// the merge was rejected (caller must flush and start a new batch).
+    #[allow(dead_code)]
     fn try_extend(&mut self, _cmd: &DrawCommand, _clip: Option<[u32; 4]>) -> bool {
         // For Phase 2 we only merge identically-typed adjacent commands.
         // This prevents merging Quad with Text, or across clip changes.
@@ -81,11 +82,16 @@ impl RenderBatch {
 /// 5. Adjacent `Text` commands with the same clip AND glyph format are merged.
 /// 6. Text commands containing mixed-format glyphs are split by format.
 /// 7. No merging happens across clip or layer boundaries.
+///
 /// Get current clip as logical `[x, y, w, h]`, or `None` for full viewport.
 fn clip_as_rect(clip_stack: &ClipStack) -> Option<[u32; 4]> {
     let r = clip_stack.current()?;
-    Some([r.origin.x.get() as u32, r.origin.y.get() as u32,
-          r.size.width.get() as u32, r.size.height.get() as u32])
+    Some([
+        r.origin.x.get() as u32,
+        r.origin.y.get() as u32,
+        r.size.width.get() as u32,
+        r.size.height.get() as u32,
+    ])
 }
 
 pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
@@ -133,8 +139,10 @@ pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
                                 break;
                             }
                         }
-                        DrawCommand::PushClip(_) | DrawCommand::PopClip
-                        | DrawCommand::BeginLayer(_) | DrawCommand::EndLayer => {
+                        DrawCommand::PushClip(_)
+                        | DrawCommand::PopClip
+                        | DrawCommand::BeginLayer(_)
+                        | DrawCommand::EndLayer => {
                             break;
                         }
                         DrawCommand::Text(_) => {
@@ -151,10 +159,20 @@ pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
                 let clip = clip_as_rect(&clip_stack);
 
                 if has_alpha {
-                    batches.push(RenderBatch::new(BatchPipeline::TextAlpha, clip, layer_depth, i));
+                    batches.push(RenderBatch::new(
+                        BatchPipeline::TextAlpha,
+                        clip,
+                        layer_depth,
+                        i,
+                    ));
                 }
                 if has_rgba {
-                    batches.push(RenderBatch::new(BatchPipeline::TextRgba, clip, layer_depth, i));
+                    batches.push(RenderBatch::new(
+                        BatchPipeline::TextRgba,
+                        clip,
+                        layer_depth,
+                        i,
+                    ));
                 }
                 i += 1;
 
@@ -165,18 +183,28 @@ pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
                         DrawCommand::Text(t2) => {
                             let next_clip = clip_as_rect(&clip_stack);
                             if next_clip == clip {
-                                let t2_alpha = t2.glyphs.iter().any(|g| g.format == GlyphFormat::Alpha8);
-                                let t2_rgba = t2.glyphs.iter().any(|g| g.format == GlyphFormat::Rgba8);
+                                let t2_alpha =
+                                    t2.glyphs.iter().any(|g| g.format == GlyphFormat::Alpha8);
+                                let t2_rgba =
+                                    t2.glyphs.iter().any(|g| g.format == GlyphFormat::Rgba8);
                                 // Extend existing format batches.
-                                if t2_alpha && has_alpha {
-                                    if let Some(last) = batches.iter_mut().rev().find(|b| b.pipeline == BatchPipeline::TextAlpha) {
-                                        last.command_end = i + 1;
-                                    }
+                                if t2_alpha
+                                    && has_alpha
+                                    && let Some(last) = batches
+                                        .iter_mut()
+                                        .rev()
+                                        .find(|b| b.pipeline == BatchPipeline::TextAlpha)
+                                {
+                                    last.command_end = i + 1;
                                 }
-                                if t2_rgba && has_rgba {
-                                    if let Some(last) = batches.iter_mut().rev().find(|b| b.pipeline == BatchPipeline::TextRgba) {
-                                        last.command_end = i + 1;
-                                    }
+                                if t2_rgba
+                                    && has_rgba
+                                    && let Some(last) = batches
+                                        .iter_mut()
+                                        .rev()
+                                        .find(|b| b.pipeline == BatchPipeline::TextRgba)
+                                {
+                                    last.command_end = i + 1;
                                 }
                                 i += 1;
                             } else {
@@ -184,8 +212,10 @@ pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
                             }
                         }
                         DrawCommand::Quad(_)
-                        | DrawCommand::PushClip(_) | DrawCommand::PopClip
-                        | DrawCommand::BeginLayer(_) | DrawCommand::EndLayer => {
+                        | DrawCommand::PushClip(_)
+                        | DrawCommand::PopClip
+                        | DrawCommand::BeginLayer(_)
+                        | DrawCommand::EndLayer => {
                             break;
                         }
                     }
@@ -203,8 +233,8 @@ pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
 /// This is a **bridge** for migration: new code should produce `Scene`
 /// directly via [`Scene::push`] / [`DrawCommand`].
 pub fn scene_from_frame(frame: &Frame) -> Scene {
-    use acme_text::AtlasFormat as TextAtlasFormat;
     use acme_core::{AtlasUpload, GlyphDraw, QuadPrimitive, TextPrimitive};
+    use acme_text::AtlasFormat as TextAtlasFormat;
 
     let mut scene = Scene::with_clear(acme_core::Color::rgba(
         frame.clear[0],
@@ -229,8 +259,10 @@ pub fn scene_from_frame(frame: &Frame) -> Scene {
             radius: q.radius,
             border_width: q.border_width,
             border_color: acme_core::Color::rgba(
-                q.border_color[0], q.border_color[1],
-                q.border_color[2], q.border_color[3],
+                q.border_color[0],
+                q.border_color[1],
+                q.border_color[2],
+                q.border_color[3],
             ),
         }));
     }
@@ -248,27 +280,31 @@ pub fn scene_from_frame(frame: &Frame) -> Scene {
             clip_end += 1;
         }
 
-        let clip_prim = acme_core::Rect::new(
-            clip_rect[0], clip_rect[1],
-            clip_rect[2], clip_rect[3],
-        );
+        let clip_prim =
+            acme_core::Rect::new(clip_rect[0], clip_rect[1], clip_rect[2], clip_rect[3]);
         scene.push(DrawCommand::PushClip(clip_prim));
 
         for cq in &frame.clipped_quads[clip_start..clip_end] {
             scene.push(DrawCommand::Quad(QuadPrimitive {
                 rect: acme_core::Rect::new(
-                    cq.quad.rect[0], cq.quad.rect[1],
-                    cq.quad.rect[2], cq.quad.rect[3],
+                    cq.quad.rect[0],
+                    cq.quad.rect[1],
+                    cq.quad.rect[2],
+                    cq.quad.rect[3],
                 ),
                 color: acme_core::Color::rgba(
-                    cq.quad.color[0], cq.quad.color[1],
-                    cq.quad.color[2], cq.quad.color[3],
+                    cq.quad.color[0],
+                    cq.quad.color[1],
+                    cq.quad.color[2],
+                    cq.quad.color[3],
                 ),
                 radius: cq.quad.radius,
                 border_width: cq.quad.border_width,
                 border_color: acme_core::Color::rgba(
-                    cq.quad.border_color[0], cq.quad.border_color[1],
-                    cq.quad.border_color[2], cq.quad.border_color[3],
+                    cq.quad.border_color[0],
+                    cq.quad.border_color[1],
+                    cq.quad.border_color[2],
+                    cq.quad.border_color[3],
                 ),
             }));
         }
@@ -312,9 +348,7 @@ pub fn scene_from_frame(frame: &Frame) -> Scene {
 
         scene.push(DrawCommand::Text(TextPrimitive {
             origin: acme_core::Point::new(run.origin[0], run.origin[1]),
-            color: acme_core::Color::rgba(
-                run.color[0], run.color[1], run.color[2], run.color[3],
-            ),
+            color: acme_core::Color::rgba(run.color[0], run.color[1], run.color[2], run.color[3]),
             glyphs,
             uploads,
         }));
@@ -326,7 +360,7 @@ pub fn scene_from_frame(frame: &Frame) -> Scene {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use acme_core::{Color, Point, Rect, QuadPrimitive, TextPrimitive, AtlasUpload};
+    use acme_core::{AtlasUpload, Color, Point, QuadPrimitive, Rect, TextPrimitive};
 
     // ------------------------------------------------------------------
     // Basic batching tests
@@ -343,13 +377,22 @@ mod tests {
     }
 
     fn make_text(alpha: bool) -> DrawCommand {
-        let format = if alpha { GlyphFormat::Alpha8 } else { GlyphFormat::Rgba8 };
+        let format = if alpha {
+            GlyphFormat::Alpha8
+        } else {
+            GlyphFormat::Rgba8
+        };
         DrawCommand::Text(TextPrimitive {
             origin: Point::new(0.0, 0.0),
             color: Color::rgba(1.0, 1.0, 1.0, 1.0),
             glyphs: vec![acme_core::GlyphDraw {
-                x: 0.0, y: 0.0, width: 10.0, height: 10.0,
-                atlas_x: 0, atlas_y: 0, format,
+                x: 0.0,
+                y: 0.0,
+                width: 10.0,
+                height: 10.0,
+                atlas_x: 0,
+                atlas_y: 0,
+                format,
             }],
             uploads: vec![AtlasUpload {
                 page: 0,
@@ -426,7 +469,9 @@ mod tests {
     fn layer_boundary_flushes_batches() {
         let mut scene = Scene::new();
         scene.push(make_quad(0.0, 0.0, 10.0, 10.0));
-        scene.push(DrawCommand::BeginLayer(acme_core::LayerParams { opacity: 0.5 }));
+        scene.push(DrawCommand::BeginLayer(acme_core::LayerParams {
+            opacity: 0.5,
+        }));
         scene.push(make_quad(5.0, 5.0, 10.0, 10.0));
         scene.push(DrawCommand::EndLayer);
         scene.push(make_quad(20.0, 20.0, 10.0, 10.0));
@@ -440,7 +485,10 @@ mod tests {
         // Actually, layer depth increments after seeing BeginLayer,
         // so the quad after BeginLayer has layer=1.
         assert_eq!(batches[1].layer, 1, "quad inside layer should have layer=1");
-        assert_eq!(batches[2].layer, 0, "quad after EndLayer should have layer=0");
+        assert_eq!(
+            batches[2].layer, 0,
+            "quad after EndLayer should have layer=0"
+        );
     }
 
     #[test]
@@ -449,7 +497,11 @@ mod tests {
         scene.push(make_text(true));
         scene.push(make_text(true));
         let batches = compile_scene(&scene);
-        assert_eq!(batches.len(), 1, "two adjacent alpha-text commands → one batch");
+        assert_eq!(
+            batches.len(),
+            1,
+            "two adjacent alpha-text commands → one batch"
+        );
         assert_eq!(batches[0].command_start, 0);
         assert_eq!(batches[0].command_end, 2);
     }
@@ -462,12 +514,22 @@ mod tests {
             color: Color::rgba(1.0, 1.0, 1.0, 1.0),
             glyphs: vec![
                 acme_core::GlyphDraw {
-                    x: 0.0, y: 0.0, width: 10.0, height: 10.0,
-                    atlas_x: 0, atlas_y: 0, format: GlyphFormat::Alpha8,
+                    x: 0.0,
+                    y: 0.0,
+                    width: 10.0,
+                    height: 10.0,
+                    atlas_x: 0,
+                    atlas_y: 0,
+                    format: GlyphFormat::Alpha8,
                 },
                 acme_core::GlyphDraw {
-                    x: 10.0, y: 0.0, width: 10.0, height: 10.0,
-                    atlas_x: 0, atlas_y: 0, format: GlyphFormat::Rgba8,
+                    x: 10.0,
+                    y: 0.0,
+                    width: 10.0,
+                    height: 10.0,
+                    atlas_x: 0,
+                    atlas_y: 0,
+                    format: GlyphFormat::Rgba8,
                 },
             ],
             uploads: vec![],
@@ -499,7 +561,9 @@ mod tests {
         scene.push(DrawCommand::PopClip);
         scene.push(make_text(true));
         scene.push(make_text(false));
-        scene.push(DrawCommand::BeginLayer(acme_core::LayerParams { opacity: 0.5 }));
+        scene.push(DrawCommand::BeginLayer(acme_core::LayerParams {
+            opacity: 0.5,
+        }));
         scene.push(make_quad(0.0, 0.0, 10.0, 10.0));
         scene.push(DrawCommand::EndLayer);
 
@@ -520,11 +584,17 @@ mod tests {
     #[test]
     fn scene_from_frame_preserves_quad_count() {
         let mut frame = Frame::default();
-        frame.quads.push(crate::Quad::solid([0.0, 0.0, 10.0, 10.0], [1.0; 4]));
-        frame.quads.push(crate::Quad::solid([10.0, 0.0, 10.0, 10.0], [0.5; 4]));
+        frame
+            .quads
+            .push(crate::Quad::solid([0.0, 0.0, 10.0, 10.0], [1.0; 4]));
+        frame
+            .quads
+            .push(crate::Quad::solid([10.0, 0.0, 10.0, 10.0], [0.5; 4]));
 
         let scene = scene_from_frame(&frame);
-        let quad_count = scene.commands().iter()
+        let quad_count = scene
+            .commands()
+            .iter()
             .filter(|c| matches!(c, DrawCommand::Quad(_)))
             .count();
         assert_eq!(quad_count, 2, "bridge preserves quad count");
@@ -532,8 +602,10 @@ mod tests {
 
     #[test]
     fn scene_from_frame_preserves_clear_color() {
-        let mut frame = Frame::default();
-        frame.clear = [0.1, 0.2, 0.3, 1.0];
+        let frame = Frame {
+            clear: [0.1, 0.2, 0.3, 1.0],
+            ..Frame::default()
+        };
 
         let scene = scene_from_frame(&frame);
         let c = scene.clear_color();
@@ -574,9 +646,13 @@ mod tests {
 
     #[test]
     fn compiled_scene_from_frame_is_valid() {
-        let mut frame = Frame::default();
-        frame.clear = [0.9, 0.9, 0.9, 1.0];
-        frame.quads.push(crate::Quad::solid([0.0, 0.0, 100.0, 100.0], [1.0; 4]));
+        let mut frame = Frame {
+            clear: [0.9, 0.9, 0.9, 1.0],
+            ..Frame::default()
+        };
+        frame
+            .quads
+            .push(crate::Quad::solid([0.0, 0.0, 100.0, 100.0], [1.0; 4]));
         frame.clipped_quads.push(crate::ClippedQuad {
             quad: crate::Quad::solid([10.0, 10.0, 20.0, 20.0], [0.5; 4]),
             clip: [0.0, 0.0, 200.0, 200.0],

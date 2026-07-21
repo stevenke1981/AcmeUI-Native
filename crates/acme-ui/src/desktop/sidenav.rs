@@ -144,8 +144,7 @@ impl<M: Clone + 'static> From<SidenavBuilder<M>> for WidgetNode<M> {
 
             // Section items as Cards
             for item in &section.items {
-                let is_selected =
-                    b.selected_value.as_deref() == Some(item.value.as_str());
+                let is_selected = b.selected_value.as_deref() == Some(item.value.as_str());
                 let variant = if is_selected {
                     CardVariant::Interactive
                 } else {
@@ -287,10 +286,7 @@ mod tests {
                     .item(sidenav_item("Profile", "profile"))
                     .item(sidenav_item("Appearance", "appearance")),
             )
-            .section(
-                sidenav_section("Advanced")
-                    .item(sidenav_item("Security", "security")),
-            )
+            .section(sidenav_section("Advanced").item(sidenav_item("Security", "security")))
             .into();
         let layout = node.to_layout(NodeId::new(1));
         // Section 1: label + profile card + appearance card = 3 children

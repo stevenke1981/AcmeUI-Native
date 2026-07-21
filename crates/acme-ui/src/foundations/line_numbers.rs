@@ -128,10 +128,7 @@ mod tests {
 
     #[test]
     fn line_numbers_highlighted_line() {
-        let node: WidgetNode<TestMsg> = line_numbers("ln")
-            .line_count(5)
-            .highlighted_line(3)
-            .into();
+        let node: WidgetNode<TestMsg> = line_numbers("ln").line_count(5).highlighted_line(3).into();
         let WidgetNode::Column(container) = &node else {
             panic!("expected Column");
         };
@@ -152,10 +149,7 @@ mod tests {
 
     #[test]
     fn line_numbers_custom_start_line() {
-        let node: WidgetNode<TestMsg> = line_numbers("ln")
-            .line_count(3)
-            .start_line(10)
-            .into();
+        let node: WidgetNode<TestMsg> = line_numbers("ln").line_count(3).start_line(10).into();
         let WidgetNode::Column(container) = &node else {
             panic!("expected Column");
         };

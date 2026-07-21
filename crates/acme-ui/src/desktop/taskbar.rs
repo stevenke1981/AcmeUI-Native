@@ -17,7 +17,10 @@ pub struct TaskbarItem {
 impl TaskbarItem {
     /// Create a new taskbar window item.
     pub fn new(label: impl Into<String>) -> Self {
-        Self { label: label.into(), active: false }
+        Self {
+            label: label.into(),
+            active: false,
+        }
     }
 
     /// Mark this item as the active window.
@@ -84,16 +87,11 @@ impl<M: Clone + 'static> TaskbarBuilder<M> {
 
     /// Build the taskbar widget.
     pub fn build(self) -> WidgetNode<M> {
-        let mut row = crate::row::<M>()
-            .key(self.id.clone())
-            .gap(4.0);
+        let mut row = crate::row::<M>().key(self.id.clone()).gap(4.0);
 
         // Start button
         if self.show_start {
-            row = row.child(
-                crate::button("taskbar_start", &self.start_label)
-                    .primary(),
-            );
+            row = row.child(crate::button("taskbar_start", &self.start_label).primary());
         }
 
         // Window items
@@ -135,7 +133,13 @@ mod tests {
     use acme_layout::{LayoutEngine, WidgetLayoutContext};
 
     fn test_context() -> WidgetLayoutContext {
-        WidgetLayoutContext { body_font_size: 16.0, body_line_height: 22.0, label_font_size: 14.0, control_height: 32.0, scale_factor: 1.0 }
+        WidgetLayoutContext {
+            body_font_size: 16.0,
+            body_line_height: 22.0,
+            label_font_size: 14.0,
+            control_height: 32.0,
+            scale_factor: 1.0,
+        }
     }
 
     #[derive(Clone, Debug, PartialEq)]
@@ -146,7 +150,9 @@ mod tests {
         let node: WidgetNode<TestMsg> = taskbar("tb").build();
         let ctx = test_context();
         let layout = node.to_layout_with_context(NodeId::new(1), &ctx);
-        let snapshot = LayoutEngine::new().compute(&layout, (800.0, 600.0)).unwrap();
+        let snapshot = LayoutEngine::new()
+            .compute(&layout, (800.0, 600.0))
+            .unwrap();
         let rect = snapshot.get(NodeId::new(1)).unwrap();
         assert!(rect.width > 0.0);
         assert!(rect.height > 0.0);
@@ -159,8 +165,12 @@ mod tests {
             .item(TaskbarItem::new("Browser").active(true))
             .tray_icon(crate::label::<TestMsg>("🔊"))
             .build();
-        let WidgetNode::Card(c) = &node else { panic!("expected Card") };
-        let WidgetNode::Row(r) = &c.children[0] else { panic!("expected Row") };
+        let WidgetNode::Card(c) = &node else {
+            panic!("expected Card")
+        };
+        let WidgetNode::Row(r) = &c.children[0] else {
+            panic!("expected Row")
+        };
         // start button + 2 items + spacer + 1 tray icon = 5 children
         assert_eq!(r.children.len(), 5);
     }
@@ -168,8 +178,12 @@ mod tests {
     #[test]
     fn taskbar_no_start_button() {
         let node: WidgetNode<TestMsg> = taskbar("tb").show_start(false).build();
-        let WidgetNode::Card(c) = &node else { panic!("expected Card") };
-        let WidgetNode::Row(r) = &c.children[0] else { panic!("expected Row") };
+        let WidgetNode::Card(c) = &node else {
+            panic!("expected Card")
+        };
+        let WidgetNode::Row(r) = &c.children[0] else {
+            panic!("expected Row")
+        };
         // spacer only (no start, no items, no tray)
         assert_eq!(r.children.len(), 1);
     }

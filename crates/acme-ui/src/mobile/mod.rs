@@ -2,10 +2,10 @@
 //!
 //! Each module provides a builder struct that converts into [`WidgetNode<M>`].
 
+pub mod action_sheet;
 pub mod bottom_nav;
 pub mod bottom_sheet;
 pub mod pull_to_refresh;
-pub mod action_sheet;
 pub mod search_bar;
 
 pub use action_sheet::*;

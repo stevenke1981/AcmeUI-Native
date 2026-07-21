@@ -3,9 +3,9 @@
 //! Renders as a Column with a muted title, a Row with (prefix + value + suffix)
 //! in large text, and an optional description.
 
-use std::marker::PhantomData;
 use acme_core::WidgetKey;
 use acme_widgets::*;
+use std::marker::PhantomData;
 
 /// Builder for a Statistic component.
 pub struct StatisticBuilder<M> {
@@ -71,10 +71,7 @@ impl<M: Clone + 'static> From<StatisticBuilder<M>> for WidgetNode<M> {
             value_row = value_row.child(label::<M>(s.clone()));
         }
 
-        let mut col = column::<M>()
-            .gap(4.0)
-            .child(title_label)
-            .child(value_row);
+        let mut col = column::<M>().gap(4.0).child(title_label).child(value_row);
 
         if let Some(desc) = &b.description {
             col = col.child(label::<M>(desc.clone()));

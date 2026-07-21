@@ -41,7 +41,9 @@ pub fn widget_to_views<M>(roots: &[WidgetNode<M>]) -> Vec<ViewNode> {
 fn widget_to_view<M>(widget: &WidgetNode<M>, parent_path: &str, index: usize) -> ViewNode {
     match widget {
         // ── Containers ──────────────────────────────────────────────────────
-        WidgetNode::Row(v) => container_view(v.key.as_ref(), "row", &v.children, parent_path, index),
+        WidgetNode::Row(v) => {
+            container_view(v.key.as_ref(), "row", &v.children, parent_path, index)
+        }
         WidgetNode::Column(v) => {
             container_view(v.key.as_ref(), "column", &v.children, parent_path, index)
         }
@@ -56,7 +58,7 @@ fn widget_to_view<M>(widget: &WidgetNode<M>, parent_path: &str, index: usize) ->
         }
 
         // ── Labels (no explicit key) ────────────────────────────────────────
-        WidgetNode::Label(l) => ViewNode {
+        WidgetNode::Label(_l) => ViewNode {
             key: auto_key(parent_path, index, "label"),
             kind: "label".into(),
             children: vec![],
@@ -146,7 +148,13 @@ fn widget_to_view<M>(widget: &WidgetNode<M>, parent_path: &str, index: usize) ->
         WidgetNode::VirtualList(v) => {
             // Children are the full list (visible-range selection is not
             // replicated in the view tree for Phase 1).
-            container_view(Some(&v.key), "virtual_list", &v.children, parent_path, index)
+            container_view(
+                Some(&v.key),
+                "virtual_list",
+                &v.children,
+                parent_path,
+                index,
+            )
         }
         WidgetNode::Tree(v) => {
             // Tree uses visible_nodes() for layout; for the shadow view we
@@ -259,17 +267,15 @@ mod tests {
 
     #[test]
     fn disabled_button_reflected() {
-        let views =
-            widget_to_views(&[WidgetNode::from(button::<()>("disabled_btn", "Nope").disabled(true))]);
+        let views = widget_to_views(&[WidgetNode::from(
+            button::<()>("disabled_btn", "Nope").disabled(true),
+        )]);
         assert!(views[0].disabled);
     }
 
     #[test]
     fn column_contains_child_labels() {
-        let col = column::<()>()
-            .child(label("A"))
-            .child(label("B"))
-            .build();
+        let col = column::<()>().child(label("A")).child(label("B")).build();
         let views = widget_to_views(&[col]);
         assert_eq!(views.len(), 1);
         assert_eq!(views[0].kind, "column");
@@ -282,10 +288,7 @@ mod tests {
 
     #[test]
     fn row_with_keyed_container() {
-        let row = row::<()>()
-            .key("my_row")
-            .child(label("X"))
-            .build();
+        let row = row::<()>().key("my_row").child(label("X")).build();
         let views = widget_to_views(&[row]);
         assert_eq!(views[0].key.as_str(), "my_row");
         assert_eq!(views[0].kind, "row");
@@ -307,9 +310,7 @@ mod tests {
 
     #[test]
     fn scroll_view_children_are_preserved() {
-        let sv = scroll_view::<()>("sv")
-            .child(label("inner"))
-            .build();
+        let sv = scroll_view::<()>("sv").child(label("inner")).build();
         let views = widget_to_views(&[sv]);
         assert_eq!(views[0].key.as_str(), "sv");
         assert_eq!(views[0].kind, "scroll_view");
@@ -321,10 +322,7 @@ mod tests {
     fn duplicate_label_keys_detected() {
         // Two unkeyed Labels side by side will have distinct auto-keys
         // because they have different indices.
-        let col = column::<()>()
-            .child(label("A"))
-            .child(label("B"))
-            .build();
+        let col = column::<()>().child(label("A")).child(label("B")).build();
         let views = widget_to_views(&[col]);
         assert_eq!(views[0].children.len(), 2);
         assert_ne!(

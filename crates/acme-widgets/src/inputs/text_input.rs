@@ -1,7 +1,7 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
-use acme_style::prelude::Styled;
 use acme_style::Style;
+use acme_style::prelude::Styled;
 
 /// A text input widget with label, description, and validation support.
 #[derive(Clone, Debug, PartialEq)]

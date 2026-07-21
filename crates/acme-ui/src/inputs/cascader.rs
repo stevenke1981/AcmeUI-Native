@@ -37,10 +37,7 @@ pub fn cascader<M: Clone + 'static>(id: impl Into<WidgetKey>) -> CascaderBuilder
 }
 
 /// Create a cascader option node.
-pub fn cascader_option(
-    label: impl Into<String>,
-    value: impl Into<String>,
-) -> CascaderOption {
+pub fn cascader_option(label: impl Into<String>, value: impl Into<String>) -> CascaderOption {
     CascaderOption {
         label: label.into(),
         value: value.into(),
@@ -250,10 +247,7 @@ mod tests {
     #[test]
     fn cascader_open_renders_column_with_header_and_levels() {
         let node: WidgetNode<TestMsg> = cascader("c")
-            .option(
-                cascader_option("Fruits", "fruits")
-                    .child(cascader_option("Apple", "apple")),
-            )
+            .option(cascader_option("Fruits", "fruits").child(cascader_option("Apple", "apple")))
             .open(true)
             .into();
         let WidgetNode::Column(col) = &node else {
@@ -265,10 +259,8 @@ mod tests {
 
     #[test]
     fn cascader_format_selected_path() {
-        let opts = vec![
-            cascader_option("Fruits", "fruits")
-                .child(cascader_option("Apple", "apple")),
-        ];
+        let opts =
+            vec![cascader_option("Fruits", "fruits").child(cascader_option("Apple", "apple"))];
         let path = vec!["fruits".into(), "apple".into()];
         let formatted = format_selected_path(&opts, &path);
         assert_eq!(formatted, "Fruits / Apple");

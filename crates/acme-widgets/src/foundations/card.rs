@@ -1,8 +1,8 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
 use acme_layout::Edges;
-use acme_style::prelude::*;
 use acme_style::Style;
+use acme_style::prelude::*;
 use acme_theme::ThemeColor;
 
 /// Card style variant.

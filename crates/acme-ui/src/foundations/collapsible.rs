@@ -1,9 +1,9 @@
 //! Collapsible component — a single section with a header that toggles visibility
 //! of its child content.
 
+use crate::{IconName, icon};
 use acme_core::WidgetKey;
 use acme_widgets::*;
-use crate::{icon, IconName};
 
 /// Builder for a Collapsible component.
 pub struct CollapsibleBuilder<M> {
@@ -78,10 +78,10 @@ impl<M: Clone + 'static> From<CollapsibleBuilder<M>> for WidgetNode<M> {
         let mut col = column::<M>().key(b.id).gap(0.0).child(header);
 
         // Child content only visible when open
-        if b.open {
-            if let Some(content) = b.child {
-                col = col.child(*content);
-            }
+        if b.open
+            && let Some(content) = b.child
+        {
+            col = col.child(*content);
         }
 
         col.build()
@@ -147,10 +147,7 @@ mod tests {
 
     #[test]
     fn collapsible_header_has_chevron_and_title() {
-        let node: WidgetNode<TestMsg> = collapsible("s")
-            .title("Details")
-            .open(true)
-            .into();
+        let node: WidgetNode<TestMsg> = collapsible("s").title("Details").open(true).into();
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column variant");
         };
@@ -174,10 +171,7 @@ mod tests {
 
     #[test]
     fn collapsible_closed_uses_right_chevron() {
-        let node: WidgetNode<TestMsg> = collapsible("s")
-            .title("Closed")
-            .open(false)
-            .into();
+        let node: WidgetNode<TestMsg> = collapsible("s").title("Closed").open(false).into();
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column variant");
         };

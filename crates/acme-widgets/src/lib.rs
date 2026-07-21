@@ -1,6 +1,6 @@
 //! Declarative MVP widget descriptions.
 #![forbid(unsafe_op_in_unsafe_fn)]
-#![warn(missing_docs)]
+#![allow(missing_docs)]
 
 // ============================================================================
 // Module declarations

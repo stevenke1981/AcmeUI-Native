@@ -31,10 +31,7 @@ impl<M: Clone + 'static> MarkdownViewBuilder<M> {
 }
 
 /// Parse a single line of markdown and return zero or more widget nodes.
-fn parse_line<M: Clone + 'static>(
-    line: &str,
-    nodes: &mut Vec<WidgetNode<M>>,
-) {
+fn parse_line<M: Clone + 'static>(line: &str, nodes: &mut Vec<WidgetNode<M>>) {
     let trimmed = line.trim();
 
     if trimmed.is_empty() {

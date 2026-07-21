@@ -96,15 +96,15 @@ impl<M: Clone + 'static> From<DiffViewerBuilder<M>> for WidgetNode<M> {
             let mut row_builder = row::<M>().gap(4.0);
 
             // Optional line number (small, muted)
-            if b.show_line_numbers {
-                if let Some(n) = line.line_number {
-                    row_builder = row_builder.child(
-                        label_builder::<M>(&n.to_string())
-                            .font_size(11.0)
-                            .color(theme.colors.muted_foreground)
-                            .build(),
-                    );
-                }
+            if b.show_line_numbers
+                && let Some(n) = line.line_number
+            {
+                row_builder = row_builder.child(
+                    label_builder::<M>(&n.to_string())
+                        .font_size(11.0)
+                        .color(theme.colors.muted_foreground)
+                        .build(),
+                );
             }
 
             // Prefix marker with semantic color
@@ -118,7 +118,10 @@ impl<M: Clone + 'static> From<DiffViewerBuilder<M>> for WidgetNode<M> {
             row_builder = row_builder.child(label_builder::<M>(&line.text).font_size(12.0).build());
 
             // Wrap the row in a padded column to create line spacing
-            let line_wrapper = column::<M>().child(row_builder.build()).padding(1.0).build();
+            let line_wrapper = column::<M>()
+                .child(row_builder.build())
+                .padding(1.0)
+                .build();
             col = col.child(line_wrapper);
         }
 

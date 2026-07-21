@@ -718,10 +718,7 @@ mod tests {
 
         // Evict stale entries — should clear everything.
         let evicted = atlas.evict_stale(1);
-        assert!(
-            evicted > 0,
-            "must have evicted at least one entry"
-        );
+        assert!(evicted > 0, "must have evicted at least one entry");
         assert!(
             atlas.is_empty(),
             "all entries must be cleared after eviction"
@@ -773,12 +770,7 @@ mod tests {
         );
 
         // Insert a new glyph — should trigger auto-eviction (stale entries exist).
-        let new_layout = fonts.shape(
-            "!",
-            &TextStyle::default(),
-            TextConstraints::default(),
-            1.0,
-        );
+        let new_layout = fonts.shape("!", &TextStyle::default(), TextConstraints::default(), 1.0);
         let after = fonts.prepare(&new_layout, &mut atlas);
         assert!(
             !after.uploads.is_empty(),
@@ -815,17 +807,10 @@ mod tests {
 
         // Second prepare: should touch all cache keys, updating last_used.
         let second = fonts.prepare(&layout, &mut atlas);
-        assert!(
-            second.uploads.is_empty(),
-            "cache hit must not re-upload"
-        );
+        assert!(second.uploads.is_empty(), "cache hit must not re-upload");
 
         // After one frame advance, entries should NOT be stale (they were touched).
         atlas.begin_frame();
-        assert_eq!(
-            atlas.stale_count(1),
-            0,
-            "touched entries must not be stale"
-        );
+        assert_eq!(atlas.stale_count(1), 0, "touched entries must not be stale");
     }
 }

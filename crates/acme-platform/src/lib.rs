@@ -1,5 +1,6 @@
 //! Windows-first winit runtime. Public events contain no winit platform types.
 #![forbid(unsafe_op_in_unsafe_fn)]
+#![allow(clippy::items_after_test_module)]
 
 mod clipboard;
 pub use clipboard::Clipboard;
@@ -347,7 +348,6 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
     ) {
         let Runtime { app, windows, .. } = self;
 
-
         match event {
             WindowEvent::CloseRequested => {
                 handle_window_lifecycle(app, windows, id, event_loop, false);
@@ -417,7 +417,6 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             }
             _ => {}
         }
-
     }
 }
 
@@ -871,10 +870,9 @@ fn handle_ime_disabled(
         state.dirty |= dirty;
         // Reset IME cursor area to origin when IME is disabled
         app.set_ime_cursor_area(win_id, [0.0, 0.0, 0.0, 0.0]);
-        state.window.set_ime_cursor_area(
-            LogicalPosition::new(0.0, 0.0),
-            LogicalSize::new(0.0, 0.0),
-        );
+        state
+            .window
+            .set_ime_cursor_area(LogicalPosition::new(0.0, 0.0), LogicalSize::new(0.0, 0.0));
         if state.dirty {
             state.window.request_redraw();
         }

@@ -32,17 +32,21 @@ fn widget_to_layout_pipeline() {
 fn reconciliation_preserves_identity() {
     let mut tree = RetainedTree::new();
 
-    let v1 = vec![ViewNode::new("root", "column")
-        .child(ViewNode::new("child_a", "label"))
-        .child(ViewNode::new("child_b", "button"))];
+    let v1 = vec![
+        ViewNode::new("root", "column")
+            .child(ViewNode::new("child_a", "label"))
+            .child(ViewNode::new("child_b", "button")),
+    ];
 
     let report1 = tree.reconcile_roots(&v1).expect("first reconcile");
     assert_eq!(report1.mounted.len(), 3);
 
     // Second reconcile with same keys — should reuse all nodes.
-    let v2 = vec![ViewNode::new("root", "column")
-        .child(ViewNode::new("child_a", "label"))
-        .child(ViewNode::new("child_b", "button"))];
+    let v2 = vec![
+        ViewNode::new("root", "column")
+            .child(ViewNode::new("child_a", "label"))
+            .child(ViewNode::new("child_b", "button")),
+    ];
 
     let report2 = tree.reconcile_roots(&v2).expect("second reconcile");
     assert_eq!(report2.reused.len(), 3);
@@ -54,13 +58,14 @@ fn reconciliation_preserves_identity() {
 fn reconciliation_removes_deleted_child() {
     let mut tree = RetainedTree::new();
 
-    let v1 = vec![ViewNode::new("root", "column")
-        .child(ViewNode::new("a", "label"))
-        .child(ViewNode::new("b", "label"))];
+    let v1 = vec![
+        ViewNode::new("root", "column")
+            .child(ViewNode::new("a", "label"))
+            .child(ViewNode::new("b", "label")),
+    ];
     tree.reconcile_roots(&v1).expect("first reconcile");
 
-    let v2 = vec![ViewNode::new("root", "column")
-        .child(ViewNode::new("a", "label"))];
+    let v2 = vec![ViewNode::new("root", "column").child(ViewNode::new("a", "label"))];
     let report = tree.reconcile_roots(&v2).expect("second reconcile");
 
     assert_eq!(report.removed.len(), 1);

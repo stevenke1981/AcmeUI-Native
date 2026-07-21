@@ -4,6 +4,7 @@ use acme_core::{Color, QuadPrimitive, Rect};
 use acme_theme::ThemeColor;
 
 /// Convert a [`ThemeColor`] to [`Color`].
+#[allow(dead_code)]
 pub fn rgba(color: ThemeColor) -> Color {
     Color::rgba(color.red, color.green, color.blue, color.alpha)
 }

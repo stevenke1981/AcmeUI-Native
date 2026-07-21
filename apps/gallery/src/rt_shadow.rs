@@ -4,9 +4,9 @@
 //! and feeds them to a `RetainedTree` shadow. No functional changes to layout,
 //! paint, hit-testing, or accessibility — purely for diagnostic data collection.
 
-use acme_core::{RetainedTree, ReconcileReport};
-use acme_widgets::view_bridge::widget_to_views;
+use acme_core::{ReconcileReport, RetainedTree};
 use acme_widgets::WidgetNode;
+use acme_widgets::view_bridge::widget_to_views;
 
 use crate::types::GalleryMessage;
 

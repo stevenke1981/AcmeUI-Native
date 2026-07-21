@@ -143,9 +143,7 @@ mod tests {
 
     #[test]
     fn about_dialog_shows_app_name_and_version() {
-        let node: WidgetNode<TestMsg> = about_dialog("about", "MyApp")
-            .version("2.0.0")
-            .into();
+        let node: WidgetNode<TestMsg> = about_dialog("about", "MyApp").version("2.0.0").into();
         // Root is a Card
         let WidgetNode::Card(outer) = &node else {
             panic!("expected Card");

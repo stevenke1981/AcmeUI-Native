@@ -1,8 +1,10 @@
 //! High-level layout components built from acme-widgets primitives.
 
+pub mod breadcrumb;
 pub mod form;
 pub mod grid;
 pub mod navigation_menu;
+pub mod page_header;
 pub mod pagination;
 pub mod scroll_area;
 pub mod section;
@@ -11,15 +13,13 @@ pub mod split_panel;
 pub mod status_bar;
 pub mod stepper;
 pub mod tabs;
-pub mod breadcrumb;
-pub mod page_header;
 pub mod toolbar;
 
 pub use breadcrumb::*;
 pub use form::*;
 pub use grid::*;
-pub use page_header::*;
 pub use navigation_menu::*;
+pub use page_header::*;
 pub use pagination::*;
 pub use scroll_area::*;
 pub use section::*;

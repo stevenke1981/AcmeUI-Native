@@ -18,7 +18,11 @@ pub struct ActionItem {
 impl ActionItem {
     /// Create a normal action item.
     pub fn new(label: impl Into<String>) -> Self {
-        Self { label: label.into(), destructive: false, disabled: false }
+        Self {
+            label: label.into(),
+            destructive: false,
+            disabled: false,
+        }
     }
 
     /// Mark this action as destructive (red styling).
@@ -91,9 +95,7 @@ impl<M: Clone + 'static> ActionSheetBuilder<M> {
 
     /// Build the action sheet widget.
     pub fn build(self) -> WidgetNode<M> {
-        let mut col = crate::column::<M>()
-            .key(self.id.clone())
-            .gap(4.0);
+        let mut col = crate::column::<M>().key(self.id.clone()).gap(4.0);
 
         // Optional title
         if let Some(t) = &self.title {
@@ -109,16 +111,18 @@ impl<M: Clone + 'static> ActionSheetBuilder<M> {
         for (i, action) in self.actions.iter().enumerate() {
             let btn_key = format!("{}_action_{}", self.id.as_str(), i);
             let btn = crate::button(btn_key.as_str(), &action.label);
-            let btn = if action.destructive { btn.primary() } else { btn };
+            let btn = if action.destructive {
+                btn.primary()
+            } else {
+                btn
+            };
             col = col.child(btn);
         }
 
         // Cancel button (separated)
         if self.show_cancel {
             let cancel_key = format!("{}_cancel", self.id.as_str());
-            col = col.child(
-                crate::button(cancel_key.as_str(), &self.cancel_label),
-            );
+            col = col.child(crate::button(cancel_key.as_str(), &self.cancel_label));
         }
 
         crate::card::<M>()
@@ -142,7 +146,13 @@ mod tests {
     use acme_layout::{LayoutEngine, WidgetLayoutContext};
 
     fn test_context() -> WidgetLayoutContext {
-        WidgetLayoutContext { body_font_size: 16.0, body_line_height: 22.0, label_font_size: 14.0, control_height: 32.0, scale_factor: 1.0 }
+        WidgetLayoutContext {
+            body_font_size: 16.0,
+            body_line_height: 22.0,
+            label_font_size: 14.0,
+            control_height: 32.0,
+            scale_factor: 1.0,
+        }
     }
 
     #[derive(Clone, Debug, PartialEq)]
@@ -153,7 +163,9 @@ mod tests {
         let node: WidgetNode<TestMsg> = action_sheet("as").build();
         let ctx = test_context();
         let layout = node.to_layout_with_context(NodeId::new(1), &ctx);
-        let snapshot = LayoutEngine::new().compute(&layout, (800.0, 600.0)).unwrap();
+        let snapshot = LayoutEngine::new()
+            .compute(&layout, (800.0, 600.0))
+            .unwrap();
         let rect = snapshot.get(NodeId::new(1)).unwrap();
         assert!(rect.width > 0.0);
         assert!(rect.height > 0.0);
@@ -167,8 +179,12 @@ mod tests {
             .action(ActionItem::new("Delete").destructive(true))
             .action(ActionItem::new("Share"))
             .build();
-        let WidgetNode::Card(c) = &node else { panic!("expected Card") };
-        let WidgetNode::Column(col) = &c.children[0] else { panic!("expected Column") };
+        let WidgetNode::Card(c) = &node else {
+            panic!("expected Card")
+        };
+        let WidgetNode::Column(col) = &c.children[0] else {
+            panic!("expected Column")
+        };
         // title + 3 action buttons + cancel = 5
         assert_eq!(col.children.len(), 5);
     }
@@ -179,8 +195,12 @@ mod tests {
             .show_cancel(false)
             .action(ActionItem::new("Save"))
             .build();
-        let WidgetNode::Card(c) = &node else { panic!("expected Card") };
-        let WidgetNode::Column(col) = &c.children[0] else { panic!("expected Column") };
+        let WidgetNode::Card(c) = &node else {
+            panic!("expected Card")
+        };
+        let WidgetNode::Column(col) = &c.children[0] else {
+            panic!("expected Column")
+        };
         assert_eq!(col.children.len(), 1);
     }
 

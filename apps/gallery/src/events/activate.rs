@@ -77,8 +77,7 @@ pub fn handle_message(ctx: &mut ActivationCtx, message: GalleryMessage) -> bool 
         }
         GalleryMessage::TreeSelectKey(key) => {
             if *ctx.tree_selected == Some(key) {
-                *ctx.tree_expanded =
-                    crate::helpers::tree_toggle_expanded(*ctx.tree_expanded, key);
+                *ctx.tree_expanded = crate::helpers::tree_toggle_expanded(*ctx.tree_expanded, key);
             }
             *ctx.tree_selected = Some(key);
             true

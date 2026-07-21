@@ -124,8 +124,10 @@ mod tests {
 
     #[test]
     fn password_input_has_non_zero_layout_rect() {
-        let node: WidgetNode<TestMsg> =
-            password_input("pw1").value("secret").placeholder("Password").into();
+        let node: WidgetNode<TestMsg> = password_input("pw1")
+            .value("secret")
+            .placeholder("Password")
+            .into();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.style.kind, LayoutKind::Row);
         assert_eq!(layout.children.len(), 2);
@@ -151,8 +153,7 @@ mod tests {
 
     #[test]
     fn password_input_shows_mask_when_not_visible() {
-        let node: WidgetNode<TestMsg> =
-            password_input("pw").value("my-password").into();
+        let node: WidgetNode<TestMsg> = password_input("pw").value("my-password").into();
         let WidgetNode::Row(container) = &node else {
             panic!("expected Row");
         };
@@ -161,7 +162,10 @@ mod tests {
             panic!("expected TextInput");
         };
         // Value should be masked
-        assert_eq!(input.value, "\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}");
+        assert_eq!(
+            input.value,
+            "\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}"
+        );
         // Second child is the toggle button
         let WidgetNode::Button(btn) = &container.children[1] else {
             panic!("expected Button");
@@ -171,8 +175,7 @@ mod tests {
 
     #[test]
     fn password_input_shows_value_when_visible() {
-        let node: WidgetNode<TestMsg> =
-            password_input("pw").value("hello").visible(true).into();
+        let node: WidgetNode<TestMsg> = password_input("pw").value("hello").visible(true).into();
         let WidgetNode::Row(container) = &node else {
             panic!("expected Row");
         };

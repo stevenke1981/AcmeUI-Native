@@ -118,10 +118,7 @@ mod tests {
     fn bottom_nav_has_non_zero_layout_rect() {
         let node: WidgetNode<TestMsg> = bottom_nav("nav")
             .item(bottom_nav_item("home", "Home").icon(crate::IconName::User))
-            .item(
-                bottom_nav_item("settings", "Settings")
-                    .icon(crate::IconName::Settings),
-            )
+            .item(bottom_nav_item("settings", "Settings").icon(crate::IconName::Settings))
             .into();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.style.kind, LayoutKind::Row);

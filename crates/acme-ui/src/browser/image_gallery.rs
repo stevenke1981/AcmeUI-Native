@@ -17,7 +17,11 @@ pub struct GalleryImage {
 impl GalleryImage {
     /// Create a gallery image entry.
     pub fn new(label: impl Into<String>) -> Self {
-        Self { label: label.into(), caption: None, aspect_ratio: 1.0 }
+        Self {
+            label: label.into(),
+            caption: None,
+            aspect_ratio: 1.0,
+        }
     }
 
     /// Set the image caption text.
@@ -116,11 +120,7 @@ impl<M: Clone + 'static> ImageGalleryBuilder<M> {
             let thumb = crate::card::<M>()
                 .variant(crate::CardVariant::Muted)
                 .padding(4.0)
-                .child(
-                    crate::label_builder(&img.label)
-                        .font_size(11.0)
-                        .build(),
-                )
+                .child(crate::label_builder(&img.label).font_size(11.0).build())
                 .build();
 
             // Wrap thumbnail in a sized column to simulate width/height
@@ -133,15 +133,15 @@ impl<M: Clone + 'static> ImageGalleryBuilder<M> {
             thumb_col = thumb_col.child(sized_thumb);
 
             // Optional caption
-            if self.show_captions {
-                if let Some(cap) = &img.caption {
-                    thumb_col = thumb_col.child(
-                        crate::label_builder(cap)
-                            .font_size(11.0)
-                            .color(crate::ThemeColor::rgb(120, 120, 120))
-                            .build(),
-                    );
-                }
+            if self.show_captions
+                && let Some(cap) = &img.caption
+            {
+                thumb_col = thumb_col.child(
+                    crate::label_builder(cap)
+                        .font_size(11.0)
+                        .color(crate::ThemeColor::rgb(120, 120, 120))
+                        .build(),
+                );
             }
 
             grid = grid.child(thumb_col.build());
@@ -165,7 +165,13 @@ mod tests {
     use acme_layout::{LayoutEngine, WidgetLayoutContext};
 
     fn test_context() -> WidgetLayoutContext {
-        WidgetLayoutContext { body_font_size: 16.0, body_line_height: 22.0, label_font_size: 14.0, control_height: 32.0, scale_factor: 1.0 }
+        WidgetLayoutContext {
+            body_font_size: 16.0,
+            body_line_height: 22.0,
+            label_font_size: 14.0,
+            control_height: 32.0,
+            scale_factor: 1.0,
+        }
     }
 
     #[derive(Clone, Debug, PartialEq)]
@@ -176,7 +182,9 @@ mod tests {
         let node: WidgetNode<TestMsg> = image_gallery("gal").build();
         let ctx = test_context();
         let layout = node.to_layout_with_context(NodeId::new(1), &ctx);
-        let snapshot = LayoutEngine::new().compute(&layout, (800.0, 600.0)).unwrap();
+        let snapshot = LayoutEngine::new()
+            .compute(&layout, (800.0, 600.0))
+            .unwrap();
         let rect = snapshot.get(NodeId::new(1)).unwrap();
         assert!(rect.height > 0.0, "gallery height should be > 0");
     }
@@ -188,10 +196,14 @@ mod tests {
             .image(GalleryImage::new("Photo 2").aspect_ratio(1.5))
             .columns(3)
             .build();
-        let WidgetNode::Column(col) = &node else { panic!("expected Column") };
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column")
+        };
         // header + grid = 2
         assert_eq!(col.children.len(), 2);
-        let WidgetNode::Row(grid) = &col.children[1] else { panic!("expected Row for grid") };
+        let WidgetNode::Row(grid) = &col.children[1] else {
+            panic!("expected Row for grid")
+        };
         assert_eq!(grid.children.len(), 2);
     }
 
@@ -201,9 +213,15 @@ mod tests {
             .image(GalleryImage::new("Photo 1"))
             .show_captions(false)
             .build();
-        let WidgetNode::Column(col) = &node else { panic!("expected Column") };
-        let WidgetNode::Row(grid) = &col.children[1] else { panic!("expected Row") };
-        let WidgetNode::Column(thumb_col) = &grid.children[0] else { panic!("expected Column") };
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column")
+        };
+        let WidgetNode::Row(grid) = &col.children[1] else {
+            panic!("expected Row")
+        };
+        let WidgetNode::Column(thumb_col) = &grid.children[0] else {
+            panic!("expected Column")
+        };
         // sized container only, no caption
         assert_eq!(thumb_col.children.len(), 1);
     }

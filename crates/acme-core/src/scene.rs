@@ -152,7 +152,11 @@ impl PaintCommand {
                     border_color: Color::TRANSPARENT,
                 })]
             }
-            PaintCommand::RoundedRect { rect, radius, color } => {
+            PaintCommand::RoundedRect {
+                rect,
+                radius,
+                color,
+            } => {
                 vec![DrawCommand::Quad(QuadPrimitive {
                     rect,
                     color,
@@ -266,9 +270,7 @@ impl Scene {
             match cmd {
                 DrawCommand::PushClip(_) => clips += 1,
                 DrawCommand::PopClip => {
-                    clips = clips
-                        .checked_sub(1)
-                        .ok_or(SceneError::ClipUnderflow)?;
+                    clips = clips.checked_sub(1).ok_or(SceneError::ClipUnderflow)?;
                 }
                 _ => {}
             }

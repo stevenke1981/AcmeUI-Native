@@ -138,7 +138,10 @@ mod tests {
     fn progress_has_non_zero_layout_rect() {
         let node: WidgetNode<TestMsg> = progress(50.0).build();
         let WidgetNode::Row(r) = &node else {
-            panic!("expected Row variant, got {:?}", std::mem::discriminant(&node));
+            panic!(
+                "expected Row variant, got {:?}",
+                std::mem::discriminant(&node)
+            );
         };
         assert_eq!(r.width, Some(200.0), "track width should be 200px");
         assert!(!r.children.is_empty(), "progress should have children");

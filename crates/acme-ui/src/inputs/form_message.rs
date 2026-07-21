@@ -11,12 +11,12 @@ use std::marker::PhantomData;
 /// Mapping from tone to a short icon character.
 fn tone_icon(tone: crate::Tone) -> &'static str {
     match tone {
-        crate::Tone::Neutral => "\u{2139}",      // ℹ
-        crate::Tone::Primary => "\u{2139}",       // ℹ
-        crate::Tone::Success => "\u{2713}",       // ✓
-        crate::Tone::Warning => "\u{26a0}",       // ⚠
-        crate::Tone::Danger => "\u{2715}",        // ✕
-        crate::Tone::Info => "\u{2139}",          // ℹ
+        crate::Tone::Neutral => "\u{2139}", // ℹ
+        crate::Tone::Primary => "\u{2139}", // ℹ
+        crate::Tone::Success => "\u{2713}", // ✓
+        crate::Tone::Warning => "\u{26a0}", // ⚠
+        crate::Tone::Danger => "\u{2715}",  // ✕
+        crate::Tone::Info => "\u{2139}",    // ℹ
     }
 }
 
@@ -118,8 +118,7 @@ mod tests {
 
     #[test]
     fn form_message_has_non_zero_layout_rect() {
-        let node: WidgetNode<TestMsg> =
-            form_message().text("This is a message").into();
+        let node: WidgetNode<TestMsg> = form_message().text("This is a message").into();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.style.kind, LayoutKind::Row);
         assert!(!layout.children.is_empty());
@@ -139,8 +138,7 @@ mod tests {
 
     #[test]
     fn form_message_without_icon_has_single_label() {
-        let node: WidgetNode<TestMsg> =
-            form_message().text("Required field").into();
+        let node: WidgetNode<TestMsg> = form_message().text("Required field").into();
         let WidgetNode::Row(container) = &node else {
             panic!("expected Row");
         };
@@ -155,8 +153,11 @@ mod tests {
 
     #[test]
     fn form_message_with_icon_shows_tone_icon_and_text() {
-        let node: WidgetNode<TestMsg> =
-            form_message().text("Warning!").warning().with_icon(true).into();
+        let node: WidgetNode<TestMsg> = form_message()
+            .text("Warning!")
+            .warning()
+            .with_icon(true)
+            .into();
         let WidgetNode::Row(container) = &node else {
             panic!("expected Row");
         };
@@ -191,24 +192,37 @@ mod tests {
         use crate::Tone;
 
         // Neutral → ℹ
-        let node: WidgetNode<TestMsg> =
-            form_message().text("info").tone(Tone::Neutral).with_icon(true).into();
-        let WidgetNode::Row(r) = &node else { panic!("expected Row") };
-        let WidgetNode::Label(icon) = &r.children[0] else { panic!("expected Label") };
+        let node: WidgetNode<TestMsg> = form_message()
+            .text("info")
+            .tone(Tone::Neutral)
+            .with_icon(true)
+            .into();
+        let WidgetNode::Row(r) = &node else {
+            panic!("expected Row")
+        };
+        let WidgetNode::Label(icon) = &r.children[0] else {
+            panic!("expected Label")
+        };
         assert_eq!(icon.text, "\u{2139}");
 
         // Success → ✓
-        let node: WidgetNode<TestMsg> =
-            form_message().text("ok").success().with_icon(true).into();
-        let WidgetNode::Row(r) = &node else { panic!("expected Row") };
-        let WidgetNode::Label(icon) = &r.children[0] else { panic!("expected Label") };
+        let node: WidgetNode<TestMsg> = form_message().text("ok").success().with_icon(true).into();
+        let WidgetNode::Row(r) = &node else {
+            panic!("expected Row")
+        };
+        let WidgetNode::Label(icon) = &r.children[0] else {
+            panic!("expected Label")
+        };
         assert_eq!(icon.text, "\u{2713}");
 
         // Danger → ✕
-        let node: WidgetNode<TestMsg> =
-            form_message().text("err").danger().with_icon(true).into();
-        let WidgetNode::Row(r) = &node else { panic!("expected Row") };
-        let WidgetNode::Label(icon) = &r.children[0] else { panic!("expected Label") };
+        let node: WidgetNode<TestMsg> = form_message().text("err").danger().with_icon(true).into();
+        let WidgetNode::Row(r) = &node else {
+            panic!("expected Row")
+        };
+        let WidgetNode::Label(icon) = &r.children[0] else {
+            panic!("expected Label")
+        };
         assert_eq!(icon.text, "\u{2715}");
     }
 }

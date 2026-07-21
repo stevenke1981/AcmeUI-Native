@@ -130,11 +130,7 @@ impl<M: Clone + 'static> From<MultiSelectBuilder<M>> for WidgetNode<M> {
                 .child(dropdown)
                 .build()
         } else {
-            column::<M>()
-                .key(b.id)
-                .gap(2.0)
-                .child(tag_row)
-                .build()
+            column::<M>().key(b.id).gap(2.0).child(tag_row).build()
         }
     }
 }

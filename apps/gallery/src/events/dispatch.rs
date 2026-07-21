@@ -20,7 +20,7 @@
 use acme_platform::PlatformKey;
 use acme_textinput::TextInputState;
 
-use crate::events::{compute_ime_caret_rect, hit_test, ActivationCtx, handle_message};
+use crate::events::{ActivationCtx, compute_ime_caret_rect, handle_message, hit_test};
 use crate::render::{point_in_rect, scrolled_hit_rect};
 use crate::types::*;
 
@@ -219,7 +219,8 @@ pub fn handle_general_key(
     if !text_input.focused {
         return false;
     }
-    let changed = if ctrl && let Some(t) = text
+    let changed = if ctrl
+        && let Some(t) = text
         && matches!(t, "a" | "c" | "v" | "x")
     {
         acme_textinput::handle_keyboard_shortcut(text_input, t, clipboard.as_ref())

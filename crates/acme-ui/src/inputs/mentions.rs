@@ -66,14 +66,11 @@ impl<M: Clone + 'static> From<MentionsBuilder<M>> for WidgetNode<M> {
         let input_key = format!("{}_input", b.id.as_str());
 
         // Row: "@" badge + text input
-        let input_row = row::<M>()
-            .gap(4.0)
-            .child(label::<M>("@"))
-            .child(
-                text_input::<M>(input_key.as_str())
-                    .value(b.value.as_str())
-                    .placeholder(b.placeholder.as_str()),
-            );
+        let input_row = row::<M>().gap(4.0).child(label::<M>("@")).child(
+            text_input::<M>(input_key.as_str())
+                .value(b.value.as_str())
+                .placeholder(b.placeholder.as_str()),
+        );
 
         // Dropdown list when open
         if b.open {
@@ -89,11 +86,7 @@ impl<M: Clone + 'static> From<MentionsBuilder<M>> for WidgetNode<M> {
                 .child(dropdown)
                 .build()
         } else {
-            column::<M>()
-                .key(b.id)
-                .gap(2.0)
-                .child(input_row)
-                .build()
+            column::<M>().key(b.id).gap(2.0).child(input_row).build()
         }
     }
 }

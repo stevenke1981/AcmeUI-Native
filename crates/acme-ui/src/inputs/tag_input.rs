@@ -103,13 +103,7 @@ impl<M: Clone + 'static> From<TagInputBuilder<M>> for WidgetNode<M> {
             .variant(CardVariant::Outlined)
             .padding(8.0)
             .gap(4.0)
-            .child(
-                column::<M>()
-                    .gap(4.0)
-                    .child(tag_row)
-                    .child(input)
-                    .build(),
-            )
+            .child(column::<M>().gap(4.0).child(tag_row).child(input).build())
             .build()
     }
 }
@@ -120,8 +114,6 @@ impl<M: Clone + 'static> From<TagInputBuilder<M>> for WidgetNode<M> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use acme_core::NodeId;
-    use acme_layout::LayoutKind;
 
     #[derive(Clone, Debug, PartialEq)]
     enum TestMsg {
@@ -132,9 +124,7 @@ mod tests {
     /// Verify that an empty TagInput renders the placeholder text.
     #[test]
     fn tag_input_empty() {
-        let node: WidgetNode<TestMsg> = tag_input("t1")
-            .placeholder("Add tags...")
-            .into();
+        let node: WidgetNode<TestMsg> = tag_input("t1").placeholder("Add tags...").into();
 
         // The outermost widget is a Card
         let WidgetNode::Card(card) = &node else {
@@ -162,9 +152,8 @@ mod tests {
     /// Verify that initial tags produce tag badges in the tag row.
     #[test]
     fn tag_input_with_tags() {
-        let node: WidgetNode<TestMsg> = tag_input("t2")
-            .tags(vec!["rust", "ui", "component"])
-            .into();
+        let node: WidgetNode<TestMsg> =
+            tag_input("t2").tags(vec!["rust", "ui", "component"]).into();
 
         let WidgetNode::Card(card) = &node else {
             panic!("expected Card variant");
@@ -183,7 +172,11 @@ mod tests {
         let WidgetNode::Row(first_tag) = &tag_row.children[0] else {
             panic!("expected Row per tag");
         };
-        assert_eq!(first_tag.children.len(), 2, "tag badge should have label + close button");
+        assert_eq!(
+            first_tag.children.len(),
+            2,
+            "tag badge should have label + close button"
+        );
 
         let WidgetNode::Label(lbl) = &first_tag.children[0] else {
             panic!("expected Label as first child of tag badge");
@@ -194,9 +187,7 @@ mod tests {
     /// Verify that max_tags is stored correctly on the builder.
     #[test]
     fn tag_input_max_tags() {
-        let b = tag_input::<TestMsg>("t3")
-            .tags(vec!["a", "b"])
-            .max_tags(5);
+        let b = tag_input::<TestMsg>("t3").tags(vec!["a", "b"]).max_tags(5);
         assert_eq!(b.max_tags, 5);
         assert_eq!(b.tags.len(), 2);
     }

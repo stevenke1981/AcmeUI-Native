@@ -3,9 +3,9 @@
 //! Renders as a [`Button`] widget with Primary variant when selected,
 //! Secondary variant when not selected.
 
+use crate::{ControlSize, IconName};
 use acme_core::WidgetKey;
 use acme_widgets::*;
-use crate::{ControlSize, IconName};
 
 /// Builder for a ToggleButton component.
 pub struct ToggleButtonBuilder<M> {
@@ -19,9 +19,7 @@ pub struct ToggleButtonBuilder<M> {
 }
 
 /// Create a new ToggleButton builder.
-pub fn toggle_button<M: Clone + 'static>(
-    id: impl Into<WidgetKey>,
-) -> ToggleButtonBuilder<M> {
+pub fn toggle_button<M: Clone + 'static>(id: impl Into<WidgetKey>) -> ToggleButtonBuilder<M> {
     ToggleButtonBuilder {
         id: id.into(),
         label: String::new(),
@@ -134,8 +132,7 @@ mod tests {
 
     #[test]
     fn toggle_button_selected_uses_primary_variant() {
-        let node: WidgetNode<TestMsg> =
-            toggle_button("tb3").label("Italic").selected(true).into();
+        let node: WidgetNode<TestMsg> = toggle_button("tb3").label("Italic").selected(true).into();
         let WidgetNode::Button(b) = &node else {
             panic!("expected Button");
         };
@@ -144,8 +141,7 @@ mod tests {
 
     #[test]
     fn toggle_button_unselected_uses_secondary_variant() {
-        let node: WidgetNode<TestMsg> =
-            toggle_button("tb4").label("Underline").into();
+        let node: WidgetNode<TestMsg> = toggle_button("tb4").label("Underline").into();
         let WidgetNode::Button(b) = &node else {
             panic!("expected Button");
         };
@@ -154,8 +150,7 @@ mod tests {
 
     #[test]
     fn toggle_button_disabled_state() {
-        let node: WidgetNode<TestMsg> =
-            toggle_button("tb5").label("Strike").disabled(true).into();
+        let node: WidgetNode<TestMsg> = toggle_button("tb5").label("Strike").disabled(true).into();
         let WidgetNode::Button(b) = &node else {
             panic!("expected Button");
         };

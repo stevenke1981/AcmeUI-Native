@@ -118,30 +118,16 @@ fn render_item_list<M: Clone + 'static>(
 
 impl<M: Clone + 'static> From<TransferBuilder<M>> for WidgetNode<M> {
     fn from(b: TransferBuilder<M>) -> Self {
-        let source_panel = render_item_list::<M>(
-            &b.source,
-            &b.source_selected,
-            "Source",
-            b.source.len(),
-        );
+        let source_panel =
+            render_item_list::<M>(&b.source, &b.source_selected, "Source", b.source.len());
 
         let middle = column::<M>()
             .gap(8.0)
-            .child(button::<M>(
-                format!("{}-to", b.id.as_str()).as_str(),
-                "▶",
-            ))
-            .child(button::<M>(
-                format!("{}-from", b.id.as_str()).as_str(),
-                "◀",
-            ));
+            .child(button::<M>(format!("{}-to", b.id.as_str()).as_str(), "▶"))
+            .child(button::<M>(format!("{}-from", b.id.as_str()).as_str(), "◀"));
 
-        let target_panel = render_item_list::<M>(
-            &b.target,
-            &b.target_selected,
-            "Target",
-            b.target.len(),
-        );
+        let target_panel =
+            render_item_list::<M>(&b.target, &b.target_selected, "Target", b.target.len());
 
         row::<M>()
             .key(b.id)

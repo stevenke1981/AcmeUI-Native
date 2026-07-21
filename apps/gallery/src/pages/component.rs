@@ -1,8 +1,6 @@
 //! Component page template builder.
 
-use acme_widgets::{
-    WidgetNode, column, label, label_with_size, separator,
-};
+use acme_widgets::{WidgetNode, column, label, label_with_size, separator};
 
 use crate::helpers::{spacing, standard_component_sections};
 use crate::types::*;

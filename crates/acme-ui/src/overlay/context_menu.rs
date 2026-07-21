@@ -118,8 +118,7 @@ mod tests {
 
     #[test]
     fn context_menu_closed_no_anchor_renders_empty_label() {
-        let node: WidgetNode<TestMsg> =
-            context_menu::<TestMsg>("ctx1").open(false).into();
+        let node: WidgetNode<TestMsg> = context_menu::<TestMsg>("ctx1").open(false).into();
         assert!(matches!(node, WidgetNode::Label(_)));
     }
 

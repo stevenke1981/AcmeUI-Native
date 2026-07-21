@@ -29,7 +29,12 @@ pub struct ThemeColor {
 
 impl ThemeColor {
     pub const fn rgba(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
-        Self { red, green, blue, alpha }
+        Self {
+            red,
+            green,
+            blue,
+            alpha,
+        }
     }
     pub const fn rgb(red: u8, green: u8, blue: u8) -> Self {
         Self {
@@ -117,9 +122,9 @@ pub struct ColorTokens {
     pub info_soft: ThemeColor,
 
     // ── Elevation surface ladder ──
-    pub surface_elevated: ThemeColor,       // elevation-2: popover, menu
-    pub surface_overlay: ThemeColor,        // elevation-3: dialog, modal
-    pub surface_tooltip: ThemeColor,        // elevation-4: tooltip
+    pub surface_elevated: ThemeColor, // elevation-2: popover, menu
+    pub surface_overlay: ThemeColor,  // elevation-3: dialog, modal
+    pub surface_tooltip: ThemeColor,  // elevation-4: tooltip
 
     // ── Component-specific ──
     pub primary_hover: ThemeColor,
@@ -304,9 +309,13 @@ impl Theme {
 
     /// Resolve border color for component state
     pub fn border_color(&self, focused: bool, invalid: bool) -> ThemeColor {
-        if invalid { self.colors.danger }
-        else if focused { self.colors.ring }
-        else { self.colors.border }
+        if invalid {
+            self.colors.danger
+        } else if focused {
+            self.colors.ring
+        } else {
+            self.colors.border
+        }
     }
 
     /// Get control height by index (0=xs, 1=sm, 2=md, 3=lg, 4=xl)
@@ -324,17 +333,40 @@ impl Theme {
     pub fn validate(&self) -> Result<(), ThemeValidationError> {
         let c = &self.colors;
         let color_fields = [
-            c.background, c.foreground, c.surface, c.surface_foreground,
-            c.primary, c.primary_foreground, c.secondary, c.secondary_foreground,
-            c.accent, c.accent_foreground, c.muted, c.muted_foreground,
-            c.border, c.input, c.ring,
-            c.success, c.warning, c.danger, c.info,
-            c.success_soft, c.warning_soft, c.danger_soft, c.info_soft,
-            c.surface_elevated, c.surface_overlay, c.surface_tooltip,
-            c.primary_hover, c.primary_pressed,
-            c.danger_hover, c.danger_pressed,
-            c.ghost_hover, c.ghost_pressed,
-            c.disabled_bg, c.disabled_text,
+            c.background,
+            c.foreground,
+            c.surface,
+            c.surface_foreground,
+            c.primary,
+            c.primary_foreground,
+            c.secondary,
+            c.secondary_foreground,
+            c.accent,
+            c.accent_foreground,
+            c.muted,
+            c.muted_foreground,
+            c.border,
+            c.input,
+            c.ring,
+            c.success,
+            c.warning,
+            c.danger,
+            c.info,
+            c.success_soft,
+            c.warning_soft,
+            c.danger_soft,
+            c.info_soft,
+            c.surface_elevated,
+            c.surface_overlay,
+            c.surface_tooltip,
+            c.primary_hover,
+            c.primary_pressed,
+            c.danger_hover,
+            c.danger_pressed,
+            c.ghost_hover,
+            c.ghost_pressed,
+            c.disabled_bg,
+            c.disabled_text,
         ];
         if !color_fields.into_iter().all(ThemeColor::is_valid) {
             return Err(ThemeValidationError::InvalidColor);
@@ -405,62 +437,86 @@ impl Theme {
     fn light_colors() -> (ColorTokens, ShadowTokens) {
         let c = ColorTokens {
             // Base
-            background: ThemeColor::rgb(250, 251, 252),       // #FAFBFC
-            foreground: ThemeColor::rgb(15, 20, 25),           // #0F1419
-            surface: ThemeColor::rgb(255, 255, 255),           // #FFFFFF
-            surface_foreground: ThemeColor::rgb(15, 20, 25),   // #0F1419
+            background: ThemeColor::rgb(250, 251, 252), // #FAFBFC
+            foreground: ThemeColor::rgb(15, 20, 25),    // #0F1419
+            surface: ThemeColor::rgb(255, 255, 255),    // #FFFFFF
+            surface_foreground: ThemeColor::rgb(15, 20, 25), // #0F1419
 
             // Semantic
-            primary: ThemeColor::rgb(37, 99, 235),             // #2563EB
-            primary_foreground: ThemeColor::rgb(255, 255, 255),// #FFFFFF
-            secondary: ThemeColor::rgb(240, 242, 245),         // #F0F2F5
+            primary: ThemeColor::rgb(37, 99, 235), // #2563EB
+            primary_foreground: ThemeColor::rgb(255, 255, 255), // #FFFFFF
+            secondary: ThemeColor::rgb(240, 242, 245), // #F0F2F5
             secondary_foreground: ThemeColor::rgb(31, 41, 55), // #1F2937
-            accent: ThemeColor::rgb(232, 240, 254),            // #E8F0FE
-            accent_foreground: ThemeColor::rgb(29, 78, 216),   // #1D4ED8
-            muted: ThemeColor::rgb(244, 245, 247),             // #F4F5F7
-            muted_foreground: ThemeColor::rgb(107, 114, 128),  // #6B7280
+            accent: ThemeColor::rgb(232, 240, 254), // #E8F0FE
+            accent_foreground: ThemeColor::rgb(29, 78, 216), // #1D4ED8
+            muted: ThemeColor::rgb(244, 245, 247), // #F4F5F7
+            muted_foreground: ThemeColor::rgb(107, 114, 128), // #6B7280
 
             // Border & ring
-            border: ThemeColor::rgb(226, 229, 234),            // #E2E5EA
-            input: ThemeColor::rgb(226, 229, 234),             // #E2E5EA
-            ring: ThemeColor::rgb(37, 99, 235),                // #2563EB
+            border: ThemeColor::rgb(226, 229, 234), // #E2E5EA
+            input: ThemeColor::rgb(226, 229, 234),  // #E2E5EA
+            ring: ThemeColor::rgb(37, 99, 235),     // #2563EB
 
             // Status solid
-            success: ThemeColor::rgb(22, 163, 74),             // #16A34A
-            warning: ThemeColor::rgb(217, 119, 6),             // #D97706
-            danger: ThemeColor::rgb(220, 38, 38),              // #DC2626
-            info: ThemeColor::rgb(37, 99, 235),                // #2563EB
+            success: ThemeColor::rgb(22, 163, 74), // #16A34A
+            warning: ThemeColor::rgb(217, 119, 6), // #D97706
+            danger: ThemeColor::rgb(220, 38, 38),  // #DC2626
+            info: ThemeColor::rgb(37, 99, 235),    // #2563EB
 
             // Status soft
-            success_soft: ThemeColor::rgb(240, 253, 244),      // #F0FDF4
-            warning_soft: ThemeColor::rgb(255, 251, 235),      // #FFFBEB
-            danger_soft: ThemeColor::rgb(254, 242, 242),       // #FEF2F2
-            info_soft: ThemeColor::rgb(239, 246, 255),         // #EFF6FF
+            success_soft: ThemeColor::rgb(240, 253, 244), // #F0FDF4
+            warning_soft: ThemeColor::rgb(255, 251, 235), // #FFFBEB
+            danger_soft: ThemeColor::rgb(254, 242, 242),  // #FEF2F2
+            info_soft: ThemeColor::rgb(239, 246, 255),    // #EFF6FF
 
             // Elevation
-            surface_elevated: ThemeColor::rgb(255, 255, 255),  // #FFFFFF
-            surface_overlay: ThemeColor::rgb(255, 255, 255),   // #FFFFFF
-            surface_tooltip: ThemeColor::rgb(31, 41, 55),      // #1F2937 (dark for contrast)
+            surface_elevated: ThemeColor::rgb(255, 255, 255), // #FFFFFF
+            surface_overlay: ThemeColor::rgb(255, 255, 255),  // #FFFFFF
+            surface_tooltip: ThemeColor::rgb(31, 41, 55),     // #1F2937 (dark for contrast)
 
             // Interactive states
-            primary_hover: ThemeColor::rgb(29, 78, 216),       // #1D4ED8
-            primary_pressed: ThemeColor::rgb(30, 64, 175),     // #1E40AF
-            danger_hover: ThemeColor::rgb(185, 28, 28),        // #B91C1C
-            danger_pressed: ThemeColor::rgb(153, 27, 27),      // #991B1B
-            ghost_hover: ThemeColor::rgb(240, 242, 245),       // #F0F2F5
-            ghost_pressed: ThemeColor::rgb(226, 229, 234),     // #E2E5EA
+            primary_hover: ThemeColor::rgb(29, 78, 216), // #1D4ED8
+            primary_pressed: ThemeColor::rgb(30, 64, 175), // #1E40AF
+            danger_hover: ThemeColor::rgb(185, 28, 28),  // #B91C1C
+            danger_pressed: ThemeColor::rgb(153, 27, 27), // #991B1B
+            ghost_hover: ThemeColor::rgb(240, 242, 245), // #F0F2F5
+            ghost_pressed: ThemeColor::rgb(226, 229, 234), // #E2E5EA
 
             // Disabled
-            disabled_bg: ThemeColor::rgb(240, 241, 243),       // #F0F1F3
-            disabled_text: ThemeColor::rgb(156, 163, 175),     // #9CA3AF
+            disabled_bg: ThemeColor::rgb(240, 241, 243), // #F0F1F3
+            disabled_text: ThemeColor::rgb(156, 163, 175), // #9CA3AF
         };
 
         let shadow_base = ThemeColor::rgba(0.0, 0.0, 0.0, 1.0);
         let sh = ShadowTokens {
-            sm: ShadowDef { offset_x: 0.0, offset_y: 1.0, blur: 2.0, spread: 0.0, color: shadow_base.with_alpha(0.04) },
-            md: ShadowDef { offset_x: 0.0, offset_y: 4.0, blur: 12.0, spread: 0.0, color: shadow_base.with_alpha(0.06) },
-            lg: ShadowDef { offset_x: 0.0, offset_y: 8.0, blur: 24.0, spread: 0.0, color: shadow_base.with_alpha(0.08) },
-            xl: ShadowDef { offset_x: 0.0, offset_y: 16.0, blur: 48.0, spread: 0.0, color: shadow_base.with_alpha(0.10) },
+            sm: ShadowDef {
+                offset_x: 0.0,
+                offset_y: 1.0,
+                blur: 2.0,
+                spread: 0.0,
+                color: shadow_base.with_alpha(0.04),
+            },
+            md: ShadowDef {
+                offset_x: 0.0,
+                offset_y: 4.0,
+                blur: 12.0,
+                spread: 0.0,
+                color: shadow_base.with_alpha(0.06),
+            },
+            lg: ShadowDef {
+                offset_x: 0.0,
+                offset_y: 8.0,
+                blur: 24.0,
+                spread: 0.0,
+                color: shadow_base.with_alpha(0.08),
+            },
+            xl: ShadowDef {
+                offset_x: 0.0,
+                offset_y: 16.0,
+                blur: 48.0,
+                spread: 0.0,
+                color: shadow_base.with_alpha(0.10),
+            },
         };
 
         (c, sh)
@@ -471,62 +527,86 @@ impl Theme {
     fn dark_colors() -> (ColorTokens, ShadowTokens) {
         let c = ColorTokens {
             // Base
-            background: ThemeColor::rgb(14, 18, 23),            // #0E1217
-            foreground: ThemeColor::rgb(240, 242, 245),         // #F0F2F5
-            surface: ThemeColor::rgb(21, 27, 35),               // #151B23
+            background: ThemeColor::rgb(14, 18, 23), // #0E1217
+            foreground: ThemeColor::rgb(240, 242, 245), // #F0F2F5
+            surface: ThemeColor::rgb(21, 27, 35),    // #151B23
             surface_foreground: ThemeColor::rgb(240, 242, 245), // #F0F2F5
 
             // Semantic
-            primary: ThemeColor::rgb(91, 141, 239),             // #5B8DEF
-            primary_foreground: ThemeColor::rgb(15, 20, 25),    // #0F1419
-            secondary: ThemeColor::rgb(28, 33, 40),             // #1C2128
-            secondary_foreground: ThemeColor::rgb(226, 229, 234),// #E2E5EA
-            accent: ThemeColor::rgb(25, 40, 67),                // #192843
-            accent_foreground: ThemeColor::rgb(139, 180, 248),  // #8BB4F8
-            muted: ThemeColor::rgb(22, 27, 34),                 // #161B22
-            muted_foreground: ThemeColor::rgb(139, 146, 154),   // #8B929A
+            primary: ThemeColor::rgb(91, 141, 239), // #5B8DEF
+            primary_foreground: ThemeColor::rgb(15, 20, 25), // #0F1419
+            secondary: ThemeColor::rgb(28, 33, 40), // #1C2128
+            secondary_foreground: ThemeColor::rgb(226, 229, 234), // #E2E5EA
+            accent: ThemeColor::rgb(25, 40, 67),    // #192843
+            accent_foreground: ThemeColor::rgb(139, 180, 248), // #8BB4F8
+            muted: ThemeColor::rgb(22, 27, 34),     // #161B22
+            muted_foreground: ThemeColor::rgb(139, 146, 154), // #8B929A
 
             // Border & ring
-            border: ThemeColor::rgb(45, 51, 59),                // #2D333B
-            input: ThemeColor::rgb(45, 51, 59),                 // #2D333B
-            ring: ThemeColor::rgb(91, 141, 239),                // #5B8DEF
+            border: ThemeColor::rgb(45, 51, 59), // #2D333B
+            input: ThemeColor::rgb(45, 51, 59),  // #2D333B
+            ring: ThemeColor::rgb(91, 141, 239), // #5B8DEF
 
             // Status solid
-            success: ThemeColor::rgb(74, 222, 128),             // #4ADE80
-            warning: ThemeColor::rgb(251, 191, 36),             // #FBBF24
-            danger: ThemeColor::rgb(248, 113, 113),             // #F87171
-            info: ThemeColor::rgb(96, 165, 250),                // #60A5FA
+            success: ThemeColor::rgb(74, 222, 128), // #4ADE80
+            warning: ThemeColor::rgb(251, 191, 36), // #FBBF24
+            danger: ThemeColor::rgb(248, 113, 113), // #F87171
+            info: ThemeColor::rgb(96, 165, 250),    // #60A5FA
 
             // Status soft
-            success_soft: ThemeColor::rgb(13, 40, 24),          // #0D2818
-            warning_soft: ThemeColor::rgb(45, 31, 4),           // #2D1F04
-            danger_soft: ThemeColor::rgb(45, 10, 10),           // #2D0A0A
-            info_soft: ThemeColor::rgb(13, 27, 62),             // #0D1B3E
+            success_soft: ThemeColor::rgb(13, 40, 24), // #0D2818
+            warning_soft: ThemeColor::rgb(45, 31, 4),  // #2D1F04
+            danger_soft: ThemeColor::rgb(45, 10, 10),  // #2D0A0A
+            info_soft: ThemeColor::rgb(13, 27, 62),    // #0D1B3E
 
             // Elevation
-            surface_elevated: ThemeColor::rgb(28, 36, 51),      // #1C2433
-            surface_overlay: ThemeColor::rgb(34, 48, 68),       // #223044
-            surface_tooltip: ThemeColor::rgb(45, 51, 59),       // #2D333B
+            surface_elevated: ThemeColor::rgb(28, 36, 51), // #1C2433
+            surface_overlay: ThemeColor::rgb(34, 48, 68),  // #223044
+            surface_tooltip: ThemeColor::rgb(45, 51, 59),  // #2D333B
 
             // Interactive states
-            primary_hover: ThemeColor::rgb(115, 161, 242),      // #73A1F2
-            primary_pressed: ThemeColor::rgb(64, 114, 230),     // #4072E6
-            danger_hover: ThemeColor::rgb(252, 129, 129),       // #FC8181
-            danger_pressed: ThemeColor::rgb(235, 80, 80),       // #EB5050
-            ghost_hover: ThemeColor::rgb(28, 33, 40),           // #1C2128
-            ghost_pressed: ThemeColor::rgb(45, 51, 59),         // #2D333B
+            primary_hover: ThemeColor::rgb(115, 161, 242), // #73A1F2
+            primary_pressed: ThemeColor::rgb(64, 114, 230), // #4072E6
+            danger_hover: ThemeColor::rgb(252, 129, 129),  // #FC8181
+            danger_pressed: ThemeColor::rgb(235, 80, 80),  // #EB5050
+            ghost_hover: ThemeColor::rgb(28, 33, 40),      // #1C2128
+            ghost_pressed: ThemeColor::rgb(45, 51, 59),    // #2D333B
 
             // Disabled
-            disabled_bg: ThemeColor::rgb(28, 33, 40),           // #1C2128
-            disabled_text: ThemeColor::rgb(75, 85, 99),         // #4B5563
+            disabled_bg: ThemeColor::rgb(28, 33, 40), // #1C2128
+            disabled_text: ThemeColor::rgb(75, 85, 99), // #4B5563
         };
 
         let shadow_base = ThemeColor::rgba(0.0, 0.0, 0.0, 1.0);
         let sh = ShadowTokens {
-            sm: ShadowDef { offset_x: 0.0, offset_y: 1.0, blur: 2.0, spread: 0.0, color: shadow_base.with_alpha(0.30) },
-            md: ShadowDef { offset_x: 0.0, offset_y: 4.0, blur: 12.0, spread: 0.0, color: shadow_base.with_alpha(0.35) },
-            lg: ShadowDef { offset_x: 0.0, offset_y: 8.0, blur: 24.0, spread: 0.0, color: shadow_base.with_alpha(0.45) },
-            xl: ShadowDef { offset_x: 0.0, offset_y: 16.0, blur: 48.0, spread: 0.0, color: shadow_base.with_alpha(0.55) },
+            sm: ShadowDef {
+                offset_x: 0.0,
+                offset_y: 1.0,
+                blur: 2.0,
+                spread: 0.0,
+                color: shadow_base.with_alpha(0.30),
+            },
+            md: ShadowDef {
+                offset_x: 0.0,
+                offset_y: 4.0,
+                blur: 12.0,
+                spread: 0.0,
+                color: shadow_base.with_alpha(0.35),
+            },
+            lg: ShadowDef {
+                offset_x: 0.0,
+                offset_y: 8.0,
+                blur: 24.0,
+                spread: 0.0,
+                color: shadow_base.with_alpha(0.45),
+            },
+            xl: ShadowDef {
+                offset_x: 0.0,
+                offset_y: 16.0,
+                blur: 48.0,
+                spread: 0.0,
+                color: shadow_base.with_alpha(0.55),
+            },
         };
 
         (c, sh)
@@ -557,7 +637,10 @@ mod tests {
         let dark = Theme::dark();
         assert_ne!(light.colors.primary, dark.colors.primary);
         assert_ne!(light.colors.surface, dark.colors.surface);
-        assert_eq!(light.colors.primary_foreground, ThemeColor::rgb(255, 255, 255));
+        assert_eq!(
+            light.colors.primary_foreground,
+            ThemeColor::rgb(255, 255, 255)
+        );
     }
 
     #[test]

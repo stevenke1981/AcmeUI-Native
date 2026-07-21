@@ -110,7 +110,7 @@ dependencies = [
 
 [[package]]
 name = "acme-accessibility"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -123,14 +123,14 @@ dependencies = [
 
 [[package]]
 name = "acme-animation"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "slotmap",
 ]
 
 [[package]]
 name = "acme-benchmark"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-layout",
@@ -146,11 +146,11 @@ dependencies = [
 
 [[package]]
 name = "acme-core"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "acme-devtools"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-layout",
@@ -162,7 +162,7 @@ dependencies = [
 
 [[package]]
 name = "acme-gallery"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-accessibility",
  "acme-core",
@@ -182,7 +182,7 @@ dependencies = [
 
 [[package]]
 name = "acme-layout"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-text",
@@ -191,7 +191,7 @@ dependencies = [
 
 [[package]]
 name = "acme-platform"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-render-wgpu",
@@ -204,7 +204,7 @@ dependencies = [
 
 [[package]]
 name = "acme-playground"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-layout",
@@ -220,7 +220,7 @@ dependencies = [
 
 [[package]]
 name = "acme-render-wgpu"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-text",
@@ -234,7 +234,7 @@ dependencies = [
 
 [[package]]
 name = "acme-style"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-layout",
@@ -243,14 +243,14 @@ dependencies = [
 
 [[package]]
 name = "acme-text"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cosmic-text",
 ]
 
 [[package]]
 name = "acme-textinput"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-layout",
@@ -263,14 +263,14 @@ dependencies = [
 
 [[package]]
 name = "acme-theme"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
 ]
 
 [[package]]
 name = "acme-ui"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-layout",
@@ -281,7 +281,7 @@ dependencies = [
 
 [[package]]
 name = "acme-ui-gallery"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-layout",
@@ -296,7 +296,7 @@ dependencies = [
 
 [[package]]
 name = "acme-widgets"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-layout",

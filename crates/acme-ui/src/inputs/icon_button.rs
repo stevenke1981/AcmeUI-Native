@@ -3,9 +3,9 @@
 //! Renders as a [`Button`] widget with the icon character as the label.
 //! The parent app manages selected state via `on_click`.
 
+use crate::{ControlSize, IconName};
 use acme_core::WidgetKey;
 use acme_widgets::*;
-use crate::{ControlSize, IconName};
 
 /// Builder for an IconButton component.
 pub struct IconButtonBuilder<M> {
@@ -131,10 +131,9 @@ mod tests {
 
     #[test]
     fn icon_button_variant_is_set() {
-        let node: WidgetNode<TestMsg> =
-            icon_button("icon3", IconName::Settings)
-                .variant(ButtonVariant::Primary)
-                .into();
+        let node: WidgetNode<TestMsg> = icon_button("icon3", IconName::Settings)
+            .variant(ButtonVariant::Primary)
+            .into();
         let WidgetNode::Button(b) = &node else {
             panic!("expected Button");
         };
@@ -143,8 +142,7 @@ mod tests {
 
     #[test]
     fn icon_button_disabled_state() {
-        let node: WidgetNode<TestMsg> =
-            icon_button("icon4", IconName::Plus).disabled(true).into();
+        let node: WidgetNode<TestMsg> = icon_button("icon4", IconName::Plus).disabled(true).into();
         let WidgetNode::Button(b) = &node else {
             panic!("expected Button");
         };

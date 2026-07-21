@@ -81,11 +81,8 @@ impl<M: Clone> NavigationMenuBuilder<M> {
         for item in &self.items {
             let is_selected = item.value == self.selected_value;
             let item_key = format!("{}_{}", self.id.as_str(), item.value);
-            let btn = crate::button::<M>(item_key.as_str(), &item.label)
-                .disabled(item.disabled);
-            let mut col = crate::column::<M>()
-                .child(btn)
-                .gap(0.0);
+            let btn = crate::button::<M>(item_key.as_str(), &item.label).disabled(item.disabled);
+            let mut col = crate::column::<M>().child(btn).gap(0.0);
 
             if is_selected && !item.children.is_empty() {
                 let mut dropdown = crate::card::<M>()
@@ -117,7 +114,7 @@ impl<M: Clone + 'static> From<NavigationMenuBuilder<M>> for WidgetNode<M> {
 #[cfg(test)]
 mod tests {
     use super::*;
-use crate::WidgetNode;
+    use crate::WidgetNode;
     use acme_core::NodeId;
 
     #[derive(Clone, Debug, PartialEq)]
@@ -202,8 +199,7 @@ use crate::WidgetNode;
 
     #[test]
     fn navigation_menu_from_conversion() {
-        let menu = navigation_menu::<Msg>("nav")
-            .item(nav_menu_item("Home", "home"));
+        let menu = navigation_menu::<Msg>("nav").item(nav_menu_item("Home", "home"));
         let node: WidgetNode<Msg> = menu.into();
         assert!(matches!(node, WidgetNode::Row(_)));
     }

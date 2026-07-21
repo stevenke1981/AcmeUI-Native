@@ -18,25 +18,19 @@ pub fn hit_test(
     scroll: f32,
     scroll_clip_rect: [f32; 4],
 ) -> Option<usize> {
-    button_info
-        .iter()
-        .enumerate()
-        .rev()
-        .find_map(|(i, hr)| {
-            let r = if hr.scrolled {
-                if scroll_clip_rect[2] > 0.0
-                    && !point_in_rect(cursor.0, cursor.1, scroll_clip_rect)
-                {
-                    return None;
-                }
-                scrolled_hit_rect(hr.rect, scroll)
-            } else {
-                hr.rect
-            };
-            if point_in_rect(cursor.0, cursor.1, r) {
-                Some(i)
-            } else {
-                None
+    button_info.iter().enumerate().rev().find_map(|(i, hr)| {
+        let r = if hr.scrolled {
+            if scroll_clip_rect[2] > 0.0 && !point_in_rect(cursor.0, cursor.1, scroll_clip_rect) {
+                return None;
             }
-        })
+            scrolled_hit_rect(hr.rect, scroll)
+        } else {
+            hr.rect
+        };
+        if point_in_rect(cursor.0, cursor.1, r) {
+            Some(i)
+        } else {
+            None
+        }
+    })
 }

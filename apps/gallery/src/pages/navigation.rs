@@ -1,10 +1,9 @@
 //! Navigation category page builders.
 
-use acme_widgets::{
-    WidgetNode, breadcrumb, button, column, label, nav_item, nav_rail,
-    sidebar, tab_bar,
-};
 use acme_widgets::TabItem;
+use acme_widgets::{
+    WidgetNode, breadcrumb, button, column, label, nav_item, nav_rail, sidebar, tab_bar,
+};
 
 use crate::helpers::{density_demo, long_text_section, spacing};
 use crate::types::*;

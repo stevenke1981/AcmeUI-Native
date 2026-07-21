@@ -93,10 +93,7 @@ impl<M: Clone + 'static> From<LightboxBuilder<M>> for WidgetNode<M> {
         }
 
         // Wrap in a Stack for overlay effect
-        crate::stack::<M>()
-            .key(b.id)
-            .child(col.build())
-            .build()
+        crate::stack::<M>().key(b.id).child(col.build()).build()
     }
 }
 
@@ -113,8 +110,10 @@ mod tests {
 
     #[test]
     fn lightbox_has_non_zero_layout_rect() {
-        let node: WidgetNode<TestMsg> =
-            lightbox("lb", "Photo").open(true).caption("A beautiful view").into();
+        let node: WidgetNode<TestMsg> = lightbox("lb", "Photo")
+            .open(true)
+            .caption("A beautiful view")
+            .into();
         let layout = node.to_layout(NodeId::new(1));
         // Stack with one child (Column)
         assert_eq!(layout.children.len(), 1);

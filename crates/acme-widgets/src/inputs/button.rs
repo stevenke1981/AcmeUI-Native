@@ -1,7 +1,7 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
-use acme_style::prelude::*;
 use acme_style::Style;
+use acme_style::prelude::*;
 use acme_theme::{Theme, ThemeColor};
 
 /// Button style variant.
@@ -16,11 +16,11 @@ pub enum ButtonVariant {
 /// Button size matching AcmeUIKit design tokens.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum ButtonSize {
-    XS,      // 24px
-    Small,   // 30px
+    XS,    // 24px
+    Small, // 30px
     #[default]
-    Medium,  // 36px
-    Large,   // 42px
+    Medium, // 36px
+    Large, // 42px
 }
 
 impl ButtonSize {

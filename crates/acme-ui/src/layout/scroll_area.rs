@@ -72,9 +72,7 @@ mod tests {
 
     #[test]
     fn scroll_area_adds_child() {
-        let node: WidgetNode<Msg> = scroll_area::<Msg>("s2")
-            .child(crate::label("Hello"))
-            .into();
+        let node: WidgetNode<Msg> = scroll_area::<Msg>("s2").child(crate::label("Hello")).into();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.children.len(), 1);
     }
@@ -108,17 +106,13 @@ mod tests {
 
     #[test]
     fn scroll_area_is_scroll_view() {
-        let node: WidgetNode<Msg> = scroll_area::<Msg>("s5")
-            .child(crate::label("X"))
-            .build();
+        let node: WidgetNode<Msg> = scroll_area::<Msg>("s5").child(crate::label("X")).build();
         assert!(matches!(node, WidgetNode::ScrollView(_)));
     }
 
     #[test]
     fn scroll_area_no_children_still_renders() {
-        let node: WidgetNode<Msg> = scroll_area::<Msg>("s6")
-            .viewport_height(600.0)
-            .build();
+        let node: WidgetNode<Msg> = scroll_area::<Msg>("s6").viewport_height(600.0).build();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.children.len(), 0);
     }

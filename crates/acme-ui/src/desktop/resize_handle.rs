@@ -1,4 +1,4 @@
-﻿//! ResizeHandle — a draggable resize handle for split panes.
+//! ResizeHandle — a draggable resize handle for split panes.
 
 use crate::*;
 
@@ -94,8 +94,7 @@ mod tests {
 
     #[test]
     fn resize_handle_has_non_zero_layout_rect() {
-        let node: WidgetNode<TestMsg> =
-            resize_handle("rh", Orientation::Horizontal).into();
+        let node: WidgetNode<TestMsg> = resize_handle("rh", Orientation::Horizontal).into();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.style.kind, LayoutKind::Column);
         assert_eq!(layout.style.width, Length::px(6.0));

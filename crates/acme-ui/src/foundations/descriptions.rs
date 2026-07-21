@@ -2,9 +2,9 @@
 //!
 //! Renders as a Column with optional title and a list of label-value item Rows.
 
-use std::marker::PhantomData;
 use acme_core::WidgetKey;
 use acme_widgets::*;
+use std::marker::PhantomData;
 
 /// A single description item with label and value.
 #[derive(Clone, Debug)]
@@ -152,9 +152,7 @@ mod tests {
 
     #[test]
     fn descriptions_has_non_zero_layout_rect() {
-        let node: WidgetNode<TestMsg> = descriptions("d")
-            .item(description_item("A", "1"))
-            .into();
+        let node: WidgetNode<TestMsg> = descriptions("d").item(description_item("A", "1")).into();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.style.kind, LayoutKind::Column);
         assert!(!layout.children.is_empty());

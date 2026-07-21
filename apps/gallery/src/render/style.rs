@@ -15,8 +15,18 @@ pub fn push_shadow(scene: &mut Scene, rect: [f32; 4], shadow: &ShadowDef, theme:
     ];
     let shadow_color: ThemeColor = ColorToken::resolve(&shadow.color, theme);
     scene.push(DrawCommand::Quad(QuadPrimitive {
-        rect: Rect::new(shadow_rect[0], shadow_rect[1], shadow_rect[2], shadow_rect[3]),
-        color: Color::rgba(shadow_color.red, shadow_color.green, shadow_color.blue, shadow_color.alpha),
+        rect: Rect::new(
+            shadow_rect[0],
+            shadow_rect[1],
+            shadow_rect[2],
+            shadow_rect[3],
+        ),
+        color: Color::rgba(
+            shadow_color.red,
+            shadow_color.green,
+            shadow_color.blue,
+            shadow_color.alpha,
+        ),
         radius: shadow.blur,
         border_width: 0.0,
         border_color: Color::TRANSPARENT,
@@ -49,5 +59,3 @@ pub fn push_widget_style(scene: &mut Scene, style: &Style, rect: [f32; 4], theme
 
     pushed
 }
-
-

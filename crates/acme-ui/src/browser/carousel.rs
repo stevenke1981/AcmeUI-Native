@@ -128,13 +128,12 @@ impl<M: Clone + 'static> From<CarouselBuilder<M>> for WidgetNode<M> {
         } else {
             let idx = b.active_index.min(b.slides.len() - 1);
             let slide = &b.slides[idx];
-            let mut slide_col = crate::column::<M>()
-                .child(
-                    crate::card::<M>()
-                        .child(crate::label::<M>(&slide.label))
-                        .padding(16.0)
-                        .build(),
-                );
+            let mut slide_col = crate::column::<M>().child(
+                crate::card::<M>()
+                    .child(crate::label::<M>(&slide.label))
+                    .padding(16.0)
+                    .build(),
+            );
             if let Some(ref caption) = slide.caption {
                 slide_col = slide_col.child(crate::label::<M>(caption));
             }

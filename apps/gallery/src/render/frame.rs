@@ -6,15 +6,13 @@
 use acme_core::{DrawCommand, NodeId, Scene};
 use acme_layout::{LayoutNode, LayoutSnapshot, WidgetLayoutContext};
 use acme_text::{FontSystem, GlyphAtlas};
-use acme_textinput::{render_text_input, TextInputState};
+use acme_textinput::{TextInputState, render_text_input};
 use acme_theme::Theme;
 use acme_widgets::{ButtonState, WidgetNode, button};
 
 use crate::render::layout::GalleryNodeIds;
-use crate::render::{
-    add_text, find_text_input_marker, quad_rect, render_content,
-};
-use crate::types::{CATEGORIES, GalleryMessage, Density};
+use crate::render::{add_text, find_text_input_marker, quad_rect, render_content};
+use crate::types::{CATEGORIES, Density, GalleryMessage};
 
 // ── Render Context ──────────────────────────────────────────────────────────
 
@@ -156,8 +154,12 @@ pub fn render_toolbar(ctx: &mut RenderCtx) {
     }
 
     // Buttons
-    for (i, (&btn_id, &label_text)) in
-        ctx.ids.toolbar_buttons.iter().zip(ctx.toolbar_labels.iter()).enumerate()
+    for (i, (&btn_id, &label_text)) in ctx
+        .ids
+        .toolbar_buttons
+        .iter()
+        .zip(ctx.toolbar_labels.iter())
+        .enumerate()
     {
         let btn_idx = 8 + i;
         let Some(r) = ctx.snapshot.get(btn_id) else {
@@ -297,7 +299,11 @@ pub fn compute_toolbar_labels(
     [
         if dark { "☀ Light" } else { "🌙 Dark" },
         density.label(),
-        if show_focus_rings { "Focus ✓" } else { "Focus ✗" },
+        if show_focus_rings {
+            "Focus ✓"
+        } else {
+            "Focus ✗"
+        },
     ]
 }
 

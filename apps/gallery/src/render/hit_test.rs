@@ -15,50 +15,44 @@ pub fn collect_hit_regions(
     scrolled: bool,
     result: &mut Vec<HitRegion>,
 ) {
-    #[allow(clippy::collapsible_if)]
     match widget {
         WidgetNode::Button(btn) => {
-            if let Some(msg) = btn.activate() {
-                if let Some(rect) = snapshot.get(layout.id) {
-                    result.push(HitRegion {
-                        rect: [rect.x, rect.y, rect.width, rect.height],
-                        message: *msg,
-                        scrolled,
-                    });
-                }
+            if let Some(msg) = btn.activate()
+                && let Some(rect) = snapshot.get(layout.id)
+            {
+                result.push(HitRegion {
+                    rect: [rect.x, rect.y, rect.width, rect.height],
+                    message: *msg,
+                    scrolled,
+                });
             }
         }
         WidgetNode::ScrollView(_) => {
-            let wc = widget.children();
-            for (w, l) in wc.iter().zip(layout.children.iter()) {
+            for (w, l) in widget.children().iter().zip(layout.children.iter()) {
                 collect_hit_regions(w, l, snapshot, true, result);
             }
         }
-        WidgetNode::Tooltip(t) => {
-            collect_hit_regions(&t.child, layout, snapshot, scrolled, result);
-        }
+        WidgetNode::Tooltip(t) => collect_hit_regions(&t.child, layout, snapshot, scrolled, result),
         WidgetNode::Popover(p) => {
-            collect_hit_regions(&p.children[0], layout, snapshot, scrolled, result);
+            collect_hit_regions(&p.children[0], layout, snapshot, scrolled, result)
         }
         WidgetNode::Tree(_) | WidgetNode::Table(_) | WidgetNode::VirtualList(_) => {}
         WidgetNode::Row(v) | WidgetNode::Column(v) | WidgetNode::Stack(v) => {
-            if let Some(msg) = &v.message {
-                if let Some(rect) = snapshot.get(layout.id) {
-                    result.push(HitRegion {
-                        rect: [rect.x, rect.y, rect.width, rect.height],
-                        message: *msg,
-                        scrolled,
-                    });
-                }
+            if let Some(msg) = &v.message
+                && let Some(rect) = snapshot.get(layout.id)
+            {
+                result.push(HitRegion {
+                    rect: [rect.x, rect.y, rect.width, rect.height],
+                    message: *msg,
+                    scrolled,
+                });
             }
-            let wc = widget.children();
-            for (w, l) in wc.iter().zip(layout.children.iter()) {
+            for (w, l) in widget.children().iter().zip(layout.children.iter()) {
                 collect_hit_regions(w, l, snapshot, scrolled, result);
             }
         }
         _ => {
-            let wc = widget.children();
-            for (w, l) in wc.iter().zip(layout.children.iter()) {
+            for (w, l) in widget.children().iter().zip(layout.children.iter()) {
                 collect_hit_regions(w, l, snapshot, scrolled, result);
             }
         }
@@ -186,14 +180,14 @@ pub fn collect_data_widget_hits(
             );
         }
         WidgetNode::Row(v) | WidgetNode::Column(v) | WidgetNode::Stack(v) => {
-            if let Some(msg) = &v.message {
-                if let Some(rect) = snapshot.get(layout.id) {
-                    result.push(HitRegion {
-                        rect: [rect.x, rect.y, rect.width, rect.height],
-                        message: *msg,
-                        scrolled: true,
-                    });
-                }
+            if let Some(msg) = &v.message
+                && let Some(rect) = snapshot.get(layout.id)
+            {
+                result.push(HitRegion {
+                    rect: [rect.x, rect.y, rect.width, rect.height],
+                    message: *msg,
+                    scrolled: true,
+                });
             }
             let wc = widget.children();
             for (w, l) in wc.iter().zip(layout.children.iter()) {

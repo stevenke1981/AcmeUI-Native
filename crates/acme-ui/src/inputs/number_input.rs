@@ -128,8 +128,7 @@ mod tests {
 
     #[test]
     fn number_input_has_non_zero_layout_rect() {
-        let node: WidgetNode<TestMsg> =
-            number_input("ni1").value(42.0).min(0.0).max(100.0).into();
+        let node: WidgetNode<TestMsg> = number_input("ni1").value(42.0).min(0.0).max(100.0).into();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.style.kind, LayoutKind::Row);
         // Three children: value label, decrement button, increment button
@@ -157,8 +156,12 @@ mod tests {
 
     #[test]
     fn number_input_structure() {
-        let node: WidgetNode<TestMsg> =
-            number_input("n").value(50.0).min(0.0).max(200.0).step(5.0).into();
+        let node: WidgetNode<TestMsg> = number_input("n")
+            .value(50.0)
+            .min(0.0)
+            .max(200.0)
+            .step(5.0)
+            .into();
         let WidgetNode::Row(container) = &node else {
             panic!("expected Row");
         };
@@ -191,8 +194,12 @@ mod tests {
 
     #[test]
     fn number_input_displays_fractional_value() {
-        let node: WidgetNode<TestMsg> =
-            number_input("nf").value(3.5).min(0.0).max(10.0).step(0.5).into();
+        let node: WidgetNode<TestMsg> = number_input("nf")
+            .value(3.5)
+            .min(0.0)
+            .max(10.0)
+            .step(0.5)
+            .into();
         let WidgetNode::Row(container) = &node else {
             panic!("expected Row");
         };

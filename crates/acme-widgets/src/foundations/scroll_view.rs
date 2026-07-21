@@ -1,8 +1,8 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
 use acme_layout::{LayoutKind, LayoutStyle, Length, Overflow};
-use acme_style::prelude::*;
 use acme_style::Style;
+use acme_style::prelude::*;
 
 /// A scrollable viewport.
 #[derive(Clone, Debug, PartialEq)]

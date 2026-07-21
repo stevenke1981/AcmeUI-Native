@@ -190,18 +190,9 @@ mod tests {
     #[test]
     fn form_renders_field_count() {
         let node: WidgetNode<TestMsg> = form("user_form")
-            .field(
-                form_field("name", "Name")
-                    .content(crate::label("Alice")),
-            )
-            .field(
-                form_field("email", "Email")
-                    .content(crate::label("alice@example.com")),
-            )
-            .field(
-                form_field("bio", "Bio")
-                    .content(crate::label("Hello world")),
-            )
+            .field(form_field("name", "Name").content(crate::label("Alice")))
+            .field(form_field("email", "Email").content(crate::label("alice@example.com")))
+            .field(form_field("bio", "Bio").content(crate::label("Hello world")))
             .into();
         let layout = node.to_layout(NodeId::new(1));
         // Outer column — 3 fields

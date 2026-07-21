@@ -90,12 +90,7 @@ impl<M: Clone + 'static> DatePickerBuilder<M> {
     /// Validate and normalize year/month to safe ranges.
     /// Clamps month to 1-12 and year to >= 1.
     pub fn normalize(mut self) -> Self {
-        if self.month < 1 {
-            self.month = 1;
-        }
-        if self.month > 12 {
-            self.month = 12;
-        }
+        self.month = self.month.clamp(1, 12);
         if self.year < 1 {
             self.year = 1;
         }
@@ -121,7 +116,7 @@ fn days_in_month(year: u32, month: u32) -> u32 {
 /// Returns 0=Sunday..=6=Saturday.
 fn sakamoto_weekday(y: u32, m: u32, d: u32) -> u32 {
     let (y, m) = if m < 3 {
-        (y.checked_sub(1).unwrap_or(0), m + 12)
+        (y.saturating_sub(1), m + 12)
     } else {
         (y, m)
     };
@@ -161,10 +156,7 @@ impl<M: Clone + 'static> From<DatePickerBuilder<M>> for WidgetNode<M> {
                 .build();
             return if let Some(msg) = b.on_change {
                 // Wrap the card in a column that carries the click message.
-                column::<M>()
-                    .on_click(msg)
-                    .child(card)
-                    .build()
+                column::<M>().on_click(msg).child(card).build()
             } else {
                 card
             };
@@ -308,9 +300,7 @@ mod tests {
 
     #[test]
     fn date_picker_closed_renders_card() {
-        let node: WidgetNode<TestMsg> = date_picker("dp")
-            .placeholder("Pick a date")
-            .into();
+        let node: WidgetNode<TestMsg> = date_picker("dp").placeholder("Pick a date").into();
         let WidgetNode::Card(c) = &node else {
             panic!("expected Card variant when closed");
         };
@@ -323,10 +313,7 @@ mod tests {
 
     #[test]
     fn date_picker_closed_shows_selected_date() {
-        let node: WidgetNode<TestMsg> = date_picker("dp")
-            .open(false)
-            .selected_day(Some(15))
-            .into();
+        let node: WidgetNode<TestMsg> = date_picker("dp").open(false).selected_day(Some(15)).into();
         let WidgetNode::Card(c) = &node else {
             panic!("expected Card variant");
         };
@@ -338,11 +325,7 @@ mod tests {
 
     #[test]
     fn date_picker_open_renders_column_with_header_weekdays_grid() {
-        let node: WidgetNode<TestMsg> = date_picker("dp")
-            .year(2025)
-            .month(1)
-            .open(true)
-            .into();
+        let node: WidgetNode<TestMsg> = date_picker("dp").year(2025).month(1).open(true).into();
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column variant when open");
         };
@@ -395,11 +378,7 @@ mod tests {
 
     #[test]
     fn date_picker_has_non_zero_layout_rect() {
-        let node: WidgetNode<TestMsg> = date_picker("dp")
-            .open(true)
-            .year(2025)
-            .month(2)
-            .into();
+        let node: WidgetNode<TestMsg> = date_picker("dp").open(true).year(2025).month(2).into();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.style.kind, LayoutKind::Column);
         assert!(!layout.children.is_empty());
@@ -463,7 +442,9 @@ mod tests {
     fn selected_day_clamped_to_days_in_month() {
         // Feb 2025 has 28 days; 31 should be clamped to None.
         let node: WidgetNode<TestMsg> = date_picker("dp")
-            .year(2025).month(2).selected_day(Some(31))
+            .year(2025)
+            .month(2)
+            .selected_day(Some(31))
             .open(true)
             .into();
         let WidgetNode::Column(col) = &node else {
@@ -491,7 +472,9 @@ mod tests {
     #[test]
     fn selected_day_zero_clamped_to_none() {
         let node: WidgetNode<TestMsg> = date_picker("dp")
-            .year(2025).month(1).selected_day(Some(0))
+            .year(2025)
+            .month(1)
+            .selected_day(Some(0))
             .open(true)
             .into();
         let WidgetNode::Column(col) = &node else {
@@ -514,7 +497,9 @@ mod tests {
     fn selected_day_valid_day_kept() {
         // Jan 2025 has 31 days; day 15 is valid — should be Interactive.
         let node: WidgetNode<TestMsg> = date_picker("dp")
-            .year(2025).month(1).selected_day(Some(15))
+            .year(2025)
+            .month(1)
+            .selected_day(Some(15))
             .open(true)
             .into();
         let WidgetNode::Column(col) = &node else {
@@ -541,7 +526,9 @@ mod tests {
     fn selected_day_leap_year_feb_29_valid() {
         // 2024 is a leap year — Feb 29 is valid.
         let node: WidgetNode<TestMsg> = date_picker("dp")
-            .year(2024).month(2).selected_day(Some(29))
+            .year(2024)
+            .month(2)
+            .selected_day(Some(29))
             .open(true)
             .into();
         let WidgetNode::Column(col) = &node else {
@@ -567,7 +554,9 @@ mod tests {
     fn closed_view_clamps_selected_day() {
         // Feb 31 → invalid → None → shows placeholder.
         let node: WidgetNode<TestMsg> = date_picker("dp")
-            .year(2025).month(2).selected_day(Some(31))
+            .year(2025)
+            .month(2)
+            .selected_day(Some(31))
             .placeholder("no date")
             .open(false)
             .into();
@@ -611,7 +600,9 @@ mod tests {
     #[test]
     fn date_picker_prev_button_wired_when_message_set() {
         let node: WidgetNode<TestMsg> = date_picker("dp")
-            .year(2025).month(1).open(true)
+            .year(2025)
+            .month(1)
+            .open(true)
             .on_prev_month(TestMsg::Prev)
             .into();
         let WidgetNode::Column(col) = &node else {
@@ -631,7 +622,9 @@ mod tests {
     #[test]
     fn date_picker_next_button_wired_when_message_set() {
         let node: WidgetNode<TestMsg> = date_picker("dp")
-            .year(2025).month(1).open(true)
+            .year(2025)
+            .month(1)
+            .open(true)
             .on_next_month(TestMsg::Next)
             .into();
         let WidgetNode::Column(col) = &node else {
@@ -650,9 +643,7 @@ mod tests {
 
     #[test]
     fn date_picker_prev_button_disabled_when_no_message() {
-        let node: WidgetNode<TestMsg> = date_picker("dp")
-            .year(2025).month(1).open(true)
-            .into();
+        let node: WidgetNode<TestMsg> = date_picker("dp").year(2025).month(1).open(true).into();
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column");
         };
@@ -663,14 +654,15 @@ mod tests {
             panic!("expected Button for prev");
         };
         assert_eq!(btn.label, "◀");
-        assert!(btn.activate().is_none(), "prev button should have no message when not wired");
+        assert!(
+            btn.activate().is_none(),
+            "prev button should have no message when not wired"
+        );
     }
 
     #[test]
     fn date_picker_next_button_disabled_when_no_message() {
-        let node: WidgetNode<TestMsg> = date_picker("dp")
-            .year(2025).month(1).open(true)
-            .into();
+        let node: WidgetNode<TestMsg> = date_picker("dp").year(2025).month(1).open(true).into();
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column");
         };
@@ -681,7 +673,10 @@ mod tests {
             panic!("expected Button for next");
         };
         assert_eq!(btn.label, "▶");
-        assert!(btn.activate().is_none(), "next button should have no message when not wired");
+        assert!(
+            btn.activate().is_none(),
+            "next button should have no message when not wired"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -708,9 +703,7 @@ mod tests {
 
     #[test]
     fn date_picker_closed_no_on_change_returns_card() {
-        let node: WidgetNode<TestMsg> = date_picker("dp")
-            .placeholder("Pick")
-            .into();
+        let node: WidgetNode<TestMsg> = date_picker("dp").placeholder("Pick").into();
         // Without on_change the closed picker is still a plain Card.
         let WidgetNode::Card(_c) = &node else {
             panic!("expected Card variant when on_change is not set");
@@ -733,9 +726,7 @@ mod tests {
 
     #[test]
     fn date_picker_open_no_on_change_no_message() {
-        let node: WidgetNode<TestMsg> = date_picker("dp")
-            .open(true)
-            .into();
+        let node: WidgetNode<TestMsg> = date_picker("dp").open(true).into();
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column variant when open");
         };

@@ -34,7 +34,7 @@ impl<M: Clone + 'static> PullToRefreshBuilder<M> {
 
     /// Set the pull progress (0.0 to 1.0).
     pub fn progress(mut self, value: f32) -> Self {
-        self.progress = value.max(0.0).min(1.0);
+        self.progress = value.clamp(0.0, 1.0);
         self
     }
 

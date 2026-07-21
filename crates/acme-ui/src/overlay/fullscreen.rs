@@ -57,9 +57,7 @@ impl<M: Clone + 'static> FullscreenBuilder<M> {
 
     /// Build the fullscreen overlay widget.
     pub fn build(self) -> WidgetNode<M> {
-        let mut content = crate::column::<M>()
-            .key(self.id.clone())
-            .gap(12.0);
+        let mut content = crate::column::<M>().key(self.id.clone()).gap(12.0);
 
         // Optional close button row (top-right aligned)
         if self.close_button {
@@ -100,7 +98,13 @@ mod tests {
     use acme_layout::{LayoutEngine, WidgetLayoutContext};
 
     fn test_context() -> WidgetLayoutContext {
-        WidgetLayoutContext { body_font_size: 16.0, body_line_height: 22.0, label_font_size: 14.0, control_height: 32.0, scale_factor: 1.0 }
+        WidgetLayoutContext {
+            body_font_size: 16.0,
+            body_line_height: 22.0,
+            label_font_size: 14.0,
+            control_height: 32.0,
+            scale_factor: 1.0,
+        }
     }
 
     #[derive(Clone, Debug, PartialEq)]
@@ -108,10 +112,14 @@ mod tests {
 
     #[test]
     fn fullscreen_has_non_zero_layout_rect() {
-        let node: WidgetNode<TestMsg> = fullscreen("fs").child(crate::label::<TestMsg>("Content")).build();
+        let node: WidgetNode<TestMsg> = fullscreen("fs")
+            .child(crate::label::<TestMsg>("Content"))
+            .build();
         let ctx = test_context();
         let layout = node.to_layout_with_context(NodeId::new(1), &ctx);
-        let snapshot = LayoutEngine::new().compute(&layout, (800.0, 600.0)).unwrap();
+        let snapshot = LayoutEngine::new()
+            .compute(&layout, (800.0, 600.0))
+            .unwrap();
         let rect = snapshot.get(NodeId::new(1)).unwrap();
         assert!(rect.width > 0.0);
         assert!(rect.height > 0.0);
@@ -122,8 +130,12 @@ mod tests {
         let node: WidgetNode<TestMsg> = fullscreen("fs")
             .child(crate::label::<TestMsg>("Image"))
             .build();
-        let WidgetNode::Card(outer) = &node else { panic!("expected Card") };
-        let WidgetNode::Column(col) = &outer.children[0] else { panic!("expected Column") };
+        let WidgetNode::Card(outer) = &node else {
+            panic!("expected Card")
+        };
+        let WidgetNode::Column(col) = &outer.children[0] else {
+            panic!("expected Column")
+        };
         // header row + body column = 2
         assert_eq!(col.children.len(), 2);
     }
@@ -131,8 +143,12 @@ mod tests {
     #[test]
     fn fullscreen_no_close_button() {
         let node: WidgetNode<TestMsg> = fullscreen("fs").close_button(false).build();
-        let WidgetNode::Card(outer) = &node else { panic!("expected Card") };
-        let WidgetNode::Column(col) = &outer.children[0] else { panic!("expected Column") };
+        let WidgetNode::Card(outer) = &node else {
+            panic!("expected Card")
+        };
+        let WidgetNode::Column(col) = &outer.children[0] else {
+            panic!("expected Column")
+        };
         // only body column (no header row)
         assert_eq!(col.children.len(), 1);
     }

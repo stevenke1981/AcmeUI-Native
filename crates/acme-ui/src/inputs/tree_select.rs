@@ -37,10 +37,7 @@ pub fn tree_select<M: Clone + 'static>(id: impl Into<WidgetKey>) -> TreeSelectBu
 }
 
 /// Create a tree select node.
-pub fn tree_select_node(
-    label: impl Into<String>,
-    value: impl Into<String>,
-) -> TreeSelectNode {
+pub fn tree_select_node(label: impl Into<String>, value: impl Into<String>) -> TreeSelectNode {
     TreeSelectNode {
         label: label.into(),
         value: value.into(),
@@ -207,10 +204,7 @@ mod tests {
     #[test]
     fn tree_select_open_renders_column() {
         let node: WidgetNode<TestMsg> = tree_select("ts")
-            .option(
-                tree_select_node("Root", "root")
-                    .child(tree_select_node("Child", "child")),
-            )
+            .option(tree_select_node("Root", "root").child(tree_select_node("Child", "child")))
             .open(true)
             .into();
         let WidgetNode::Column(col) = &node else {

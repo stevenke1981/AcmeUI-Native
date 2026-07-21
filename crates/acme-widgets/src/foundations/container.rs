@@ -1,8 +1,8 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
 use acme_layout::{Edges, LayoutKind, LayoutStyle, Length};
-use acme_style::prelude::*;
 use acme_style::Style;
+use acme_style::prelude::*;
 
 /// A container holds children and arranges them according to the layout kind.
 ///

@@ -62,10 +62,7 @@ impl<M: Clone> HoverCardBuilder<M> {
             .padding(8.0)
             .build();
 
-        crate::stack::<M>()
-            .child(trigger)
-            .child(card)
-            .build()
+        crate::stack::<M>().child(trigger).child(card).build()
     }
 }
 
@@ -117,11 +114,7 @@ mod tests {
     fn hover_card_open_stack_has_two_children() {
         let node: WidgetNode<Msg> = hover_card("hc3")
             .trigger(crate::label("Trigger"))
-            .content(
-                crate::card::<Msg>()
-                    .child(crate::label("Content"))
-                    .build(),
-            )
+            .content(crate::card::<Msg>().child(crate::label("Content")).build())
             .open(true)
             .build();
         let WidgetNode::Stack(s) = &node else {
@@ -143,11 +136,7 @@ mod tests {
     fn hover_card_open_content_is_card() {
         let node: WidgetNode<Msg> = hover_card("hc5")
             .trigger(crate::label("Trigger"))
-            .content(
-                crate::card::<Msg>()
-                    .child(crate::label("Content"))
-                    .build(),
-            )
+            .content(crate::card::<Msg>().child(crate::label("Content")).build())
             .open(true)
             .build();
         let WidgetNode::Stack(s) = &node else {

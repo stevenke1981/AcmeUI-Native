@@ -207,13 +207,20 @@ mod tests {
         let WidgetNode::Card(c) = &node else {
             panic!("expected Card variant");
         };
-        assert!(c.background_color.is_some(), "background_color should be set");
+        assert!(
+            c.background_color.is_some(),
+            "background_color should be set"
+        );
         assert!(c.border_radius.is_some(), "border_radius should be set");
         let WidgetNode::Label(l) = &c.children[0] else {
             panic!("expected Label child");
         };
         assert!(l.color.is_some(), "label color should be set");
-        assert_eq!(l.font_size, Some(12.0), "badge label should use caption size");
+        assert_eq!(
+            l.font_size,
+            Some(12.0),
+            "badge label should use caption size"
+        );
     }
 
     #[test]
@@ -222,7 +229,10 @@ mod tests {
         let WidgetNode::Card(c) = &node else {
             panic!("expected Card variant");
         };
-        assert!(c.background_color.is_some(), "solid badge must have background_color");
+        assert!(
+            c.background_color.is_some(),
+            "solid badge must have background_color"
+        );
         let WidgetNode::Label(l) = &c.children[0] else {
             panic!("expected Label child");
         };

@@ -17,9 +17,7 @@ pub struct WindowControlsBuilder<M> {
 }
 
 /// Create a new WindowControls builder.
-pub fn window_controls<M: Clone + 'static>(
-    id: impl Into<WidgetKey>,
-) -> WindowControlsBuilder<M> {
+pub fn window_controls<M: Clone + 'static>(id: impl Into<WidgetKey>) -> WindowControlsBuilder<M> {
     WindowControlsBuilder {
         id: id.into(),
         show_minimize: true,
@@ -144,9 +142,7 @@ mod tests {
 
     #[test]
     fn window_controls_hides_minimize() {
-        let node: WidgetNode<TestMsg> = window_controls("wc")
-            .show_minimize(false)
-            .into();
+        let node: WidgetNode<TestMsg> = window_controls("wc").show_minimize(false).into();
         let WidgetNode::Row(row) = &node else {
             panic!("expected Row variant");
         };
@@ -156,9 +152,7 @@ mod tests {
 
     #[test]
     fn window_controls_hides_maximize() {
-        let node: WidgetNode<TestMsg> = window_controls("wc")
-            .show_maximize(false)
-            .into();
+        let node: WidgetNode<TestMsg> = window_controls("wc").show_maximize(false).into();
         let WidgetNode::Row(r) = &node else {
             panic!("expected Row variant");
         };
@@ -168,9 +162,7 @@ mod tests {
 
     #[test]
     fn window_controls_hides_close() {
-        let node: WidgetNode<TestMsg> = window_controls("wc")
-            .show_close(false)
-            .into();
+        let node: WidgetNode<TestMsg> = window_controls("wc").show_close(false).into();
         let WidgetNode::Row(r) = &node else {
             panic!("expected Row variant");
         };

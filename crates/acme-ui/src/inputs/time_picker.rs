@@ -139,11 +139,7 @@ mod tests {
 
     #[test]
     fn time_picker_open_renders_row_with_three_spinners() {
-        let node: WidgetNode<TestMsg> = time_picker("tp")
-            .hour(14)
-            .minute(30)
-            .open(true)
-            .into();
+        let node: WidgetNode<TestMsg> = time_picker("tp").hour(14).minute(30).open(true).into();
         let WidgetNode::Row(r) = &node else {
             panic!("expected Row variant when open");
         };

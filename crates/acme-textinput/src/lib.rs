@@ -5,7 +5,10 @@
 //! and text insertion.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
-use acme_core::{Color, DrawCommand, GlyphDraw, GlyphFormat, Point, QuadPrimitive, Rect, Scene, TextPrimitive, AtlasUpload as SceneAtlasUpload};
+use acme_core::{
+    AtlasUpload as SceneAtlasUpload, Color, DrawCommand, GlyphDraw, GlyphFormat, Point,
+    QuadPrimitive, Rect, Scene, TextPrimitive,
+};
 use acme_platform::{Clipboard, PlatformKey};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextLayout, TextStyle, TextWrap};
 use acme_theme::{Theme, ThemeColor};
@@ -720,7 +723,11 @@ struct TextInputColors {
 }
 
 /// Compute all theme-derived colours for a text input in one call.
-fn compute_text_input_colors(theme: &Theme, state: &TextInputState, focused: bool) -> TextInputColors {
+fn compute_text_input_colors(
+    theme: &Theme,
+    state: &TextInputState,
+    focused: bool,
+) -> TextInputColors {
     let text_color = theme_color_to_array(&theme.colors.foreground);
     let disabled_text = theme_color_to_array(&theme.colors.disabled_text);
     let text_muted = theme_color_to_array(&theme.colors.muted_foreground);
@@ -743,7 +750,13 @@ fn compute_text_input_colors(theme: &Theme, state: &TextInputState, focused: boo
         border_color
     };
 
-    TextInputColors { text_color, border_color, disabled_text, text_muted, bg_color }
+    TextInputColors {
+        text_color,
+        border_color,
+        disabled_text,
+        text_muted,
+        bg_color,
+    }
 }
 
 /// Push background fill and border quads for a text input.
@@ -771,7 +784,12 @@ fn render_text_input_background(
         color: Color::rgba(0.0, 0.0, 0.0, 0.0),
         radius: theme.radii.sm,
         border_width,
-        border_color: Color::rgba(border_color[0], border_color[1], border_color[2], border_color[3]),
+        border_color: Color::rgba(
+            border_color[0],
+            border_color[1],
+            border_color[2],
+            border_color[3],
+        ),
     }));
 }
 
@@ -921,11 +939,19 @@ pub fn render_text_input(
 
     // Push clip, then text, then pop clip
     scene.push(DrawCommand::PushClip(Rect::new(
-        effective_clip[0], effective_clip[1], effective_clip[2], effective_clip[3],
+        effective_clip[0],
+        effective_clip[1],
+        effective_clip[2],
+        effective_clip[3],
     )));
     scene.push(DrawCommand::Text(TextPrimitive {
         origin: Point::new(text_origin_x, text_y),
-        color: Color::rgba(render_color[0], render_color[1], render_color[2], render_color[3]),
+        color: Color::rgba(
+            render_color[0],
+            render_color[1],
+            render_color[2],
+            render_color[3],
+        ),
         glyphs,
         uploads,
     }));
@@ -940,7 +966,10 @@ pub fn render_text_input(
             let sel_w = end_x - start_x;
             if sel_w > 0.0 {
                 scene.push(DrawCommand::PushClip(Rect::new(
-                    effective_clip[0], effective_clip[1], effective_clip[2], effective_clip[3],
+                    effective_clip[0],
+                    effective_clip[1],
+                    effective_clip[2],
+                    effective_clip[3],
                 )));
                 scene.push(DrawCommand::Quad(QuadPrimitive {
                     rect: Rect::new(text_origin_x + start_x, content_y, sel_w, content_h),
@@ -960,11 +989,19 @@ pub fn render_text_input(
         // Only draw cursor if it's within the visible content area
         if cursor_x_pos < content_x + content_w {
             scene.push(DrawCommand::PushClip(Rect::new(
-                effective_clip[0], effective_clip[1], effective_clip[2], effective_clip[3],
+                effective_clip[0],
+                effective_clip[1],
+                effective_clip[2],
+                effective_clip[3],
             )));
             scene.push(DrawCommand::Quad(QuadPrimitive {
                 rect: Rect::new(cursor_x_pos, content_y, 1.5, content_h),
-                color: Color::rgba(colors.text_color[0], colors.text_color[1], colors.text_color[2], colors.text_color[3]),
+                color: Color::rgba(
+                    colors.text_color[0],
+                    colors.text_color[1],
+                    colors.text_color[2],
+                    colors.text_color[3],
+                ),
                 radius: 0.0,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
@@ -981,11 +1018,19 @@ pub fn render_text_input(
             let underline_y = content_y + content_h - 2.5;
             // Main underline
             scene.push(DrawCommand::PushClip(Rect::new(
-                effective_clip[0], effective_clip[1], effective_clip[2], effective_clip[3],
+                effective_clip[0],
+                effective_clip[1],
+                effective_clip[2],
+                effective_clip[3],
             )));
             scene.push(DrawCommand::Quad(QuadPrimitive {
                 rect: Rect::new(text_origin_x + preedit_x, underline_y, preedit_w, 1.0),
-                color: Color::rgba(colors.text_color[0], colors.text_color[1], colors.text_color[2], colors.text_color[3]),
+                color: Color::rgba(
+                    colors.text_color[0],
+                    colors.text_color[1],
+                    colors.text_color[2],
+                    colors.text_color[3],
+                ),
                 radius: 0.0,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
@@ -1009,7 +1054,10 @@ pub fn render_text_input(
                 );
                 let seg_w = (preedit_cx_end - preedit_cx_start).max(1.5);
                 scene.push(DrawCommand::PushClip(Rect::new(
-                    effective_clip[0], effective_clip[1], effective_clip[2], effective_clip[3],
+                    effective_clip[0],
+                    effective_clip[1],
+                    effective_clip[2],
+                    effective_clip[3],
                 )));
                 scene.push(DrawCommand::Quad(QuadPrimitive {
                     rect: Rect::new(
@@ -1018,7 +1066,12 @@ pub fn render_text_input(
                         seg_w,
                         3.0,
                     ),
-                    color: Color::rgba(colors.text_color[0], colors.text_color[1], colors.text_color[2], colors.text_color[3]),
+                    color: Color::rgba(
+                        colors.text_color[0],
+                        colors.text_color[1],
+                        colors.text_color[2],
+                        colors.text_color[3],
+                    ),
                     radius: 0.0,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
@@ -2289,11 +2342,7 @@ mod tests {
         assert!(s.redo());
         assert_eq!(s.text, "a");
         assert!(s.undo());
-        assert_eq!(
-            s.text,
-            "",
-            "undo after redo should restore pre-redo state"
-        );
+        assert_eq!(s.text, "", "undo after redo should restore pre-redo state");
     }
 
     #[test]

@@ -42,7 +42,7 @@ impl<M: Clone + 'static> From<ToolbarBuilder<M>> for WidgetNode<M> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{label, WidgetNode};
+    use crate::{WidgetNode, label};
     use acme_core::NodeId;
 
     #[derive(Clone, Debug, PartialEq)]

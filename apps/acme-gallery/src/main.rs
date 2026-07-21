@@ -7,18 +7,20 @@
 //!         ├── Row (toolbar, 40px) — theme toggle
 //!         └── ScrollView (content) — flex, overflow scroll
 
+#![allow(clippy::collapsible_if)]
+
 use acme_core::NodeId;
 use acme_layout::{LayoutEngine, LayoutNode, LayoutStyle, Length, Overflow, WidgetLayoutContext};
 use acme_platform::{Application, FrameContext, PlatformEvent, WindowConfig, WindowId};
-use acme_render_wgpu::{Frame, Quad, TextRun};
+use acme_render_wgpu::{Frame, Quad, TextRun, scene_from_frame};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
 use acme_theme::{Theme, ThemeColor};
 use acme_ui::charts::{
-    area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline, BarEntry, ChartPoint, PieSlice,
+    BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_widgets::{
-    button, card, column, label, label_with_size, row, scroll_view, separator, ButtonSize,
-    ButtonState, ButtonVariant, CardVariant, WidgetNode,
+    ButtonSize, ButtonState, ButtonVariant, CardVariant, WidgetNode, button, card, column, label,
+    label_with_size, row, scroll_view, separator,
 };
 
 fn main() -> Result<(), acme_platform::PlatformError> {
@@ -192,7 +194,10 @@ impl Gallery {
                     column()
                         .gap(8.0)
                         .child(label("The complete type scale from the V2 design system:"))
-                        .child(label_with_size("h1 28px — Page titles and hero headings", 28.0))
+                        .child(label_with_size(
+                            "h1 28px — Page titles and hero headings",
+                            28.0,
+                        ))
                         .child(label_with_size("h2 22px — Major section headers", 22.0))
                         .child(label_with_size("h3 18px — Card and panel titles", 18.0))
                         .child(label_with_size("h4 16px — Subsection headings", 16.0))
@@ -208,9 +213,7 @@ impl Gallery {
                     column()
                         .gap(12.0)
                         .child(label("Semantic color tokens respond to light/dark mode."))
-                        .child(
-                            label_with_size("Surface Colors", 16.0),
-                        )
+                        .child(label_with_size("Surface Colors", 16.0))
                         .child(
                             row()
                                 .gap(12.0)
@@ -218,9 +221,7 @@ impl Gallery {
                                 .child(self.color_card("Surface", CardVariant::Elevated))
                                 .build(),
                         )
-                        .child(
-                            label_with_size("Interactive Colors", 16.0),
-                        )
+                        .child(label_with_size("Interactive Colors", 16.0))
                         .child(
                             row()
                                 .gap(8.0)
@@ -257,7 +258,9 @@ impl Gallery {
                     "Button Variants",
                     column()
                         .gap(12.0)
-                        .child(label("Four tone variants cover common interaction patterns:"))
+                        .child(label(
+                            "Four tone variants cover common interaction patterns:",
+                        ))
                         .child(
                             row()
                                 .gap(8.0)
@@ -577,9 +580,7 @@ impl Gallery {
                     "Color Palette",
                     column()
                         .gap(16.0)
-                        .child(
-                            label_with_size("Base Surface Colors", 16.0),
-                        )
+                        .child(label_with_size("Base Surface Colors", 16.0))
                         .child(
                             row()
                                 .gap(12.0)
@@ -588,9 +589,7 @@ impl Gallery {
                                 .child(self.color_card("Elevated", CardVariant::Interactive))
                                 .build(),
                         )
-                        .child(
-                            label_with_size("Semantic Colors", 16.0),
-                        )
+                        .child(label_with_size("Semantic Colors", 16.0))
                         .child(
                             row()
                                 .gap(8.0)
@@ -615,9 +614,7 @@ impl Gallery {
                                 )
                                 .build(),
                         )
-                        .child(
-                            label_with_size("Status Colors", 16.0),
-                        )
+                        .child(label_with_size("Status Colors", 16.0))
                         .child(
                             row()
                                 .gap(12.0)
@@ -627,9 +624,7 @@ impl Gallery {
                                 .child(self.swatch("info", "Info"))
                                 .build(),
                         )
-                        .child(
-                            label_with_size("Utility Colors", 16.0),
-                        )
+                        .child(label_with_size("Utility Colors", 16.0))
                         .child(
                             row()
                                 .gap(12.0)
@@ -649,7 +644,10 @@ impl Gallery {
                     column()
                         .gap(8.0)
                         .child(label_with_size("Heading 1 (h1) — 28px  Page title", 28.0))
-                        .child(label_with_size("Heading 2 (h2) — 22px  Section title", 22.0))
+                        .child(label_with_size(
+                            "Heading 2 (h2) — 22px  Section title",
+                            22.0,
+                        ))
                         .child(label_with_size("Heading 3 (h3) — 18px  Card title", 18.0))
                         .child(label_with_size("Heading 4 (h4) — 16px  Subsection", 16.0))
                         .child(label_with_size("Body — 14px  Default body text", 14.0))
@@ -666,7 +664,9 @@ impl Gallery {
                     "Spacing Grid",
                     column()
                         .gap(8.0)
-                        .child(label("The design system uses a 4px base grid. Common spacing tokens:"))
+                        .child(label(
+                            "The design system uses a 4px base grid. Common spacing tokens:",
+                        ))
                         .child(self.spacing_demo("half ", 2))
                         .child(self.spacing_demo("px   ", 4))
                         .child(self.spacing_demo("px1  ", 6))
@@ -705,7 +705,9 @@ impl Gallery {
                         .child(label("sm   0 1px  2px  rgba(0,0,0,0.04)  Subtle cards"))
                         .child(label("md   0 4px  12px rgba(0,0,0,0.06)  Popovers, menus"))
                         .child(label("lg   0 8px  24px rgba(0,0,0,0.08)  Dialogs, modals"))
-                        .child(label("xl   0 16px 48px rgba(0,0,0,0.10)  Notifications, tooltips"))
+                        .child(label(
+                            "xl   0 16px 48px rgba(0,0,0,0.10)  Notifications, tooltips",
+                        ))
                         .build(),
                 ),
             )
@@ -745,10 +747,7 @@ impl Gallery {
     /// Create a visual spacing demo: row with separators showing gap width.
     fn spacing_demo(&self, label_text: &str, px: u32) -> WidgetNode<GalleryMessage> {
         let text = format!("{} {:>2}px — {:━>2$}", label_text, px, px as usize);
-        row()
-            .gap(8.0)
-            .child(label(text))
-            .build()
+        row().gap(8.0).child(label(text)).build()
     }
 
     fn hit(&self) -> Option<usize> {
@@ -842,7 +841,7 @@ impl Application for Gallery {
         self.atlas.clear();
     }
 
-    fn frame(&mut self, context: FrameContext) -> Frame {
+    fn frame(&mut self, context: FrameContext) -> acme_core::Scene {
         let width = context.logical_width;
         let height = context.logical_height;
 
@@ -1084,7 +1083,7 @@ impl Application for Gallery {
             );
         }
 
-        frame
+        scene_from_frame(&frame)
     }
 }
 
@@ -1225,13 +1224,10 @@ fn render_content(
                 if l.text.starts_with('\x01') {
                     if let Some(rest) = l.text.get(1..) {
                         if let Some((color_name, display)) = rest.split_once('|') {
-                            if let Some(swatch_color) =
-                                resolve_swatch_color(theme, color_name)
-                            {
+                            if let Some(swatch_color) = resolve_swatch_color(theme, color_name) {
                                 let swatch_size = fs * 0.85;
                                 let swatch_x = rect.x + 4.0;
-                                let swatch_y =
-                                    y_text + (fs * 1.5 - swatch_size).max(0.0) / 2.0;
+                                let swatch_y = y_text + (fs * 1.5 - swatch_size).max(0.0) / 2.0;
                                 let swatch_radius = theme.radii.sm.min(swatch_size / 2.0);
                                 frame.quads.push(quad_rect(
                                     [swatch_x, swatch_y, swatch_size, swatch_size],

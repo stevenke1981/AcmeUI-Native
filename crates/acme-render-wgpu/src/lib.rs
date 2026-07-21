@@ -3,6 +3,7 @@
 
 pub mod batch;
 pub mod golden;
+pub use batch::scene_from_frame;
 
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -414,8 +415,7 @@ impl Renderer {
         let mut atlas_skipped = 0u64;
         let mut atlas_bytes = 0u64;
         {
-            let (total, skipped, bytes) =
-                self.upload_scene_atlas(scene, &mut uploaded_regions);
+            let (total, skipped, bytes) = self.upload_scene_atlas(scene, &mut uploaded_regions);
             atlas_total += total;
             atlas_skipped += skipped;
             atlas_bytes += bytes;
@@ -1143,12 +1143,7 @@ fn quad_primitive_to_instance(
             clean(prim.rect.size.width.get()).max(0.0) * scale,
             clean(prim.rect.size.height.get()).max(0.0) * scale,
         ],
-        color: normalize_color([
-            prim.color.r,
-            prim.color.g,
-            prim.color.b,
-            prim.color.a,
-        ]),
+        color: normalize_color([prim.color.r, prim.color.g, prim.color.b, prim.color.a]),
         border_color: normalize_color([
             prim.border_color.r,
             prim.border_color.g,
@@ -1174,12 +1169,7 @@ fn text_primitive_glyphs(
     width: u32,
     height: u32,
 ) -> Vec<GlyphInstance> {
-    let color = normalize_color([
-        prim.color.r,
-        prim.color.g,
-        prim.color.b,
-        prim.color.a,
-    ]);
+    let color = normalize_color([prim.color.r, prim.color.g, prim.color.b, prim.color.a]);
     let atlas_fmt = match format {
         SceneGlyphFormat::Alpha8 => AtlasFormat::Alpha8,
         SceneGlyphFormat::Rgba8 => AtlasFormat::Rgba8,

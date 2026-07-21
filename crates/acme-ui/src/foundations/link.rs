@@ -113,7 +113,10 @@ mod tests {
         let builder = link::<TestMsg>("home", "Home");
         assert!(!builder.underline, "underline should default to false");
         assert!(!builder.disabled, "disabled should default to false");
-        assert!(builder.on_click.is_none(), "on_click should default to None");
+        assert!(
+            builder.on_click.is_none(),
+            "on_click should default to None"
+        );
         assert_eq!(builder.id.as_str(), "home");
         assert_eq!(builder.text, "Home");
     }
@@ -155,8 +158,10 @@ mod tests {
 
     #[test]
     fn link_disabled_propagates_to_button() {
-        let node: WidgetNode<TestMsg> =
-            link("del", "Delete").disabled(true).on_click(TestMsg::Clicked).build();
+        let node: WidgetNode<TestMsg> = link("del", "Delete")
+            .disabled(true)
+            .on_click(TestMsg::Clicked)
+            .build();
         let WidgetNode::Button(b) = &node else {
             panic!("expected Button variant");
         };

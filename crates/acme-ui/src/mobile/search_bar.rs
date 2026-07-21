@@ -107,10 +107,7 @@ impl<M: Clone + 'static> From<SearchBarBuilder<M>> for crate::WidgetNode<M> {
             .build();
 
         // Build the main row
-        let mut main_row = crate::row::<M>()
-            .key(b.id)
-            .gap(6.0)
-            .child(input_area);
+        let mut main_row = crate::row::<M>().key(b.id).gap(6.0).child(input_area);
 
         // Cancel button
         if b.show_cancel {
@@ -153,9 +150,7 @@ mod tests {
 
     #[test]
     fn search_bar_no_cancel() {
-        let node: WidgetNode<Msg> = search_bar::<Msg>("sb")
-            .show_cancel(false)
-            .into();
+        let node: WidgetNode<Msg> = search_bar::<Msg>("sb").show_cancel(false).into();
         let layout = node.to_layout(NodeId::new(1));
         // Row: [input card] = 1 child
         assert_eq!(layout.children.len(), 1);

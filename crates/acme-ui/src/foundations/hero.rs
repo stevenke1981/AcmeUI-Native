@@ -19,7 +19,10 @@ pub struct HeroBuilder<M> {
 }
 
 /// Create a hero builder.
-pub fn hero<M: Clone + 'static>(id: impl Into<WidgetKey>, title: impl Into<String>) -> HeroBuilder<M> {
+pub fn hero<M: Clone + 'static>(
+    id: impl Into<WidgetKey>,
+    title: impl Into<String>,
+) -> HeroBuilder<M> {
     HeroBuilder {
         id: id.into(),
         title: title.into(),
@@ -63,14 +66,11 @@ impl<M: Clone + 'static> HeroBuilder<M> {
         let subtitle_size = if self.compact { 14.0 } else { 16.0 };
         let gap = if self.compact { 4.0 } else { 8.0 };
 
-        let mut col = crate::column::<M>()
-            .key(self.id)
-            .gap(gap)
-            .child(
-                crate::label_builder(&self.title)
-                    .font_size(title_size)
-                    .build(),
-            );
+        let mut col = crate::column::<M>().key(self.id).gap(gap).child(
+            crate::label_builder(&self.title)
+                .font_size(title_size)
+                .build(),
+        );
 
         if let Some(sub) = &self.subtitle {
             col = col.child(
@@ -110,7 +110,13 @@ mod tests {
     use acme_layout::{LayoutEngine, WidgetLayoutContext};
 
     fn test_context() -> WidgetLayoutContext {
-        WidgetLayoutContext { body_font_size: 16.0, body_line_height: 22.0, label_font_size: 14.0, control_height: 32.0, scale_factor: 1.0 }
+        WidgetLayoutContext {
+            body_font_size: 16.0,
+            body_line_height: 22.0,
+            label_font_size: 14.0,
+            control_height: 32.0,
+            scale_factor: 1.0,
+        }
     }
 
     #[derive(Clone, Debug, PartialEq)]
@@ -121,7 +127,9 @@ mod tests {
         let node: WidgetNode<TestMsg> = hero("h", "Welcome").build();
         let ctx = test_context();
         let layout = node.to_layout_with_context(NodeId::new(1), &ctx);
-        let snapshot = LayoutEngine::new().compute(&layout, (800.0, 600.0)).unwrap();
+        let snapshot = LayoutEngine::new()
+            .compute(&layout, (800.0, 600.0))
+            .unwrap();
         let rect = snapshot.get(NodeId::new(1)).unwrap();
         assert!(rect.width > 0.0);
         assert!(rect.height > 0.0);
@@ -134,17 +142,25 @@ mod tests {
             .action(crate::label::<TestMsg>("Action"))
             .compact(false)
             .build();
-        let WidgetNode::Card(c) = &node else { panic!("expected Card") };
+        let WidgetNode::Card(c) = &node else {
+            panic!("expected Card")
+        };
         assert_eq!(c.variant, crate::CardVariant::Elevated);
-        let WidgetNode::Column(col) = &c.children[0] else { panic!("expected Column") };
+        let WidgetNode::Column(col) = &c.children[0] else {
+            panic!("expected Column")
+        };
         assert_eq!(col.children.len(), 3); // title + subtitle + actions
     }
 
     #[test]
     fn hero_minimal_has_one_child() {
         let node: WidgetNode<TestMsg> = hero("h", "Minimal").build();
-        let WidgetNode::Card(c) = &node else { panic!("expected Card") };
-        let WidgetNode::Column(col) = &c.children[0] else { panic!("expected Column") };
+        let WidgetNode::Card(c) = &node else {
+            panic!("expected Card")
+        };
+        let WidgetNode::Column(col) = &c.children[0] else {
+            panic!("expected Column")
+        };
         assert_eq!(col.children.len(), 1);
     }
 

@@ -204,9 +204,7 @@ pub fn build_toolbar(
             button("theme_btn", if dark { "☀ Light" } else { "🌙 Dark" })
                 .on_click(GalleryMessage::ToggleTheme),
         )
-        .child(
-            button("density_btn", density_label).on_click(GalleryMessage::ToggleDensity),
-        )
+        .child(button("density_btn", density_label).on_click(GalleryMessage::ToggleDensity))
         .child(
             button(
                 "focus_btn",
@@ -296,5 +294,3 @@ pub fn table_display_order(sort_col: Option<usize>, sort_asc: bool) -> Vec<usize
     }
     order
 }
-
-

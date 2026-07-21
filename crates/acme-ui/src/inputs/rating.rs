@@ -3,9 +3,9 @@
 //! Renders as a [`Row`] of star symbols (★ = filled, ☆ = empty) with
 //! an optional "{value}/{max}" text suffix.
 
+use crate::ControlSize;
 use acme_core::WidgetKey;
 use acme_widgets::*;
-use crate::ControlSize;
 
 /// Builder for a Rating component.
 pub struct RatingBuilder<M> {
@@ -19,9 +19,7 @@ pub struct RatingBuilder<M> {
 }
 
 /// Create a new Rating builder.
-pub fn rating<M: Clone + 'static>(
-    id: impl Into<WidgetKey>,
-) -> RatingBuilder<M> {
+pub fn rating<M: Clone + 'static>(id: impl Into<WidgetKey>) -> RatingBuilder<M> {
     RatingBuilder {
         id: id.into(),
         value: 0,
@@ -161,8 +159,7 @@ mod tests {
 
     #[test]
     fn rating_show_value_appends_text() {
-        let node: WidgetNode<TestMsg> =
-            rating("rate5").value(4).max(5).show_value(true).into();
+        let node: WidgetNode<TestMsg> = rating("rate5").value(4).max(5).show_value(true).into();
         let WidgetNode::Row(container) = &node else {
             panic!("expected Row");
         };

@@ -108,10 +108,7 @@ impl<M: Clone + 'static> AlertBuilder<M> {
         }
 
         // Wrap in a Card with tone-based background
-        let mut card = crate::card()
-            .gap(4.0)
-            .padding(12.0)
-            .child(inner.build());
+        let mut card = crate::card().gap(4.0).padding(12.0).child(inner.build());
 
         if let Some(bg) = tone_colors.soft_bg {
             card = card.background_color(bg);
@@ -225,7 +222,10 @@ mod tests {
         let WidgetNode::Card(c) = &node else {
             panic!("expected Card variant");
         };
-        assert!(c.background_color.is_some(), "success tone should set background_color");
+        assert!(
+            c.background_color.is_some(),
+            "success tone should set background_color"
+        );
     }
 
     #[test]
@@ -236,7 +236,10 @@ mod tests {
             panic!("expected Card variant");
         };
         // Neutral has no soft_bg, so background_color should be None
-        assert!(c.background_color.is_none(), "Neutral tone should have no background_color override");
+        assert!(
+            c.background_color.is_none(),
+            "Neutral tone should have no background_color override"
+        );
     }
 
     #[test]

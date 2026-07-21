@@ -91,11 +91,7 @@ impl<M: Clone + 'static> ColorPickerBuilder<M> {
 
 impl<M: Clone + 'static> From<ColorPickerBuilder<M>> for WidgetNode<M> {
     fn from(b: ColorPickerBuilder<M>) -> Self {
-        let display = b
-            .selected
-            .as_ref()
-            .unwrap_or(&String::from("None"))
-            .clone();
+        let display = b.selected.as_ref().unwrap_or(&String::from("None")).clone();
 
         // Closed: single Card showing the selected color.
         if !b.open {

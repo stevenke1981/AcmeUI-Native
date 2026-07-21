@@ -76,10 +76,7 @@ impl<M: Clone + 'static> From<BottomSheetBuilder<M>> for WidgetNode<M> {
         }
 
         // Wrap everything in a Card for the sheet look
-        card::<M>()
-            .padding(0.0)
-            .child(col)
-            .build()
+        card::<M>().padding(0.0).child(col).build()
     }
 }
 

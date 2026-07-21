@@ -42,9 +42,7 @@ impl<M: Clone + 'static> From<FocusRingBuilder<M>> for WidgetNode<M> {
 
         if b.focused {
             let theme = acme_theme::Theme::light();
-            wrapper = wrapper
-                .padding(2.0)
-                .background_color(theme.colors.ring);
+            wrapper = wrapper.padding(2.0).background_color(theme.colors.ring);
         }
 
         if let Some(child) = b.child {
@@ -95,7 +93,10 @@ mod tests {
         let WidgetNode::Card(c) = &node else {
             panic!("expected Card variant");
         };
-        assert!(c.background_color.is_some(), "focused ring must set background_color");
+        assert!(
+            c.background_color.is_some(),
+            "focused ring must set background_color"
+        );
         assert_eq!(c.padding.top, 2.0);
         assert_eq!(c.children.len(), 1);
     }
@@ -109,15 +110,16 @@ mod tests {
         let WidgetNode::Card(c) = &node else {
             panic!("expected Card variant");
         };
-        assert!(c.background_color.is_none(), "unfocused ring must not set background_color");
+        assert!(
+            c.background_color.is_none(),
+            "unfocused ring must not set background_color"
+        );
         assert_eq!(c.padding.top, 0.0);
     }
 
     #[test]
     fn focus_ring_without_child() {
-        let node: WidgetNode<TestMsg> = focus_ring("fr")
-            .focused(true)
-            .into();
+        let node: WidgetNode<TestMsg> = focus_ring("fr").focused(true).into();
         let WidgetNode::Card(c) = &node else {
             panic!("expected Card variant");
         };

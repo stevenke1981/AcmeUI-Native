@@ -14,9 +14,7 @@ pub struct DropdownMenuBuilder<M> {
 }
 
 /// Create a dropdown menu builder.
-pub fn dropdown_menu<M: Clone + 'static>(
-    id: impl Into<WidgetKey>,
-) -> DropdownMenuBuilder<M> {
+pub fn dropdown_menu<M: Clone + 'static>(id: impl Into<WidgetKey>) -> DropdownMenuBuilder<M> {
     DropdownMenuBuilder {
         id: id.into(),
         trigger_label: String::new(),

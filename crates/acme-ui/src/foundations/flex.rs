@@ -159,10 +159,8 @@ mod tests {
 
     #[test]
     fn flex_custom_direction() {
-        let node: WidgetNode<TestMsg> = flex(FlexDirection::Row)
-            .padding(16.0)
-            .height(100.0)
-            .build();
+        let node: WidgetNode<TestMsg> =
+            flex(FlexDirection::Row).padding(16.0).height(100.0).build();
         let WidgetNode::Row(r) = &node else {
             panic!("expected Row variant");
         };

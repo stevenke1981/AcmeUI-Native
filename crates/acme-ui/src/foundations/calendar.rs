@@ -215,7 +215,10 @@ mod tests {
             panic!("expected Column variant");
         };
         // Header row + weekday row + day rows (at least 4 weeks)
-        assert!(col.children.len() >= 5, "calendar should have header + weekday + day rows");
+        assert!(
+            col.children.len() >= 5,
+            "calendar should have header + weekday + day rows"
+        );
     }
 
     #[test]
@@ -245,7 +248,10 @@ mod tests {
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column variant");
         };
-        assert!(col.children.len() >= 5, "February 2024 should have header + weekday + day rows");
+        assert!(
+            col.children.len() >= 5,
+            "February 2024 should have header + weekday + day rows"
+        );
     }
 
     #[test]

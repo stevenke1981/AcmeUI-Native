@@ -61,12 +61,8 @@ impl<M: Clone + 'static> NavigationViewBuilder<M> {
 
 impl<M: Clone + 'static> From<NavigationViewBuilder<M>> for WidgetNode<M> {
     fn from(b: NavigationViewBuilder<M>) -> Self {
-        let sidebar = b
-            .sidebar
-            .unwrap_or_else(|| label::<M>(""));
-        let content = b
-            .content
-            .unwrap_or_else(|| label::<M>(""));
+        let sidebar = b.sidebar.unwrap_or_else(|| label::<M>(""));
+        let content = b.content.unwrap_or_else(|| label::<M>(""));
 
         row::<M>()
             .key(b.id)

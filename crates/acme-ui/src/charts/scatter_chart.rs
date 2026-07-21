@@ -18,7 +18,12 @@ pub struct ScatterPoint {
 impl ScatterPoint {
     /// Create a new scatter data point.
     pub fn new(label: impl Into<String>, x: f32, y: f32) -> Self {
-        Self { label: label.into(), x, y, size: 1.0 }
+        Self {
+            label: label.into(),
+            x,
+            y,
+            size: 1.0,
+        }
     }
 
     /// Set the visual size (marker scale).
@@ -29,7 +34,13 @@ impl ScatterPoint {
 
     /// Return a marker character based on size.
     fn marker_char(&self) -> &str {
-        if self.size >= 2.0 { "⬤" } else if self.size >= 1.5 { "◉" } else { "●" }
+        if self.size >= 2.0 {
+            "⬤"
+        } else if self.size >= 1.5 {
+            "◉"
+        } else {
+            "●"
+        }
     }
 }
 
@@ -101,12 +112,7 @@ impl<M: Clone + 'static> ScatterChartBuilder<M> {
         let mut point_rows = crate::column::<M>().gap(2.0);
 
         for (i, p) in self.points.iter().enumerate() {
-            let marker = format!(
-                "{} ({:.1}, {:.1})",
-                p.marker_char(),
-                p.x,
-                p.y,
-            );
+            let marker = format!("{} ({:.1}, {:.1})", p.marker_char(), p.x, p.y,);
 
             let row = crate::row::<M>()
                 .key(format!("{}_point_{}", id_prefix, i).as_str())
@@ -131,7 +137,13 @@ mod tests {
     use acme_layout::{LayoutEngine, WidgetLayoutContext};
 
     fn test_context() -> WidgetLayoutContext {
-        WidgetLayoutContext { body_font_size: 16.0, body_line_height: 22.0, label_font_size: 14.0, control_height: 32.0, scale_factor: 1.0 }
+        WidgetLayoutContext {
+            body_font_size: 16.0,
+            body_line_height: 22.0,
+            label_font_size: 14.0,
+            control_height: 32.0,
+            scale_factor: 1.0,
+        }
     }
 
     #[derive(Clone, Debug, PartialEq)]
@@ -142,7 +154,9 @@ mod tests {
         let node: WidgetNode<TestMsg> = scatter_chart("sc").build();
         let ctx = test_context();
         let layout = node.to_layout_with_context(NodeId::new(1), &ctx);
-        let snapshot = LayoutEngine::new().compute(&layout, (800.0, 600.0)).unwrap();
+        let snapshot = LayoutEngine::new()
+            .compute(&layout, (800.0, 600.0))
+            .unwrap();
         let rect = snapshot.get(NodeId::new(1)).unwrap();
         assert!(rect.height > 0.0, "scatter height should be > 0");
     }
@@ -153,7 +167,9 @@ mod tests {
             .point(ScatterPoint::new("A", 10.0, 20.0))
             .point(ScatterPoint::new("B", 30.0, 15.0).size(2.0))
             .build();
-        let WidgetNode::Column(col) = &node else { panic!("expected Column") };
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column")
+        };
         // header + point_rows = 2
         assert_eq!(col.children.len(), 2);
     }
@@ -161,7 +177,9 @@ mod tests {
     #[test]
     fn scatter_empty_shows_placeholder() {
         let node: WidgetNode<TestMsg> = scatter_chart("sc").build();
-        let WidgetNode::Column(col) = &node else { panic!("expected Column") };
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column")
+        };
         // header + placeholder = 2
         assert_eq!(col.children.len(), 2);
     }

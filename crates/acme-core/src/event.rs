@@ -102,10 +102,7 @@ pub fn dispatch_event(
     if path.0.is_empty() {
         return EventResult::default();
     }
-    let target = path
-        .0
-        .pop()
-        .expect("path checked non-empty above");
+    let target = path.0.pop().expect("path checked non-empty above");
     let mut out = EventResult::default();
     for id in &path.0 {
         let r = handler(*id, EventPhase::Capture, event);

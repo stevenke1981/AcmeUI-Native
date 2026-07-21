@@ -77,9 +77,7 @@ impl<M: Clone + 'static> PageHeaderBuilder<M> {
 
 impl<M: Clone + 'static> From<PageHeaderBuilder<M>> for crate::WidgetNode<M> {
     fn from(b: PageHeaderBuilder<M>) -> Self {
-        let mut col = crate::column::<M>()
-            .key(b.id)
-            .gap(4.0);
+        let mut col = crate::column::<M>().key(b.id).gap(4.0);
 
         // Title
         let theme = acme_theme::Theme::light();

@@ -15,8 +15,8 @@
 //!     .build()
 //! ```
 
-use crate::style::{FontWeight, ShadowDef, Style, TextAlign};
 use crate::color::ColorToken;
+use crate::style::{FontWeight, ShadowDef, Style, TextAlign};
 use acme_layout::{Edges, LayoutKind, Length, Overflow};
 
 /// Trait that provides chainable, Tailwind‑inspired style methods.
@@ -466,7 +466,12 @@ mod tests {
             .p(16.0)
             .bg_primary()
             .rounded_lg()
-            .shadow(ShadowDef::new(0.0, 4.0, 12.0, ColorToken::Direct(acme_theme::ThemeColor::rgba(0.0, 0.0, 0.0, 0.1))))
+            .shadow(ShadowDef::new(
+                0.0,
+                4.0,
+                12.0,
+                ColorToken::Direct(acme_theme::ThemeColor::rgba(0.0, 0.0, 0.0, 0.1)),
+            ))
             .text_foreground()
             .font_size(16.0);
 

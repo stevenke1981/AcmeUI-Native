@@ -9,7 +9,7 @@
 
 use accesskit::{Action, Node as AccessNode, NodeId as AccessNodeId, Rect, Role, Tree, TreeUpdate};
 use acme_core::NodeId;
-use acme_layout::{LayoutRect, LayoutSnapshot};
+use acme_layout::LayoutSnapshot;
 use acme_platform::{PlatformEvent, WindowId};
 use acme_widgets::WidgetNode;
 
@@ -357,6 +357,7 @@ mod tests {
     use super::*;
     use acme_core::{NodeId, RetainedTree, ViewNode};
     use acme_layout::LayoutEngine;
+    use acme_layout::LayoutRect;
     use acme_widgets::{WidgetNode, button, column, label, row, scroll_view, separator, stack};
 
     #[derive(Clone, Debug, PartialEq)]
@@ -888,7 +889,15 @@ mod tests {
 
     fn snapshot_with_rect(id: NodeId, x: f32, y: f32, w: f32, h: f32) -> LayoutSnapshot {
         let mut snapshot = LayoutSnapshot::default();
-        snapshot.insert(id, LayoutRect { x, y, width: w, height: h });
+        snapshot.insert(
+            id,
+            LayoutRect {
+                x,
+                y,
+                width: w,
+                height: h,
+            },
+        );
         snapshot
     }
 
@@ -906,14 +915,8 @@ mod tests {
 
         match &events[1] {
             PlatformEvent::PointerButton { x, y, .. } => {
-                assert!(
-                    (*x - 125.0).abs() < 0.001,
-                    "expected center x=125, got {x}"
-                );
-                assert!(
-                    (*y - 215.0).abs() < 0.001,
-                    "expected center y=215, got {y}"
-                );
+                assert!((*x - 125.0).abs() < 0.001, "expected center x=125, got {x}");
+                assert!((*y - 215.0).abs() < 0.001, "expected center y=215, got {y}");
             }
             other => panic!("expected PointerButton, got {other:?}"),
         }
@@ -967,8 +970,14 @@ mod tests {
 
         match &events[1] {
             PlatformEvent::PointerButton { x, y, .. } => {
-                assert!((*x - 0.0).abs() < 0.001, "missing node: x should be 0, got {x}");
-                assert!((*y - 0.0).abs() < 0.001, "missing node: y should be 0, got {y}");
+                assert!(
+                    (*x - 0.0).abs() < 0.001,
+                    "missing node: x should be 0, got {x}"
+                );
+                assert!(
+                    (*y - 0.0).abs() < 0.001,
+                    "missing node: y should be 0, got {y}"
+                );
             }
             other => panic!("expected PointerButton, got {other:?}"),
         }
@@ -1018,20 +1027,17 @@ mod tests {
     #[test]
     fn set_value_produces_exactly_one_event() {
         let adapter = AccessibilityAdapter::new(1);
-        let events =
-            adapter.route_action(&AccessibilityAction::SetValue(NodeId::new(1), "test".into()));
-        assert_eq!(
-            events.len(),
-            1,
-            "SetValue must produce exactly one event"
-        );
+        let events = adapter.route_action(&AccessibilityAction::SetValue(
+            NodeId::new(1),
+            "test".into(),
+        ));
+        assert_eq!(events.len(), 1, "SetValue must produce exactly one event");
     }
 
     #[test]
     fn scroll_into_view_produces_exactly_one_event() {
         let adapter = AccessibilityAdapter::new(1);
-        let events =
-            adapter.route_action(&AccessibilityAction::ScrollIntoView(NodeId::new(1)));
+        let events = adapter.route_action(&AccessibilityAction::ScrollIntoView(NodeId::new(1)));
         assert_eq!(
             events.len(),
             1,

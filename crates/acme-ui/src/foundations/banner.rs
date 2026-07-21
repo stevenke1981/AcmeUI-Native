@@ -69,7 +69,7 @@ impl<M: Clone + 'static> BannerBuilder<M> {
         // Resolve tone colors — use soft variant for muted backgrounds
         let tone_colors = crate::resolve_tone(theme, self.tone, false);
 
-        let icon_name = self.icon_override.unwrap_or_else(|| match self.tone {
+        let icon_name = self.icon_override.unwrap_or(match self.tone {
             crate::Tone::Neutral => crate::IconName::Info,
             crate::Tone::Primary => crate::IconName::Info,
             crate::Tone::Success => crate::IconName::Success,
@@ -80,9 +80,7 @@ impl<M: Clone + 'static> BannerBuilder<M> {
 
         // Content column: message label + optional description
         let content_col = {
-            let mut col = crate::column()
-                .gap(4.0)
-                .child(crate::label(&self.message));
+            let mut col = crate::column().gap(4.0).child(crate::label(&self.message));
             if let Some(ref desc) = self.description {
                 col = col.child(crate::label(desc));
             }
@@ -107,10 +105,7 @@ impl<M: Clone + 'static> BannerBuilder<M> {
         }
 
         // Wrap in a Card with tone-based background
-        let mut card = crate::card()
-            .gap(0.0)
-            .padding(12.0)
-            .child(main_row.build());
+        let mut card = crate::card().gap(0.0).padding(12.0).child(main_row.build());
 
         if let Some(bg) = tone_colors.soft_bg {
             card = card.background_color(bg);

@@ -3,8 +3,8 @@
 //! A `Style` is built by chaining methods from the [`Styled`](crate::Styled) trait
 //! and then applied to a widget during layout / rendering.
 
-use acme_layout::{Edges, LayoutKind, LayoutStyle, Length, Overflow};
 use crate::color::ColorToken;
+use acme_layout::{Edges, LayoutKind, LayoutStyle, Length, Overflow};
 
 /// Shadow descriptor (offset + blur + color).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -42,7 +42,7 @@ pub enum Display {
 }
 
 /// Font weight — analogous to CSS `font-weight`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum FontWeight {
     /// Thin (100).
     Thin,
@@ -51,6 +51,7 @@ pub enum FontWeight {
     /// Light (300).
     Light,
     /// Normal (400).
+    #[default]
     Normal,
     /// Medium (500).
     Medium,
@@ -62,12 +63,6 @@ pub enum FontWeight {
     ExtraBold,
     /// Black (900).
     Black,
-}
-
-impl Default for FontWeight {
-    fn default() -> Self {
-        Self::Normal
-    }
 }
 
 /// Text alignment — analogous to CSS `text-align`.

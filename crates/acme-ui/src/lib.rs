@@ -3,6 +3,8 @@
 //! High-level UI components built on acme-widgets primitives.
 //! Design system inspired by shadcn/ui, Material UI, and Ant Design.
 
+mod template;
+
 #[cfg(feature = "browser")]
 pub mod browser;
 #[cfg(feature = "charts")]
@@ -25,10 +27,32 @@ pub use acme_core::{NodeId, WidgetKey};
 pub use acme_layout::{LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
 pub use acme_theme::ThemeColor;
 pub use acme_widgets::*;
+pub use template::{DefaultTemplate, default_template};
+
+/// AcmeUI component-library version, kept in lockstep with the workspace package.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Design-token and default-template contract version.
+pub const DESIGN_SYSTEM_VERSION: &str = "0.2.0";
+
+/// The default semantic theme for new applications.
+pub fn default_theme() -> acme_theme::Theme {
+    acme_theme::Theme::light()
+}
+
+/// Convenient imports for applications using the default AcmeUI template.
+pub mod prelude {
+    pub use crate::{ControlSize, Tone, resolve_tone, tone_color};
+    pub use crate::{
+        DESIGN_SYSTEM_VERSION, DefaultTemplate, VERSION, default_template, default_theme,
+    };
+    pub use crate::{button, card, column, label, row, scroll_view, separator, stack};
+    pub use acme_theme::{Theme, ThemeMode};
+    pub use acme_widgets::WidgetNode;
+}
 
 // Re-export foundation types expected at the crate root
 #[cfg(feature = "foundations")]
-pub use foundations::icon::{icon, IconName};
+pub use foundations::icon::{IconName, icon};
 
 /// Tone palette for semantic coloring — inspired by shadcn/ui status colors.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -96,12 +120,12 @@ pub fn resolve_tone(theme: &acme_theme::Theme, tone: Tone, _solid: bool) -> Tone
 /// Control sizes matching V2 design system heights
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum ControlSize {
-    Xs,      // 22px — badge, tag, small meta
-    Sm,      // 28px — compact toolbar
+    Xs, // 22px — badge, tag, small meta
+    Sm, // 28px — compact toolbar
     #[default]
-    Md,      // 34px — default control
-    Lg,      // 40px — primary action
-    Xl,      // 48px — hero
+    Md, // 34px — default control
+    Lg, // 40px — primary action
+    Xl, // 48px — hero
 }
 
 impl ControlSize {

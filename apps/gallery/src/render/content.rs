@@ -228,9 +228,7 @@ pub fn render_content(
             // Render style background / shadow for containers that carry `Style`.
             if let Some(rect) = snapshot.get(layout.id) {
                 let style = match widget {
-                    WidgetNode::Row(c)
-                    | WidgetNode::Column(c)
-                    | WidgetNode::Stack(c) => &c.style,
+                    WidgetNode::Row(c) | WidgetNode::Column(c) | WidgetNode::Stack(c) => &c.style,
                     WidgetNode::Card(c) => &c.style,
                     WidgetNode::ScrollView(s) => &s.style,
                     _ => return,
@@ -333,7 +331,6 @@ pub fn find_text_input_marker(
 }
 
 /// --- Table rendering sub-function ---
-
 use acme_widgets::{DataGrid, Table, VirtualList};
 
 #[allow(clippy::too_many_arguments)]
@@ -414,8 +411,7 @@ fn render_table_content(
     }
 }
 
-/// --- DataGrid rendering sub-function ---
-
+/// DataGrid rendering sub-function.
 #[allow(clippy::too_many_arguments)]
 fn render_datagrid_content(
     scene: &mut Scene,
@@ -471,8 +467,7 @@ fn render_datagrid_content(
     }
 }
 
-/// --- VirtualList rendering sub-function ---
-
+/// VirtualList rendering sub-function.
 #[allow(clippy::too_many_arguments)]
 fn render_vlist_content(
     scene: &mut Scene,
@@ -521,8 +516,7 @@ fn render_vlist_content(
     }
 }
 
-/// --- tree_key_static (shared with hit_test) ---
-
+/// Return a static key for shared hit-test lookups.
 pub fn tree_key_static(key: &str) -> Option<&'static str> {
     const ALL: &[&str] = &[
         "docs",

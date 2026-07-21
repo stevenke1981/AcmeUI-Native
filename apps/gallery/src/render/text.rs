@@ -1,6 +1,8 @@
 //! Text rendering helpers — shape, prepare, and push text runs.
 
-use acme_core::{AtlasUpload, Color, DrawCommand, GlyphDraw, GlyphFormat, Point, Rect, Scene, TextPrimitive};
+use acme_core::{
+    AtlasUpload, Color, DrawCommand, GlyphDraw, GlyphFormat, Point, Rect, Scene, TextPrimitive,
+};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
 use acme_theme::ThemeColor;
 
@@ -60,7 +62,12 @@ pub fn add_text(
 
     // If clip provided, wrap in PushClip/PopClip
     if let Some(clip_rect) = clip {
-        scene.push(DrawCommand::PushClip(Rect::new(clip_rect[0], clip_rect[1], clip_rect[2], clip_rect[3])));
+        scene.push(DrawCommand::PushClip(Rect::new(
+            clip_rect[0],
+            clip_rect[1],
+            clip_rect[2],
+            clip_rect[3],
+        )));
     }
 
     scene.push(DrawCommand::Text(TextPrimitive {

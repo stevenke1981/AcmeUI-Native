@@ -1,8 +1,8 @@
 use crate::WidgetNode;
 use acme_layout::ShapedText;
 use acme_layout::TextWrapMode;
-use acme_style::prelude::*;
 use acme_style::Style;
+use acme_style::prelude::*;
 use acme_theme::ThemeColor;
 
 /// Controls how text wraps when the label's content exceeds its available width.

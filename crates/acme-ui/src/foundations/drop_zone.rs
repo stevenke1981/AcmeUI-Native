@@ -127,9 +127,7 @@ mod tests {
 
     #[test]
     fn drop_zone_active_uses_interactive_variant() {
-        let node: WidgetNode<TestMsg> = drop_zone("dz", "Drop")
-            .active(true)
-            .into();
+        let node: WidgetNode<TestMsg> = drop_zone("dz", "Drop").active(true).into();
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column variant");
         };
@@ -142,9 +140,7 @@ mod tests {
 
     #[test]
     fn drop_zone_inactive_uses_outlined_variant() {
-        let node: WidgetNode<TestMsg> = drop_zone("dz", "Area")
-            .active(false)
-            .into();
+        let node: WidgetNode<TestMsg> = drop_zone("dz", "Area").active(false).into();
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column variant");
         };

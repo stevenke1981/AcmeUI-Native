@@ -118,11 +118,7 @@ impl<M: Clone + 'static> From<AutoCompleteBuilder<M>> for WidgetNode<M> {
                 .child(dropdown)
                 .build()
         } else {
-            column::<M>()
-                .key(b.id)
-                .gap(2.0)
-                .child(input)
-                .build()
+            column::<M>().key(b.id).gap(2.0).child(input).build()
         }
     }
 }

@@ -84,20 +84,20 @@ impl<M: Clone + 'static> From<MenubarBuilder<M>> for WidgetNode<M> {
         }
 
         // If a menu is open, wrap in a Stack with the menu dropdown
-        if let Some(idx) = b.open_index {
-            if let Some(entry) = b.menus.get(idx) {
-                let menu_key = format!("{}-dropdown", b.id.as_str());
-                let mut menu_dropdown = menu::<M>(menu_key.as_str()).open(true);
-                for item in &entry.items {
-                    menu_dropdown = menu_dropdown.item(item.clone());
-                }
-
-                return stack::<M>()
-                    .key(b.id)
-                    .child(label_row.build())
-                    .child(menu_dropdown.build())
-                    .build();
+        if let Some(idx) = b.open_index
+            && let Some(entry) = b.menus.get(idx)
+        {
+            let menu_key = format!("{}-dropdown", b.id.as_str());
+            let mut menu_dropdown = menu::<M>(menu_key.as_str()).open(true);
+            for item in &entry.items {
+                menu_dropdown = menu_dropdown.item(item.clone());
             }
+
+            return stack::<M>()
+                .key(b.id)
+                .child(label_row.build())
+                .child(menu_dropdown.build())
+                .build();
         }
 
         // No open menu: just the row of labels

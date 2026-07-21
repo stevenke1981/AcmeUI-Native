@@ -113,8 +113,7 @@ mod tests {
 
     #[test]
     fn result_renders_column() {
-        let node: WidgetNode<TestMsg> =
-            result("r", ResultStatus::Error, "Failed").into();
+        let node: WidgetNode<TestMsg> = result("r", ResultStatus::Error, "Failed").into();
         let WidgetNode::Column(col) = &node else {
             panic!("expected Column");
         };
@@ -144,8 +143,7 @@ mod tests {
 
     #[test]
     fn result_has_non_zero_layout_rect() {
-        let node: WidgetNode<TestMsg> =
-            result("r", ResultStatus::Success, "OK").into();
+        let node: WidgetNode<TestMsg> = result("r", ResultStatus::Success, "OK").into();
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.style.kind, LayoutKind::Column);
         assert!(!layout.children.is_empty());
