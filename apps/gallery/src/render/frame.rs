@@ -3,7 +3,8 @@
 //! All functions are pure with respect to `Gallery` — state is passed explicitly
 //! via [`RenderCtx`] so that rendering logic is decoupled from app state.
 
-use acme_layout::{LayoutNode, LayoutSnapshot};
+use acme_core::NodeId;
+use acme_layout::{LayoutNode, LayoutSnapshot, WidgetLayoutContext};
 use acme_render_wgpu::Frame;
 use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::{render_text_input, TextInputState};
@@ -11,11 +12,10 @@ use acme_theme::Theme;
 use acme_widgets::{ButtonState, WidgetNode, button};
 
 use crate::render::layout::GalleryNodeIds;
-use crate::types::CATEGORIES;
 use crate::render::{
     add_text, find_text_input_marker, quad_rect, render_content,
 };
-use crate::types::GalleryMessage;
+use crate::types::{CATEGORIES, GalleryMessage, Density};
 
 // ── Render Context ──────────────────────────────────────────────────────────
 
@@ -269,4 +269,53 @@ pub fn render_text_input_overlay(ctx: &mut RenderCtx) {
             *ctx.ime_caret_window_rect = None;
         }
     }
+}
+
+// ── Pipeline Helpers (pure computations extracted from frame()) ─────────────
+
+/// Build a [`Theme`] from the `dark` flag.
+pub fn build_theme(dark: bool) -> Theme {
+    if dark { Theme::dark() } else { Theme::light() }
+}
+
+/// Build a [`WidgetLayoutContext`] from theme and scale factor.
+pub fn build_layout_context(theme: &Theme, scale_factor: f32) -> WidgetLayoutContext {
+    WidgetLayoutContext {
+        body_font_size: theme.typography.body,
+        body_line_height: theme.typography.body * theme.typography.line_height,
+        label_font_size: theme.typography.label,
+        control_height: 40.0,
+        scale_factor,
+    }
+}
+
+/// Compute toolbar button labels from gallery state.
+pub fn compute_toolbar_labels(
+    dark: bool,
+    density: Density,
+    show_focus_rings: bool,
+) -> [&'static str; 3] {
+    [
+        if dark { "☀ Light" } else { "🌙 Dark" },
+        density.label(),
+        if show_focus_rings { "Focus ✓" } else { "Focus ✗" },
+    ]
+}
+
+/// Compute scroll metrics: returns `(max_scroll, clamped_scroll, scroll_clip_rect)`.
+pub fn compute_scroll_state(
+    snapshot: &LayoutSnapshot,
+    scroll_view_id: NodeId,
+    current_scroll: f32,
+) -> (f32, f32, [f32; 4]) {
+    let max_scroll = snapshot
+        .scroll_metrics(scroll_view_id)
+        .map(|m| (m.content_height - m.viewport_height).max(0.0))
+        .unwrap_or(0.0);
+    let clamped = current_scroll.clamp(0.0, max_scroll);
+    let clip = snapshot
+        .get(scroll_view_id)
+        .map(|r| [r.x, r.y, r.width, r.height])
+        .unwrap_or([0.0; 4]);
+    (max_scroll, clamped, clip)
 }

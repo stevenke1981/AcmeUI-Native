@@ -3,28 +3,30 @@
 //!
 //! Architecture:
 //!
-//!   ┌──────────────────────────────────────────────────────────┐
-//!   │  Application::frame()  — pipeline orchestration          │
-//!   ├──────────────────────────────────────────────────────────┤
-//!   │  Gallery (this file)                                     │
-//!   │   ├── Widget tree builders  (description, sidebar, ...)  │  Layer 3
-//!   │   ├── Frame render methods  (render_sidebar, ...)        │   Widget → Frame
-//!   │   ├── event / activate     (events.rs)                   │
-//!   │   └── page dispatcher      (pages/component.rs)          │
-//!   ├──────────────────────────────────────────────────────────┤
-//!   │  render/ module                                          │
-//!   │   ├── content.rs   →  render_content (DFS dispatch)      │  Layer 2
-//!   │   ├── hit_test.rs  →  collect_hit_regions                │   Widget Rendering
-//!   │   ├── style.rs     →  push_widget_style / shadow         │
-//!   │   └── text.rs      →  add_text (shape → prepare → push)  │
-//!   ├──────────────────────────────────────────────────────────┤
-//!   │  render/ module (cont.)                                  │
-//!   │   ├── geometry.rs  →  quad_rect, rgba, point_in_rect     │  Layer 1
-//!   │   └── layout.rs    →  extract/apply gallery layout       │   Primitives
-//!   ├──────────────────────────────────────────────────────────┤
-//!   │  helpers.rs  —  spacing, standard_component_sections     │  Utilities
-//!   │  types.rs    —  GalleryMessage, HitRegion, Density       │
-//!   └──────────────────────────────────────────────────────────┘
+//!   ┌───────────────────────────────────────────────────────────────┐
+//!   │  Application::frame()  — pipeline orchestration               │
+//!   ├───────────────────────────────────────────────────────────────┤
+//!   │  render/frame.rs — pipeline helpers (build_theme, ...)        │  Layer 4
+//!   │  render/frame.rs — RenderCtx + standalone render functions    │   Frame Rendering
+//!   ├───────────────────────────────────────────────────────────────┤
+//!   │  Gallery (this file)                                          │
+//!   │   ├── description / content_area  (widget tree orchestration) │  Layer 3
+//!   │   ├── event / activate / refresh_ime  (events.rs)            │   State & Events
+//!   │   └── page dispatcher + builders  (pages/*.rs)                │
+//!   ├───────────────────────────────────────────────────────────────┤
+//!   │  render/ module                                               │
+//!   │   ├── content.rs   →  render_content (DFS dispatch)           │  Layer 2
+//!   │   ├── hit_test.rs  →  collect_hit_regions                     │   Widget Rendering
+//!   │   ├── style.rs     →  push_widget_style / shadow              │
+//!   │   └── text.rs      →  add_text (shape → prepare → push)      │
+//!   ├───────────────────────────────────────────────────────────────┤
+//!   │  render/ module (cont.)                                       │
+//!   │   ├── geometry.rs  →  quad_rect, rgba, point_in_rect          │  Layer 1
+//!   │   └── layout.rs    →  extract/apply gallery layout            │   Primitives
+//!   ├───────────────────────────────────────────────────────────────┤
+//!   │  helpers.rs — build_sidebar/toolbar, sf, kpi_card, tree_*    │  Standalone
+//!   │  types.rs   — GalleryMessage, HitRegion, Density, constants   │   Utilities
+//!   └───────────────────────────────────────────────────────────────┘
 //!
 //! All button hit-regions are collected via a single DFS walk across the
 //! widget+layout tree — no magic‑number indexing is used anywhere.
@@ -38,7 +40,7 @@ mod types;
 
 use acme_accessibility::AccessibilityAdapter;
 use acme_core::NodeId;
-use acme_layout::{LayoutEngine, WidgetLayoutContext};
+use acme_layout::LayoutEngine;
 use acme_platform::{
     Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
 };
@@ -47,13 +49,13 @@ use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::{
     TextInputState, handle_key, handle_keyboard_shortcut, handle_text,
 };
-use acme_theme::Theme;
 use acme_widgets::{
-    WidgetNode, button, column, label, label_with_size, row, scroll_view, separator,
+    WidgetNode, column, row, scroll_view,
 };
 
 use crate::render::{
-    apply_gallery_styles, collect_data_widget_hits, collect_hit_regions,
+    apply_gallery_styles, build_layout_context, build_theme, collect_data_widget_hits,
+    collect_hit_regions, compute_scroll_state, compute_toolbar_labels,
     extract_gallery_ids, point_in_rect, rgba,
     scrolled_hit_rect, RenderCtx,
     render_sidebar, render_toolbar, render_page_content, render_text_input_overlay,
@@ -172,83 +174,13 @@ impl Gallery {
         }
     }
 
-    fn tree_is_expanded(&self, key: &str) -> bool {
-        TREE_EXPAND_KEYS
-            .iter()
-            .position(|&k| k == key)
-            .is_some_and(|i| self.tree_expanded & (1u32 << i) != 0)
-    }
-
-    fn tree_set_expanded(&mut self, key: &str, expanded: bool) {
-        if let Some(i) = TREE_EXPAND_KEYS.iter().position(|&k| k == key) {
-            if expanded {
-                self.tree_expanded |= 1u32 << i;
-            } else {
-                self.tree_expanded &= !(1u32 << i);
-            }
-        }
-    }
-
-    fn tree_toggle_expanded(&mut self, key: &str) {
-        if let Some(i) = TREE_EXPAND_KEYS.iter().position(|&k| k == key) {
-            self.tree_expanded ^= 1u32 << i;
-        }
-    }
-
-    fn vlist_max_scroll(&self) -> f32 {
-        (VLIST_ITEM_COUNT as f32 * VLIST_ITEM_HEIGHT - VLIST_VIEWPORT_H).max(0.0)
-    }
-
     // ── Top-level Widget Tree Builder ────────────────────────────────────────
 
     fn description(&self) -> WidgetNode<GalleryMessage> {
         row()
             .key("gallery_root")
-            .child(self.sidebar())
+            .child(crate::helpers::build_sidebar(self.selected_category))
             .child(self.content_area())
-            .build()
-    }
-
-    fn sidebar(&self) -> WidgetNode<GalleryMessage> {
-        let mut col = column::<GalleryMessage>()
-            .key("sidebar")
-            .gap(4.0)
-            .padding(12.0);
-        col = col.child(label_with_size("AcmeUI", 18.0));
-        col = col.child(separator());
-        for (i, cat) in CATEGORIES.iter().enumerate() {
-            let mut btn = button::<GalleryMessage>("", cat.name);
-            if i == self.selected_category {
-                btn = btn.primary();
-            }
-            col = col.child(btn.on_click(GalleryMessage::SelectCategory(i)));
-        }
-        col.build()
-    }
-
-    fn toolbar(&self) -> WidgetNode<GalleryMessage> {
-        row()
-            .key("toolbar")
-            .gap(8.0)
-            .padding(8.0)
-            .child(
-                button("theme_btn", if self.dark { "☀ Light" } else { "🌙 Dark" })
-                    .on_click(GalleryMessage::ToggleTheme),
-            )
-            .child(
-                button("density_btn", self.density.label()).on_click(GalleryMessage::ToggleDensity),
-            )
-            .child(
-                button(
-                    "focus_btn",
-                    if self.show_focus_rings {
-                        "Focus ✓"
-                    } else {
-                        "Focus ✗"
-                    },
-                )
-                .on_click(GalleryMessage::ToggleFocusRings),
-            )
             .build()
     }
 
@@ -256,7 +188,11 @@ impl Gallery {
         let page = self.render_page();
         column()
             .key("content_area")
-            .child(self.toolbar())
+            .child(crate::helpers::build_toolbar(
+                self.dark,
+                self.density.label(),
+                self.show_focus_rings,
+            ))
             .child(scroll_view("content_scroll").child(page).build())
             .build()
     }
@@ -267,31 +203,6 @@ impl Gallery {
     // Foundations category: pages/foundations.rs
     // Inputs category: pages/inputs.rs
     // etc.
-
-    // ── Small Template Helpers ──────────────────────────────────────────────
-
-    fn sf(&self, label: &str, value: &str) -> WidgetNode<GalleryMessage> {
-        row()
-            .gap(8.0)
-            .child(label_with_size(label, 14.0))
-            .child(label_with_size(value, 14.0))
-            .build()
-    }
-
-    fn kpi_card(&self, value: &str, title: &str) -> WidgetNode<GalleryMessage> {
-        column()
-            .gap(6.0)
-            .padding(16.0)
-            .child(label_with_size(value, 22.0))
-            .child(label(title))
-            .build()
-    }
-
-    /// Reusable widget that renders a text block for long‑string handling.
-    #[allow(dead_code)]
-    fn long_text_widget(text: &str) -> WidgetNode<GalleryMessage> {
-        label_with_size(text, 14.0)
-    }
 
 }
 
@@ -351,7 +262,7 @@ impl Application for Gallery {
                     && point_in_rect(self.cursor.0, self.cursor.1, vlist_screen)
                 {
                     self.vlist_scroll =
-                        (self.vlist_scroll - delta_y).clamp(0.0, self.vlist_max_scroll());
+                        (self.vlist_scroll - delta_y).clamp(0.0, crate::helpers::vlist_max_scroll());
                     return true;
                 }
                 self.scroll = (self.scroll - delta_y).clamp(0.0, self.max_scroll);
@@ -406,13 +317,15 @@ impl Application for Gallery {
                 match key {
                     PlatformKey::ArrowRight => {
                         if let Some(sel) = self.tree_selected {
-                            self.tree_set_expanded(sel, true);
+                            self.tree_expanded =
+                                crate::helpers::tree_set_expanded(self.tree_expanded, sel, true);
                         }
                         true
                     }
                     PlatformKey::ArrowLeft => {
                         if let Some(sel) = self.tree_selected {
-                            self.tree_set_expanded(sel, false);
+                            self.tree_expanded =
+                                crate::helpers::tree_set_expanded(self.tree_expanded, sel, false);
                         }
                         true
                     }
@@ -421,8 +334,8 @@ impl Application for Gallery {
                         true
                     }
                     PlatformKey::End => {
-                        self.tree_selected = if self.tree_is_expanded("code") {
-                            if self.tree_is_expanded("code_src") {
+                        self.tree_selected = if crate::helpers::tree_is_expanded(self.tree_expanded, "code") {
+                            if crate::helpers::tree_is_expanded(self.tree_expanded, "code_src") {
                                 Some("code_lib")
                             } else {
                                 Some("code_toml")
@@ -503,20 +416,10 @@ impl Application for Gallery {
         let description = self.description();
 
         // ── Layer 1: Build Theme ──
-        let theme = if self.dark {
-            Theme::dark()
-        } else {
-            Theme::light()
-        };
+        let theme = build_theme(self.dark);
 
         // ── Layer 2: Build layout context from theme ──
-        let layout_context = WidgetLayoutContext {
-            body_font_size: theme.typography.body,
-            body_line_height: theme.typography.body * theme.typography.line_height,
-            label_font_size: theme.typography.label,
-            control_height: 40.0,
-            scale_factor: context.scale_factor,
-        };
+        let layout_context = build_layout_context(&theme, context.scale_factor);
 
         // ── Layer 2: Convert to layout tree with context ──
         let mut root = description.to_layout_with_context(NodeId::new(1), &layout_context);
@@ -561,15 +464,11 @@ impl Application for Gallery {
         self.button_info = button_info;
 
         // ── Layer 3: Scroll metrics ──
-        self.max_scroll = snapshot
-            .scroll_metrics(ids.scroll_view)
-            .map(|m| (m.content_height - m.viewport_height).max(0.0))
-            .unwrap_or(0.0);
-        self.scroll = self.scroll.clamp(0.0, self.max_scroll);
-        self.scroll_clip_rect = snapshot
-            .get(ids.scroll_view)
-            .map(|r| [r.x, r.y, r.width, r.height])
-            .unwrap_or([0.0; 4]);
+        let (max_scroll, clamped_scroll, scroll_clip) =
+            compute_scroll_state(&snapshot, ids.scroll_view, self.scroll);
+        self.max_scroll = max_scroll;
+        self.scroll = clamped_scroll;
+        self.scroll_clip_rect = scroll_clip;
 
         // ── Layer 4: Build frame ──
         let mut frame = Frame {
@@ -578,15 +477,7 @@ impl Application for Gallery {
         };
 
         // ── Layer 4: Create render context (bundles all per-frame state) ──
-        let toolbar_labels = [
-            if self.dark { "☀ Light" } else { "🌙 Dark" },
-            self.density.label(),
-            if self.show_focus_rings {
-                "Focus ✓"
-            } else {
-                "Focus ✗"
-            },
-        ];
+        let toolbar_labels = compute_toolbar_labels(self.dark, self.density, self.show_focus_rings);
         let mut ctx = RenderCtx {
             frame: &mut frame,
             fonts: &mut self.fonts,

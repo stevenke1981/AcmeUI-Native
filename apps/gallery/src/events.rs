@@ -79,13 +79,14 @@ impl crate::Gallery {
             }
             GalleryMessage::TreeSelectKey(key) => {
                 if self.tree_selected == Some(key) {
-                    self.tree_toggle_expanded(key);
+                    self.tree_expanded =
+                        crate::helpers::tree_toggle_expanded(self.tree_expanded, key);
                 }
                 self.tree_selected = Some(key);
                 true
             }
             GalleryMessage::TreeToggleKey(key) => {
-                self.tree_toggle_expanded(key);
+                self.tree_expanded = crate::helpers::tree_toggle_expanded(self.tree_expanded, key);
                 self.tree_selected = Some(key);
                 true
             }

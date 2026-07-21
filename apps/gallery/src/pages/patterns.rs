@@ -30,9 +30,9 @@ impl crate::Gallery {
                 column()
                     .gap(8.0)
                     .child(label_with_size("General", 18.0))
-                    .child(self.sf("Username", "eda"))
-                    .child(self.sf("Language", "繁體中文"))
-                    .child(self.sf("Theme", "System"))
+                    .child(crate::helpers::sf("Username", "eda"))
+                    .child(crate::helpers::sf("Language", "繁體中文"))
+                    .child(crate::helpers::sf("Theme", "System"))
                     .build(),
             )
             .child(separator())
@@ -77,10 +77,10 @@ impl crate::Gallery {
             .child(
                 row()
                     .gap(12.0)
-                    .child(self.kpi_card("$48,290", "Revenue"))
-                    .child(self.kpi_card("2,847", "Users"))
-                    .child(self.kpi_card("1,203", "Active"))
-                    .child(self.kpi_card("+12.5%", "Growth"))
+                    .child(crate::helpers::kpi_card("$48,290", "Revenue"))
+                    .child(crate::helpers::kpi_card("2,847", "Users"))
+                    .child(crate::helpers::kpi_card("1,203", "Active"))
+                    .child(crate::helpers::kpi_card("+12.5%", "Growth"))
                     .build(),
             )
             .child(

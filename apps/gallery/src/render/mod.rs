@@ -23,6 +23,7 @@ mod text;
 
 // ── Layer 4: Frame rendering (pure RenderCtx functions) ──
 pub use frame::{
+    build_layout_context, build_theme, compute_scroll_state, compute_toolbar_labels,
     render_page_content, render_sidebar, render_text_input_overlay, render_toolbar, RenderCtx,
 };
 
