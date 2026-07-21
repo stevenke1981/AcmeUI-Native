@@ -117,6 +117,18 @@ pub enum PlatformEvent {
         window: WindowId,
         paths: Vec<String>,
     },
+
+    /// Request from an assistive technology (screen reader, switch device)
+    /// to scroll the identified node into the visible viewport.
+    ///
+    /// `node_id` is the AcmeUI layout node ID, NOT an AccessKit node ID.
+    /// The framework layer should resolve the node's bounding box from the
+    /// current layout snapshot and scroll the nearest scroll container so
+    /// that the node becomes visible.
+    AccessibilityScrollIntoView {
+        window: WindowId,
+        node_id: u64,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

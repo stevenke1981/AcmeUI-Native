@@ -399,6 +399,17 @@ impl Application for Gallery {
                 self.last_scale_factor,
                 &mut self.ime_caret_window_rect,
             ),
+            PlatformEvent::AccessibilityScrollIntoView { node_id, .. } => {
+                // Scroll to the top of the page as a best-effort response.
+                // A full implementation would resolve `node_id` against the
+                // layout snapshot and scroll the nearest scroll container so
+                // that the target rect becomes visible.
+                self.scroll = 0.0;
+                tracing::debug!(
+                    "AccessibilityScrollIntoView(id={node_id}): scroll reset to 0"
+                );
+                true
+            }
             PlatformEvent::Resized { .. } => true,
             _ => false,
         }

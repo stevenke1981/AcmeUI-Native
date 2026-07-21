@@ -206,6 +206,11 @@ pub struct LayoutSnapshot {
     scroll: HashMap<NodeId, ScrollMetrics>,
 }
 impl LayoutSnapshot {
+    /// Insert a rect for the given node (used by tests and incremental updates).
+    pub fn insert(&mut self, id: NodeId, rect: LayoutRect) {
+        self.rects.insert(id, rect);
+    }
+
     pub fn get(&self, id: NodeId) -> Option<&LayoutRect> {
         self.rects.get(&id)
     }
