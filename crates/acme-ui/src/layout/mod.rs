@@ -2,13 +2,17 @@
 
 pub mod affix;
 pub mod anchor;
+pub mod app_bar;
+pub mod bottom_navigation;
 pub mod breadcrumb;
 pub mod form;
 pub mod grid;
+pub mod image_list;
 pub mod masonry;
 pub mod navigation_menu;
 pub mod page_header;
 pub mod pagination;
+pub mod paper;
 pub mod resizable;
 pub mod scroll_area;
 pub mod section;
@@ -22,13 +26,17 @@ pub mod toolbar;
 
 pub use affix::*;
 pub use anchor::*;
+pub use app_bar::*;
+pub use bottom_navigation::*;
 pub use breadcrumb::*;
 pub use form::*;
 pub use grid::*;
+pub use image_list::*;
 pub use masonry::*;
 pub use navigation_menu::*;
 pub use page_header::*;
 pub use pagination::*;
+pub use paper::*;
 pub use resizable::*;
 pub use scroll_area::*;
 pub use section::*;

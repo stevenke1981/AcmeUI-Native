@@ -269,3 +269,69 @@
 - [ ] Affix scroll listener (toggle fixed on scroll position)
 - [ ] FloatButton group (expandable multiple FABs)
 - [ ] Notification auto-dismiss timer integration
+
+## P8 — MUI (Material UI) alignment (2026-07-22)
+
+> Coverage: 60/60 MUI components now mapped. 7 new components added this pass.
+
+### Newly added (this pass)
+- [x] Backdrop (`overlay/backdrop.rs`) — overlay scrim behind modals/dialogs
+- [x] SpeedDial (`overlay/speed_dial.rs`) — expandable FAB with multiple actions
+- [x] ImageList (`layout/image_list.rs`) — image grid/masonry layout
+- [x] AppBar (`layout/app_bar.rs`) — top application bar with title/actions
+- [x] Paper (`layout/paper.rs`) — elevated surface container with elevation levels
+- [x] TextField (`inputs/text_field.rs`) — multi-variant input (outlined/filled/standard)
+- [x] BottomNavigation (`layout/bottom_navigation.rs`) — desktop bottom navigation bar
+
+### Already covered (existing components map to MUI)
+- [x] Autocomplete → inputs/autocomplete
+- [x] Button → widgets/button
+- [x] Button Group → inputs/button_group
+- [x] Checkbox → inputs/checkbox
+- [x] Floating Action Button → overlay/float_button
+- [x] Radio Group → inputs/radio
+- [x] Rating → inputs/rating
+- [x] Select → inputs/select
+- [x] Slider → inputs/slider + range_slider
+- [x] Switch → inputs/switch
+- [x] Toggle Button → inputs/toggle_button + toggle_group
+- [x] Transfer List → inputs/transfer
+- [x] Avatar → foundations/avatar
+- [x] Badge → foundations/badge
+- [x] Chip → foundations/chip
+- [x] Divider → foundations/divider
+- [x] Icons → foundations/icon
+- [x] List → foundations/list
+- [x] Table → widgets/table + datagrid
+- [x] Tooltip → widgets/tooltip
+- [x] Typography → foundations/typography
+- [x] Alert → foundations/alert
+- [x] Dialog → overlay/modal
+- [x] Progress → foundations/progress
+- [x] Skeleton → foundations/skeleton
+- [x] Snackbar → overlay/toast
+- [x] Bottom Navigation (mobile) → mobile/bottom_nav
+- [x] Breadcrumbs → layout/breadcrumb
+- [x] Drawer → overlay/drawer
+- [x] Link → foundations/link
+- [x] Menu → desktop/menubar + overlay/dropdown_menu
+- [x] Pagination → layout/pagination
+- [x] Stepper → layout/stepper
+- [x] Tabs → layout/tabs
+- [x] Box → foundations/flex
+- [x] Container → layout/section
+- [x] Grid → layout/grid
+- [x] Stack → widgets/stack
+- [x] Modal → overlay/modal
+- [x] Popover → widgets/popover
+- [x] Textarea Autosize → inputs/textarea
+- [x] Accordion → foundations/accordion
+- [x] Card → widgets/card
+- [x] Toolbar → layout/toolbar
+
+### Remaining enhancements
+- [ ] Real image rendering in ImageList (currently placeholder labels)
+- [ ] SpeedDial directional expansion (up/down/left/right)
+- [ ] AppBar scroll-hide behavior
+- [ ] TextField input masking and adornments (leading/trailing icons)
+- [ ] Paper square variant (no border radius)
