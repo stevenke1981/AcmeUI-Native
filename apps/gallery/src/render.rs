@@ -1,7 +1,4 @@
 //! Render helpers, layout extractors, style application, and geometry utilities.
-//!
-//! Functions not yet imported by main.rs are kept here for future modularization.
-#![allow(unused)]
 
 use acme_core::NodeId;
 use acme_layout::{LayoutKind, LayoutNode, LayoutStyle, Length};
@@ -11,6 +8,7 @@ use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
 use acme_theme::{Theme, ThemeColor};
 use acme_widgets::{ButtonState, WidgetNode};
 
+use crate::helpers::table_display_order;
 use crate::types::*;
 
 // ── Layout ID Extractors ────────────────────────────────────────────────────
@@ -184,10 +182,24 @@ pub fn render_content(
                 return;
             }
             if let Some(rect) = snapshot.get(layout.id) {
-                let fs = l.font_size.unwrap_or(theme.typography.body);
-                let line_h = fs * theme.typography.line_height;
+                let fs = l
+                    .style
+                    .font_size
+                    .or(l.font_size)
+                    .unwrap_or(theme.typography.body);
+                let line_h = l
+                    .style
+                    .line_height
+                    .or(l.line_height)
+                    .unwrap_or(fs * theme.typography.line_height);
                 let y_text = rect.y - scroll_y + (rect.height - line_h).max(0.0) * 0.5;
-                let text_color = l.color.unwrap_or(colors.foreground);
+                let text_color = l.color.unwrap_or_else(|| {
+                    let s = &l.style;
+                    s.text_color
+                        .as_ref()
+                        .map(|t| t.resolve(theme))
+                        .unwrap_or(colors.foreground)
+                });
                 add_text(
                     fonts,
                     atlas,
@@ -255,28 +267,6 @@ pub fn render_content(
                 ));
             }
         }
-        WidgetNode::Card(_) => {
-            let wc = widget.children();
-            for (w, l) in wc.iter().zip(layout.children.iter()) {
-                render_content(
-                    frame,
-                    w,
-                    l,
-                    snapshot,
-                    theme,
-                    scale,
-                    scroll_y,
-                    clip,
-                    btn_idx,
-                    hovered,
-                    pressed,
-                    focused,
-                    fonts,
-                    atlas,
-                    show_focus_rings,
-                );
-            }
-        }
         WidgetNode::Tooltip(t) => {
             render_content(
                 frame,
@@ -315,7 +305,209 @@ pub fn render_content(
                 show_focus_rings,
             );
         }
+        // Tree: children() is empty; layout leaves pair with visible_nodes().
+        WidgetNode::Tree(t) => {
+            let visible = t.visible_nodes();
+            for (node, child_layout) in visible.iter().zip(layout.children.iter()) {
+                if let Some(rect) = snapshot.get(child_layout.id) {
+                    let y = rect.y - scroll_y;
+                    let selected = t.selected.as_ref() == Some(&node.key);
+                    if selected {
+                        frame.quads.push(quad_rect(
+                            [rect.x, y, rect.width.max(1.0), rect.height.max(1.0)],
+                            colors.ghost_hover,
+                            0.0,
+                            0.0,
+                            colors.ghost_hover,
+                        ));
+                    }
+                    if node.has_children {
+                        let mark = if node.expanded { "▾" } else { "▸" };
+                        add_text(
+                            fonts,
+                            atlas,
+                            frame,
+                            mark,
+                            ([rect.x + 2.0, y + 2.0], theme.typography.body),
+                            colors.muted_foreground,
+                            scale,
+                            Some(clip),
+                            theme.typography.line_height,
+                        );
+                    }
+                }
+                paint_label_like(
+                    frame,
+                    &node.content,
+                    child_layout,
+                    snapshot,
+                    theme,
+                    scale,
+                    scroll_y,
+                    clip,
+                    fonts,
+                    atlas,
+                );
+            }
+        }
+        // Table: layout is header-row + data-row containers.
+        WidgetNode::Table(t) => {
+            let mut row_i = 0usize;
+            if !t.columns.is_empty() {
+                if let Some(header_row) = layout.children.get(row_i) {
+                    if let Some(hr) = snapshot.get(header_row.id) {
+                        let y = hr.y - scroll_y;
+                        frame.quads.push(quad_rect(
+                            [hr.x, y, hr.width.max(1.0), hr.height.max(1.0)],
+                            colors.surface,
+                            0.0,
+                            1.0,
+                            colors.border,
+                        ));
+                    }
+                    for (col, cell_layout) in t.columns.iter().zip(header_row.children.iter()) {
+                        paint_label_like(
+                            frame,
+                            &col.header,
+                            cell_layout,
+                            snapshot,
+                            theme,
+                            scale,
+                            scroll_y,
+                            clip,
+                            fonts,
+                            atlas,
+                        );
+                    }
+                }
+                row_i += 1;
+            }
+            for (display_i, data_row) in t.rows.iter().enumerate() {
+                let Some(row_layout) = layout.children.get(row_i) else {
+                    break;
+                };
+                if t.selected_row == Some(display_i)
+                    && let Some(rr) = snapshot.get(row_layout.id)
+                {
+                    let y = rr.y - scroll_y;
+                    frame.quads.push(quad_rect(
+                        [rr.x, y, rr.width.max(1.0), rr.height.max(1.0)],
+                        colors.ghost_hover,
+                        0.0,
+                        0.0,
+                        colors.ghost_hover,
+                    ));
+                }
+                for (cell, cell_layout) in data_row.cells.iter().zip(row_layout.children.iter()) {
+                    paint_label_like(
+                        frame,
+                        cell,
+                        cell_layout,
+                        snapshot,
+                        theme,
+                        scale,
+                        scroll_y,
+                        clip,
+                        fonts,
+                        atlas,
+                    );
+                }
+                row_i += 1;
+            }
+        }
+        // DataGrid: same row/column container layout as Table.
+        WidgetNode::DataGrid(g) => {
+            let mut row_i = 0usize;
+            if !g.columns.is_empty() {
+                if let Some(header_row) = layout.children.get(row_i) {
+                    for (col, cell_layout) in g.columns.iter().zip(header_row.children.iter()) {
+                        paint_label_like(
+                            frame,
+                            &col.header,
+                            cell_layout,
+                            snapshot,
+                            theme,
+                            scale,
+                            scroll_y,
+                            clip,
+                            fonts,
+                            atlas,
+                        );
+                    }
+                }
+                row_i += 1;
+            }
+            for data_row in &g.rows {
+                let Some(row_layout) = layout.children.get(row_i) else {
+                    break;
+                };
+                for (cell, cell_layout) in data_row.cells.iter().zip(row_layout.children.iter()) {
+                    paint_label_like(
+                        frame,
+                        cell,
+                        cell_layout,
+                        snapshot,
+                        theme,
+                        scale,
+                        scroll_y,
+                        clip,
+                        fonts,
+                        atlas,
+                    );
+                }
+                row_i += 1;
+            }
+        }
+        // VirtualList: to_layout emits an empty container; paint the visible window.
+        WidgetNode::VirtualList(v) => {
+            if let Some(rect) = snapshot.get(layout.id) {
+                let (first, last) = v.visible_range();
+                let item_h = v.item_height.unwrap_or(32.0).max(1.0);
+                let list_clip = [
+                    rect.x.max(clip[0]),
+                    (rect.y - scroll_y).max(clip[1]),
+                    rect.width.min(clip[2]),
+                    rect.height.min(clip[3]),
+                ];
+                for i in first..last {
+                    let Some(child) = v.children.get(i) else {
+                        break;
+                    };
+                    let y = rect.y + (i as f32 * item_h) - v.scroll_offset - scroll_y;
+                    if let WidgetNode::Label(l) = child {
+                        add_text(
+                            fonts,
+                            atlas,
+                            frame,
+                            &l.text,
+                            (
+                                [rect.x + 4.0, y + 2.0],
+                                l.font_size.unwrap_or(theme.typography.body),
+                            ),
+                            colors.foreground,
+                            scale,
+                            Some(list_clip),
+                            theme.typography.line_height,
+                        );
+                    }
+                }
+            }
+        }
         _ => {
+            // Render style background / shadow for containers that carry `Style`.
+            if let Some(rect) = snapshot.get(layout.id) {
+                let style = match widget {
+                    WidgetNode::Row(c)
+                    | WidgetNode::Column(c)
+                    | WidgetNode::Stack(c) => &c.style,
+                    WidgetNode::Card(c) => &c.style,
+                    WidgetNode::ScrollView(s) => &s.style,
+                    _ => return,
+                };
+                let y = rect.y - scroll_y;
+                let r = [rect.x, y, rect.width, rect.height];
+                push_widget_style(frame, style, r, theme);
+            }
             let wc = widget.children();
             for (w, l) in wc.iter().zip(layout.children.iter()) {
                 render_content(
@@ -508,7 +700,7 @@ pub fn collect_data_widget_hits(
                 }
                 row_i += 1;
             }
-            let order = crate::pages::table_display_order(table_sort_col, table_sort_asc);
+            let order = table_display_order(table_sort_col, table_sort_asc);
             for (display_i, row_layout) in layout.children.iter().skip(row_i).enumerate() {
                 let Some(&orig) = order.get(display_i) else {
                     break;

@@ -1,4 +1,4 @@
-//! Free-standing page-section helper builders for the Gallery.
+//! Standalone helper functions for the Gallery — no `Gallery` struct dependency.
 
 use acme_widgets::{
     ButtonVariant, WidgetNode, button, column, label, label_with_size, row,
@@ -6,6 +6,7 @@ use acme_widgets::{
 
 use crate::types::*;
 
+/// Default 9-section list for component pages.
 pub fn standard_component_sections() -> Vec<(&'static str, WidgetNode<GalleryMessage>)> {
     vec![
         ("Anatomy", anatomy_diagram()),
@@ -175,4 +176,25 @@ pub fn table_display_order(sort_col: Option<usize>, sort_asc: bool) -> Vec<usize
         });
     }
     order
+}
+
+/// Map a tree node key string to a `'static` constant used in messages.
+pub fn tree_key_static(key: &str) -> Option<&'static str> {
+    const ALL: &[&str] = &[
+        "docs",
+        "docs_readme",
+        "docs_guide",
+        "docs_zh",
+        "docs_zh_ime",
+        "docs_zh_a11y",
+        "images",
+        "img_logo",
+        "img_banner",
+        "code",
+        "code_src",
+        "code_main",
+        "code_lib",
+        "code_toml",
+    ];
+    ALL.iter().copied().find(|&k| k == key)
 }
