@@ -5,5 +5,7 @@
 *.ilk
 *.log
 .DS_Store
-.opencode/memory/.runtime/
-.opencode/status-footer/
+/.qwen/
+/.cargo/
+/.opencode/
+/AcmeUI-Native-Agent-Improvement-Pack-v0.2/
