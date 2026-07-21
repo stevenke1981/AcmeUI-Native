@@ -9,9 +9,14 @@
 //!   │  render/frame.rs — pipeline helpers (build_theme, ...)        │  Layer 4
 //!   │  render/frame.rs — RenderCtx + standalone render functions    │   Frame Rendering
 //!   ├───────────────────────────────────────────────────────────────┤
+//!   │  events/ module                                              │
+//!   │   ├── hit.rs     — hit_test (pure query)                     │  Layer 1
+//!   │   ├── activate.rs — ActivationCtx + handle_message           │  Layer 2
+//!   │   └── ime.rs     — compute_ime_caret_rect                    │   State Transition
+//!   ├───────────────────────────────────────────────────────────────┤
 //!   │  Gallery (this file)                                          │
-//!   │   ├── description / content_area  (widget tree orchestration) │  Layer 3
-//!   │   ├── event / activate / refresh_ime  (events.rs)            │   State & Events
+//!   │   ├── event()  — PlatformEvent dispatch (Layer 3)            │  Layer 3
+//!   │   ├── description / content_area  (widget tree orchestration)│   Event Dispatch
 //!   │   └── page dispatcher + builders  (pages/*.rs)                │
 //!   ├───────────────────────────────────────────────────────────────┤
 //!   │  render/ module                                               │
@@ -53,6 +58,7 @@ use acme_widgets::{
     WidgetNode, column, row, scroll_view,
 };
 
+use crate::events::{ActivationCtx, compute_ime_caret_rect, handle_message, hit_test};
 use crate::render::{
     apply_gallery_styles, build_layout_context, build_theme, collect_data_widget_hits,
     collect_hit_regions, compute_scroll_state, compute_toolbar_labels,
@@ -228,7 +234,12 @@ impl Application for Gallery {
         match event {
             PlatformEvent::PointerMoved { x, y, .. } => {
                 self.cursor = (x, y);
-                let next = self.hit();
+                let next = hit_test(
+                    &self.button_info,
+                    self.cursor,
+                    self.scroll,
+                    self.scroll_clip_rect,
+                );
                 let changed = next != self.hovered;
                 self.hovered = next;
                 changed
@@ -243,15 +254,51 @@ impl Application for Gallery {
                             && self.cursor.1 <= ty + th
                     };
                     self.text_input.focused = in_text;
-                    self.refresh_ime_caret_cache();
-                    self.pressed = self.hit();
+                    self.ime_caret_window_rect = compute_ime_caret_rect(
+                        &self.text_input,
+                        self.text_input_rect,
+                        self.dark,
+                        &mut self.fonts,
+                        self.last_scale_factor,
+                    );
+                    self.pressed = hit_test(
+                        &self.button_info,
+                        self.cursor,
+                        self.scroll,
+                        self.scroll_clip_rect,
+                    );
                     true
                 } else {
-                    let activated = self
-                        .pressed
-                        .take()
-                        .filter(|&value| Some(value) == self.hit());
-                    activated.is_some_and(|index| self.activate(index))
+                    let pressed_was = self.pressed.take();
+                    let activated = pressed_was.filter(|&value| {
+                        Some(value)
+                            == hit_test(
+                                &self.button_info,
+                                self.cursor,
+                                self.scroll,
+                                self.scroll_clip_rect,
+                            )
+                    });
+                    activated.is_some_and(|index| {
+                        let message = self.button_info[index].message;
+                        let mut act_ctx = ActivationCtx {
+                            dark: &mut self.dark,
+                            density: &mut self.density,
+                            show_focus_rings: &mut self.show_focus_rings,
+                            selected_category: &mut self.selected_category,
+                            selected_page: &mut self.selected_page,
+                            scroll: &mut self.scroll,
+                            nav_rail_selected: &mut self.nav_rail_selected,
+                            tab_bar_selected: &mut self.tab_bar_selected,
+                            tab_bar_zh_selected: &mut self.tab_bar_zh_selected,
+                            tree_expanded: &mut self.tree_expanded,
+                            tree_selected: &mut self.tree_selected,
+                            table_sort_col: &mut self.table_sort_col,
+                            table_sort_asc: &mut self.table_sort_asc,
+                            table_selected_row: &mut self.table_selected_row,
+                        };
+                        handle_message(&mut act_ctx, message)
+                    })
                 }
             }
             PlatformEvent::Scroll { delta_y, .. } => {
@@ -276,7 +323,13 @@ impl Application for Gallery {
             } => {
                 if self.text_input.focused {
                     self.text_input.focused = false;
-                    self.refresh_ime_caret_cache();
+                    self.ime_caret_window_rect = compute_ime_caret_rect(
+                        &self.text_input,
+                        self.text_input_rect,
+                        self.dark,
+                        &mut self.fonts,
+                        self.last_scale_factor,
+                    );
                 }
                 let count = self.button_info.len();
                 if count > 0 {
@@ -296,7 +349,24 @@ impl Application for Gallery {
                 if self.text_input.focused {
                     false
                 } else {
-                    self.activate(self.focused)
+                    let message = self.button_info[self.focused].message;
+                    let mut act_ctx = ActivationCtx {
+                        dark: &mut self.dark,
+                        density: &mut self.density,
+                        show_focus_rings: &mut self.show_focus_rings,
+                        selected_category: &mut self.selected_category,
+                        selected_page: &mut self.selected_page,
+                        scroll: &mut self.scroll,
+                        nav_rail_selected: &mut self.nav_rail_selected,
+                        tab_bar_selected: &mut self.tab_bar_selected,
+                        tab_bar_zh_selected: &mut self.tab_bar_zh_selected,
+                        tree_expanded: &mut self.tree_expanded,
+                        tree_selected: &mut self.tree_selected,
+                        table_sort_col: &mut self.table_sort_col,
+                        table_sort_asc: &mut self.table_sort_asc,
+                        table_selected_row: &mut self.table_selected_row,
+                    };
+                    handle_message(&mut act_ctx, message)
                 }
             }
             PlatformEvent::Key {
@@ -375,19 +445,37 @@ impl Application for Gallery {
                     )
                 };
                 if changed {
-                    self.refresh_ime_caret_cache();
+                    self.ime_caret_window_rect = compute_ime_caret_rect(
+                        &self.text_input,
+                        self.text_input_rect,
+                        self.dark,
+                        &mut self.fonts,
+                        self.last_scale_factor,
+                    );
                 }
                 changed
             }
             PlatformEvent::ImePreedit(text) => {
                 self.text_input.set_preedit(&text, None);
-                self.refresh_ime_caret_cache();
+                self.ime_caret_window_rect = compute_ime_caret_rect(
+                    &self.text_input,
+                    self.text_input_rect,
+                    self.dark,
+                    &mut self.fonts,
+                    self.last_scale_factor,
+                );
                 true
             }
             PlatformEvent::ImeCommit(text) => {
                 handle_text(&mut self.text_input, &text);
                 self.ime_text = self.text_input.text.clone();
-                self.refresh_ime_caret_cache();
+                self.ime_caret_window_rect = compute_ime_caret_rect(
+                    &self.text_input,
+                    self.text_input_rect,
+                    self.dark,
+                    &mut self.fonts,
+                    self.last_scale_factor,
+                );
                 true
             }
             PlatformEvent::Resized { .. } => true,
@@ -516,7 +604,13 @@ impl Application for Gallery {
 
         // IME caret cache must be refreshed after text-input overlay updates
         // the text_input_rect and font system.
-        self.refresh_ime_caret_cache();
+        self.ime_caret_window_rect = compute_ime_caret_rect(
+            &self.text_input,
+            self.text_input_rect,
+            self.dark,
+            &mut self.fonts,
+            self.last_scale_factor,
+        );
 
         frame
     }
