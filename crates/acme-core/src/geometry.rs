@@ -190,6 +190,9 @@ fn channel(value: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── Existing tests ──────────────────────────────────────────
+
     #[test]
     fn dpi_round_trip() {
         let s = ScaleFactor::new(1.25).unwrap();
@@ -215,5 +218,104 @@ mod tests {
             a.intersect(&Rect::new(5.0, 5.0, 10.0, 10.0)),
             Some(Rect::new(5.0, 5.0, 5.0, 5.0))
         );
+    }
+
+    // ── New tests: Point, Size, Rect & edge cases ───────────────
+
+    #[test]
+    fn point_new_and_default() {
+        let p = Point::<Logical>::new(3.0, 5.0);
+        assert_eq!(p.x.get(), 3.0);
+        assert_eq!(p.y.get(), 5.0);
+        assert_eq!(Point::<Logical>::default(), Point::new(0.0, 0.0));
+    }
+
+    #[test]
+    fn point_nan_normalizes() {
+        let p = Point::<Logical>::new(f32::NAN, f32::NAN);
+        assert_eq!(p, Point::default());
+    }
+
+    #[test]
+    fn rect_new_and_default() {
+        let r = Rect::<Logical>::new(1.0, 2.0, 3.0, 4.0);
+        assert_eq!(r.origin, Point::new(1.0, 2.0));
+        assert_eq!(r.size.width.get(), 3.0);
+        assert_eq!(r.size.height.get(), 4.0);
+        // Default rect is at origin (0,0) with zero size
+        assert_eq!(Rect::<Logical>::default(), Rect::new(0.0, 0.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn rect_negative_size_clamps_to_zero() {
+        let r = Rect::<Logical>::new(0.0, 0.0, -5.0, -10.0);
+        assert_eq!(r.size.width.get(), 0.0);
+        assert_eq!(r.size.height.get(), 0.0);
+        // Origin is preserved
+        assert_eq!(r.origin, Point::new(0.0, 0.0));
+    }
+
+    #[test]
+    fn size_new_clamps_negative() {
+        let s = Size::<Logical>::new(-1.0, -2.0);
+        assert_eq!(s.width.get(), 0.0);
+        assert_eq!(s.height.get(), 0.0);
+        assert_eq!(Size::<Logical>::default(), Size::new(0.0, 0.0));
+    }
+
+    #[test]
+    fn contains_point_inside_and_boundary() {
+        let r = Rect::<Logical>::new(10.0, 10.0, 20.0, 20.0);
+        // Inside
+        assert!(r.contains(Point::new(15.0, 15.0)));
+        // Left/top edges are inclusive (half-open interval [left, right))
+        assert!(r.contains(Point::new(10.0, 10.0)));
+        assert!(r.contains(Point::new(10.0, 29.999)));
+        // Right/bottom edges are exclusive
+        assert!(!r.contains(Point::new(30.0, 15.0)));
+        assert!(!r.contains(Point::new(15.0, 30.0)));
+        // Outside
+        assert!(!r.contains(Point::new(5.0, 5.0)));
+        assert!(!r.contains(Point::new(35.0, 35.0)));
+    }
+
+    #[test]
+    fn intersect_overlapping() {
+        let a = Rect::<Logical>::new(0.0, 0.0, 10.0, 10.0);
+        let b = Rect::<Logical>::new(5.0, 5.0, 10.0, 10.0);
+        assert_eq!(a.intersect(&b), Some(Rect::new(5.0, 5.0, 5.0, 5.0)));
+    }
+
+    #[test]
+    fn intersect_non_overlapping_returns_none() {
+        let a = Rect::<Logical>::new(0.0, 0.0, 10.0, 10.0);
+        let b = Rect::<Logical>::new(20.0, 20.0, 10.0, 10.0);
+        assert_eq!(a.intersect(&b), None);
+    }
+
+    #[test]
+    fn intersect_edge_touching_returns_none() {
+        let a = Rect::<Logical>::new(0.0, 0.0, 10.0, 10.0);
+        // Touching right edge: both have zero overlap area
+        assert_eq!(a.intersect(&Rect::new(10.0, 0.0, 10.0, 10.0)), None);
+        // Touching bottom edge
+        assert_eq!(a.intersect(&Rect::new(0.0, 10.0, 10.0, 10.0)), None);
+    }
+
+    #[test]
+    fn intersect_contained() {
+        let outer = Rect::<Logical>::new(0.0, 0.0, 20.0, 20.0);
+        let inner = Rect::<Logical>::new(5.0, 5.0, 10.0, 10.0);
+        assert_eq!(outer.intersect(&inner), Some(inner));
+        assert_eq!(inner.intersect(&outer), Some(inner));
+    }
+
+    #[test]
+    fn intersect_zero_size() {
+        let zero = Rect::<Logical>::new(5.0, 5.0, 0.0, 0.0);
+        let other = Rect::<Logical>::new(0.0, 0.0, 10.0, 10.0);
+        // Zero-size rect: right == x, bottom == y → no area → None
+        assert_eq!(zero.intersect(&other), None);
+        assert_eq!(other.intersect(&zero), None);
     }
 }

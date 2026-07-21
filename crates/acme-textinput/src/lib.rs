@@ -706,31 +706,21 @@ fn intersect_rect(a: [f32; 4], b: [f32; 4]) -> [f32; 4] {
     }
 }
 
-/// Renders a TextInput cursor and selection into a [`Scene`].
-///
-/// `rect` is `[x, y, width, height]` in logical pixels.
-/// `clip` is an optional outer clip rectangle; the content area is further
-/// clipped to the inner padding region.
-#[allow(clippy::too_many_arguments)]
-pub fn render_text_input(
-    scene: &mut Scene,
-    state: &mut TextInputState,
-    fonts: &mut FontSystem,
-    atlas: &mut GlyphAtlas,
-    rect: [f32; 4], // [x, y, width, height] in logical pixels
-    theme: &Theme,
-    scale: f32,
-    focused: bool,
-    clip: Option<[f32; 4]>,
-) {
-    let [x, y, w, h] = rect;
-    if w <= 0.0 || h <= 0.0 {
-        return;
-    }
+// ---------------------------------------------------------------------------
+// TextInput rendering helpers
+// ---------------------------------------------------------------------------
 
-    let padding = theme.spacing.px2; // 8px vertical/horizontal inner padding
-    let border_width = 1.0;
+/// Theme-derived colours for a text input.
+struct TextInputColors {
+    text_color: [f32; 4],
+    border_color: [f32; 4],
+    disabled_text: [f32; 4],
+    text_muted: [f32; 4],
+    bg_color: [f32; 4],
+}
 
+/// Compute all theme-derived colours for a text input in one call.
+fn compute_text_input_colors(theme: &Theme, state: &TextInputState, focused: bool) -> TextInputColors {
     let text_color = theme_color_to_array(&theme.colors.foreground);
     let disabled_text = theme_color_to_array(&theme.colors.disabled_text);
     let text_muted = theme_color_to_array(&theme.colors.muted_foreground);
@@ -753,6 +743,19 @@ pub fn render_text_input(
         border_color
     };
 
+    TextInputColors { text_color, border_color, disabled_text, text_muted, bg_color }
+}
+
+/// Push background fill and border quads for a text input.
+fn render_text_input_background(
+    scene: &mut Scene,
+    rect: [f32; 4],
+    border_color: [f32; 4],
+    bg_color: [f32; 4],
+    theme: &Theme,
+) {
+    let border_width = 1.0;
+
     // 1. Background quad
     scene.push(DrawCommand::Quad(QuadPrimitive {
         rect: Rect::new(rect[0], rect[1], rect[2], rect[3]),
@@ -770,76 +773,20 @@ pub fn render_text_input(
         border_width,
         border_color: Color::rgba(border_color[0], border_color[1], border_color[2], border_color[3]),
     }));
+}
 
-    // Build style from theme typography tokens
-    let font_size = theme.typography.body;
-    let style = TextStyle {
-        font_size,
-        line_height: font_size * theme.typography.line_height,
-        ..TextStyle::default()
-    };
-
-    // Compute content area (inside padding)
-    let content_x = x + padding;
-    let content_y = y + padding;
-    let content_w = (w - 2.0 * padding).max(0.0);
-    let content_h = (h - 2.0 * padding).max(0.0);
-
-    // Build the clip rectangle for the content area
-    let content_clip = [content_x, content_y, content_w, content_h];
-    let effective_clip = match clip {
-        Some(c) => intersect_rect(c, content_clip),
-        None => content_clip,
-    };
-
-    // 3. Text content (or placeholder)
-    let display = state.display_text();
-    let is_empty = display.is_empty();
-    let has_placeholder = !state.placeholder.is_empty();
-
-    // If text is empty and a placeholder is set, render that instead.
-    let render_text = if is_empty && has_placeholder {
-        &state.placeholder
-    } else {
-        &display
-    };
-
-    // Choose colour: placeholder gets muted; readonly gets disabled
-    let render_color = if is_empty && has_placeholder {
-        text_muted
-    } else if state.readonly {
-        disabled_text
-    } else {
-        text_color
-    };
-
-    // We want the text to be vertically centered in the content area.
-    // Shape to get the text height, then compute y offset.
-    let constraints = TextConstraints {
-        max_width: Some(content_w),
-        wrap: TextWrap::None,
-    };
-    // Use cached layout if the render_text hasn't changed — avoids re-shaping
-    // every frame for static or infrequently-changing text.
-    if state
-        .cached_layout
-        .as_ref()
-        .is_none_or(|(t, _)| t != render_text)
-    {
-        let new_layout = fonts.shape(render_text, &style, constraints, scale);
-        state.cached_layout = Some((render_text.to_string(), new_layout));
-    }
+/// Prepare glyph draw-calls and atlas uploads from the cached text layout.
+///
+/// Returns `(glyphs, uploads)` suitable for a `DrawCommand::Text` primitive.
+fn prepare_text_glyphs(
+    state: &TextInputState,
+    fonts: &mut FontSystem,
+    atlas: &mut GlyphAtlas,
+) -> (Vec<GlyphDraw>, Vec<SceneAtlasUpload>) {
     let (_, cached) = state
         .cached_layout
         .as_ref()
-        .expect("cached_layout just populated above");
-    let text_height = cached.height;
-    // Vertically center
-    let text_y = content_y + (content_h - text_height).max(0.0) / 2.0;
-
-    // Apply horizontal scroll offset (text scrolls left, so content_x shifts)
-    let scroll_offset = state.scroll_offset;
-    let text_origin_x = content_x - scroll_offset;
+        .expect("prepare_text_glyphs called before cached_layout was populated");
 
     // Prepare glyphs from cached layout
     let prepared = fonts.prepare(cached, atlas);
@@ -875,6 +822,102 @@ pub fn render_text_input(
             format: gfmt,
         });
     }
+    (glyphs, uploads)
+}
+
+/// Renders a TextInput cursor and selection into a [`Scene`].
+///
+/// `rect` is `[x, y, width, height]` in logical pixels.
+/// `clip` is an optional outer clip rectangle; the content area is further
+/// clipped to the inner padding region.
+#[allow(clippy::too_many_arguments)]
+pub fn render_text_input(
+    scene: &mut Scene,
+    state: &mut TextInputState,
+    fonts: &mut FontSystem,
+    atlas: &mut GlyphAtlas,
+    rect: [f32; 4], // [x, y, width, height] in logical pixels
+    theme: &Theme,
+    scale: f32,
+    focused: bool,
+    clip: Option<[f32; 4]>,
+) {
+    let [x, y, w, h] = rect;
+    if w <= 0.0 || h <= 0.0 {
+        return;
+    }
+
+    let padding = theme.spacing.px2; // 8px vertical/horizontal inner padding
+    let colors = compute_text_input_colors(theme, state, focused);
+    render_text_input_background(scene, rect, colors.border_color, colors.bg_color, theme);
+
+    // Build style from theme typography tokens
+    let style = TextStyle {
+        font_size: theme.typography.body,
+        line_height: theme.typography.body * theme.typography.line_height,
+        ..TextStyle::default()
+    };
+    // Compute content area (inside padding)
+    let content_x = x + padding;
+    let content_y = y + padding;
+    let content_w = (w - 2.0 * padding).max(0.0);
+    let content_h = (h - 2.0 * padding).max(0.0);
+
+    // Build the clip rectangle for the content area
+    let content_clip = [content_x, content_y, content_w, content_h];
+    let effective_clip = match clip {
+        Some(c) => intersect_rect(c, content_clip),
+        None => content_clip,
+    };
+    // 3. Text content (or placeholder)
+    let display = state.display_text();
+    let is_empty = display.is_empty();
+    let has_placeholder = !state.placeholder.is_empty();
+
+    // If text is empty and a placeholder is set, render that instead.
+    let render_text = if is_empty && has_placeholder {
+        &state.placeholder
+    } else {
+        &display
+    };
+
+    // Choose colour: placeholder gets muted; readonly gets disabled
+    let render_color = if is_empty && has_placeholder {
+        colors.text_muted
+    } else if state.readonly {
+        colors.disabled_text
+    } else {
+        colors.text_color
+    };
+    // We want the text to be vertically centered in the content area.
+    // Shape to get the text height, then compute y offset.
+    let constraints = TextConstraints {
+        max_width: Some(content_w),
+        wrap: TextWrap::None,
+    };
+    // Use cached layout if the render_text hasn't changed — avoids re-shaping
+    // every frame for static or infrequently-changing text.
+    if state
+        .cached_layout
+        .as_ref()
+        .is_none_or(|(t, _)| t != render_text)
+    {
+        let new_layout = fonts.shape(render_text, &style, constraints, scale);
+        state.cached_layout = Some((render_text.to_string(), new_layout));
+    }
+    let (_, cached) = state
+        .cached_layout
+        .as_ref()
+        .expect("cached_layout just populated above");
+    let text_height = cached.height;
+    // Vertically center
+    let text_y = content_y + (content_h - text_height).max(0.0) / 2.0;
+
+    // Apply horizontal scroll offset (text scrolls left, so content_x shifts)
+    let text_origin_x = content_x - state.scroll_offset;
+
+    // Prepare glyphs from cached layout
+    let (glyphs, uploads) = prepare_text_glyphs(state, fonts, atlas);
 
     // Push clip, then text, then pop clip
     scene.push(DrawCommand::PushClip(Rect::new(
@@ -887,7 +930,6 @@ pub fn render_text_input(
         uploads,
     }));
     scene.push(DrawCommand::PopClip);
-
     // 4. Selection highlight
     if let Some((sel_start, sel_end)) = state.selection {
         let clamped_start = sel_start.min(display.len());
@@ -911,8 +953,7 @@ pub fn render_text_input(
             }
         }
     }
-
-    // 5. Cursor blink (simple cursor: always visible when focused)
+    // 5. Cursor blink
     if focused {
         let cx = byte_offset_to_x_inner(&display, state.cursor, fonts, &style, scale);
         let cursor_x_pos = text_origin_x + cx;
@@ -923,7 +964,7 @@ pub fn render_text_input(
             )));
             scene.push(DrawCommand::Quad(QuadPrimitive {
                 rect: Rect::new(cursor_x_pos, content_y, 1.5, content_h),
-                color: Color::rgba(text_color[0], text_color[1], text_color[2], text_color[3]),
+                color: Color::rgba(colors.text_color[0], colors.text_color[1], colors.text_color[2], colors.text_color[3]),
                 radius: 0.0,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
@@ -931,7 +972,6 @@ pub fn render_text_input(
             scene.push(DrawCommand::PopClip);
         }
     }
-
     // 6. IME preedit underline with composition cursor
     if !state.preedit.is_empty() {
         let preedit_x = byte_offset_to_x_inner(&display, state.cursor, fonts, &style, scale);
@@ -945,7 +985,7 @@ pub fn render_text_input(
             )));
             scene.push(DrawCommand::Quad(QuadPrimitive {
                 rect: Rect::new(text_origin_x + preedit_x, underline_y, preedit_w, 1.0),
-                color: Color::rgba(text_color[0], text_color[1], text_color[2], text_color[3]),
+                color: Color::rgba(colors.text_color[0], colors.text_color[1], colors.text_color[2], colors.text_color[3]),
                 radius: 0.0,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
@@ -978,7 +1018,7 @@ pub fn render_text_input(
                         seg_w,
                         3.0,
                     ),
-                    color: Color::rgba(text_color[0], text_color[1], text_color[2], text_color[3]),
+                    color: Color::rgba(colors.text_color[0], colors.text_color[1], colors.text_color[2], colors.text_color[3]),
                     radius: 0.0,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,

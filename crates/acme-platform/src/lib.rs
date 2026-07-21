@@ -45,7 +45,7 @@ impl Default for WindowConfig {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlatformEvent {
-    // ── Existing variants (backward-compatible, unchanged) ──
+    // ?? Existing variants (backward-compatible, unchanged) ??
     Resized {
         window: WindowId,
         logical_width: f32,
@@ -225,20 +225,20 @@ pub fn run<A: Application>(app: A) -> Result<(), PlatformError> {
     Ok(())
 }
 
-fn notify_gpu_recovered<A: Application>(app: &mut A, window: WindowId) {
+fn notify_gpu_recovered(app: &mut dyn Application, window: WindowId) {
     app.on_gpu_recovered(window);
 }
 
 /// Resolve the IME candidate rectangle: prefer the app-provided caret area,
-/// otherwise fall back to a 1×24 logical rect at the mouse cursor.
+/// otherwise fall back to a 1?24 logical rect at the mouse cursor.
 ///
 /// Pure helper so unit tests can verify wiring without a GPU or event loop.
 pub fn resolve_ime_cursor_area(app_rect: Option<[f32; 4]>, mouse: (f32, f32)) -> [f32; 4] {
     app_rect.unwrap_or([mouse.0, mouse.1, 1.0, 24.0])
 }
 
-fn apply_ime_cursor_area<A: Application>(
-    app: &mut A,
+fn apply_ime_cursor_area(
+    app: &mut dyn Application,
     window: &Window,
     win_id: WindowId,
     mouse: (f32, f32),
@@ -347,325 +347,77 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
     ) {
         let Runtime { app, windows, .. } = self;
 
+
         match event {
             WindowEvent::CloseRequested => {
-                let win_id = windows.get(&id).map(|s| s.id);
-                if let Some(win_id) = win_id {
-                    let _ = app.event(PlatformEvent::WindowCloseRequested(win_id));
-                }
-                windows.remove(&id);
-                if windows.is_empty() {
-                    event_loop.exit();
-                }
+                handle_window_lifecycle(app, windows, id, event_loop, false);
             }
             WindowEvent::Destroyed => {
-                windows.remove(&id);
-                if windows.is_empty() {
-                    event_loop.exit();
-                }
+                handle_window_lifecycle(app, windows, id, event_loop, true);
             }
             WindowEvent::Resized(size) => {
-                let Some(state) = windows.get_mut(&id) else {
-                    return;
-                };
-                let scale = state.window.scale_factor() as f32;
-                let win_id = state.id;
-                state.renderer.resize(size.width, size.height, scale);
-                let dirty = app.event(PlatformEvent::Resized {
-                    window: win_id,
-                    logical_width: size.width as f32 / scale,
-                    logical_height: size.height as f32 / scale,
-                    scale_factor: scale,
-                });
-                state.dirty |= dirty;
-                state.window.request_redraw();
+                handle_resize(app, windows, id, Some(size));
             }
             WindowEvent::ScaleFactorChanged { .. } => {
-                let Some(state) = windows.get_mut(&id) else {
-                    return;
-                };
-                let scale = state.window.scale_factor() as f32;
-                let size = state.window.inner_size();
-                state.renderer.resize(size.width, size.height, scale);
-                state.dirty = true;
-                state.window.request_redraw();
+                handle_resize(app, windows, id, None);
             }
             WindowEvent::CursorMoved {
                 position: PhysicalPosition { x, y },
                 ..
             } => {
-                let Some(state) = windows.get_mut(&id) else {
-                    return;
-                };
-                let scale = state.window.scale_factor() as f32;
-                let win_id = state.id;
-                state.cursor = (x as f32 / scale, y as f32 / scale);
-                let dirty = app.event(PlatformEvent::PointerMoved {
-                    window: win_id,
-                    x: state.cursor.0,
-                    y: state.cursor.1,
-                });
-                state.dirty |= dirty;
-                if state.dirty {
-                    state.window.request_redraw();
-                }
+                handle_pointer_moved(app, windows, id, x, y);
             }
             WindowEvent::CursorEntered { .. } => {
-                if let Some(state) = windows.get_mut(&id) {
-                    let win_id = state.id;
-                    let (x, y) = state.cursor;
-                    let dirty = app.event(PlatformEvent::CursorEntered {
-                        window: win_id,
-                        x,
-                        y,
-                    });
-                    state.dirty |= dirty;
-                    if state.dirty {
-                        state.window.request_redraw();
-                    }
-                }
+                handle_cursor_enter(app, windows, id);
             }
             WindowEvent::CursorLeft { .. } => {
-                if let Some(state) = windows.get_mut(&id) {
-                    let win_id = state.id;
-                    let dirty = app.event(PlatformEvent::CursorLeft { window: win_id });
-                    state.dirty |= dirty;
-                    if state.dirty {
-                        state.window.request_redraw();
-                    }
-                }
+                handle_cursor_left(app, windows, id);
             }
             WindowEvent::Focused(gained) => {
-                if let Some(state) = windows.get_mut(&id) {
-                    let win_id = state.id;
-                    let dirty = app.event(PlatformEvent::FocusChanged {
-                        window: win_id,
-                        gained,
-                        node_id: 0,
-                    });
-                    state.dirty |= dirty;
-                    if state.dirty {
-                        state.window.request_redraw();
-                    }
-                }
+                handle_focus(app, windows, id, gained);
             }
             WindowEvent::MouseInput {
                 state: ms_state,
                 button,
                 ..
             } => {
-                let Some(state) = windows.get_mut(&id) else {
-                    return;
-                };
-                let win_id = state.id;
-                let pressed = ms_state == ElementState::Pressed;
-                let (x, y) = state.cursor;
-                let button_code: u16 = match button {
-                    MouseButton::Left => 0,
-                    MouseButton::Right => 1,
-                    MouseButton::Middle => 2,
-                    MouseButton::Back => 3,
-                    MouseButton::Forward => 4,
-                    _ => 0,
-                };
-                let pointer = 0; // mouse pointer
-
-                let dirty = app.event(PlatformEvent::PointerButton {
-                    window: win_id,
-                    pressed,
-                    x,
-                    y,
-                    button: button_code,
-                    pointer,
-                });
-                state.dirty |= dirty;
-                if state.dirty {
-                    state.window.request_redraw();
-                }
+                handle_mouse_input(app, windows, id, ms_state, button);
             }
             WindowEvent::MouseWheel { delta, .. } => {
-                let (scale, win_id) = match windows.get(&id) {
-                    Some(state) => (state.window.scale_factor() as f32, state.id),
-                    None => return,
-                };
-                let delta_y = match delta {
-                    MouseScrollDelta::LineDelta(_, y) => y * 32.0,
-                    MouseScrollDelta::PixelDelta(p) => p.y as f32 / scale,
-                };
-                let dirty = app.event(PlatformEvent::Scroll {
-                    window: win_id,
-                    delta_y,
-                });
-                if let Some(state) = windows.get_mut(&id) {
-                    state.dirty |= dirty;
-                    if state.dirty {
-                        state.window.request_redraw();
-                    }
-                }
+                handle_scroll(app, windows, id, delta);
             }
             WindowEvent::ModifiersChanged(modifiers) => {
-                if let Some(state) = windows.get_mut(&id) {
-                    state.shift = modifiers.state().shift_key();
-                    state.ctrl = modifiers.state().control_key();
-                    state.alt = modifiers.state().alt_key();
-                    state.meta = modifiers.state().super_key();
-                }
+                handle_modifiers(windows, id, &modifiers.state());
             }
             WindowEvent::KeyboardInput {
                 event: key_event, ..
             } => {
-                let state = match windows.get(&id) {
-                    Some(s) => s,
-                    None => return,
-                };
-                let win_id = state.id;
-                let shift = state.shift;
-                let ctrl = state.ctrl;
-                let text = match &key_event.logical_key {
-                    Key::Character(s) => Some(s.to_string()),
-                    _ => None,
-                };
-                let key = match key_event.logical_key {
-                    Key::Named(NamedKey::Tab) => PlatformKey::Tab,
-                    Key::Named(NamedKey::Enter) => PlatformKey::Enter,
-                    Key::Named(NamedKey::Space) => PlatformKey::Space,
-                    Key::Named(NamedKey::Escape) => PlatformKey::Escape,
-                    Key::Named(NamedKey::ArrowLeft) => PlatformKey::ArrowLeft,
-                    Key::Named(NamedKey::ArrowRight) => PlatformKey::ArrowRight,
-                    Key::Named(NamedKey::Backspace) => PlatformKey::Backspace,
-                    Key::Named(NamedKey::Delete) => PlatformKey::Delete,
-                    Key::Named(NamedKey::Home) => PlatformKey::Home,
-                    Key::Named(NamedKey::End) => PlatformKey::End,
-                    _ => PlatformKey::Other,
-                };
-                let dirty = app.event(PlatformEvent::Key {
-                    window: win_id,
-                    key,
-                    pressed: key_event.state == ElementState::Pressed,
-                    shift,
-                    ctrl,
-                    text,
-                });
-                if let Some(state) = windows.get_mut(&id) {
-                    state.dirty |= dirty;
-                    if state.dirty {
-                        state.window.request_redraw();
-                    }
-                }
+                handle_keyboard(app, windows, id, key_event);
             }
             WindowEvent::Ime(Ime::Enabled) => {
-                if let Some(state) = windows.get_mut(&id) {
-                    let win_id = state.id;
-                    let dirty = app.event(PlatformEvent::ImeEnabled(win_id));
-                    state.dirty |= dirty;
-                    // App-authoritative caret rect; mouse only as fallback.
-                    let mouse = state.cursor;
-                    apply_ime_cursor_area(app, &state.window, win_id, mouse);
-                    if state.dirty {
-                        state.window.request_redraw();
-                    }
-                }
+                handle_ime_enabled(app, windows, id);
             }
             WindowEvent::Ime(Ime::Disabled) => {
-                if let Some(state) = windows.get_mut(&id) {
-                    let win_id = state.id;
-                    let dirty = app.event(PlatformEvent::ImeDisabled(win_id));
-                    state.dirty |= dirty;
-                    // Reset IME cursor area to origin when IME is disabled
-                    app.set_ime_cursor_area(win_id, [0.0, 0.0, 0.0, 0.0]);
-                    state.window.set_ime_cursor_area(
-                        LogicalPosition::new(0.0, 0.0),
-                        LogicalSize::new(0.0, 0.0),
-                    );
-                    if state.dirty {
-                        state.window.request_redraw();
-                    }
-                }
+                handle_ime_disabled(app, windows, id);
             }
             WindowEvent::Ime(Ime::Preedit(text, cursor)) => {
-                if let Some(state) = windows.get_mut(&id) {
-                    let win_id = state.id;
-                    // Prefer app caret geometry over mouse during composition.
-                    let mouse = state.cursor;
-                    apply_ime_cursor_area(app, &state.window, win_id, mouse);
-                    let dirty = app.event(PlatformEvent::ImePreedit {
-                        window: win_id,
-                        text,
-                        cursor,
-                    });
-                    state.dirty |= dirty;
-                    if state.dirty {
-                        state.window.request_redraw();
-                    }
-                }
+                handle_ime_preedit(app, windows, id, text, cursor);
             }
             WindowEvent::Ime(Ime::Commit(text)) => {
-                if let Some(state) = windows.get_mut(&id) {
-                    let win_id = state.id;
-                    let dirty = app.event(PlatformEvent::ImeCommit {
-                        window: win_id,
-                        text,
-                    });
-                    state.dirty |= dirty;
-                    if state.dirty {
-                        state.window.request_redraw();
-                    }
-                }
+                handle_ime_commit(app, windows, id, text);
             }
             WindowEvent::DroppedFile(path) => {
-                if let Some(state) = windows.get(&id) {
-                    let win_id = state.id;
-                    let paths = vec![lossy_path_string(&path)];
-                    let _ = app.event(PlatformEvent::FileDropped {
-                        window: win_id,
-                        paths,
-                    });
-                }
+                handle_file_drop(app, windows, id, path);
             }
             WindowEvent::HoveredFileCancelled | WindowEvent::HoveredFile(_) => {
                 // Not currently mapped; available for future use.
             }
             WindowEvent::RedrawRequested => {
-                let Some(state) = windows.get_mut(&id) else {
-                    return;
-                };
-                let size = state.window.inner_size();
-                if size.width == 0 || size.height == 0 {
-                    return;
-                }
-                let scale = state.window.scale_factor() as f32;
-                let win_id = state.id;
-                let scene = app.frame(FrameContext {
-                    window: win_id,
-                    logical_width: size.width as f32 / scale,
-                    logical_height: size.height as f32 / scale,
-                    scale_factor: scale,
-                });
-                match state.renderer.render_scene(&scene) {
-                    SurfaceAction::Reconfigure => state.window.request_redraw(),
-                    SurfaceAction::Exit => event_loop.exit(),
-                    SurfaceAction::DeviceLost => {
-                        tracing::warn!("GPU device lost, attempting recovery...");
-                        match state.renderer.on_device_lost() {
-                            Ok(()) => {
-                                // The renderer rebuilt EMPTY GPU atlases; the app owns the
-                                // CPU atlas and must invalidate it so glyphs re-upload.
-                                notify_gpu_recovered(app, win_id);
-                                state.dirty = true;
-                                state.window.request_redraw();
-                            }
-                            Err(e) => {
-                                tracing::error!("device recovery failed: {e}");
-                                event_loop.exit();
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-                state.dirty = false;
+                handle_redraw(app, windows, id, event_loop);
             }
             _ => {}
         }
+
     }
 }
 
@@ -832,4 +584,403 @@ mod tests {
         let resolved = resolve_ime_cursor_area(app.ime_cursor_area(WindowId(0)), (1.0, 2.0));
         assert_eq!(resolved, [10.0, 20.0, 3.0, 24.0]);
     }
+}
+
+// ---------------------------------------------------------------------------
+// Helper functions for window_event dispatch (free functions)
+// ---------------------------------------------------------------------------
+
+fn handle_window_lifecycle(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    event_loop: &ActiveEventLoop,
+    destroy: bool,
+) {
+    if !destroy {
+        let win_id = windows.get(&id).map(|s| s.id);
+        if let Some(win_id) = win_id {
+            let _ = app.event(PlatformEvent::WindowCloseRequested(win_id));
+        }
+    }
+    windows.remove(&id);
+    if windows.is_empty() {
+        event_loop.exit();
+    }
+}
+
+fn handle_resize(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    size: Option<winit::dpi::PhysicalSize<u32>>,
+) {
+    let Some(state) = windows.get_mut(&id) else {
+        return;
+    };
+    let (w, h) = match size {
+        Some(s) => (s.width, s.height),
+        None => {
+            let s = state.window.inner_size();
+            (s.width, s.height)
+        }
+    };
+    let scale = state.window.scale_factor() as f32;
+    let win_id = state.id;
+    state.renderer.resize(w, h, scale);
+    let dirty = match size {
+        Some(_) => app.event(PlatformEvent::Resized {
+            window: win_id,
+            logical_width: w as f32 / scale,
+            logical_height: h as f32 / scale,
+            scale_factor: scale,
+        }),
+        None => true,
+    };
+    state.dirty |= dirty;
+    state.window.request_redraw();
+}
+
+fn handle_pointer_moved(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    x: f64,
+    y: f64,
+) {
+    let Some(state) = windows.get_mut(&id) else {
+        return;
+    };
+    let scale = state.window.scale_factor() as f32;
+    let win_id = state.id;
+    state.cursor = (x as f32 / scale, y as f32 / scale);
+    let dirty = app.event(PlatformEvent::PointerMoved {
+        window: win_id,
+        x: state.cursor.0,
+        y: state.cursor.1,
+    });
+    state.dirty |= dirty;
+    if state.dirty {
+        state.window.request_redraw();
+    }
+}
+
+fn handle_cursor_enter(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+) {
+    if let Some(state) = windows.get_mut(&id) {
+        let win_id = state.id;
+        let (x, y) = state.cursor;
+        let dirty = app.event(PlatformEvent::CursorEntered {
+            window: win_id,
+            x,
+            y,
+        });
+        state.dirty |= dirty;
+        if state.dirty {
+            state.window.request_redraw();
+        }
+    }
+}
+
+fn handle_cursor_left(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+) {
+    if let Some(state) = windows.get_mut(&id) {
+        let win_id = state.id;
+        let dirty = app.event(PlatformEvent::CursorLeft { window: win_id });
+        state.dirty |= dirty;
+        if state.dirty {
+            state.window.request_redraw();
+        }
+    }
+}
+
+fn handle_focus(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    gained: bool,
+) {
+    if let Some(state) = windows.get_mut(&id) {
+        let win_id = state.id;
+        let dirty = app.event(PlatformEvent::FocusChanged {
+            window: win_id,
+            gained,
+            node_id: 0,
+        });
+        state.dirty |= dirty;
+        if state.dirty {
+            state.window.request_redraw();
+        }
+    }
+}
+
+fn handle_mouse_input(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    ms_state: ElementState,
+    button: MouseButton,
+) {
+    let Some(state) = windows.get_mut(&id) else {
+        return;
+    };
+    let win_id = state.id;
+    let pressed = ms_state == ElementState::Pressed;
+    let (x, y) = state.cursor;
+    let button_code: u16 = match button {
+        MouseButton::Left => 0,
+        MouseButton::Right => 1,
+        MouseButton::Middle => 2,
+        MouseButton::Back => 3,
+        MouseButton::Forward => 4,
+        _ => 0,
+    };
+    let pointer = 0; // mouse pointer
+
+    let dirty = app.event(PlatformEvent::PointerButton {
+        window: win_id,
+        pressed,
+        x,
+        y,
+        button: button_code,
+        pointer,
+    });
+    state.dirty |= dirty;
+    if state.dirty {
+        state.window.request_redraw();
+    }
+}
+
+fn handle_scroll(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    delta: MouseScrollDelta,
+) {
+    let (scale, win_id) = match windows.get(&id) {
+        Some(state) => (state.window.scale_factor() as f32, state.id),
+        None => return,
+    };
+    let delta_y = match delta {
+        MouseScrollDelta::LineDelta(_, y) => y * 32.0,
+        MouseScrollDelta::PixelDelta(p) => p.y as f32 / scale,
+    };
+    let dirty = app.event(PlatformEvent::Scroll {
+        window: win_id,
+        delta_y,
+    });
+    if let Some(state) = windows.get_mut(&id) {
+        state.dirty |= dirty;
+        if state.dirty {
+            state.window.request_redraw();
+        }
+    }
+}
+
+fn handle_modifiers(
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    modifiers: &winit::keyboard::ModifiersState,
+) {
+    if let Some(state) = windows.get_mut(&id) {
+        state.shift = modifiers.shift_key();
+        state.ctrl = modifiers.control_key();
+        state.alt = modifiers.alt_key();
+        state.meta = modifiers.super_key();
+    }
+}
+
+fn handle_keyboard(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    key_event: winit::event::KeyEvent,
+) {
+    let state = match windows.get(&id) {
+        Some(s) => s,
+        None => return,
+    };
+    let win_id = state.id;
+    let shift = state.shift;
+    let ctrl = state.ctrl;
+    let text = match &key_event.logical_key {
+        Key::Character(s) => Some(s.to_string()),
+        _ => None,
+    };
+    let key = match key_event.logical_key.clone() {
+        Key::Named(NamedKey::Tab) => PlatformKey::Tab,
+        Key::Named(NamedKey::Enter) => PlatformKey::Enter,
+        Key::Named(NamedKey::Space) => PlatformKey::Space,
+        Key::Named(NamedKey::Escape) => PlatformKey::Escape,
+        Key::Named(NamedKey::ArrowLeft) => PlatformKey::ArrowLeft,
+        Key::Named(NamedKey::ArrowRight) => PlatformKey::ArrowRight,
+        Key::Named(NamedKey::Backspace) => PlatformKey::Backspace,
+        Key::Named(NamedKey::Delete) => PlatformKey::Delete,
+        Key::Named(NamedKey::Home) => PlatformKey::Home,
+        Key::Named(NamedKey::End) => PlatformKey::End,
+        _ => PlatformKey::Other,
+    };
+    let dirty = app.event(PlatformEvent::Key {
+        window: win_id,
+        key,
+        pressed: key_event.state == ElementState::Pressed,
+        shift,
+        ctrl,
+        text,
+    });
+    if let Some(state) = windows.get_mut(&id) {
+        state.dirty |= dirty;
+        if state.dirty {
+            state.window.request_redraw();
+        }
+    }
+}
+
+fn handle_ime_enabled(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+) {
+    if let Some(state) = windows.get_mut(&id) {
+        let win_id = state.id;
+        let dirty = app.event(PlatformEvent::ImeEnabled(win_id));
+        state.dirty |= dirty;
+        // App-authoritative caret rect; mouse only as fallback.
+        let mouse = state.cursor;
+        apply_ime_cursor_area(app, &state.window, win_id, mouse);
+        if state.dirty {
+            state.window.request_redraw();
+        }
+    }
+}
+
+fn handle_ime_disabled(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+) {
+    if let Some(state) = windows.get_mut(&id) {
+        let win_id = state.id;
+        let dirty = app.event(PlatformEvent::ImeDisabled(win_id));
+        state.dirty |= dirty;
+        // Reset IME cursor area to origin when IME is disabled
+        app.set_ime_cursor_area(win_id, [0.0, 0.0, 0.0, 0.0]);
+        state.window.set_ime_cursor_area(
+            LogicalPosition::new(0.0, 0.0),
+            LogicalSize::new(0.0, 0.0),
+        );
+        if state.dirty {
+            state.window.request_redraw();
+        }
+    }
+}
+
+fn handle_ime_preedit(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    text: String,
+    cursor: Option<(usize, usize)>,
+) {
+    if let Some(state) = windows.get_mut(&id) {
+        let win_id = state.id;
+        // Prefer app caret geometry over mouse during composition.
+        let mouse = state.cursor;
+        apply_ime_cursor_area(app, &state.window, win_id, mouse);
+        let dirty = app.event(PlatformEvent::ImePreedit {
+            window: win_id,
+            text,
+            cursor,
+        });
+        state.dirty |= dirty;
+        if state.dirty {
+            state.window.request_redraw();
+        }
+    }
+}
+
+fn handle_ime_commit(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    text: String,
+) {
+    if let Some(state) = windows.get_mut(&id) {
+        let win_id = state.id;
+        let dirty = app.event(PlatformEvent::ImeCommit {
+            window: win_id,
+            text,
+        });
+        state.dirty |= dirty;
+        if state.dirty {
+            state.window.request_redraw();
+        }
+    }
+}
+
+fn handle_file_drop(
+    app: &mut dyn Application,
+    windows: &HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    path: std::path::PathBuf,
+) {
+    if let Some(state) = windows.get(&id) {
+        let win_id = state.id;
+        let paths = vec![lossy_path_string(&path)];
+        let _ = app.event(PlatformEvent::FileDropped {
+            window: win_id,
+            paths,
+        });
+    }
+}
+
+fn handle_redraw(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    event_loop: &ActiveEventLoop,
+) {
+    let Some(state) = windows.get_mut(&id) else {
+        return;
+    };
+    let size = state.window.inner_size();
+    if size.width == 0 || size.height == 0 {
+        return;
+    }
+    let scale = state.window.scale_factor() as f32;
+    let win_id = state.id;
+    let scene = app.frame(FrameContext {
+        window: win_id,
+        logical_width: size.width as f32 / scale,
+        logical_height: size.height as f32 / scale,
+        scale_factor: scale,
+    });
+    match state.renderer.render_scene(&scene) {
+        SurfaceAction::Reconfigure => state.window.request_redraw(),
+        SurfaceAction::Exit => event_loop.exit(),
+        SurfaceAction::DeviceLost => {
+            tracing::warn!("GPU device lost, attempting recovery...");
+            match state.renderer.on_device_lost() {
+                Ok(()) => {
+                    // The renderer rebuilt EMPTY GPU atlases; the app owns the
+                    // CPU atlas and must invalidate it so glyphs re-upload.
+                    notify_gpu_recovered(app, win_id);
+                    state.dirty = true;
+                    state.window.request_redraw();
+                }
+                Err(e) => {
+                    tracing::error!("device recovery failed: {e}");
+                    event_loop.exit();
+                }
+            }
+        }
+        _ => {}
+    }
+    state.dirty = false;
 }
