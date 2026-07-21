@@ -335,3 +335,71 @@
 - [ ] AppBar scroll-hide behavior
 - [ ] TextField input masking and adornments (leading/trailing icons)
 - [ ] Paper square variant (no border radius)
+
+## P9 — Radix UI alignment (2026-07-22)
+
+> Coverage: all Radix primitives + Radix Themes components now mapped. 7 new components added this pass.
+> Radix emphasizes unstyled accessible primitives; our a11y layer (acme-accessibility) already covers the core.
+
+### Newly added (this pass)
+- [x] VisuallyHidden (`foundations/visually_hidden.rs`) — visually hidden but screen-reader accessible
+- [x] LiveRegion (`foundations/live_region.rs`) — aria-live region for screen reader announcements
+- [x] CheckboxCards (`inputs/checkbox_cards.rs`) — card-style checkbox selection group
+- [x] RadioCards (`inputs/radio_cards.rs`) — card-style radio selection group
+- [x] DataList (`foundations/data_list.rs`) — key-value pair data display
+- [x] Inset (`layout/inset.rs`) — content inset within a surface
+- [x] Code (`foundations/code.rs`) — inline and block code display
+
+### Already covered (existing components map to Radix primitives/themes)
+- [x] Checkbox → inputs/checkbox
+- [x] Form → layout/form + inputs/form_field
+- [x] Label → widgets/label
+- [x] Radio Group → inputs/radio
+- [x] Select → inputs/select
+- [x] Slider → inputs/slider
+- [x] Switch → inputs/switch
+- [x] Textarea → inputs/textarea
+- [x] Toggle → inputs/toggle_button
+- [x] Toggle Group → inputs/toggle_group
+- [x] Alert Dialog → overlay/confirm_dialog
+- [x] Aspect Ratio → foundations/aspect_ratio
+- [x] Avatar → foundations/avatar
+- [x] Collapsible → foundations/collapsible
+- [x] Context Menu → overlay/context_menu
+- [x] Dialog → overlay/modal
+- [x] Dropdown Menu → overlay/dropdown_menu
+- [x] Hover Card → overlay/hover_card
+- [x] Navigation Menu → layout/navigation_menu
+- [x] Popover → widgets/popover
+- [x] Scroll Area → layout/scroll_area
+- [x] Toast → overlay/toast
+- [x] Toolbar → layout/toolbar
+- [x] Tooltip → widgets/tooltip
+- [x] Accessible Icon → foundations/icon
+- [x] Badge → foundations/badge
+- [x] Callout → foundations/callout
+- [x] Card → widgets/card
+- [x] Container → layout/section
+- [x] Em/Strong/Sub/Sup → foundations/typography (TextType)
+- [x] Flex → foundations/flex
+- [x] Grid → layout/grid
+- [x] Heading → foundations/typography (TitleLevel)
+- [x] Kbd → foundations/kbd
+- [x] Link → foundations/link
+- [x] Progress → foundations/progress
+- [x] Quote → foundations/quote
+- [x] Segmented Control → inputs/segmented_control
+- [x] Separator → foundations/divider
+- [x] Skeleton → foundations/skeleton
+- [x] Spinner → foundations/spinner
+- [x] Table → widgets/table
+- [x] Tabs → layout/tabs
+- [x] Text → foundations/typography
+- [x] Theme → acme-theme crate
+
+### Remaining enhancements
+- [ ] Wire VisuallyHidden/LiveRegion into acme-accessibility tree builder
+- [ ] CheckboxCards/RadioCards keyboard navigation (arrow keys)
+- [ ] DataList density variants (compact/relaxed)
+- [ ] Code syntax highlighting integration
+- [ ] Inset clip variants (rounded corners matching parent)
