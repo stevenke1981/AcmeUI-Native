@@ -68,3 +68,45 @@
 - [x] Glyph atlas eviction/aging when full
 - [ ] Benchmark headless CI thresholds
 - [ ] Screenshot golden / pixel regression
+
+## P3 — Mobile component real implementations (CBM audit 2026-07-21)
+
+> 16 mobile_* modules are currently stubs (`crate::label()` passthrough).
+> Each needs a builder-pattern struct + `From<Builder> for WidgetNode<M>` + unit tests,
+> following the `bottom_nav` / `action_sheet` reference pattern.
+
+- [ ] mobile_button — sized variants (sm/md/lg), disabled state, on_press message
+- [ ] mobile_card — title + subtitle + optional media slot + elevation
+- [ ] mobile_toggle — switch track + thumb layout, checked state, on_change
+- [ ] mobile_stepper — minus/plus buttons flanking a value label, min/max clamp
+- [ ] mobile_progress — determinate bar (value/total) + optional label
+- [ ] mobile_loader — spinner indicator with optional message
+- [ ] mobile_search — rounded input + search icon + clear button
+- [ ] mobile_segmented — N-segment row, selected highlight, on_select(usize)
+- [ ] mobile_chip — compact tag with optional close icon, on_dismiss
+- [ ] mobile_avatar — circular initials or image placeholder, size variants
+- [ ] mobile_banner — full-width alert with icon + text + optional action
+- [ ] mobile_notification — toast-style card with title + body + auto-dismiss hint
+- [ ] mobile_list_item — title + detail + optional trailing icon, on_tap
+- [ ] mobile_action — tappable action row with icon + label + destructive flag
+- [ ] mobile_sheet_handle — drag indicator bar (fixed 36×4 rounded rect)
+- [ ] Unit tests for all 16 modules (layout kind, child count, builder defaults)
+
+## P4 — New mobile components (gap analysis)
+
+- [ ] FloatingActionButton (FAB) — circular elevated button, mini/normal/extended
+- [ ] Snackbar — bottom transient message with optional action button
+- [ ] SwipeActions — swipe-to-reveal delete/archive on list items
+- [ ] MobileTabBar — top scrollable tab strip with badge support
+- [ ] MobileDrawer — side navigation drawer with overlay scrim
+- [ ] MobileCarousel — horizontal paging with dot indicators
+- [ ] MobileRefreshIndicator — pull-to-refresh spinner overlay (extend pull_to_refresh)
+
+## P5 — Architecture & quality improvements (CBM audit)
+
+- [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
+- [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
+- [ ] Add Gallery "Mobile" page showcasing all mobile components
+- [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions
+- [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
+- [ ] Document component inventory in README (current count: 152+ UI components)
