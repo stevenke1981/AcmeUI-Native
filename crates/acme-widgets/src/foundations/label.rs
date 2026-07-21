@@ -1,6 +1,8 @@
 use crate::WidgetNode;
 use acme_layout::ShapedText;
 use acme_layout::TextWrapMode;
+use acme_style::prelude::*;
+use acme_style::Style;
 use acme_theme::ThemeColor;
 
 /// Controls how text wraps when the label's content exceeds its available width.
@@ -44,6 +46,8 @@ pub struct Label {
     /// Optional text color override.
     /// When `None`, the renderer uses the default foreground color.
     pub color: Option<ThemeColor>,
+    /// Accumulated GPUI‑inspired style (font-size, font-weight, text-color, etc.).
+    pub style: Style,
 }
 /// Manual `PartialEq` — skips `cached` (rendering cache, not identity).
 impl PartialEq for Label {
@@ -54,6 +58,7 @@ impl PartialEq for Label {
             && self.wrap == other.wrap
             && self.max_lines == other.max_lines
             && self.color == other.color
+            && self.style == other.style
     }
 }
 
@@ -67,6 +72,7 @@ pub fn label<M>(text: impl Into<String>) -> WidgetNode<M> {
         max_lines: None,
         cached: None,
         color: None,
+        style: Style::new(),
     })
 }
 
@@ -80,6 +86,7 @@ pub fn label_with_size<M>(text: impl Into<String>, font_size: f32) -> WidgetNode
         max_lines: None,
         cached: None,
         color: None,
+        style: Style::new(),
     })
 }
 
@@ -102,6 +109,7 @@ pub fn label_builder<M>(text: impl Into<String>) -> LabelBuilder<M> {
             max_lines: None,
             cached: None,
             color: None,
+            style: Style::new(),
         },
         _phantom: std::marker::PhantomData,
     }
@@ -141,5 +149,14 @@ impl<M> LabelBuilder<M> {
     /// Consume the builder and produce a [`WidgetNode::Label`].
     pub fn build(self) -> WidgetNode<M> {
         WidgetNode::Label(self.label)
+    }
+}
+
+impl<M> Styled for LabelBuilder<M> {
+    fn style(&self) -> &Style {
+        &self.label.style
+    }
+    fn style_mut(&mut self) -> &mut Style {
+        &mut self.label.style
     }
 }

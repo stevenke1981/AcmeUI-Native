@@ -106,6 +106,7 @@ pub struct LayoutStyle {
     pub max_width: Length,
     pub max_height: Length,
     pub padding: Edges,
+    pub margin: Edges,
     pub gap: f32,
     pub flex_grow: f32,
     pub flex_shrink: f32,
@@ -122,6 +123,7 @@ impl Default for LayoutStyle {
             max_width: Length::Auto,
             max_height: Length::Auto,
             padding: Edges::default(),
+            margin: Edges::default(),
             gap: 0.0,
             flex_grow: 0.0,
             flex_shrink: 0.0,
@@ -464,6 +466,12 @@ fn to_taffy(s: &LayoutStyle) -> Style {
             right: length(s.padding.right),
             top: length(s.padding.top),
             bottom: length(s.padding.bottom),
+        },
+        margin: taffy::Rect {
+            left: length(s.margin.left),
+            right: length(s.margin.right),
+            top: length(s.margin.top),
+            bottom: length(s.margin.bottom),
         },
         gap: Size {
             width: length(s.gap),

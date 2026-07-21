@@ -257,7 +257,7 @@ Soft variant (for badges, alerts):
 | TagInput | P1 | ✅ | ✅ | ✅ | `tag_input("id").tags(vec!["a","b"]).on_add(msg)` |
 | Banner | P1 | ✅ | ✅ | ✅ | `banner("message").tone(Tone::Warning).dismissible()` |
 | CommandBar | P1 | ✅ | — | — | `command_bar("id").search_placeholder("Find...").action("icon","label",msg)` |
-| Mentions | P2 | — | — | ✅ | `mentions("id").value("@user").option(opt)` |
+| Mentions | P2 | ✅ | — | ✅ | `mentions("id").value("@user").option(opt)` |
 
 ---
 

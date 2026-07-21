@@ -1,6 +1,8 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
 use acme_layout::Edges;
+use acme_style::prelude::*;
+use acme_style::Style;
 use acme_theme::ThemeColor;
 
 /// Card style variant.
@@ -28,6 +30,8 @@ pub struct Card<M> {
     /// Optional explicit border radius override.
     /// When `None`, the renderer uses the default card radius.
     pub border_radius: Option<f32>,
+    /// Accumulated GPUI‑inspired / Tailwind‑style styling.
+    pub style: Style,
 }
 
 /// Builder for Card widgets.
@@ -86,6 +90,16 @@ pub fn card<M>() -> CardBuilder<M> {
             padding: Edges::default(),
             background_color: None,
             border_radius: None,
+            style: Style::new(),
         },
+    }
+}
+
+impl<M> Styled for CardBuilder<M> {
+    fn style(&self) -> &Style {
+        &self.card.style
+    }
+    fn style_mut(&mut self) -> &mut Style {
+        &mut self.card.style
     }
 }

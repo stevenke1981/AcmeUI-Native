@@ -1,6 +1,8 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
 use acme_layout::{Edges, LayoutKind, LayoutStyle, Length};
+use acme_style::prelude::*;
+use acme_style::Style;
 
 /// A container holds children and arranges them according to the layout kind.
 #[derive(Clone, Debug, PartialEq)]
@@ -15,6 +17,8 @@ pub struct Container<M> {
     /// Optional explicit height. When set, the container uses this height
     /// instead of relying on content-intrinsic sizing.
     pub height: Option<f32>,
+    /// GPUI‑inspired / Tailwind‑style accumulated styling.
+    pub style: Style,
 }
 impl<M> Default for Container<M> {
     fn default() -> Self {
@@ -25,6 +29,7 @@ impl<M> Default for Container<M> {
             padding: Edges::default(),
             width: None,
             height: None,
+            style: Style::new(),
         }
     }
 }
@@ -50,14 +55,19 @@ impl<M> Container<M> {
         self
     }
     pub(crate) fn layout(&self, kind: LayoutKind) -> LayoutStyle {
-        LayoutStyle {
+        let mut base = LayoutStyle {
             kind,
             gap: self.gap,
             padding: self.padding,
             width: self.width.map_or(Length::Auto, Length::px),
             height: self.height.map_or(Length::Auto, Length::px),
             ..Default::default()
+        };
+        // Apply accumulated style overrides on top of explicit fields.
+        if !self.style.is_empty() {
+            self.style.clone().apply_to_layout(&mut base);
         }
+        base
     }
 }
 
@@ -112,6 +122,7 @@ impl<M> ContainerBuilder<M> {
                 variant: crate::CardVariant::Plain,
                 background_color: None,
                 border_radius: None,
+                style: self.container.style,
             }),
         }
     }
@@ -119,6 +130,17 @@ impl<M> ContainerBuilder<M> {
 impl<M> From<ContainerBuilder<M>> for WidgetNode<M> {
     fn from(value: ContainerBuilder<M>) -> Self {
         value.build()
+    }
+}
+
+/// Implement the `Styled` trait for `ContainerBuilder` so users can chain
+/// tailwind‑style utility methods when building containers.
+impl<M> Styled for ContainerBuilder<M> {
+    fn style(&self) -> &Style {
+        &self.container.style
+    }
+    fn style_mut(&mut self) -> &mut Style {
+        &mut self.container.style
     }
 }
 

@@ -15,6 +15,7 @@ acme-layout = { path = "../../crates/acme-layout" }
 acme-text = { path = "../../crates/acme-text" }
 acme-theme = { path = "../../crates/acme-theme" }
 acme-widgets = { path = "../../crates/acme-widgets" }
+acme-style = { path = "../../crates/acme-style" }
 acme-textinput = { path = "../../crates/acme-textinput" }
 acme-accessibility = { path = "../../crates/acme-accessibility" }
 pollster.workspace = true

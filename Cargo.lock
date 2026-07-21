@@ -169,6 +169,7 @@ dependencies = [
  "acme-layout",
  "acme-platform",
  "acme-render-wgpu",
+ "acme-style",
  "acme-text",
  "acme-textinput",
  "acme-theme",
@@ -231,6 +232,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "acme-style"
+version = "0.1.0"
+dependencies = [
+ "acme-core",
+ "acme-layout",
+ "acme-theme",
+]
+
+[[package]]
 name = "acme-text"
 version = "0.1.0"
 dependencies = [
@@ -290,6 +300,7 @@ version = "0.1.0"
 dependencies = [
  "acme-core",
  "acme-layout",
+ "acme-style",
  "acme-theme",
 ]
 

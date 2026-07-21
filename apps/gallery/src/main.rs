@@ -39,7 +39,7 @@ use acme_widgets::{
 use crate::pages::*;
 use crate::render::{
     apply_gallery_styles, extract_gallery_ids, find_text_input_marker,
-    point_in_rect, scrolled_hit_rect,
+    point_in_rect, push_widget_style, scrolled_hit_rect,
 };
 use crate::types::*;
 
@@ -1745,11 +1745,25 @@ fn render_content(
                 return;
             }
             if let Some(rect) = snapshot.get(layout.id) {
-                let fs = l.font_size.unwrap_or(theme.typography.body);
+                let fs = l
+                    .style
+                    .font_size
+                    .or(l.font_size)
+                    .unwrap_or(theme.typography.body);
                 // Vertical center within the label rect using theme line height.
-                let line_h = fs * theme.typography.line_height;
+                let line_h = l
+                    .style
+                    .line_height
+                    .or(l.line_height)
+                    .unwrap_or(fs * theme.typography.line_height);
                 let y_text = rect.y - scroll_y + (rect.height - line_h).max(0.0) * 0.5;
-                let text_color = l.color.unwrap_or(colors.foreground);
+                let text_color = l.color.unwrap_or_else(|| {
+                    let s = &l.style;
+                    s.text_color
+                        .as_ref()
+                        .map(|t| t.resolve(theme))
+                        .unwrap_or(colors.foreground)
+                });
                 add_text(
                     fonts,
                     atlas,
@@ -2047,6 +2061,20 @@ fn render_content(
             }
         }
         _ => {
+            // Render style background / shadow for containers that carry `Style`.
+            if let Some(rect) = snapshot.get(layout.id) {
+                let style = match widget {
+                    WidgetNode::Row(c)
+                    | WidgetNode::Column(c)
+                    | WidgetNode::Stack(c) => &c.style,
+                    WidgetNode::Card(c) => &c.style,
+                    WidgetNode::ScrollView(s) => &s.style,
+                    _ => return, // Skip unknown widget types.
+                };
+                let y = rect.y - scroll_y;
+                let r = [rect.x, y, rect.width, rect.height];
+                push_widget_style(frame, style, r, theme);
+            }
             let wc = widget.children();
             for (w, l) in wc.iter().zip(layout.children.iter()) {
                 render_content(

@@ -1,11 +1,11 @@
 [package]
-name = "acme-widgets"
+name = "acme-style"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "GPUI-inspired Styled trait + Tailwind CSS-like utility methods for AcmeUI Native"
 
 [dependencies]
 acme-core = { path = "../acme-core" }
-acme-layout = { path = "../acme-layout" }
 acme-theme = { path = "../acme-theme" }
-acme-style = { path = "../acme-style" }
+acme-layout = { path = "../acme-layout" }

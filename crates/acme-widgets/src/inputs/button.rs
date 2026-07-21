@@ -1,5 +1,7 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_style::prelude::*;
+use acme_style::Style;
 use acme_theme::{Theme, ThemeColor};
 
 /// Button style variant.
@@ -62,6 +64,8 @@ pub struct Button<M> {
     pub leading_icon: Option<String>,
     pub trailing_icon: Option<String>,
     message: Option<M>,
+    /// Accumulated GPUI‑inspired style (background, border, rounding, etc.).
+    pub style: Style,
 }
 
 /// Create a button builder.
@@ -77,6 +81,7 @@ pub fn button<M>(key: impl Into<WidgetKey>, label: impl Into<String>) -> Button<
         leading_icon: None,
         trailing_icon: None,
         message: None,
+        style: Style::new(),
     }
 }
 
@@ -171,5 +176,16 @@ impl<M> Button<M> {
 impl<M> From<Button<M>> for WidgetNode<M> {
     fn from(value: Button<M>) -> Self {
         WidgetNode::Button(value)
+    }
+}
+
+/// Implement the `Styled` trait so button builders can use tailwind‑style
+/// utility methods directly on the button value.
+impl<M> Styled for Button<M> {
+    fn style(&self) -> &Style {
+        &self.style
+    }
+    fn style_mut(&mut self) -> &mut Style {
+        &mut self.style
     }
 }

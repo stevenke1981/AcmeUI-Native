@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
- "crates/acme-core", "crates/acme-platform", "crates/acme-render-wgpu",
- "crates/acme-layout", "crates/acme-text", "crates/acme-accessibility",
- "crates/acme-theme", "crates/acme-animation", "crates/acme-widgets", "crates/acme-textinput", "crates/acme-devtools", "crates/acme-ui",
- "apps/gallery", "apps/acme-gallery", "apps/playground", "apps/benchmark"
+	"crates/acme-core", "crates/acme-platform", "crates/acme-render-wgpu",
+	"crates/acme-layout", "crates/acme-text", "crates/acme-accessibility",
+	"crates/acme-theme", "crates/acme-animation", "crates/acme-style", "crates/acme-widgets", "crates/acme-textinput", "crates/acme-devtools", "crates/acme-ui",
+	"apps/gallery", "apps/acme-gallery", "apps/playground", "apps/benchmark"
 ]
 default-members = ["apps/gallery"]
 

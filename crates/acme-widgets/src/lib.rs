@@ -33,6 +33,10 @@ pub use visual_state::*;
 /// Re-export core identifiers for convenience.
 pub use acme_core::{NodeId, WidgetKey};
 
+/// Re-export the acme-style styling system.
+pub use acme_style as style;
+pub use acme_style::Style;
+
 // ============================================================================
 // Imports used by WidgetNode and RuntimeNode
 // ============================================================================

@@ -107,6 +107,7 @@ impl<M: Clone + 'static> From<RadioGroupBuilder<M>> for WidgetNode<M> {
             padding: Edges::default(),
             width: None,
             height: None,
+            style: crate::Style::new(),
         })
     }
 }
