@@ -89,26 +89,58 @@ fn format_numeric(v: f32) -> String {
     }
 }
 
+/// Return `value` if finite, otherwise `fallback`.
+fn finite_or(value: f32, fallback: f32) -> f32 {
+    if value.is_finite() {
+        value
+    } else {
+        fallback
+    }
+}
+
+/// Sanitise slider numeric parameters so all downstream arithmetic is safe.
+///
+/// * NaN / infinity → finite defaults
+/// * `min > max` → swapped
+/// * zero‑range → widened so `max = min + 1`
+/// * `step <= 0` or non‑finite → `1.0`
+/// * `value` is clamped, then snap‑rounded to the nearest step
+fn normalize_slider(min: &mut f32, max: &mut f32, value: &mut f32, step: &mut f32) {
+    *min = finite_or(*min, 0.0);
+    *max = finite_or(*max, 100.0);
+    if *min > *max {
+        std::mem::swap(min, max);
+    }
+    if (*max - *min).abs() < f32::EPSILON {
+        *max = *min + 1.0;
+    }
+    // NaN → min; infinity → saturate to max/min via clamp
+    *value = if value.is_nan() {
+        *min
+    } else {
+        value.clamp(*min, *max)
+    };
+    *step = if step.is_finite() && *step > 0.0 {
+        *step
+    } else {
+        1.0
+    };
+    *value = (((*value - *min) / *step).round() * *step + *min).clamp(*min, *max);
+}
+
 impl<M: Clone + 'static> From<SliderBuilder<M>> for WidgetNode<M> {
     fn from(b: SliderBuilder<M>) -> Self {
-        // ── 1. Clamp raw value ──────────────────────────────────────
-        let value = b.value.clamp(b.min, b.max);
+        // ── 1. Sanitise all numeric inputs ─────────────────────────
+        let mut value = b.value;
+        let mut min = b.min;
+        let mut max = b.max;
+        let mut step = b.step;
+        normalize_slider(&mut min, &mut max, &mut value, &mut step);
 
-        // ── 2. Step rounding ────────────────────────────────────────
-        let normalized = if b.step > 0.0 {
-            let stepped = ((value - b.min) / b.step).round() * b.step + b.min;
-            stepped.clamp(b.min, b.max)
-        } else {
-            value
-        };
+        // ── 2. Fill ratio (guaranteed finite, non‑zero range) ──────
+        let ratio = ((value - min) / (max - min)).clamp(0.0, 1.0);
 
-        // ── 3. Fill ratio (avoid division by zero) ──────────────────
-        let range = if b.max > b.min { b.max - b.min } else { 1.0 };
-        let ratio = ((normalized - b.min) / range).clamp(0.0, 1.0);
-        let fill_pct = ratio * 100.0;
-        let track_pct = (1.0 - ratio) * 100.0;
-
-        // ── 4. Track height from ControlSize ────────────────────────
+        // ── 3. Track height from ControlSize ────────────────────────
         let track_h = match b.size {
             crate::ControlSize::Sm => 4.0,
             crate::ControlSize::Md => 6.0,
@@ -116,16 +148,16 @@ impl<M: Clone + 'static> From<SliderBuilder<M>> for WidgetNode<M> {
             _ => 6.0, // Xs, Xl fall back to Md
         };
 
-        // ── 5. Build fill bar (accent-coloured left portion) ────────
+        // ── 4. Build fill bar (accent-coloured left portion) ────────
         let fill = row::<M>()
             .h(Length::Px(track_h))
-            .w(Length::Percent(fill_pct))
+            .w(Length::Percent(ratio))
             .child(label_with_size::<M>("", 12.0));
 
-        // ── 6. Build track remainder (right portion) ───────────────
+        // ── 5. Build track remainder (right portion) ───────────────
         let track_remainder = row::<M>()
             .h(Length::Px(track_h))
-            .w(Length::Percent(track_pct))
+            .w(Length::Percent(1.0 - ratio))
             .child(label_with_size::<M>("", 12.0));
 
         // ── 7. Assemble track row ──────────────────────────────────
@@ -135,7 +167,7 @@ impl<M: Clone + 'static> From<SliderBuilder<M>> for WidgetNode<M> {
 
         // ── 8. Wrap with value label if show_value ──────────────────
         if b.show_value {
-            let display = format_numeric(normalized);
+            let display = format_numeric(value);
             column::<M>()
                 .key(b.id)
                 .gap(4.0)
@@ -265,5 +297,156 @@ mod tests {
         // Should still be a valid Row
         assert_eq!(layout.style.kind, LayoutKind::Row);
         assert_eq!(layout.children.len(), 2);
+    }
+
+    // ── Percentage-unit fix (P0-A01) ─────────────────────────────────
+
+    /// Verify Percent values are in 0.0–1.0 range (not 0–100).
+    #[test]
+    fn slider_percent_is_zero_to_one() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(0.0)
+            .max(100.0)
+            .value(50.0)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        assert_eq!(layout.children[0].style.width, Length::Percent(0.5));
+        assert_eq!(layout.children[1].style.width, Length::Percent(0.5));
+    }
+
+    #[test]
+    fn slider_percent_full_range() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(0.0)
+            .max(100.0)
+            .value(100.0)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        assert_eq!(layout.children[0].style.width, Length::Percent(1.0));
+        assert_eq!(layout.children[1].style.width, Length::Percent(0.0));
+    }
+
+    #[test]
+    fn slider_percent_zero() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(0.0)
+            .max(100.0)
+            .value(0.0)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        assert_eq!(layout.children[0].style.width, Length::Percent(0.0));
+        assert_eq!(layout.children[1].style.width, Length::Percent(1.0));
+    }
+
+    // ── Range-safety fix (P0-A02) ────────────────────────────────────
+
+    #[test]
+    fn slider_normalize_nan_value() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(0.0)
+            .max(100.0)
+            .value(f32::NAN)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // NaN → clamped to min → ratio 0.0
+        assert_eq!(layout.children[0].style.width, Length::Percent(0.0));
+    }
+
+    #[test]
+    fn slider_normalize_inf_value() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(0.0)
+            .max(100.0)
+            .value(f32::INFINITY)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // Infinity → clamped to max → ratio 1.0
+        assert_eq!(layout.children[0].style.width, Length::Percent(1.0));
+    }
+
+    #[test]
+    fn slider_normalize_neg_inf_value() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(0.0)
+            .max(100.0)
+            .value(f32::NEG_INFINITY)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // -Infinity → clamped to min → ratio 0.0
+        assert_eq!(layout.children[0].style.width, Length::Percent(0.0));
+    }
+
+    #[test]
+    fn slider_normalize_min_greater_than_max() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(100.0)
+            .max(0.0)
+            .value(50.0)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // min/max swapped → 50 in [0,100] → ratio 0.5
+        assert_eq!(layout.children[0].style.width, Length::Percent(0.5));
+    }
+
+    #[test]
+    fn slider_normalize_zero_range() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(50.0)
+            .max(50.0)
+            .value(50.0)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // Zero-range widened → value at min → ratio 0.0
+        assert_eq!(layout.children[0].style.width, Length::Percent(0.0));
+    }
+
+    #[test]
+    fn slider_normalize_negative_step() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(0.0)
+            .max(100.0)
+            .value(25.0)
+            .step(-1.0)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // Negative step → reset to 1.0 → 25 stays 25 → ratio 0.25
+        assert_eq!(layout.children[0].style.width, Length::Percent(0.25));
+    }
+
+    #[test]
+    fn slider_normalize_nan_min() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(f32::NAN)
+            .max(100.0)
+            .value(50.0)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // NaN min → fallback 0.0
+        assert_eq!(layout.children[0].style.width, Length::Percent(0.5));
+    }
+
+    #[test]
+    fn slider_normalize_nan_max() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(0.0)
+            .max(f32::NAN)
+            .value(50.0)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // NaN max → fallback 100.0
+        assert_eq!(layout.children[0].style.width, Length::Percent(0.5));
+    }
+
+    #[test]
+    fn slider_normalize_zero_step() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .min(0.0)
+            .max(100.0)
+            .value(25.5)
+            .step(0.0)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // Zero step → reset to 1.0 → 25.5 rounds to 26 → ratio 0.26
+        assert_eq!(layout.children[0].style.width, Length::Percent(0.26));
     }
 }

@@ -11,7 +11,7 @@
 
 | Level | Count | Definition |
 |-------|-------|------------|
-| **S0 Scaffold** | 0 | No component is a pure data struct — all produce a widget tree via uild() or From<Builder> |
+| **S0 Scaffold** | 0 | No component is a pure data struct — all produce a widget tree via build() or From<Builder> |
 | **S1 Visual** | 56 | Builder with styling/variant methods, renders correctly, but NO on_* interaction dispatch |
 | **S2 Interactive** | 50 | Has at least one on_click, on_change, on_select, etc. for message dispatch |
 | **S3 Accessible** | 0 | **No component uses accesskit, ARIA roles, or explicit a11y attributes** |
@@ -105,7 +105,7 @@
 
 ---
 
-### 2.4 oundations/ (29 files) — Primitive Building Blocks
+### 2.4 foundations/ (29 files) — Primitive Building Blocks
 
 | File | Lines | Tests | Maturity | Evidence |
 |------|-------|-------|----------|----------|
@@ -191,13 +191,13 @@
 | bottom_nav.rs | 141 | 3 | **S2** | on_select |
 | bottom_sheet.rs | 126 | 3 | **S2** | on_close |
 | pull_to_refresh.rs | 131 | 3 | **S2** | on_refresh |
-| search_bar.rs | 174 | 6 | **S2** | on_change, on_submit, uto_focus |
+| search_bar.rs | 174 | 6 | **S2** | on_change, on_submit, auto_focus |
 
 **Summary**: 5/5 S2. Strongest module ratio-wise — all are interactive.
 
 ---
 
-### 2.8 rowser/ (4 files) — Web-like Components
+### 2.8 browser/ (4 files) — Web-like Components
 
 | File | Lines | Tests | Maturity | Evidence |
 |------|-------|-------|----------|----------|
@@ -242,7 +242,7 @@ The strongest examples of S2 components with both interaction and solid test cov
 | **cascader.rs** | on_change with hierarchical data dispatch |
 | **	oggle_button.rs** | on_toggle with selected state management |
 | **	itle_bar.rs / window_controls.rs** | on_close, on_minimize, on_maximize — full desktop window control |
-| **utton_group.rs** | Per-button on_click dispatch |
+| **button_group.rs** | Per-button on_click dispatch |
 
 ### S0/S1 Scaffolds (no interaction — visual shells)
 The following components have full visual rendering but **no way for users to react to interaction**:
@@ -269,13 +269,12 @@ The following components have full visual rendering but **no way for users to re
 
 | Requirement | Found? | Evidence |
 |-------------|--------|----------|
-| AccessKit integration | ❌ | No ccesskit dependency or import anywhere |
-| Explicit ole attribute | ❌ | 0 occurrences of ole() or accessibility role setting |
-| Explicit 
-ame/label | ❌ | label() is used for display text, not a11y labels |
-| Focus management | ⚠️ | Only search_bar.rs has uto_focus — not a11y focus management |
+| AccessKit integration | ❌ | No accesskit dependency or import anywhere |
+| Explicit role attribute | ❌ | 0 occurrences of role() or accessibility role setting |
+| Explicit name/label | ❌ | label() is used for display text, not a11y labels |
+| Focus management | ⚠️ | Only search_bar.rs has auto_focus — not a11y focus management |
 | Keyboard navigation | ❌ | No 	ab_index, on_key, Focusable, or keyboard_nav |
-| ARIA-like attributes | ❌ | No ria-*, described_by, labelled_by patterns |
+| ARIA-like attributes | ❌ | No aria-*, described_by, labelled_by patterns |
 
 ---
 
@@ -302,7 +301,7 @@ No component meets the full S4 bar. The closest candidates:
 ## 7. Recommendations
 
 ### Immediate (P0)
-1. **Add S3 across all S2 components** — Implement AccessKit or a lightweight Accessible trait with ole, label, ction, ocus for all interactive components
+1. **Add S3 across all S2 components** — Implement AccessKit or a lightweight Accessible trait with role, label, action, focus for all interactive components
 2. **Fix the 5 urgent S1 scaffolds** — Add on_select to calendar.rs, on_select to segmented_control.rs, on_select to sidenav.rs, on_open/on_close to overlay components, on_select to image_gallery.rs
 
 ### Short-term (P1)

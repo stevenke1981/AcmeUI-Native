@@ -15,7 +15,12 @@ pub struct DatePickerBuilder<M> {
     pub selected_day: Option<u32>,
     pub open: bool,
     pub placeholder: String,
+    /// Message sent when a day cell is clicked (not yet wired per-cell).
     pub on_change: Option<M>,
+    /// Message sent when the ◀ (prev month) button is clicked.
+    pub on_prev_month: Option<M>,
+    /// Message sent when the ▶ (next month) button is clicked.
+    pub on_next_month: Option<M>,
 }
 
 /// Create a new DatePicker builder. Defaults to January 2025, closed.
@@ -28,6 +33,8 @@ pub fn date_picker<M: Clone + 'static>(id: impl Into<WidgetKey>) -> DatePickerBu
         open: false,
         placeholder: String::new(),
         on_change: None,
+        on_prev_month: None,
+        on_next_month: None,
     }
 }
 
@@ -65,6 +72,18 @@ impl<M: Clone + 'static> DatePickerBuilder<M> {
     /// Set the message dispatched when the selection changes.
     pub fn on_change(mut self, msg: M) -> Self {
         self.on_change = Some(msg);
+        self
+    }
+
+    /// Set the message dispatched when the ◀ (prev month) button is clicked.
+    pub fn on_prev_month(mut self, msg: M) -> Self {
+        self.on_prev_month = Some(msg);
+        self
+    }
+
+    /// Set the message dispatched when the ▶ (next month) button is clicked.
+    pub fn on_next_month(mut self, msg: M) -> Self {
+        self.on_next_month = Some(msg);
         self
     }
 
@@ -121,6 +140,13 @@ fn month_start_weekday(year: u32, month: u32) -> u32 {
 impl<M: Clone + 'static> From<DatePickerBuilder<M>> for WidgetNode<M> {
     fn from(b: DatePickerBuilder<M>) -> Self {
         let b = b.normalize();
+        // Clamp selected_day to valid range [1, days_in_month].
+        let dim = days_in_month(b.year, b.month);
+        let selected_day = match b.selected_day {
+            Some(d) if d >= 1 && d <= dim => Some(d),
+            _ => None,
+        };
+        let b = DatePickerBuilder { selected_day, ..b };
         // Closed: show the selected date string or placeholder in a Card.
         if !b.open {
             let display = b
@@ -136,11 +162,31 @@ impl<M: Clone + 'static> From<DatePickerBuilder<M>> for WidgetNode<M> {
         }
 
         // Open: header + weekdays + day grid.
+        let prev_key = format!("{}-prev", b.id.as_str());
+        let next_key = format!("{}-next", b.id.as_str());
+        let prev_btn: WidgetNode<M> = if let Some(ref msg) = b.on_prev_month {
+            button::<M>(prev_key.as_str(), "◀")
+                .variant(ButtonVariant::Ghost)
+                .on_click(msg.clone())
+        } else {
+            button::<M>(prev_key.as_str(), "◀")
+                .variant(ButtonVariant::Ghost)
+                .into()
+        };
+        let next_btn: WidgetNode<M> = if let Some(ref msg) = b.on_next_month {
+            button::<M>(next_key.as_str(), "▶")
+                .variant(ButtonVariant::Ghost)
+                .on_click(msg.clone())
+        } else {
+            button::<M>(next_key.as_str(), "▶")
+                .variant(ButtonVariant::Ghost)
+                .into()
+        };
         let header = row::<M>()
             .gap(8.0)
-            .child(button::<M>(format!("{}-prev", b.id.as_str()).as_str(), "◀"))
+            .child(prev_btn)
             .child(label::<M>(format!("{:04}-{:02}", b.year, b.month)))
-            .child(button::<M>(format!("{}-next", b.id.as_str()).as_str(), "▶"));
+            .child(next_btn);
 
         let weekdays = ["S", "M", "T", "W", "T", "F", "S"];
         let mut weekday_row = row::<M>().gap(4.0);
@@ -225,7 +271,10 @@ mod tests {
     use acme_layout::LayoutKind;
 
     #[derive(Clone, Debug, PartialEq)]
-    enum TestMsg {}
+    enum TestMsg {
+        Prev,
+        Next,
+    }
 
     #[test]
     fn date_picker_builder_defaults() {
@@ -236,6 +285,8 @@ mod tests {
         assert!(!dp.open);
         assert!(dp.placeholder.is_empty());
         assert!(dp.on_change.is_none());
+        assert!(dp.on_prev_month.is_none());
+        assert!(dp.on_next_month.is_none());
     }
 
     #[test]
@@ -385,5 +436,234 @@ mod tests {
     fn sakamoto_weekday_mar_1_2025_is_saturday() {
         // Mar 1, 2025 is Saturday, which is 6 in our convention (0=Sunday).
         assert_eq!(sakamoto_weekday(2025, 3, 1), 6);
+    }
+
+    // -----------------------------------------------------------------------
+    // selected_day clamping
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn selected_day_clamped_to_days_in_month() {
+        // Feb 2025 has 28 days; 31 should be clamped to None.
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .year(2025).month(2).selected_day(Some(31))
+            .open(true)
+            .into();
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Column(grid) = &col.children[2] else {
+            panic!("expected grid Column");
+        };
+        let WidgetNode::Row(first_row) = &grid.children[0] else {
+            panic!("expected first grid Row");
+        };
+        // All February day cells should be Plain, not Interactive,
+        // since selected_day was clamped to None.
+        for child in &first_row.children {
+            if let WidgetNode::Card(c) = child {
+                assert_eq!(
+                    c.variant,
+                    CardVariant::Plain,
+                    "no day should be Interactive when selected_day is invalid"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn selected_day_zero_clamped_to_none() {
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .year(2025).month(1).selected_day(Some(0))
+            .open(true)
+            .into();
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Column(grid) = &col.children[2] else {
+            panic!("expected grid Column");
+        };
+        let WidgetNode::Row(first_row) = &grid.children[0] else {
+            panic!("expected first grid Row");
+        };
+        for child in &first_row.children {
+            if let WidgetNode::Card(c) = child {
+                assert_eq!(c.variant, CardVariant::Plain);
+            }
+        }
+    }
+
+    #[test]
+    fn selected_day_valid_day_kept() {
+        // Jan 2025 has 31 days; day 15 is valid — should be Interactive.
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .year(2025).month(1).selected_day(Some(15))
+            .open(true)
+            .into();
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Column(grid) = &col.children[2] else {
+            panic!("expected grid Column");
+        };
+        // Jan 2025 starts Wednesday (offset 3). Grid layout:
+        // Row 0: [empty, empty, empty, d1, d2, d3, d4]
+        // Row 1: [d5, d6, d7, d8, d9, d10, d11]
+        // Row 2: [d12, d13, d14, d15, d16, d17, d18]
+        // So day 15 is at grid row index 2, column index 3.
+        let WidgetNode::Row(third_row) = &grid.children[2] else {
+            panic!("expected third grid Row");
+        };
+        let WidgetNode::Card(day_card) = &third_row.children[3] else {
+            panic!("expected Card for day 15");
+        };
+        assert_eq!(day_card.variant, CardVariant::Interactive);
+    }
+
+    #[test]
+    fn selected_day_leap_year_feb_29_valid() {
+        // 2024 is a leap year — Feb 29 is valid.
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .year(2024).month(2).selected_day(Some(29))
+            .open(true)
+            .into();
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Column(grid) = &col.children[2] else {
+            panic!("expected grid Column");
+        };
+        // Feb 2024 starts Thursday (offset 4). Day 29 is in the 5th row.
+        let WidgetNode::Row(fifth_row) = &grid.children[4] else {
+            panic!("expected fifth grid Row");
+        };
+        // Feb 2024: offset=4, so row 0 cells 4-6 = days 1-3.
+        // Row 1: days 4-10, Row 2: days 11-17, Row 3: days 18-24, Row 4: days 25-29
+        // Day 29 is at index 4 in row 4 (25=0, 26=1, 27=2, 28=3, 29=4)
+        let WidgetNode::Card(day_card) = &fifth_row.children[4] else {
+            panic!("expected Card for day 29");
+        };
+        assert_eq!(day_card.variant, CardVariant::Interactive);
+    }
+
+    #[test]
+    fn closed_view_clamps_selected_day() {
+        // Feb 31 → invalid → None → shows placeholder.
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .year(2025).month(2).selected_day(Some(31))
+            .placeholder("no date")
+            .open(false)
+            .into();
+        let WidgetNode::Card(c) = &node else {
+            panic!("expected Card");
+        };
+        let WidgetNode::Label(l) = &c.children[0] else {
+            panic!("expected Label");
+        };
+        assert_eq!(l.text, "no date");
+    }
+
+    // -----------------------------------------------------------------------
+    // on_prev_month / on_next_month builder
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn date_picker_on_prev_month_default_none() {
+        let dp = date_picker::<TestMsg>("dp");
+        assert!(dp.on_prev_month.is_none());
+    }
+
+    #[test]
+    fn date_picker_on_next_month_default_none() {
+        let dp = date_picker::<TestMsg>("dp");
+        assert!(dp.on_next_month.is_none());
+    }
+
+    #[test]
+    fn date_picker_on_prev_month_stores_message() {
+        let dp = date_picker::<TestMsg>("dp").on_prev_month(TestMsg::Prev);
+        assert_eq!(dp.on_prev_month, Some(TestMsg::Prev));
+    }
+
+    #[test]
+    fn date_picker_on_next_month_stores_message() {
+        let dp = date_picker::<TestMsg>("dp").on_next_month(TestMsg::Next);
+        assert_eq!(dp.on_next_month, Some(TestMsg::Next));
+    }
+
+    #[test]
+    fn date_picker_prev_button_wired_when_message_set() {
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .year(2025).month(1).open(true)
+            .on_prev_month(TestMsg::Prev)
+            .into();
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Row(header) = &col.children[0] else {
+            panic!("expected header Row");
+        };
+        // First child: prev button with message
+        let WidgetNode::Button(btn) = &header.children[0] else {
+            panic!("expected Button for prev");
+        };
+        assert_eq!(btn.label, "◀");
+        assert_eq!(btn.activate(), Some(&TestMsg::Prev));
+    }
+
+    #[test]
+    fn date_picker_next_button_wired_when_message_set() {
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .year(2025).month(1).open(true)
+            .on_next_month(TestMsg::Next)
+            .into();
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Row(header) = &col.children[0] else {
+            panic!("expected header Row");
+        };
+        // Third child: next button with message
+        let WidgetNode::Button(btn) = &header.children[2] else {
+            panic!("expected Button for next");
+        };
+        assert_eq!(btn.label, "▶");
+        assert_eq!(btn.activate(), Some(&TestMsg::Next));
+    }
+
+    #[test]
+    fn date_picker_prev_button_disabled_when_no_message() {
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .year(2025).month(1).open(true)
+            .into();
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Row(header) = &col.children[0] else {
+            panic!("expected header Row");
+        };
+        let WidgetNode::Button(btn) = &header.children[0] else {
+            panic!("expected Button for prev");
+        };
+        assert_eq!(btn.label, "◀");
+        assert!(btn.activate().is_none(), "prev button should have no message when not wired");
+    }
+
+    #[test]
+    fn date_picker_next_button_disabled_when_no_message() {
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .year(2025).month(1).open(true)
+            .into();
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Row(header) = &col.children[0] else {
+            panic!("expected header Row");
+        };
+        let WidgetNode::Button(btn) = &header.children[2] else {
+            panic!("expected Button for next");
+        };
+        assert_eq!(btn.label, "▶");
+        assert!(btn.activate().is_none(), "next button should have no message when not wired");
     }
 }

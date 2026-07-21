@@ -1,4 +1,4 @@
-# Manual Validation Checklists
+﻿# Manual Validation Checklists
 
 Honest human sign-off for behaviors that **unit tests cannot prove** on real
 Windows hardware / IME UI.
@@ -40,13 +40,13 @@ device-loss on real hardware.
 
 | Coverage | Where (indicative) |
 |----------|--------------------|
-| Pure surface status machine (`suspended` / `device_lost` / acquire → Skip, DeviceLost, Reconfigure, Rendered) | `acme-render-wgpu` `resolve_surface_action` unit tests |
+| Pure surface status machine (`suspended` / `device_lost` / acquire ??Skip, DeviceLost, Reconfigure, Rendered) | `acme-render-wgpu` `resolve_surface_action` unit tests |
 | Recovery bookkeeping (`gpu_epoch`, clear device-lost flag after recovery) | `complete_recovery_state` / related unit tests |
-| Atlas clear contract (cache hit → `clear()` → re-upload + generation bump) | `acme-text` `atlas_clear_forces_reupload*` |
+| Atlas clear contract (cache hit ??`clear()` ??re-upload + generation bump) | `acme-text` `atlas_clear_forces_reupload*` |
 | `Application::on_gpu_recovered` default noop + override registration | `acme-platform` unit tests |
 | Gallery / Playground override clears CPU `GlyphAtlas` after recovery | app `on_gpu_recovered` implementations |
-| Device-lost callback / uncaptured Internal+OOM → `AtomicBool` wiring | `register_device_error_handlers` + related tests |
-| Ignored GPU smoke (adapter/device + handler registration when GPU available) | `#[ignore]` smoke in render crate → run only with intentional `--ignored` |
+| Device-lost callback / uncaptured Internal+OOM ??`AtomicBool` wiring | `register_device_error_handlers` + related tests |
+| Ignored GPU smoke (adapter/device + handler registration when GPU available) | `#[ignore]` smoke in render crate ??run only with intentional `--ignored` |
 
 ### Manual steps (candidates)
 
@@ -62,7 +62,7 @@ device-loss on real hardware.
      then re-enable (highly disruptive).
    - **TDR / driver reset**: if your environment can force a Timeout Detection
      and Recovery event safely (vendor tools / known repro); still disruptive.
-   - **Future debug hotkey**: only if a documented in-app "simulate device lost"     hotpath exists in the build under test — do not invent one for this
+   - **Future debug hotkey**: only if a documented in-app ?�simulate device lost??     hotpath exists in the build under test ??do not invent one for this
      checklist. Prefer real loss when validating end-to-end recovery.
 4. Observe process behavior during and after the event (no silent exit, no hard
    crash preferred).
@@ -78,7 +78,7 @@ device-loss on real hardware.
 |-----------|------|------|
 | Process stability | No crash / panic abort during loss + recovery | Crash, hang requiring kill, or uncaught panic |
 | Text after recovery | Glyphs readable on previously text-heavy UI | Blank text persists after recovery settles |
-| Recovery signals | Logs or debug output show lost → recover → `on_gpu_recovered` (or equivalent documented markers) | No recovery path observed; app stuck black/frozen without recovery |
+| Recovery signals | Logs or debug output show lost ??recover ??`on_gpu_recovered` (or equivalent documented markers) | No recovery path observed; app stuck black/frozen without recovery |
 | User agency | Operator can continue interacting after recovery | Permanent unusable surface without restart (unless restart is an explicitly accepted fallback and documented) |
 
 Optional notes (not required for pass): multi-monitor, hybrid GPU switch,
@@ -118,7 +118,7 @@ Until this table is filled with a real PASS, status remains
 
 ### What automated tests already cover
 
-Architecture and geometry only — **not** real 注音 candidate UI placement.
+Architecture and geometry only ??**not** real 注音 candidate UI placement.
 
 | Coverage | Where (indicative) |
 |----------|--------------------|
@@ -137,9 +137,9 @@ Architecture and geometry only — **not** real 注音 candidate UI placement.
    - Preedit appears in-field (visually distinct if the demo styles it).
    - **Candidate window** tracks near the **text caret**, not the mouse pointer
      (move mouse far from the caret and re-compose to check).
-5. Commit a **繁體** character/word from candidates; confirm committed text is
+5. Commit a **繁�?** character/word from candidates; confirm committed text is
    correct and editable.
-6. Backspace: delete by **grapheme** (one per backspace when appropriate),
+6. Backspace: delete by **grapheme** (one �?per backspace when appropriate),
    not by raw UTF-8 bytes mid-cluster.
 7. If a password field exists in the demo: mask committed text; IME should not
    leak composition into an unmasked side channel in the UI.
@@ -152,18 +152,19 @@ Architecture and geometry only — **not** real 注音 candidate UI placement.
 
 Until this checklist is signed off PASS:
 
-- Do not say "注音 works" "IME complete" or "manually validated TC IME" in
+- Do not say ?�注??works?? ?�IME complete?? or ?�manually validated TC IME??in
   README, STATUS, CHANGELOG, release notes, or agent summaries.
 - Todos may keep architecture / wiring items checked; the **manual** todo must
   stay open.
-- Prefer phrasing: "IME architecture + caret wiring; **manual 注音 validation still pending**."
+- Prefer phrasing: ?�IME architecture + caret wiring; **manual 注音 validation
+  still pending**.??
 ### Pass / fail criteria
 
 | Criterion | Pass | Fail |
 |-----------|------|------|
 | Composition | Preedit visible and updates during 注音 input | No preedit / wrong field / crash |
 | Candidate placement | Candidates near caret; not glued to mouse when mouse is elsewhere | Candidates only at mouse or off-window useless position |
-| Commit | 繁體 commit lands in field as one logical edit | Garbage, missing chars, or wrong target widget |
+| Commit | 繁�? commit lands in field as one logical edit | Garbage, missing chars, or wrong target widget |
 | Backspace | Grapheme-safe delete of committed CJK | Splits code units / corrupts string |
 | Password (if present) | Masked display for committed secrets | Plaintext leak of password content in the field UI |
 | Honesty | Sign-off table completed only after above | Claiming success without this checklist |
@@ -191,3 +192,4 @@ Until this table is filled with a real PASS, status remains
 - `status/todos.md` — open manual 注音 item; surface recovery automated vs manual
 - `guides/TEXT_AND_IME.md` — product rules for preedit/caret/commit
 - `final.md` — hardening notes (recovery + IME caret wiring, unvalidated 注音)
+

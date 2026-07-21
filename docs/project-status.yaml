@@ -13,10 +13,10 @@ areas:
     manual: not_started
     note: "29 components (23 S1 visual, 6 S2 interactive); calendar.rs (269 lines, 10 tests) has no on_select"
   inputs:
-    maturity: S2
+    maturity: S1
     automated: partial
     manual: not_started
-    note: "28 components (27 S2, 1 S1); Slider/DatePicker partially fixed, segmented_control.rs missing on_select"
+    note: "28 components (25 S2, 3 S1); Slider/DatePicker reclassified to S1 (unwired on_change), segmented_control.rs missing on_select"
   layout:
     maturity: S1
     automated: partial
@@ -108,11 +108,11 @@ p0_status:
   - id: P0-004
     title: Slider
     status: partial
-    note: "Value normalization + fill computation done; pointer drag, keyboard, disabled, a11y pending"
+    note: "Value normalization + fill computation done; on_change field exists but not consumed in build(); pointer drag, keyboard, disabled, a11y pending"
   - id: P0-005
     title: DatePicker
     status: partial
-    note: "Validation + 42-cell grid done; keyboard navigation, locale abstraction, a11y pending"
+    note: "Validation + 42-cell grid done; on_change field exists but not wired to day cells; keyboard navigation, locale abstraction, a11y pending"
   - id: P0-006
     title: TextInput Undo/Redo
     status: completed
@@ -127,8 +127,8 @@ p0_status:
     note: "STATUS=Experimental; Focus/Click target fixed (node_id=0 documented); accesskit_winit lifecycle not connected"
   - id: P0-009
     title: Status Single Source
-    status: completed
-    note: "This file created; STATUS/README sync script and CI gate pending"
+    status: partial
+    note: "This file created; STATUS/README sync generator and CI gate still pending"
 
 milestones:
   - name: "Milestone A: Correctness Freeze"
