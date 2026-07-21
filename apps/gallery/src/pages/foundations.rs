@@ -6,7 +6,7 @@ use acme_style::FontWeight;
 use acme_style::ShadowDef;
 use acme_widgets::{WidgetNode, card, column, label, label_builder, row};
 
-use crate::helpers::standard_component_sections;
+
 use crate::types::*;
 
 impl crate::Gallery {

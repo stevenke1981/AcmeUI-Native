@@ -8,7 +8,7 @@ use acme_widgets::{
     DataGridColumn, DataGridRow, SortDirection, TableColumn, TableRow, TreeNode,
 };
 
-use crate::helpers::{spacing, table_cell_text, table_display_order, table_row_cells, tree_key_static};
+use crate::helpers::{spacing, table_display_order, table_row_cells};
 use crate::types::*;
 
 impl crate::Gallery {

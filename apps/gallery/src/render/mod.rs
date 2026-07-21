@@ -14,11 +14,17 @@
 //!   └─────────────────────────────────────────────────────┘
 
 mod content;
+mod frame;
 mod geometry;
 mod hit_test;
 mod layout;
 mod style;
 mod text;
+
+// ── Layer 4: Frame rendering (pure RenderCtx functions) ──
+pub use frame::{
+    render_page_content, render_sidebar, render_text_input_overlay, render_toolbar, RenderCtx,
+};
 
 // ── Layer 3: Widget rendering ──
 pub use content::{
@@ -28,12 +34,11 @@ pub use content::{
 // ── Layer 2: Hit testing ──
 pub use hit_test::{collect_data_widget_hits, collect_hit_regions};
 
-// ── Layer 2: Style helpers — push_widget_style used by main, others by content
-pub use style::push_widget_style;
+// ── Layer 2: Style helpers — push_widget_style used internally by content only
 
 // ── Layer 1: Text helpers ──
 pub use text::add_text;
 
 // ── Layer 1: Geometry and layout ──
 pub use geometry::{point_in_rect, quad_rect, rgba, scrolled_hit_rect};
-pub use layout::{apply_gallery_styles, extract_gallery_ids, GalleryNodeIds};
+pub use layout::{apply_gallery_styles, extract_gallery_ids};

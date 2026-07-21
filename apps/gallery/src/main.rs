@@ -45,17 +45,18 @@ use acme_platform::{
 use acme_render_wgpu::Frame;
 use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::{
-    TextInputState, handle_key, handle_keyboard_shortcut, handle_text, render_text_input,
+    TextInputState, handle_key, handle_keyboard_shortcut, handle_text,
 };
 use acme_theme::Theme;
 use acme_widgets::{
-    ButtonState, WidgetNode, button, column, label, label_with_size, row, scroll_view, separator,
+    WidgetNode, button, column, label, label_with_size, row, scroll_view, separator,
 };
 
 use crate::render::{
-    add_text, apply_gallery_styles, collect_data_widget_hits, collect_hit_regions,
-    extract_gallery_ids, find_text_input_marker, point_in_rect, quad_rect, render_content, rgba,
-    scrolled_hit_rect,
+    apply_gallery_styles, collect_data_widget_hits, collect_hit_regions,
+    extract_gallery_ids, point_in_rect, rgba,
+    scrolled_hit_rect, RenderCtx,
+    render_sidebar, render_toolbar, render_page_content, render_text_input_overlay,
 };
 use crate::types::*;
 
@@ -292,260 +293,6 @@ impl Gallery {
         label_with_size(text, 14.0)
     }
 
-    // ── Frame rendering steps (extracted from frame()) ──────────────────────
-
-    /// Render sidebar background, title, and category buttons.
-    fn render_sidebar(
-        &mut self,
-        frame: &mut Frame,
-        snapshot: &acme_layout::LayoutSnapshot,
-        ids: &render::GalleryNodeIds,
-        theme: &Theme,
-        scale: f32,
-    ) {
-        let colors = theme.colors;
-
-        // Background
-        if let Some(r) = snapshot.get(ids.sidebar) {
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                colors.surface,
-                0.0,
-                1.0,
-                colors.border,
-            ));
-        }
-
-        // Title
-        if let Some(r) = snapshot.get(ids.sidebar_label) {
-            add_text(
-                &mut self.fonts,
-                &mut self.atlas,
-                frame,
-                "AcmeUI",
-                ([r.x + 4.0, r.y + 2.0], 18.0),
-                colors.foreground,
-                scale,
-                None,
-                theme.typography.line_height,
-            );
-        }
-
-        // Category buttons
-        for (i, &btn_id) in ids.sidebar_buttons.iter().enumerate() {
-            let btn_idx = i;
-            let Some(r) = snapshot.get(btn_id) else {
-                continue;
-            };
-            let is_selected = i == self.selected_category;
-            let st = ButtonState {
-                hovered: self.hovered == Some(btn_idx),
-                pressed: self.pressed == Some(btn_idx),
-                focused: self.focused == btn_idx,
-            };
-            let bg = if is_selected {
-                colors.accent
-            } else if st.hovered {
-                colors.ghost_hover
-            } else {
-                colors.surface
-            };
-            let fg = if is_selected {
-                colors.primary_foreground
-            } else {
-                colors.foreground
-            };
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                bg,
-                theme.radii.md,
-                if is_selected || (st.focused && self.show_focus_rings) {
-                    2.0
-                } else {
-                    1.0
-                },
-                if st.focused {
-                    colors.ring
-                } else {
-                    colors.border
-                },
-            ));
-            add_text(
-                &mut self.fonts,
-                &mut self.atlas,
-                frame,
-                CATEGORIES[i].name,
-                ([r.x + 12.0, r.y + 9.0], theme.typography.label),
-                fg,
-                scale,
-                None,
-                theme.typography.line_height,
-            );
-        }
-    }
-
-    /// Render toolbar background and buttons.
-    fn render_toolbar(
-        &mut self,
-        frame: &mut Frame,
-        snapshot: &acme_layout::LayoutSnapshot,
-        ids: &render::GalleryNodeIds,
-        theme: &Theme,
-        scale: f32,
-    ) {
-        let colors = theme.colors;
-
-        // Background
-        if let Some(r) = snapshot.get(ids.toolbar) {
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                colors.surface,
-                0.0,
-                1.0,
-                colors.border,
-            ));
-        }
-
-        // Buttons
-        let tb_labels = [
-            if self.dark { "☀ Light" } else { "🌙 Dark" },
-            self.density.label(),
-            if self.show_focus_rings {
-                "Focus ✓"
-            } else {
-                "Focus ✗"
-            },
-        ];
-        for (i, (&btn_id, &label_text)) in
-            ids.toolbar_buttons.iter().zip(tb_labels.iter()).enumerate()
-        {
-            let btn_idx = 8 + i;
-            let Some(r) = snapshot.get(btn_id) else {
-                continue;
-            };
-            let st = ButtonState {
-                hovered: self.hovered == Some(btn_idx),
-                pressed: self.pressed == Some(btn_idx),
-                focused: self.focused == btn_idx,
-            };
-            let btn = button::<GalleryMessage>("", "");
-            let resolved = btn.resolve_style(theme, st);
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                resolved.background,
-                theme.radii.md,
-                if st.focused && self.show_focus_rings {
-                    2.0
-                } else {
-                    1.0
-                },
-                if st.focused {
-                    resolved.focus
-                } else {
-                    resolved.border
-                },
-            ));
-            add_text(
-                &mut self.fonts,
-                &mut self.atlas,
-                frame,
-                label_text,
-                ([r.x + 12.0, r.y + 7.0], 13.0),
-                resolved.foreground,
-                scale,
-                None,
-                theme.typography.line_height,
-            );
-        }
-    }
-
-    /// Render scroll view page content (DFS widget dispatch).
-    #[allow(clippy::too_many_arguments)]
-    fn render_page_content(
-        &mut self,
-        frame: &mut Frame,
-        description: &WidgetNode<GalleryMessage>,
-        root: &acme_layout::LayoutNode,
-        snapshot: &acme_layout::LayoutSnapshot,
-        theme: &Theme,
-        scale: f32,
-        ids: &render::GalleryNodeIds,
-    ) {
-        if let Some(sv_rect) = snapshot.get(ids.scroll_view) {
-            let clip = [sv_rect.x, sv_rect.y, sv_rect.width, sv_rect.height];
-            let mut btn_idx = 11;
-            render_content(
-                frame,
-                description,
-                root,
-                snapshot,
-                theme,
-                scale,
-                self.scroll,
-                clip,
-                &mut btn_idx,
-                self.hovered,
-                self.pressed,
-                self.focused,
-                &mut self.fonts,
-                &mut self.atlas,
-                self.show_focus_rings,
-            );
-        }
-    }
-
-    /// Render text input override on the TextInput page (category 1, page 1).
-    fn render_text_input_overlay(
-        &mut self,
-        frame: &mut Frame,
-        description: &WidgetNode<GalleryMessage>,
-        root: &acme_layout::LayoutNode,
-        snapshot: &acme_layout::LayoutSnapshot,
-        theme: &Theme,
-        scale: f32,
-    ) {
-        #[allow(clippy::collapsible_if)]
-        if self.selected_category == 1 && self.selected_page == 1 {
-            if let Some(ph_id) = find_text_input_marker(description, root) {
-                if let Some(ph) = snapshot.get(ph_id) {
-                    let y = ph.y - self.scroll;
-                    let rect = [ph.x, y, ph.width, ph.height];
-                    self.text_input_rect = rect;
-                    let focused = self.text_input.focused;
-                    render_text_input(
-                        frame,
-                        &mut self.text_input,
-                        &mut self.fonts,
-                        &mut self.atlas,
-                        rect,
-                        theme,
-                        scale,
-                        focused,
-                        None,
-                    );
-                    self.refresh_ime_caret_cache();
-                    if !self.ime_text.is_empty() {
-                        add_text(
-                            &mut self.fonts,
-                            &mut self.atlas,
-                            frame,
-                            &format!("Committed: {}", self.ime_text),
-                            ([ph.x + 2.0, y + ph.height + 6.0], 14.0),
-                            theme.colors.muted_foreground,
-                            scale,
-                            None,
-                            theme.typography.line_height,
-                        );
-                    }
-                }
-            }
-        } else {
-            self.text_input_rect = [0.0; 4];
-            if self.ime_caret_window_rect.is_some() {
-                self.ime_caret_window_rect = None;
-            }
-        }
-    }
 }
 
 // ── Application Trait ───────────────────────────────────────────────────────
@@ -830,21 +577,55 @@ impl Application for Gallery {
             ..Frame::default()
         };
 
+        // ── Layer 4: Create render context (bundles all per-frame state) ──
+        let toolbar_labels = [
+            if self.dark { "☀ Light" } else { "🌙 Dark" },
+            self.density.label(),
+            if self.show_focus_rings {
+                "Focus ✓"
+            } else {
+                "Focus ✗"
+            },
+        ];
+        let mut ctx = RenderCtx {
+            frame: &mut frame,
+            fonts: &mut self.fonts,
+            atlas: &mut self.atlas,
+            snapshot: &snapshot,
+            ids: &ids,
+            description: &description,
+            root: &root,
+            theme: &theme,
+            scale: context.scale_factor,
+            hovered: self.hovered,
+            pressed: self.pressed,
+            focused: self.focused,
+            show_focus_rings: self.show_focus_rings,
+            selected_category: self.selected_category,
+            selected_page: self.selected_page,
+            scroll: self.scroll,
+            toolbar_labels: &toolbar_labels,
+            text_input_rect: &mut self.text_input_rect,
+            text_input: &mut self.text_input,
+            ime_caret_window_rect: &mut self.ime_caret_window_rect,
+            ime_text: &mut self.ime_text,
+        };
+
         // ── Layer 4: Render sidebar ──
-        self.render_sidebar(&mut frame, &snapshot, &ids, &theme, context.scale_factor);
+        render_sidebar(&mut ctx);
 
         // ── Layer 4: Render toolbar ──
-        self.render_toolbar(&mut frame, &snapshot, &ids, &theme, context.scale_factor);
+        render_toolbar(&mut ctx);
 
         // ── Layer 4: Render page content ──
-        self.render_page_content(
-            &mut frame, &description, &root, &snapshot, &theme, context.scale_factor, &ids,
-        );
+        render_page_content(&mut ctx);
 
         // ── Layer 4: Render text input overlay ──
-        self.render_text_input_overlay(
-            &mut frame, &description, &root, &snapshot, &theme, context.scale_factor,
-        );
+        render_text_input_overlay(&mut ctx);
+
+        // IME caret cache must be refreshed after text-input overlay updates
+        // the text_input_rect and font system.
+        self.refresh_ime_caret_cache();
 
         frame
     }

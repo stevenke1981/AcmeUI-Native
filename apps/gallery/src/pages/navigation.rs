@@ -1,7 +1,7 @@
 //! Navigation category page builders.
 
 use acme_widgets::{
-    WidgetNode, breadcrumb, button, column, label, label_with_size, nav_item, nav_rail, row,
+    WidgetNode, breadcrumb, button, column, label, nav_item, nav_rail,
     sidebar, tab_bar,
 };
 use acme_widgets::TabItem;

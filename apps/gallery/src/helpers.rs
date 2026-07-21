@@ -178,23 +178,4 @@ pub fn table_display_order(sort_col: Option<usize>, sort_asc: bool) -> Vec<usize
     order
 }
 
-/// Map a tree node key string to a `'static` constant used in messages.
-pub fn tree_key_static(key: &str) -> Option<&'static str> {
-    const ALL: &[&str] = &[
-        "docs",
-        "docs_readme",
-        "docs_guide",
-        "docs_zh",
-        "docs_zh_ime",
-        "docs_zh_a11y",
-        "images",
-        "img_logo",
-        "img_banner",
-        "code",
-        "code_src",
-        "code_main",
-        "code_lib",
-        "code_toml",
-    ];
-    ALL.iter().copied().find(|&k| k == key)
-}
+

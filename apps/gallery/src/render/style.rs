@@ -1,6 +1,5 @@
 //! Style rendering — background, shadow, and resolved colour/size helpers.
 
-use acme_layout::Edges;
 use acme_render_wgpu::{Frame, Quad};
 use acme_style::{ColorToken, ShadowDef, Style};
 use acme_theme::{Theme, ThemeColor};
@@ -53,28 +52,4 @@ pub fn push_widget_style(frame: &mut Frame, style: &Style, rect: [f32; 4], theme
     pushed
 }
 
-/// Map a widget's [`Style`] text‑color to a [`ThemeColor`] — falls back to foreground.
-pub fn resolve_text_color(style: &Style, theme: &Theme) -> ThemeColor {
-    style
-        .text_color
-        .as_ref()
-        .map(|t| ColorToken::resolve(t, theme))
-        .unwrap_or(theme.colors.foreground)
-}
 
-/// Map a widget's [`Style`] font‑size to an f32 — falls back to theme body size.
-pub fn resolve_font_size(style: &Style, theme: &Theme) -> f32 {
-    style.font_size.unwrap_or(theme.typography.body)
-}
-
-/// Map a widget's [`Style`] line‑height to an f32 — falls back to theme body line‑height.
-pub fn resolve_line_height(style: &Style, theme: &Theme) -> f32 {
-    style
-        .line_height
-        .unwrap_or(theme.typography.body * theme.typography.line_height)
-}
-
-/// Returns the resolved padding from a widget's [`Style`], or zero edges.
-pub fn resolve_padding(style: &Style) -> Edges {
-    style.resolved_padding()
-}
