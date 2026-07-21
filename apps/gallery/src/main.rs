@@ -43,10 +43,11 @@ mod events;
 mod helpers;
 mod pages;
 mod render;
+mod rt_shadow;
 mod types;
 
 use acme_accessibility::AccessibilityAdapter;
-use acme_core::NodeId;
+use acme_core::{NodeId, RetainedTree};
 use acme_layout::LayoutEngine;
 use acme_platform::{
     Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
@@ -137,6 +138,9 @@ struct Gallery {
     clipboard: Option<Clipboard>,
     accessibility: AccessibilityAdapter,
 
+    // RuntimeTree shadow (Phase 1 diagnostics)
+    shadow_tree: RetainedTree,
+
     // Screenshot mode
     #[allow(dead_code)]
     screenshot_config: Option<ScreenshotConfig>,
@@ -180,6 +184,7 @@ impl Gallery {
             layout: LayoutEngine::new(),
             clipboard: Clipboard::new().ok(),
             accessibility: AccessibilityAdapter::new(0),
+            shadow_tree: RetainedTree::new(),
             screenshot_config: None,
         }
     }
@@ -434,6 +439,13 @@ impl Application for Gallery {
 
         // ── Layer 1: Build widget tree ──
         let description = self.description();
+
+        // ── Phase 1: RuntimeTree shadow reconcile (diagnostics only) ──
+        let _shadow = rt_shadow::run_shadow_reconcile(&mut self.shadow_tree, &description);
+        #[cfg(debug_assertions)]
+        if _shadow.error.is_some() {
+            tracing::warn!("RT shadow encountered an error (see above)");
+        }
 
         // ── Layer 1: Build Theme ──
         let theme = build_theme(self.dark);

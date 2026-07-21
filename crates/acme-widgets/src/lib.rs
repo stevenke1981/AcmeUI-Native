@@ -12,6 +12,7 @@ pub mod inputs;
 pub mod navigation;
 pub mod overlay;
 pub mod prelude;
+pub mod view_bridge;
 
 mod overlay_manager;
 mod visual_state;
