@@ -35,6 +35,9 @@ let view = default_template("Dashboard")
     .build();
 ```
 
+For an Apple-inspired shell with quieter spacing and a more restrained
+hierarchy, use `apple_template("Dashboard")` from the same prelude.
+
 The template provides a stable root key, semantic light theme defaults, and a
 token-driven surface for composing foundations, inputs, layout, and overlay
 components. See [`DEFAULT_TEMPLATE.md`](docs/architecture/DEFAULT_TEMPLATE.md).

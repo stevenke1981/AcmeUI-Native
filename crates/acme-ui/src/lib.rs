@@ -27,7 +27,7 @@ pub use acme_core::{NodeId, WidgetKey};
 pub use acme_layout::{LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
 pub use acme_theme::ThemeColor;
 pub use acme_widgets::*;
-pub use template::{DefaultTemplate, default_template};
+pub use template::{AppleTemplate, DefaultTemplate, apple_template, default_template};
 
 /// AcmeUI component-library version, kept in lockstep with the workspace package.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -41,10 +41,11 @@ pub fn default_theme() -> acme_theme::Theme {
 
 /// Convenient imports for applications using the default AcmeUI template.
 pub mod prelude {
-    pub use crate::{ControlSize, Tone, resolve_tone, tone_color};
     pub use crate::{
-        DESIGN_SYSTEM_VERSION, DefaultTemplate, VERSION, default_template, default_theme,
+        AppleTemplate, DESIGN_SYSTEM_VERSION, DefaultTemplate, VERSION, apple_template,
+        default_template, default_theme,
     };
+    pub use crate::{ControlSize, Tone, resolve_tone, tone_color};
     pub use crate::{button, card, column, label, row, scroll_view, separator, stack};
     pub use acme_theme::{Theme, ThemeMode};
     pub use acme_widgets::WidgetNode;

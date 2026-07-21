@@ -59,6 +59,62 @@ pub fn default_template<M>(title: impl Into<String>) -> DefaultTemplate<M> {
     DefaultTemplate::new(title)
 }
 
+/// Apple-inspired application shell with restrained spacing and hierarchy.
+///
+/// The template keeps all colors semantic and delegates material, typography,
+/// and motion decisions to the active theme/renderer. It is suitable as a
+/// calm macOS/iOS-style starting point without exposing platform types.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AppleTemplate<M> {
+    title: String,
+    subtitle: Option<String>,
+    children: Vec<WidgetNode<M>>,
+}
+
+impl<M> AppleTemplate<M> {
+    /// Create an Apple-inspired template with a title.
+    pub fn new(title: impl Into<String>) -> Self {
+        Self {
+            title: title.into(),
+            subtitle: None,
+            children: Vec::new(),
+        }
+    }
+
+    /// Add supporting text below the title.
+    pub fn subtitle(mut self, subtitle: impl Into<String>) -> Self {
+        self.subtitle = Some(subtitle.into());
+        self
+    }
+
+    /// Append a page/content node.
+    pub fn child(mut self, child: impl Into<WidgetNode<M>>) -> Self {
+        self.children.push(child.into());
+        self
+    }
+
+    /// Build the stable Apple-style declarative root node.
+    pub fn build(self) -> WidgetNode<M> {
+        let mut root = column::<M>()
+            .key("acmeui-apple-template")
+            .gap(12.0)
+            .padding(20.0)
+            .child(label(self.title));
+        if let Some(subtitle) = self.subtitle {
+            root = root.child(label(subtitle));
+        }
+        for child in self.children {
+            root = root.child(child);
+        }
+        root.build()
+    }
+}
+
+/// Start the Apple-inspired AcmeUI application template.
+pub fn apple_template<M>(title: impl Into<String>) -> AppleTemplate<M> {
+    AppleTemplate::new(title)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -72,6 +128,19 @@ mod tests {
         assert_eq!(
             node.key().expect("template key").as_str(),
             "acmeui-default-template"
+        );
+        assert_eq!(node.children().len(), 3);
+    }
+
+    #[test]
+    fn apple_template_has_stable_root_and_content() {
+        let node = apple_template::<()>("Acme App")
+            .subtitle("Native and calm")
+            .child(label("Content"))
+            .build();
+        assert_eq!(
+            node.key().expect("template key").as_str(),
+            "acmeui-apple-template"
         );
         assert_eq!(node.children().len(), 3);
     }

@@ -24,3 +24,10 @@ The template follows four reference ideas:
 
 The public version constants are `acme_ui::VERSION` and
 `acme_ui::DESIGN_SYSTEM_VERSION`; both are `0.2.0` for this release.
+
+## Apple-inspired template
+
+Use `apple_template("Dashboard")` for a quieter hierarchy with a tighter
+12px rhythm, 20px shell inset, and stable `acmeui-apple-template` root key.
+Colors remain semantic and platform-neutral; materials and motion are left to
+the active theme and renderer.
