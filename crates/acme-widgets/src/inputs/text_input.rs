@@ -1,5 +1,7 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_style::prelude::Styled;
+use acme_style::Style;
 
 /// A text input widget with label, description, and validation support.
 #[derive(Clone, Debug, PartialEq)]
@@ -16,6 +18,8 @@ pub struct TextInput<M> {
     pub validation_message: Option<String>,
     pub disabled: bool,
     pub message: Option<M>,
+    /// Accumulated GPUI‑inspired / Tailwind‑style styling.
+    pub style: Style,
 }
 
 /// Create a text input builder.
@@ -33,6 +37,7 @@ pub fn text_input<M>(key: impl Into<WidgetKey>) -> TextInput<M> {
         validation_message: None,
         disabled: false,
         message: None,
+        style: Style::new(),
     }
 }
 
@@ -89,5 +94,14 @@ impl<M> TextInput<M> {
 impl<M> From<TextInput<M>> for WidgetNode<M> {
     fn from(value: TextInput<M>) -> Self {
         WidgetNode::TextInput(value)
+    }
+}
+
+impl<M> Styled for TextInput<M> {
+    fn style(&self) -> &Style {
+        &self.style
+    }
+    fn style_mut(&mut self) -> &mut Style {
+        &mut self.style
     }
 }
