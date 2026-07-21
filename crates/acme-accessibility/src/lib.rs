@@ -82,6 +82,9 @@ impl AccessibilityAdapter {
     where
         M: Clone + 'static,
     {
+        // TODO: use retained NodeId when RuntimeTree is integrated (P0-002).
+        // Currently IDs are reassigned starting from 1 each frame, which means
+        // accessibility nodes are not stable across rebuilds.
         let mut next = 1u64;
         let mut nodes = Vec::new();
         let root_id = walk_node(root, snapshot, &mut next, None, &mut nodes);
@@ -97,36 +100,53 @@ impl AccessibilityAdapter {
         self.tree.as_ref()
     }
 
-    /// Route an accessibility action into the corresponding platform event.
+    /// Route an accessibility action into corresponding platform event(s).
     ///
-    /// Returns `Some(PlatformEvent)` when the action maps to a concrete platform
-    /// event, or `None` for actions that have no direct platform representation.
+    /// Returns zero, one, or more [`PlatformEvent`] values.  The caller should
+    /// dispatch all returned events in order through the normal application
+    /// event pipeline.
     ///
-    /// The caller should dispatch the returned event through the normal
-    /// application event pipeline.
-    pub fn route_action(&self, action: &AccessibilityAction) -> Option<PlatformEvent> {
+    /// # Limitations
+    ///
+    /// - `Click` emits a `FocusChanged` (with the real target node ID) followed
+    ///   by a `PointerButton` with **(0,0) coordinates** because the adapter
+    ///   does not currently store a [`LayoutSnapshot`].  Once the layout
+    ///   snapshot is available in the adapter, the click coordinates should be
+    ///   resolved from the node's bounding rect center.
+    pub fn route_action(&self, action: &AccessibilityAction) -> Vec<PlatformEvent> {
         match action {
-            AccessibilityAction::Focus(_id) => Some(PlatformEvent::FocusChanged {
+            AccessibilityAction::Focus(id) => vec![PlatformEvent::FocusChanged {
                 window: WindowId(self.window_id),
                 gained: true,
-                node_id: 0,
-            }),
-            AccessibilityAction::Click(_id) => Some(PlatformEvent::PointerButtonDetailed {
-                window: WindowId(self.window_id),
-                pressed: true,
-                x: 0.0,
-                y: 0.0,
-                button: 0,
-                pointer: 0,
-            }),
-            AccessibilityAction::SetValue(_id, val) => Some(PlatformEvent::ImeCommitDetailed {
-                window: WindowId(self.window_id),
-                text: val.clone(),
-            }),
+                node_id: id.get(),
+            }],
+            AccessibilityAction::Click(id) => vec![
+                // Emit FocusChanged first so the target widget receives keyboard
+                // focus before the click event reaches the framework layer.
+                PlatformEvent::FocusChanged {
+                    window: WindowId(self.window_id),
+                    gained: true,
+                    node_id: id.get(),
+                },
+                PlatformEvent::PointerButton {
+                    window: WindowId(self.window_id),
+                    pressed: true,
+                    x: 0.0, // TODO: resolve actual layout coordinates from
+                    y: 0.0, //       LayoutSnapshot when available
+                    button: 0,
+                    pointer: 0,
+                },
+            ],
+            AccessibilityAction::SetValue(_id, val) => {
+                vec![PlatformEvent::ImeCommit {
+                    window: WindowId(self.window_id),
+                    text: val.clone(),
+                }]
+            }
             // ScrollIntoView and Activate do not have a one-to-one platform
             // event mapping in the current event set; the framework layer
             // should handle them directly.
-            AccessibilityAction::ScrollIntoView(_) | AccessibilityAction::Activate(_) => None,
+            AccessibilityAction::ScrollIntoView(_) | AccessibilityAction::Activate(_) => vec![],
         }
     }
 
@@ -681,12 +701,17 @@ mod tests {
     fn adapter_routes_focus_action() {
         let adapter = AccessibilityAdapter::new(42);
         let action = AccessibilityAction::Focus(NodeId::new(7));
-        let event = adapter.route_action(&action);
-        assert!(event.is_some(), "Focus action should produce an event");
-        match event.unwrap() {
-            PlatformEvent::FocusChanged { window, gained, .. } => {
-                assert_eq!(window, WindowId(42));
-                assert!(gained);
+        let events = adapter.route_action(&action);
+        assert_eq!(events.len(), 1, "Focus should produce one event");
+        match &events[0] {
+            PlatformEvent::FocusChanged {
+                window,
+                gained,
+                node_id,
+            } => {
+                assert_eq!(*window, WindowId(42));
+                assert!(*gained);
+                assert_eq!(*node_id, 7, "Focus must use the actual NodeId, not 0");
             }
             other => panic!("expected FocusChanged, got {other:?}"),
         }
@@ -696,16 +721,36 @@ mod tests {
     fn adapter_routes_click_action() {
         let adapter = AccessibilityAdapter::new(3);
         let action = AccessibilityAction::Click(NodeId::new(5));
-        let event = adapter.route_action(&action);
-        assert!(event.is_some(), "Click action should produce an event");
-        match event.unwrap() {
-            PlatformEvent::PointerButtonDetailed {
+        let events = adapter.route_action(&action);
+        assert_eq!(
+            events.len(),
+            2,
+            "Click should produce two events (FocusChanged + PointerButton)"
+        );
+
+        // First event must be FocusChanged with the real node_id.
+        match &events[0] {
+            PlatformEvent::FocusChanged {
+                window,
+                gained,
+                node_id,
+            } => {
+                assert_eq!(*window, WindowId(3));
+                assert!(*gained);
+                assert_eq!(*node_id, 5, "Click must focus the target node first");
+            }
+            other => panic!("expected FocusChanged as first event, got {other:?}"),
+        }
+
+        // Second event is the click itself.
+        match &events[1] {
+            PlatformEvent::PointerButton {
                 window, pressed, ..
             } => {
-                assert_eq!(window, WindowId(3));
-                assert!(pressed);
+                assert_eq!(*window, WindowId(3));
+                assert!(*pressed);
             }
-            other => panic!("expected PointerButtonDetailed, got {other:?}"),
+            other => panic!("expected PointerButton as second event, got {other:?}"),
         }
     }
 
@@ -713,14 +758,14 @@ mod tests {
     fn adapter_routes_set_value_action() {
         let adapter = AccessibilityAdapter::new(1);
         let action = AccessibilityAction::SetValue(NodeId::new(2), "hello".into());
-        let event = adapter.route_action(&action);
-        assert!(event.is_some(), "SetValue action should produce an event");
-        match event.unwrap() {
-            PlatformEvent::ImeCommitDetailed { window, text } => {
-                assert_eq!(window, WindowId(1));
+        let events = adapter.route_action(&action);
+        assert_eq!(events.len(), 1, "SetValue should produce one event");
+        match &events[0] {
+            PlatformEvent::ImeCommit { window, text } => {
+                assert_eq!(*window, WindowId(1));
                 assert_eq!(text, "hello");
             }
-            other => panic!("expected ImeCommitDetailed, got {other:?}"),
+            other => panic!("expected ImeCommit, got {other:?}"),
         }
     }
 
@@ -728,14 +773,20 @@ mod tests {
     fn adapter_scroll_into_view_returns_none() {
         let adapter = AccessibilityAdapter::new(1);
         let action = AccessibilityAction::ScrollIntoView(NodeId::new(3));
-        assert!(adapter.route_action(&action).is_none());
+        assert!(
+            adapter.route_action(&action).is_empty(),
+            "ScrollIntoView should produce no events"
+        );
     }
 
     #[test]
     fn adapter_activate_returns_none() {
         let adapter = AccessibilityAdapter::new(1);
         let action = AccessibilityAction::Activate(NodeId::new(4));
-        assert!(adapter.route_action(&action).is_none());
+        assert!(
+            adapter.route_action(&action).is_empty(),
+            "Activate should produce no events"
+        );
     }
 
     #[test]

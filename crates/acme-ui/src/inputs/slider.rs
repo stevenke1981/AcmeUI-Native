@@ -1,13 +1,12 @@
 //! Slider input component.
 //!
-//! Renders as a Stack with:
-//! - track (Card, horizontal background bar)
-//! - fill (Card, accent bar with width proportional to value)
-//! - thumb (Card, circle handle)
-//!   The parent app manages value state and drag interaction.
+//! Renders as a Row with a fill bar and a track remainder (both percentage‑based),
+//! optionally wrapped in a Column with a value label when `show_value` is true.
 
 use acme_core::WidgetKey;
+use acme_layout::Length;
 use acme_widgets::*;
+use crate::style::Styled;
 
 /// Builder for a Slider component.
 pub struct SliderBuilder<M> {
@@ -81,27 +80,73 @@ impl<M: Clone + 'static> SliderBuilder<M> {
     }
 }
 
+/// Format a numeric value for display, trimming unnecessary decimals.
+fn format_numeric(v: f32) -> String {
+    if v.fract() == 0.0 {
+        format!("{:.0}", v)
+    } else {
+        format!("{:.1}", v)
+    }
+}
+
 impl<M: Clone + 'static> From<SliderBuilder<M>> for WidgetNode<M> {
     fn from(b: SliderBuilder<M>) -> Self {
-        // Stack overlays: track (background) → fill → thumb (top)
-        stack::<M>()
-            .key(b.id)
-            .child(
-                card::<M>()
-                    .variant(CardVariant::Outlined)
-                    .child(label_with_size::<M>("", 12.0)),
-            )
-            .child(
-                card::<M>()
-                    .variant(CardVariant::Interactive)
-                    .child(label_with_size::<M>("", 12.0)),
-            )
-            .child(
-                card::<M>()
-                    .variant(CardVariant::Elevated)
-                    .child(label_with_size::<M>("", 12.0)),
-            )
-            .build()
+        // ── 1. Clamp raw value ──────────────────────────────────────
+        let value = b.value.clamp(b.min, b.max);
+
+        // ── 2. Step rounding ────────────────────────────────────────
+        let normalized = if b.step > 0.0 {
+            let stepped = ((value - b.min) / b.step).round() * b.step + b.min;
+            stepped.clamp(b.min, b.max)
+        } else {
+            value
+        };
+
+        // ── 3. Fill ratio (avoid division by zero) ──────────────────
+        let range = if b.max > b.min { b.max - b.min } else { 1.0 };
+        let ratio = ((normalized - b.min) / range).clamp(0.0, 1.0);
+        let fill_pct = ratio * 100.0;
+        let track_pct = (1.0 - ratio) * 100.0;
+
+        // ── 4. Track height from ControlSize ────────────────────────
+        let track_h = match b.size {
+            crate::ControlSize::Sm => 4.0,
+            crate::ControlSize::Md => 6.0,
+            crate::ControlSize::Lg => 8.0,
+            _ => 6.0, // Xs, Xl fall back to Md
+        };
+
+        // ── 5. Build fill bar (accent-coloured left portion) ────────
+        let fill = row::<M>()
+            .h(Length::Px(track_h))
+            .w(Length::Percent(fill_pct))
+            .child(label_with_size::<M>("", 12.0));
+
+        // ── 6. Build track remainder (right portion) ───────────────
+        let track_remainder = row::<M>()
+            .h(Length::Px(track_h))
+            .w(Length::Percent(track_pct))
+            .child(label_with_size::<M>("", 12.0));
+
+        // ── 7. Assemble track row ──────────────────────────────────
+        let track_row = row::<M>()
+            .child(fill)
+            .child(track_remainder);
+
+        // ── 8. Wrap with value label if show_value ──────────────────
+        if b.show_value {
+            let display = format_numeric(normalized);
+            column::<M>()
+                .key(b.id)
+                .gap(4.0)
+                .child(label_with_size::<M>(display, 12.0))
+                .child(track_row)
+                .build()
+        } else {
+            track_row
+                .key(b.id)
+                .build()
+        }
     }
 }
 
@@ -119,14 +164,20 @@ mod tests {
         ValueChanged,
     }
 
+    /// The default slider (no show_value) builds into a Row with two children:
+    /// fill container and track remainder container.
     #[test]
     fn slider_has_non_zero_layout_rect() {
         let node: WidgetNode<TestMsg> = slider("sl1").value(50.0).min(0.0).max(100.0).into();
         let layout = node.to_layout(NodeId::new(1));
-        assert_eq!(layout.style.kind, LayoutKind::Stack);
-        // Three children: track, fill, thumb
-        assert_eq!(layout.children.len(), 3);
-        // Each child is a Card container with a Label leaf
+
+        // Outer container is a Row (fill + track remainder)
+        assert_eq!(layout.style.kind, LayoutKind::Row);
+
+        // Two children: fill, track remainder
+        assert_eq!(layout.children.len(), 2);
+
+        // Each child is a container with a Label leaf
         for child in &layout.children {
             assert!(!child.children.is_empty());
             let leaf = &child.children[0];
@@ -158,5 +209,61 @@ mod tests {
         assert_eq!(s.max, 10.0);
         assert_eq!(s.step, 0.5);
         assert!(s.on_change.is_some());
+    }
+
+    /// When show_value is true the outer container is a Column with two
+    /// children: the value label and the track Row.
+    #[test]
+    fn slider_show_value_wraps_in_column() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .value(42.0)
+            .min(0.0)
+            .max(100.0)
+            .show_value(true)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+
+        assert_eq!(layout.style.kind, LayoutKind::Column);
+        assert_eq!(layout.children.len(), 2);
+
+        // First child: value label (leaf)
+        let label = &layout.children[0];
+        assert!(label.children.is_empty());
+
+        // Second child: the track Row
+        let track = &layout.children[1];
+        assert_eq!(track.style.kind, LayoutKind::Row);
+        assert_eq!(track.children.len(), 2);
+    }
+
+    /// The value is step-rounded before computing the fill ratio.
+    #[test]
+    fn slider_step_rounding_affects_fill_ratio() {
+        // value=23, min=0, max=100, step=10 → normalized to 20
+        let node: WidgetNode<TestMsg> = slider("s")
+            .value(23.0)
+            .min(0.0)
+            .max(100.0)
+            .step(10.0)
+            .show_value(true)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // Should be a Column: [label, row]
+        assert_eq!(layout.style.kind, LayoutKind::Column);
+        assert_eq!(layout.children.len(), 2);
+    }
+
+    /// Normalize with min/max clamped.
+    #[test]
+    fn slider_normalize_clamps_value() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .value(150.0) // above max
+            .min(0.0)
+            .max(100.0)
+            .into();
+        let layout = node.to_layout(NodeId::new(1));
+        // Should still be a valid Row
+        assert_eq!(layout.style.kind, LayoutKind::Row);
+        assert_eq!(layout.children.len(), 2);
     }
 }

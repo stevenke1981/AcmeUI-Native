@@ -13,7 +13,6 @@
 | `acme-render-wgpu` (WGPU backend) | M3 | Persistent buffers, clip batching, pure surface-action state machine, `gpu_epoch` |
 | `acme-textinput` | M4 | 100 tests; cursor, selection, undo/redo, IME caret geometry, extended keys, readonly |
 | `acme-widgets` (WidgetNode + submodules) | M4 | Visual states, button variants/sizes, card variants, overlay mgr |
-| `acme-accessibility` (adapter + tree) | P0-05 | AccessKit bridge, action routing, focus management |
 | `acme-devtools` (inspector, metrics) | M3 | WidgetTreeDump, LayoutInspector, FrameMetrics, SurfaceStatus |
 
 ## Experimental
@@ -26,6 +25,7 @@
 | `acme-widgets::data::VirtualList` | Visible range, variable height cache, scroll anchoring |
 | `acme-gallery` | 8-category nav; live Data demos (Tree/Table/DataGrid/VirtualList); Navigation demos |
 | `acme-widgets::navigation` | NavRail, Sidebar, TabBar, Breadcrumb (structural; declarative selection) |
+| `acme-accessibility` (adapter + tree) | AccessKit bridge, action routing, focus management; node_id=0 in Focus (fixed), (0,0) click coords (documented), unstable ID reassignment (TODO) |
 | Device-lost detection | `Arc<AtomicBool>` + `set_device_lost_callback` + uncaptured Internal/OOM |
 
 ## Architecture Only

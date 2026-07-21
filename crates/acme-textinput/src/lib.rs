@@ -160,14 +160,18 @@ impl TextInputState {
         // tx: old → new  where old = restored state, new = mutation state
         // Current state = tx.old (the restored state).
         // We restore to tx.new (the mutation state).
-        // Push reverse (new → old) onto undo_stack so undo can revert this redo.
+        // Push the transaction back onto undo_stack so undo can revert this redo.
+        // NOTE: We do NOT swap old_* ↔ new_* here — undo() must see the same
+        // (old, new) pair it originally pushed onto the redo stack.  If we
+        // swapped, then undo after redo would restore new (instead of old),
+        // making it a no-op.
         self.undo_stack.push(EditTransaction {
-            old_text: tx.new_text.clone(),
-            new_text: tx.old_text.clone(),
-            old_cursor: tx.new_cursor,
-            new_cursor: tx.old_cursor,
-            old_selection: tx.new_selection,
-            new_selection: tx.old_selection,
+            old_text: tx.old_text.clone(),
+            new_text: tx.new_text.clone(),
+            old_cursor: tx.old_cursor,
+            new_cursor: tx.new_cursor,
+            old_selection: tx.old_selection,
+            new_selection: tx.new_selection,
         });
         // Restore new state (state before the undo that created this redo entry)
         self.text = tx.new_text;
@@ -2185,6 +2189,37 @@ mod tests {
         s.insert_char('b');
         assert!(!s.redo());
         assert_eq!(s.text, "b");
+    }
+
+    #[test]
+    fn undo_after_redo_restores_previous_state() {
+        let mut s = TextInputState::new();
+        s.insert_char('a');
+        assert_eq!(s.text, "a");
+        assert!(s.undo());
+        assert_eq!(s.text, "");
+        assert!(s.redo());
+        assert_eq!(s.text, "a");
+        assert!(s.undo());
+        assert_eq!(
+            s.text,
+            "",
+            "undo after redo should restore pre-redo state"
+        );
+    }
+
+    #[test]
+    fn undo_after_redo_multiple_chars() {
+        let mut s = TextInputState::new();
+        handle_text(&mut s, "abc");
+        assert_eq!(s.text, "abc");
+        assert!(s.undo()); // abc → ""
+        assert_eq!(s.text, "");
+        assert!(s.redo()); // "" → abc
+        assert_eq!(s.text, "abc");
+        s.insert_char('d');
+        assert_eq!(s.text, "abcd"); // new mutation clears redo
+        assert!(!s.redo()); // redo stack empty
     }
 
     #[test]

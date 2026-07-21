@@ -59,6 +59,10 @@ pub enum PlatformEvent {
     PointerButton {
         window: WindowId,
         pressed: bool,
+        x: f32,
+        y: f32,
+        button: u16,
+        pointer: u64,
     },
     Scroll {
         window: WindowId,
@@ -72,37 +76,23 @@ pub enum PlatformEvent {
         ctrl: bool,
         text: Option<String>,
     },
-    ImePreedit(String),
-    ImeCommit(String),
-    WindowCloseRequested(WindowId),
-
-    // ── New variants (added alongside existing ones) ──
-    /// Enhanced IME preedit with WindowId and cursor position.
-    ImePreeditDetailed {
+    /// IME preedit with WindowId and cursor position.
+    ImePreedit {
         window: WindowId,
         text: String,
         cursor: Option<(usize, usize)>,
     },
-    /// Enhanced IME commit with WindowId.
-    ImeCommitDetailed {
+    /// IME commit with WindowId.
+    ImeCommit {
         window: WindowId,
         text: String,
     },
+    WindowCloseRequested(WindowId),
+
     /// IME input method was enabled for the given window.
     ImeEnabled(WindowId),
     /// IME input method was disabled for the given window.
     ImeDisabled(WindowId),
-
-    /// Enhanced pointer button with position, button type, and pointer ID.
-    /// `button`: 0 = left, 1 = right, 2 = middle.
-    PointerButtonDetailed {
-        window: WindowId,
-        pressed: bool,
-        x: f32,
-        y: f32,
-        button: u16,
-        pointer: u64,
-    },
 
     /// Window keyboard focus changed. `node_id` is set by the framework layer.
     FocusChanged {
@@ -467,13 +457,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                 };
                 let pointer = 0; // mouse pointer
 
-                // Emit legacy event (backward compat)
                 let dirty = app.event(PlatformEvent::PointerButton {
-                    window: win_id,
-                    pressed,
-                });
-                // Emit enhanced event
-                let dirty2 = app.event(PlatformEvent::PointerButtonDetailed {
                     window: win_id,
                     pressed,
                     x,
@@ -481,7 +465,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                     button: button_code,
                     pointer,
                 });
-                state.dirty |= dirty | dirty2;
+                state.dirty |= dirty;
                 if state.dirty {
                     state.window.request_redraw();
                 }
@@ -591,15 +575,12 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                     // Prefer app caret geometry over mouse during composition.
                     let mouse = state.cursor;
                     apply_ime_cursor_area(app, &state.window, win_id, mouse);
-                    // Legacy event (backward compat)
-                    let dirty = app.event(PlatformEvent::ImePreedit(text.clone()));
-                    // Enhanced event
-                    let dirty2 = app.event(PlatformEvent::ImePreeditDetailed {
+                    let dirty = app.event(PlatformEvent::ImePreedit {
                         window: win_id,
                         text,
                         cursor,
                     });
-                    state.dirty |= dirty | dirty2;
+                    state.dirty |= dirty;
                     if state.dirty {
                         state.window.request_redraw();
                     }
@@ -608,14 +589,11 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             WindowEvent::Ime(Ime::Commit(text)) => {
                 if let Some(state) = windows.get_mut(&id) {
                     let win_id = state.id;
-                    // Legacy event (backward compat)
-                    let dirty = app.event(PlatformEvent::ImeCommit(text.clone()));
-                    // Enhanced event
-                    let dirty2 = app.event(PlatformEvent::ImeCommitDetailed {
+                    let dirty = app.event(PlatformEvent::ImeCommit {
                         window: win_id,
                         text,
                     });
-                    state.dirty |= dirty | dirty2;
+                    state.dirty |= dirty;
                     if state.dirty {
                         state.window.request_redraw();
                     }

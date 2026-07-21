@@ -380,7 +380,7 @@ impl Application for Gallery {
                 self.last_scale_factor,
                 &mut self.ime_caret_window_rect,
             ),
-            PlatformEvent::ImePreedit(text) => handle_ime_preedit(
+            PlatformEvent::ImePreedit { text, .. } => handle_ime_preedit(
                 &text,
                 &mut self.text_input,
                 self.text_input_rect,
@@ -389,7 +389,7 @@ impl Application for Gallery {
                 self.last_scale_factor,
                 &mut self.ime_caret_window_rect,
             ),
-            PlatformEvent::ImeCommit(text) => handle_ime_commit(
+            PlatformEvent::ImeCommit { text, .. } => handle_ime_commit(
                 &text,
                 &mut self.text_input,
                 &mut self.ime_text,

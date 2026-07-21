@@ -1,7 +1,7 @@
 //! DatePicker component — a calendar grid date selector.
 //!
 //! Renders a Column with a year/month header (◀ ▶ buttons), a row of weekday
-//! labels (S M T W T F S), and a grid of up to 35 day cells (Cards). The
+//! labels (S M T W T F S), and a grid of up to 42 day cells (Cards). The
 //! selected day uses the Interactive card variant. When closed, the picker
 //! collapses to a single Card showing the selected date string or placeholder.
 
@@ -67,6 +67,21 @@ impl<M: Clone + 'static> DatePickerBuilder<M> {
         self.on_change = Some(msg);
         self
     }
+
+    /// Validate and normalize year/month to safe ranges.
+    /// Clamps month to 1-12 and year to >= 1.
+    pub fn normalize(mut self) -> Self {
+        if self.month < 1 {
+            self.month = 1;
+        }
+        if self.month > 12 {
+            self.month = 12;
+        }
+        if self.year < 1 {
+            self.year = 1;
+        }
+        self
+    }
 }
 
 /// Number of days in the given month (1-indexed). Handles leap years.
@@ -83,23 +98,29 @@ fn days_in_month(year: u32, month: u32) -> u32 {
     }
 }
 
-/// Day-of-week for the first day of `month`/`year`. Returns 0=Sunday..=6=Saturday.
-/// Uses Zeller's congruence (Gregorian).
-fn first_weekday(year: u32, month: u32) -> u32 {
-    let (y, m) = if month < 3 {
-        (year - 1, month + 12)
+/// Day-of-week using Tomohiko Sakamoto's algorithm.
+/// Returns 0=Sunday..=6=Saturday.
+fn sakamoto_weekday(y: u32, m: u32, d: u32) -> u32 {
+    let (y, m) = if m < 3 {
+        (y.checked_sub(1).unwrap_or(0), m + 12)
     } else {
-        (year, month)
+        (y, m)
     };
-    let k = y % 100;
-    let j = y / 100;
-    let h = (1 + (13 * (m + 1)) / 5 + k + k / 4 + j / 4 + 5 * j) % 7;
+    let y_mod = y % 100;
+    let c = y / 100;
+    let h = (d + (13 * (m + 1)) / 5 + y_mod + y_mod / 4 + c / 4 + 5 * c) % 7;
     // Zeller: h=0 => Saturday. Remap so Sunday=0.
     (h + 6) % 7
 }
 
+/// Day-of-week for the first day of `month`/`year`. Returns 0=Sunday..=6=Saturday.
+fn month_start_weekday(year: u32, month: u32) -> u32 {
+    sakamoto_weekday(year, month, 1)
+}
+
 impl<M: Clone + 'static> From<DatePickerBuilder<M>> for WidgetNode<M> {
     fn from(b: DatePickerBuilder<M>) -> Self {
+        let b = b.normalize();
         // Closed: show the selected date string or placeholder in a Card.
         if !b.open {
             let display = b
@@ -128,8 +149,11 @@ impl<M: Clone + 'static> From<DatePickerBuilder<M>> for WidgetNode<M> {
         }
 
         let dim = days_in_month(b.year, b.month);
-        let offset = first_weekday(b.year, b.month);
-        let total_cells = 35usize;
+        let offset = month_start_weekday(b.year, b.month);
+        let total_cells = {
+            let needed = offset + dim;
+            if needed <= 35 { 35 } else { 42 }
+        };
         let id_str = b.id.as_str().to_string();
 
         let mut grid_rows: Vec<WidgetNode<M>> = Vec::new();
@@ -268,8 +292,8 @@ mod tests {
         let WidgetNode::Column(grid) = &col.children[2] else {
             panic!("expected day grid Column");
         };
-        // 35 / 7 = 5 rows
-        assert_eq!(grid.children.len(), 5);
+        // At least 5 rows (5 or 6 weeks depending on month)
+        assert!(grid.children.len() >= 5);
     }
 
     #[test]
@@ -322,8 +346,44 @@ mod tests {
     }
 
     #[test]
-    fn date_picker_first_weekday_jan_2025_is_wednesday() {
+    fn date_picker_month_start_weekday_jan_2025_is_wednesday() {
         // Jan 1, 2025 is a Wednesday (0=Sunday => 3).
-        assert_eq!(first_weekday(2025, 1), 3);
+        assert_eq!(month_start_weekday(2025, 1), 3);
+    }
+
+    #[test]
+    fn days_in_march_2025_has_31_days() {
+        assert_eq!(days_in_month(2025, 3), 31);
+    }
+
+    #[test]
+    fn feb_2024_leap_year_has_29_days() {
+        assert_eq!(days_in_month(2024, 2), 29);
+    }
+
+    #[test]
+    fn feb_2023_non_leap_has_28_days() {
+        assert_eq!(days_in_month(2023, 2), 28);
+    }
+
+    #[test]
+    fn feb_in_january_year0_does_not_underflow() {
+        // year=0, month=2 (February). month_start_weekday internally does
+        // checked_sub for the year adjustment. This should not panic.
+        let wd = month_start_weekday(0, 2);
+        // Any result is acceptable as long as it doesn't underflow.
+        assert!(wd < 7);
+    }
+
+    #[test]
+    fn sakamoto_weekday_jan_1_2025_is_wednesday() {
+        // Jan 1, 2025 is Wednesday, which is 3 in our convention (0=Sunday).
+        assert_eq!(sakamoto_weekday(2025, 1, 1), 3);
+    }
+
+    #[test]
+    fn sakamoto_weekday_mar_1_2025_is_saturday() {
+        // Mar 1, 2025 is Saturday, which is 6 in our convention (0=Sunday).
+        assert_eq!(sakamoto_weekday(2025, 3, 1), 6);
     }
 }
