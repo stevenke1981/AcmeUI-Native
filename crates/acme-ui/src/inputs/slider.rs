@@ -161,9 +161,14 @@ impl<M: Clone + 'static> From<SliderBuilder<M>> for WidgetNode<M> {
             .child(label_with_size::<M>("", 12.0));
 
         // ── 7. Assemble track row ──────────────────────────────────
-        let track_row = row::<M>()
+        let mut track_row = row::<M>()
             .child(fill)
             .child(track_remainder);
+
+        // ── 7b. Wire on_change to the track row ────────────────────
+        if let Some(msg) = b.on_change {
+            track_row = track_row.on_click(msg);
+        }
 
         // ── 8. Wrap with value label if show_value ──────────────────
         if b.show_value {
@@ -336,6 +341,36 @@ mod tests {
         let layout = node.to_layout(NodeId::new(1));
         assert_eq!(layout.children[0].style.width, Length::Percent(0.0));
         assert_eq!(layout.children[1].style.width, Length::Percent(1.0));
+    }
+
+    // ── on_change message wiring ─────────────────────────────────────
+
+    #[test]
+    fn slider_on_change_wired_to_track_row() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .value(50.0)
+            .min(0.0)
+            .max(100.0)
+            .on_change(TestMsg::ValueChanged)
+            .into();
+        // Without show_value the outer node is the track Row itself.
+        let WidgetNode::Row(row) = &node else {
+            panic!("expected Row variant for track row");
+        };
+        assert_eq!(row.message, Some(TestMsg::ValueChanged));
+    }
+
+    #[test]
+    fn slider_no_on_change_has_no_message() {
+        let node: WidgetNode<TestMsg> = slider("s")
+            .value(50.0)
+            .min(0.0)
+            .max(100.0)
+            .into();
+        let WidgetNode::Row(row) = &node else {
+            panic!("expected Row variant");
+        };
+        assert_eq!(row.message, None);
     }
 
     // ── Range-safety fix (P0-A02) ────────────────────────────────────

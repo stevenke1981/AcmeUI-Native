@@ -153,12 +153,21 @@ impl<M: Clone + 'static> From<DatePickerBuilder<M>> for WidgetNode<M> {
                 .selected_day
                 .map(|d| format!("{:04}-{:02}-{:02}", b.year, b.month, d))
                 .unwrap_or_else(|| b.placeholder.clone());
-            return card::<M>()
+            let card = card::<M>()
                 .key(b.id)
                 .variant(CardVariant::Outlined)
                 .padding(8.0)
                 .child(label::<M>(display))
                 .build();
+            return if let Some(msg) = b.on_change {
+                // Wrap the card in a column that carries the click message.
+                column::<M>()
+                    .on_click(msg)
+                    .child(card)
+                    .build()
+            } else {
+                card
+            };
         }
 
         // Open: header + weekdays + day grid.
@@ -251,13 +260,20 @@ impl<M: Clone + 'static> From<DatePickerBuilder<M>> for WidgetNode<M> {
             day_grid = day_grid.child(r);
         }
 
-        column::<M>()
+        let mut outer = column::<M>()
             .key(b.id)
             .gap(4.0)
             .child(header)
             .child(weekday_row)
-            .child(day_grid.build())
-            .build()
+            .child(day_grid.build());
+
+        // Wire on_change to the outermost column so the message is
+        // dispatched when the calendar area is clicked.
+        if let Some(msg) = b.on_change {
+            outer = outer.on_click(msg);
+        }
+
+        outer.build()
     }
 }
 
@@ -274,6 +290,7 @@ mod tests {
     enum TestMsg {
         Prev,
         Next,
+        Change,
     }
 
     #[test]
@@ -665,5 +682,64 @@ mod tests {
         };
         assert_eq!(btn.label, "▶");
         assert!(btn.activate().is_none(), "next button should have no message when not wired");
+    }
+
+    // -----------------------------------------------------------------------
+    // on_change message wiring
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn date_picker_closed_on_change_wraps_in_column() {
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .placeholder("Pick")
+            .on_change(TestMsg::Change)
+            .into();
+        // When on_change is set on a closed picker, the card is wrapped
+        // in a Column that carries the message.
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column wrapper when on_change is set on closed picker");
+        };
+        assert_eq!(col.message, Some(TestMsg::Change));
+        assert_eq!(col.children.len(), 1);
+        let WidgetNode::Card(_inner) = &col.children[0] else {
+            panic!("expected Card child inside wrapper Column");
+        };
+    }
+
+    #[test]
+    fn date_picker_closed_no_on_change_returns_card() {
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .placeholder("Pick")
+            .into();
+        // Without on_change the closed picker is still a plain Card.
+        let WidgetNode::Card(_c) = &node else {
+            panic!("expected Card variant when on_change is not set");
+        };
+    }
+
+    #[test]
+    fn date_picker_open_on_change_wired() {
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .open(true)
+            .on_change(TestMsg::Change)
+            .into();
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column variant when open");
+        };
+        assert_eq!(col.message, Some(TestMsg::Change));
+        // Structure unchanged: header + weekday row + day grid
+        assert_eq!(col.children.len(), 3);
+    }
+
+    #[test]
+    fn date_picker_open_no_on_change_no_message() {
+        let node: WidgetNode<TestMsg> = date_picker("dp")
+            .open(true)
+            .into();
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column variant when open");
+        };
+        assert_eq!(col.message, None);
+        assert_eq!(col.children.len(), 3);
     }
 }

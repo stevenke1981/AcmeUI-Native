@@ -100,7 +100,7 @@ cargo test --workspace
 | Screenshot golden tests | 📋 **Scaffolded** — not yet in CI |
 | CI benchmarks | 📋 **Not yet** — no performance thresholds |
 
-> **Full status:** [`STATUS.md`](docs/status/STATUS.md) · **Manual checklists:** [`MANUAL_VALIDATION.md`](docs/MANUAL_VALIDATION.md)
+> **Full status:** [`STATUS.md`](docs/status/STATUS.md) · **Manual checklists:** [`MANUAL_VALIDATION.md`](docs/guides/MANUAL_VALIDATION.md)
 
 ---
 

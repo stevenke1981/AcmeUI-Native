@@ -108,6 +108,7 @@ impl<M: Clone + 'static> From<RadioGroupBuilder<M>> for WidgetNode<M> {
             width: None,
             height: None,
             style: crate::Style::new(),
+            message: None,
         })
     }
 }

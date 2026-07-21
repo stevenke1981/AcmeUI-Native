@@ -104,7 +104,7 @@ p0_status:
   - id: P0-003
     title: Component Maturity Audit
     status: completed
-    note: "Report saved to docs/component_maturity_audit.md; README update pending"
+    note: "Report saved to docs/reports/component_maturity_audit.md; README update pending"
   - id: P0-004
     title: Slider
     status: partial

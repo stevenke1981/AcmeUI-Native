@@ -10,7 +10,7 @@
 - Hit testing respects page scroll (`HitRegion.scrolled` + clip rect)
 
 ### Manual validation docs (honest)
-- Added `docs/MANUAL_VALIDATION.md` for GPU device-loss and 注音 IME
+- Added `docs/guides/MANUAL_VALIDATION.md` for GPU device-loss and 注音 IME
 - Both checklists status: **NOT YET MANUALLY VALIDATED**
 - STATUS links to checklist; no false “manual done” claims
 

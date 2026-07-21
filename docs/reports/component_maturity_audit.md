@@ -236,12 +236,12 @@ The strongest examples of S2 components with both interaction and solid test cov
 
 | Component | Why |
 |-----------|-----|
-| **date_picker.rs** | on_change, on_open, 14 tests including leap year, month-start weekday, underflow edge cases |
-| **slider.rs** | on_change, step rounding, value clamping, 6 tests with behavioral verification |
+| **date_picker.rs** | on_prev_month, on_next_month (◀ ▶ buttons wired); on_change defined but not yet wired for day selection; 14 tests including leap year, month-start weekday, underflow edge cases |
+| **slider.rs** | on_change defined but not yet wired for pointer interaction; step rounding, value clamping, 6 tests with behavioral verification |
 | **drop_zone.rs** | on_drop, on_drag_over, on_drag_leave — three distinct interaction handlers |
 | **cascader.rs** | on_change with hierarchical data dispatch |
-| **	oggle_button.rs** | on_toggle with selected state management |
-| **	itle_bar.rs / window_controls.rs** | on_close, on_minimize, on_maximize — full desktop window control |
+| **toggle_button.rs** | on_toggle with selected state management |
+| **title_bar.rs / window_controls.rs** | on_close, on_minimize, on_maximize — full desktop window control |
 | **button_group.rs** | Per-button on_click dispatch |
 
 ### S0/S1 Scaffolds (no interaction — visual shells)

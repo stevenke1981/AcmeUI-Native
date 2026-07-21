@@ -100,7 +100,7 @@ cargo test --workspace
 | 螢幕截圖黃金測試 | 📋 **已搭建骨架** — 尚未納入 CI |
 | CI 基準測試 | 📋 **尚未** — 無效能門檻 |
 
-> **完整狀態：**[`STATUS.md`](status/STATUS.md) · **手動檢查清單：**[`MANUAL_VALIDATION.md`](MANUAL_VALIDATION.md)
+> **完整狀態：**[`STATUS.md`](status/STATUS.md) · **手動檢查清單：**[`MANUAL_VALIDATION.md`](guides/MANUAL_VALIDATION.md)
 
 ---
 

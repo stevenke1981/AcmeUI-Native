@@ -5,6 +5,9 @@ use acme_style::prelude::*;
 use acme_style::Style;
 
 /// A container holds children and arranges them according to the layout kind.
+///
+/// The container can carry an optional click message for hit-testing
+/// without affecting layout behaviour.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Container<M> {
     pub key: Option<WidgetKey>,
@@ -19,6 +22,8 @@ pub struct Container<M> {
     pub height: Option<f32>,
     /// GPUI‑inspired / Tailwind‑style accumulated styling.
     pub style: Style,
+    /// Optional message dispatched when the container region is clicked.
+    pub message: Option<M>,
 }
 impl<M> Default for Container<M> {
     fn default() -> Self {
@@ -30,6 +35,7 @@ impl<M> Default for Container<M> {
             width: None,
             height: None,
             style: Style::new(),
+            message: None,
         }
     }
 }
@@ -107,6 +113,14 @@ impl<M> ContainerBuilder<M> {
     pub fn size(mut self, w: f32, h: f32) -> Self {
         self.container.width = Some(crate::finite(w));
         self.container.height = Some(crate::finite(h));
+        self
+    }
+    /// Attach a click message to the container.
+    ///
+    /// The message is carried through the widget tree for hit-testing.
+    /// This does **not** affect layout behaviour.
+    pub fn on_click(mut self, msg: M) -> Self {
+        self.container.message = Some(msg);
         self
     }
     pub fn build(self) -> WidgetNode<M> {
