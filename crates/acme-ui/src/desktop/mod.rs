@@ -4,6 +4,7 @@
 //! Each module provides a builder struct that converts into [`WidgetNode<M>`]
 //! using existing AcmeUI-Native primitives.
 
+pub mod command_bar;
 pub mod dock;
 pub mod image_view;
 pub mod markdown_view;
@@ -15,6 +16,7 @@ pub mod sidenav;
 pub mod title_bar;
 pub mod window_controls;
 
+pub use command_bar::*;
 pub use dock::*;
 pub use image_view::*;
 pub use markdown_view::*;

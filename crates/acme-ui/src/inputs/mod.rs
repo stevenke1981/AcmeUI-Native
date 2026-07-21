@@ -4,6 +4,7 @@
 //! using existing AcmeUI-Native primitives.
 
 pub mod autocomplete;
+pub mod button_group;
 pub mod cascader;
 pub mod checkbox;
 pub mod color_picker;
@@ -13,6 +14,7 @@ pub mod multi_select;
 pub mod pin_input;
 pub mod form_message;
 pub mod icon_button;
+pub mod mentions;
 pub mod number_input;
 pub mod password_input;
 pub mod radio;
@@ -23,6 +25,7 @@ pub mod segmented_control;
 pub mod select;
 pub mod slider;
 pub mod switch;
+pub mod tag_input;
 pub mod textarea;
 pub mod time_picker;
 pub mod toggle_button;
@@ -30,6 +33,7 @@ pub mod transfer;
 pub mod tree_select;
 
 pub use autocomplete::*;
+pub use button_group::*;
 pub use cascader::*;
 pub use checkbox::*;
 pub use color_picker::*;
@@ -39,6 +43,7 @@ pub use multi_select::*;
 pub use pin_input::*;
 pub use form_message::*;
 pub use icon_button::*;
+pub use mentions::*;
 pub use number_input::*;
 pub use password_input::*;
 pub use radio::*;
@@ -49,6 +54,7 @@ pub use segmented_control::*;
 pub use select::*;
 pub use slider::*;
 pub use switch::*;
+pub use tag_input::*;
 pub use textarea::*;
 pub use time_picker::*;
 pub use toggle_button::*;

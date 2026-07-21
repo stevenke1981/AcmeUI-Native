@@ -253,6 +253,11 @@ Soft variant (for badges, alerts):
 | Calendar | P2 | ✅ | ✅ | — | `calendar(year, month).selected_day()` |
 | AspectRatio | P2 | ✅ | ✅ | — | `aspect_ratio(16.0/9.0).width().child()` |
 | Flex | P1 | ✅ | ✅ | ✅ | `h_flex().gap().child()` / `v_flex()` |
+| ButtonGroup | P1 | ✅ | ✅ | ✅ | `button_group("id").item("A", msg).selected(0)` |
+| TagInput | P1 | ✅ | ✅ | ✅ | `tag_input("id").tags(vec!["a","b"]).on_add(msg)` |
+| Banner | P1 | ✅ | ✅ | ✅ | `banner("message").tone(Tone::Warning).dismissible()` |
+| CommandBar | P1 | ✅ | — | — | `command_bar("id").search_placeholder("Find...").action("icon","label",msg)` |
+| Mentions | P2 | — | — | ✅ | `mentions("id").value("@user").option(opt)` |
 
 ---
 
