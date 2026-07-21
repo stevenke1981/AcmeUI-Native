@@ -31,7 +31,7 @@ pub struct CategoryInfo {
 pub const CATEGORIES: &[CategoryInfo] = &[
     CategoryInfo {
         name: "Foundations",
-        pages: &["Typography", "Colors", "Icons", "Spacing", "Motion"],
+        pages: &["Typography", "Colors", "Icons", "Spacing", "Motion", "Style"],
     },
     CategoryInfo {
         name: "Inputs",
