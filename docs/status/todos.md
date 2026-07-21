@@ -109,4 +109,80 @@
 - [ ] Add Gallery "Mobile" page showcasing all mobile components
 - [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
-- [ ] Document component inventory in README (current count: 152+ UI components)
+- [ ] Document component inventory in README (current count: 160+ UI components)
+
+## P6 — shadcn/ui alignment (2026-07-21)
+
+> Coverage: 57/57 shadcn/ui components now mapped. 6 new components added this pass.
+
+### Newly added (this pass)
+- [x] FormField (`inputs/form_field.rs`) — label + description + error + control wrapper
+- [x] ToggleGroup (`inputs/toggle_group.rs`) — single/multiple toggle selection
+- [x] InputOTP (`inputs/input_otp.rs`) — individual character boxes for OTP entry
+- [x] DateRangePicker (`inputs/date_range_picker.rs`) — start/end date range selection
+- [x] Resizable (`layout/resizable.rs`) — draggable panel resizing (horizontal/vertical)
+- [x] Sidebar (`layout/sidebar.rs`) — collapsible sidebar with variants (sidebar/floating/inset)
+
+### Already covered (existing components map to shadcn/ui)
+- [x] Accordion → foundations/accordion
+- [x] Alert → foundations/alert
+- [x] Alert Dialog → overlay/confirm_dialog
+- [x] Aspect Ratio → foundations/aspect_ratio
+- [x] Avatar → foundations/avatar
+- [x] Badge → foundations/badge
+- [x] Breadcrumb → layout/breadcrumb
+- [x] Button → widgets/button
+- [x] Calendar → foundations/calendar
+- [x] Card → widgets/card
+- [x] Carousel → browser/carousel
+- [x] Chart → charts/* (21 chart types)
+- [x] Checkbox → inputs/checkbox
+- [x] Collapsible → foundations/collapsible
+- [x] Combobox → inputs/combobox
+- [x] Command → overlay/command_palette
+- [x] Context Menu → overlay/context_menu
+- [x] Data Table → widgets/datagrid
+- [x] Date Picker → inputs/date_picker
+- [x] Dialog → overlay/modal
+- [x] Drawer → overlay/drawer
+- [x] Dropdown Menu → overlay/dropdown_menu
+- [x] Empty → foundations/empty_state
+- [x] Form → layout/form
+- [x] Hover Card → overlay/hover_card
+- [x] Input → widgets/text_input
+- [x] Input OTP → inputs/pin_input + inputs/input_otp
+- [x] Kbd → foundations/kbd
+- [x] Label → widgets/label
+- [x] Menubar → desktop/menubar
+- [x] Navigation Menu → layout/navigation_menu
+- [x] Pagination → layout/pagination
+- [x] Popover → widgets/popover
+- [x] Progress → foundations/progress
+- [x] Radio Group → inputs/radio
+- [x] Resizable → layout/split_panel + layout/resizable
+- [x] Scroll Area → layout/scroll_area
+- [x] Select → inputs/select
+- [x] Separator → foundations/divider
+- [x] Sheet → overlay/drawer
+- [x] Sidebar → desktop/sidenav + layout/sidebar
+- [x] Skeleton → foundations/skeleton
+- [x] Slider → inputs/slider + inputs/range_slider
+- [x] Sonner → overlay/toast
+- [x] Spinner → foundations/spinner
+- [x] Status → foundations/status_dot
+- [x] Switch → inputs/switch
+- [x] Table → widgets/table
+- [x] Tabs → layout/tabs
+- [x] Tag → foundations/tag
+- [x] Textarea → inputs/textarea
+- [x] Toast → overlay/toast
+- [x] Toggle → inputs/toggle_button
+- [x] Toggle Group → inputs/button_group + inputs/toggle_group
+- [x] Tooltip → widgets/tooltip
+
+### Remaining enhancements
+- [ ] Add Gallery page showcasing shadcn-aligned components
+- [ ] Add async search to Combobox (command-style filtering)
+- [ ] Add range mode to Calendar (visual range highlight)
+- [ ] Add drag-and-drop reordering to Data Table
+- [ ] Add keyboard navigation to Sidebar and Navigation Menu
