@@ -1,0 +1,61 @@
+version: 1.0.0
+recipes:
+  - id: calm-voice
+    best_for: [voice-dictation, AI-writing, focus-tools]
+    shell: apple_template
+    palette: calm-voice
+    density: low
+    container_model: open-workspace-with-one-primary-surface
+    typography: large-recording-status-clear-body
+    motion: recording-pulse-processing-progress-success
+    avoid: [dashboard-grid, excessive-cards, neon-glow]
+
+  - id: focused-productivity
+    best_for: [dashboard, desktop-utility, business-tool]
+    shell: windows11_template
+    palette: focused-productivity
+    density: medium
+    container_model: navigation-plus-open-data-regions
+    typography: compact-controls-strong-section-headings
+    motion: selection-filter-loading
+    avoid: [fake-kpis, decorative-charts, glassmorphism]
+
+  - id: quiet-settings
+    best_for: [settings, preferences, accounts]
+    shell: default_template
+    palette: quiet-settings
+    density: medium
+    container_model: category-rail-and-open-form-sections
+    typography: descriptive-labels-readable-help-text
+    motion: save-feedback-expand-collapse
+    avoid: [card-per-row, oversized-headings, hidden-danger-actions]
+
+  - id: studio-neutral
+    best_for: [media-studio, editor, timeline]
+    shell: ubuntu25_template
+    palette: studio-neutral
+    density: high
+    container_model: rails-canvas-inspector-timeline
+    typography: compact-ui-chrome-readable-canvas-text
+    motion: playhead-selection-drag-export
+    avoid: [marketing-hero, giant-rounded-panels, ambiguous-icons]
+
+  - id: industrial-command
+    best_for: [operations, hardware, monitoring]
+    shell: windows11_template
+    palette: industrial-command
+    density: high
+    container_model: status-rails-tables-and-alert-bands
+    typography: numeric-clarity-dense-labels
+    motion: alarm-state-live-update
+    avoid: [soft-pastels, low-contrast, decorative-animation]
+
+  - id: warm-editorial
+    best_for: [education, content, service]
+    shell: default_template
+    palette: warm-editorial
+    density: low
+    container_model: open-sections-and-reading-flow
+    typography: expressive-title-comfortable-body
+    motion: navigation-and-progress-only
+    avoid: [dense-dashboard, cold-neon, excessive-badges]

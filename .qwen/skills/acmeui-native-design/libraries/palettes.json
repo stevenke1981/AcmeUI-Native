@@ -1,0 +1,54 @@
+{
+  "version": "1.0.0",
+  "policy": "Hex values are only for acme-theme pack implementation and design references; never hardcode them in widgets.",
+  "palettes": [
+    {
+      "id": "calm-voice",
+      "name": "Calm Voice",
+      "use_for": ["voice dictation", "AI writing", "focus tools"],
+      "recommended_pack": "apple",
+      "light": {"background":"#F7F8FA","surface":"#FFFFFF","surfaceAlt":"#EEF1F5","foreground":"#17202A","mutedForeground":"#66717F","border":"#DCE2E8","primary":"#2764E7","primaryForeground":"#FFFFFF","accent":"#DDE8FF","focus":"#4D7FF0","success":"#23845B","warning":"#A86812","danger":"#B93A4B","info":"#216F9B"},
+      "dark": {"background":"#101317","surface":"#171B20","surfaceAlt":"#20262D","foreground":"#F4F7FA","mutedForeground":"#AAB4C0","border":"#303842","primary":"#78A0FF","primaryForeground":"#0E1728","accent":"#24365C","focus":"#8DB0FF","success":"#58C694","warning":"#E8AD55","danger":"#F07884","info":"#69B6DD"}
+    },
+    {
+      "id": "focused-productivity",
+      "name": "Focused Productivity",
+      "use_for": ["dashboard", "desktop utilities", "business tools"],
+      "recommended_pack": "windows11",
+      "light": {"background":"#F5F7FA","surface":"#FFFFFF","surfaceAlt":"#EDF1F6","foreground":"#121820","mutedForeground":"#5E6976","border":"#D7DEE7","primary":"#0F6CBD","primaryForeground":"#FFFFFF","accent":"#DCEEFF","focus":"#2B88D8","success":"#197A4E","warning":"#9A6200","danger":"#B3261E","info":"#0067A3"},
+      "dark": {"background":"#111418","surface":"#191D22","surfaceAlt":"#232930","foreground":"#F3F6F9","mutedForeground":"#A8B1BB","border":"#323A44","primary":"#60AFFF","primaryForeground":"#071B2F","accent":"#183A59","focus":"#84C2FF","success":"#50C58B","warning":"#E2B55A","danger":"#F27A73","info":"#65BDE8"}
+    },
+    {
+      "id": "studio-neutral",
+      "name": "Studio Neutral",
+      "use_for": ["media studio", "creative editor", "timeline tools"],
+      "recommended_pack": "one-dark",
+      "light": {"background":"#F3F4F6","surface":"#FFFFFF","surfaceAlt":"#E8EAED","foreground":"#17191C","mutedForeground":"#656A72","border":"#D2D5DA","primary":"#6D4AFF","primaryForeground":"#FFFFFF","accent":"#E8E2FF","focus":"#8066FF","success":"#25845D","warning":"#9A6700","danger":"#B83B50","info":"#2375A8"},
+      "dark": {"background":"#0E1013","surface":"#171A1F","surfaceAlt":"#22262D","foreground":"#F5F6F8","mutedForeground":"#A9AFB8","border":"#323741","primary":"#9B87FF","primaryForeground":"#161027","accent":"#332B5B","focus":"#B0A1FF","success":"#5BC795","warning":"#E4B75A","danger":"#F17B8D","info":"#67B8E3"}
+    },
+    {
+      "id": "quiet-settings",
+      "name": "Quiet Settings",
+      "use_for": ["settings", "preferences", "account"],
+      "recommended_pack": "material",
+      "light": {"background":"#FAFAFB","surface":"#FFFFFF","surfaceAlt":"#F0F1F3","foreground":"#1C1C1F","mutedForeground":"#696970","border":"#DDDEE2","primary":"#4255D4","primaryForeground":"#FFFFFF","accent":"#E5E8FF","focus":"#6172E3","success":"#2F7D55","warning":"#986312","danger":"#B33B43","info":"#33759B"},
+      "dark": {"background":"#121214","surface":"#1B1B1F","surfaceAlt":"#25252A","foreground":"#F4F4F6","mutedForeground":"#ADADB5","border":"#36363D","primary":"#94A0FF","primaryForeground":"#15193A","accent":"#30365F","focus":"#ADB6FF","success":"#65C291","warning":"#DCAD5E","danger":"#EF7A80","info":"#72B4D6"}
+    },
+    {
+      "id": "industrial-command",
+      "name": "Industrial Command",
+      "use_for": ["monitoring", "hardware", "operations"],
+      "recommended_pack": "nord",
+      "light": {"background":"#F2F4F5","surface":"#FFFFFF","surfaceAlt":"#E5E9EC","foreground":"#182026","mutedForeground":"#59666E","border":"#CDD4D8","primary":"#B76800","primaryForeground":"#FFFFFF","accent":"#FFE8C5","focus":"#D58512","success":"#237A4C","warning":"#9B6100","danger":"#B42D34","info":"#1D7195"},
+      "dark": {"background":"#111416","surface":"#191D20","surfaceAlt":"#23282C","foreground":"#F3F5F6","mutedForeground":"#AAB2B7","border":"#343B40","primary":"#F0A23A","primaryForeground":"#2A1800","accent":"#493515","focus":"#FFC16A","success":"#58C58B","warning":"#F1C35D","danger":"#F27378","info":"#65B6D6"}
+    },
+    {
+      "id": "warm-editorial",
+      "name": "Warm Editorial",
+      "use_for": ["content", "education", "service"],
+      "recommended_pack": "solarized",
+      "light": {"background":"#F8F4EE","surface":"#FFFDF9","surfaceAlt":"#F0E8DC","foreground":"#302821","mutedForeground":"#70645B","border":"#DCCFC2","primary":"#9B4B22","primaryForeground":"#FFFFFF","accent":"#F5DEC8","focus":"#BF6537","success":"#47734B","warning":"#986312","danger":"#A83E3C","info":"#3A6E8C"},
+      "dark": {"background":"#171411","surface":"#211D19","surfaceAlt":"#2D2722","foreground":"#F7F1EA","mutedForeground":"#B9ACA1","border":"#433A32","primary":"#E59464","primaryForeground":"#32180B","accent":"#51301E","focus":"#F0AD82","success":"#80B787","warning":"#DDB36C","danger":"#E47D78","info":"#80B3D0"}
+    }
+  ]
+}

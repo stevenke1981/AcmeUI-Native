@@ -1,0 +1,37 @@
+version: 1.0.0
+templates:
+  - id: voice-dictation
+    aliases: [typeless, dictation, speech-to-text, voice-input, AI-writing]
+    source: voice-dictation.rs
+    recipe: calm-voice
+    shell: apple_template
+    required_features: [foundations, inputs, layout, overlay, desktop]
+    regions: [app-bar, recording-focus, transcript, tone-controls, status]
+    states: [idle, listening, processing, ready, microphone-denied, offline, empty-history]
+
+  - id: dashboard
+    aliases: [admin, analytics, monitoring, KPI, report]
+    source: dashboard.rs
+    recipe: focused-productivity
+    shell: windows11_template
+    required_features: [foundations, inputs, layout, charts]
+    regions: [navigation, filters, metrics, primary-chart, activity]
+    states: [loading, ready, empty, filtered, error]
+
+  - id: settings
+    aliases: [preferences, account, privacy, shortcuts, devices]
+    source: settings.rs
+    recipe: quiet-settings
+    shell: default_template
+    required_features: [foundations, inputs, layout, overlay]
+    regions: [category-navigation, settings-section, save-feedback, danger-zone]
+    states: [clean, dirty, saving, saved, validation-error]
+
+  - id: media-studio
+    aliases: [video-editor, audio-editor, storyboard, timeline, creator]
+    source: media-studio.rs
+    recipe: studio-neutral
+    shell: ubuntu25_template
+    required_features: [foundations, inputs, layout, overlay, desktop, browser]
+    regions: [command-bar, asset-rail, preview, inspector, timeline]
+    states: [no-project, empty-project, selected, playing, exporting, export-error]
