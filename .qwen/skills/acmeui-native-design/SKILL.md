@@ -1,183 +1,289 @@
 ---
 name: acmeui-native-design
-description: Reference for building UIs with the AcmeUI-Native Rust widget framework (this repository). Use when adding/modifying widgets, components, themes, or layouts in crates/acme-ui, acme-widgets, acme-theme, acme-layout; when asked to create a UI component, screen, or gallery page in this project; or when questions arise about the WidgetNode builder pattern, semantic theme tokens, theme packs, or WCAG contrast. Triggers on "AcmeUI", "acme-ui", "add a component", "new widget", "theme pack", "WidgetNode", "builder pattern" within this repo. NOT for generic Rust help or unrelated GPUI/web projects.
+description: AcmeUI-Native 專用的 UI 設計、元件開發與 App 模板路由 Skill。當 Agent 需要建立新桌面 App、套用 voice-dictation/Typeless-like、dashboard、settings、media-studio 模板，或新增元件、主題、畫面、Gallery 頁面與執行視覺驗收時使用。強制先選工作模式與模板，再依 WidgetNode、semantic tokens、WCAG 與 Visual QA 流程實作。不得用於一般 Rust、GPUI 或 Web UI 專案。
+version: 2.0.0
+invocation: acmeui-native-design
 ---
 
-# AcmeUI-Native Design & Component Library
+# AcmeUI-Native Design Director & App Template Skill
 
-AcmeUI-Native is a **from-scratch native Rust UI framework** (wgpu rendering, winit
-windowing, Taffy layout, cosmic-text shaping). It is **not** GPUI and must never
-depend on GPUI. Everything is built on a small set of crates and a declarative
-`WidgetNode<M>` tree with a fluent builder API.
+本 Skill 是 AcmeUI-Native 專案的**設計路由器、App 模板庫、元件參考與視覺驗收入口**。
 
-## Crate architecture
+Agent 不得只把它當成 API 文件。每次使用時必須先判斷任務模式、選擇模板或視覺方向、建立實作契約，再進入程式碼。
 
-| Crate | Role |
-|-------|------|
-| `acme-core` | `NodeId`, `WidgetKey`, events, hit-testing primitives |
-| `acme-layout` | Taffy-backed `LayoutEngine`, `LayoutNode`, `LayoutStyle`, `Length`, `Edges` |
-| `acme-text` | `FontSystem`, `GlyphAtlas`, text measurement/shaping |
-| `acme-textinput` | Text editing buffer (cursor/selection/IME) — **never use byte offsets for cursors** |
-| `acme-style` | `Style` + `Styled` trait (tailwind-style utilities) |
-| `acme-theme` | `Theme`, semantic `ColorTokens`, spacing/radius/typography/shadow tokens, `packs::` brand themes |
-| `acme-widgets` | Core `WidgetNode<M>` enum + primitives (Row/Column/Stack/Label/Button/Card/…) |
-| `acme-ui` | High-level component library (foundations/inputs/layout/overlay/charts/desktop/browser/mobile) |
-| `acme-animation` | Tween/easing engine |
-| `acme-accessibility` | AccessKit tree builder |
-| `acme-render-wgpu` | wgpu renderer, `Frame`, `Quad`, `TextRun` |
-| `acme-platform` | winit `Application` trait, window/event loop |
-| `acme-devtools` | Frame metrics, widget tree dump, layout inspector |
+## 0. 專案事實
 
-Apps: `apps/gallery`, `apps/acme-gallery` (showcase), `apps/playground`, `apps/benchmark`.
+- AcmeUI-Native 是從零建立的 Rust Native UI framework。
+- 渲染與視窗層為 wgpu + winit，排版為 Taffy，文字為 cosmic-text。
+- 核心 UI 使用 `WidgetNode<M>` 與 fluent builder API。
+- `acme-ui` 是高階元件庫；`acme-widgets` 是 primitives。
+- 顏色必須來自 `acme-theme` semantic tokens。
+- 專案**不是 GPUI**，禁止加入 GPUI 依賴。
 
-## The WidgetNode builder pattern
+## 1. 啟動時必須先輸出的內容
 
-`WidgetNode<M>` is the core enum (`M` = app message type). Primitives live in
-`acme-widgets`; re-exported through `acme-ui`. Build trees with fluent builders,
-then `.build()` or `.into()`:
+Agent 在開始修改前，先用 4 至 8 行明確宣告：
+
+```text
+Mode: template-first | new-app | component | redesign | theme | review
+Template: voice-dictation | dashboard | settings | media-studio | none
+Visual recipe: calm-voice | focused-productivity | ...
+Target files: ...
+Validation: cargo check/test + screenshot/manual visual QA
+```
+
+不得在沒有宣告模式與範圍時直接大量寫 UI。
+
+## 2. 工作模式路由
+
+### `template-first`
+
+適用：使用者說「做一個像 Typeless 的 App」、「做管理後台」、「做設定程式」、「做影音編輯器」。
+
+流程：
+
+1. 讀取 `templates/catalog.yaml`。
+2. 根據產品工作流選模板，不可只看外觀名稱。
+3. 讀取對應的 `templates/<id>.rs` starter。
+4. 讀取 `templates/catalog.yaml` 的區域、必要狀態與 feature 要求。
+5. 先建立 `.design/template-selection.md`，再實作。
+6. 保留模板資訊架構，但依需求增減功能；不可直接複製第三方品牌或像素外觀。
+
+### `new-app`
+
+適用：建立新的 `apps/<name>`。
+
+預設以 `apps/playground` 作為 runtime 參考，使用 `acme-ui` 組合畫面。Agent 必須：
+
+1. 建立 app package 與 workspace member。
+2. 選擇 `default_template`、`apple_template`、`windows11_template` 或 `ubuntu25_template`。
+3. 將 state、message、view、runtime/event handling 分開。
+4. 先讓 starter view 編譯，再加入完整互動。
+5. 不得宣稱全域快捷鍵、語音辨識、IME 或 GPU recovery 已完成，除非有實際測試證據。
+
+### `component`
+
+適用：新增或修改 `crates/acme-ui`、`acme-widgets` 元件。
+
+依本 Skill 的「新增元件」與 WidgetNode 規則執行。優先組合現有 primitives，避免新增重複元件。
+
+### `redesign`
+
+適用：保留功能與資料流，重新整理視覺層級、版面、配色與元件一致性。
+
+依本 Skill 的 Visual Design Director Gates，先建立 brief、art direction、component inventory，再改程式。
+
+### `theme`
+
+適用：新增 theme pack、調整 semantic tokens 或 WCAG。
+
+先查 `libraries/palettes.json` 與現有 `acme_theme::packs`。Hex 值只能用於 theme pack 定義或設計文件；Widget 內禁止硬編碼。
+
+### `review`
+
+適用：只檢查 UI、截圖、元件一致性、響應式與 accessibility，不直接改程式。
+
+輸出 `.design/visual-qa.md`，依本 Skill 的 100 分 Visual QA 評分。
+
+## 3. App 模板選擇器
+
+依需求中的主要動詞與資料流選擇：
+
+| 需求特徵 | 模板 | 核心區域 |
+|---|---|---|
+| 說話、錄音、轉文字、語氣、歷史紀錄 | `voice-dictation` | 錄音狀態、逐字稿、語氣、歷史、設定 |
+| KPI、監控、報表、趨勢、資料表 | `dashboard` | 導航、指標、圖表、活動、篩選 |
+| 偏好、帳號、快捷鍵、隱私、裝置 | `settings` | 分類導航、表單區、儲存狀態 |
+| 素材、預覽、時間軸、屬性、匯出 | `media-studio` | 素材庫、畫布/預覽、Inspector、Timeline |
+| 不符合以上 | `none` | 先做 Design Brief，再建立新模板 |
+
+「像某 App」只代表工作流參考。必須轉譯為區域、狀態、元件與互動，不得複製商標、文案或專屬品牌造型。
+
+## 4. Template-first 標準流程
+
+### Gate A — 需求與模板匹配
+
+建立 `.design/template-selection.md`：
+
+- 使用者目標
+- 選擇的 template ID
+- 選擇理由
+- 保留的區域
+- 移除或新增的區域
+- 必要狀態
+- 技術風險
+
+### Gate B — Art Direction
+
+從 `libraries/style-recipes.yaml` 選一個 recipe，再從 `libraries/palettes.json` 選 palette 或現有 theme pack。
+
+建立 `.design/art-direction.md`：
+
+- 主視覺方向
+- 主要與次要焦點
+- 資訊密度
+- 字體階層
+- 容器模型
+- 色彩與 theme pack
+- 圖示與動態原則
+- 禁止項目
+
+### Gate C — Component Inventory
+
+建立 `.design/component-inventory.md`，逐區列出：
+
+- 可直接使用的 AcmeUI 元件
+- 需要組合的 primitives
+- 真正缺少、需要新增的元件
+- Default/Hover/Pressed/Focus/Disabled/Loading/Error 狀態
+
+禁止先新增元件，再尋找使用場景。
+
+### Gate D — Starter Integration
+
+1. 複製對應 `templates/<id>.rs` 到目標 app 的 view module。
+2. 重新命名 message/state 型別。
+3. 將 placeholder data 替換成真實 state。
+4. 將訊息接到 update/event handling。
+5. 以 semantic theme tokens 驗證 light/dark。
+6. 加入功能時維持模板的區域責任，不把所有內容塞進 Card。
+
+### Gate E — Visual QA
+
+至少驗證：
+
+- 預設狀態
+- 核心操作中的 active/recording/editing 狀態
+- Empty
+- Error 或 permission denied
+- Light/Dark
+- 1280×720 與主要目標尺寸
+
+沒有實際畫面或截圖證據，不得宣告設計完成。
+
+## 5. Visual Design Director 規則
+
+1. 複雜 App 必須先設計資訊架構，不得直接堆元件。
+2. 一個畫面只能有一個主要焦點與一個主要動作。
+3. 字體階層與間距優先於陰影、漸層和裝飾。
+4. 預設使用開放式版面、列表、工具列、分割面板與畫布；不要把所有區域做成卡片。
+5. 不使用與品牌無關的藍紫漸層、玻璃模糊、假 KPI、過量 Badge/Pill。
+6. 同一類元件必須共享尺寸、圓角、間距與狀態規則。
+7. 實作 Agent 無權只靠自評判定美觀；必須執行 Visual QA。
+8. 視覺品質低於 90/100，繼續修正。
+
+完整流程已整合在 Gate A 至 Gate E；不得跳過模板選擇、Art Direction、Component Inventory 與 Visual QA。
+
+## 6. WidgetNode 最小正確模式
 
 ```rust
-use acme_widgets::{button, card, column, row, label, separator, WidgetNode};
+use acme_ui::prelude::*;
 
-fn profile_card<M: Clone + 'static>() -> WidgetNode<M> {
-    card::<M>()
-        .variant(acme_widgets::CardVariant::Elevated)
-        .padding(16.0)
-        .gap(8.0)
-        .child(label("Ada Lovelace"))
-        .child(separator())
+#[derive(Clone, Debug, PartialEq)]
+enum AppMessage {
+    Save,
+    Cancel,
+}
+
+fn view() -> WidgetNode<AppMessage> {
+    default_template("Settings")
+        .subtitle("A calm, keyboard-friendly workspace")
         .child(
-            row::<M>()
-                .gap(12.0)
-                .child(label("Engineer"))
-                .child(button("edit", "Edit").primary()),
+            card::<AppMessage>()
+                .gap(8.0)
+                .padding(16.0)
+                .child(label("Preferences"))
+                .build(),
+        )
+        .child(
+            row::<AppMessage>()
+                .gap(8.0)
+                .child(button("cancel", "Cancel").on_click(AppMessage::Cancel))
+                .child(button("save", "Save").primary().on_click(AppMessage::Save))
+                .build(),
         )
         .build()
 }
 ```
 
-Container builders (`row`/`column`/`stack`/`card`) support: `.key()`, `.child()`,
-`.gap()`, `.padding()`, `.width()`, `.height()`, `.size()`, `.on_click(msg)`,
-`.variant()` (card), `.build()`. Buttons: `.primary()`, `.variant()`, `.size()`,
-`.disabled()`, `.loading()`, `.full_width()`, `.on_click(msg) -> WidgetNode`.
+規則：
 
-## Component library inventory (`crates/acme-ui/src/`)
+- 動態列表與互動控制使用 stable key。
+- View 只由 state 推導；狀態修改放在 update/event layer。
+- Container builders 使用 `.build()` 或明確 `Into<WidgetNode<M>>`。
+- 不要在 app view 直接操作 wgpu/winit public types。
 
-- **foundations/** — accordion, alert, aspect_ratio, avatar, badge, banner, calendar,
-  callout, chip, code, collapsible, copy_button, data_list, descriptions, divider,
-  drop_zone, empty_state, flex, hero, icon, indicator, kbd, kbd_combo, link, list,
-  live_region, media_card, metric_card, progress, progress_ring, qr_code, quote,
-  result, skeleton, skeleton_shape, spinner, statistic, status_dot, tag, timeline,
-  typography, visually_hidden, watermark
-- **inputs/** — autocomplete, button_group, cascader, checkbox, checkbox_cards,
-  color_picker, combobox, date_picker, date_range_picker, file_upload, form_field,
-  icon_button, input_group, input_otp, mentions, multi_select, number_input,
-  password_input, pin_input, radio, radio_cards, range_slider, rating, search_input,
-  segmented_control, select, slider, slider_marks, switch, tag_input, text_field,
-  textarea, time_picker, toggle_button, toggle_group, transfer, tree_select
-- **layout/** — affix, anchor, app_bar, bottom_navigation, breadcrumb, form, grid,
-  image_list, inset, masonry, navigation_menu, page_header, pagination, paper,
-  resizable, scroll_area, section, settings_page, sidebar, split_panel, status_bar,
-  stepper, tabs, toolbar
-- **overlay/** — about_dialog, backdrop, command_palette, confirm_dialog, context_menu,
-  drawer, dropdown_menu, float_button, fullscreen, hover_card, modal, notification,
-  speed_dial, toast, tour
-- **charts/** — area, bar, box_plot, bubble, candlestick, donut, funnel, gauge, heatmap,
-  histogram, line, parallel_coordinates, pie, radar, radial_bar, scatter, sparkline,
-  timeline, treemap, waterfall
-- **desktop/** — command_bar, dock, image_view, markdown_view, menubar, navigation_view,
-  property_grid, resize_handle, sidenav, status_tray, taskbar, title_bar, window_controls
-- **browser/** — audio_player, carousel, code_viewer, document_viewer, embed,
-  image_gallery, lightbox, map_view, media_grid, pdf_viewer, rich_text, url_preview,
-  video_player, web_frame, web_preview, zoom_view
-- **mobile/** — action_sheet, bottom_nav, bottom_sheet, pull_to_refresh, search_bar,
-  mobile_{action,avatar,banner,button,card,chip,list_item,loader,notification,
-  progress,search,segmented,sheet_handle,stepper,toggle}
+## 7. Theme 與配色
 
-The library aligns with shadcn/ui, Ant Design, MUI, Radix UI, and absorbs
-gpui-component strengths (see `docs/status/todos.md` P6–P10).
+- Widget 內只能使用 `theme.colors.<semantic_field>` 或由元件解析的 semantic tone。
+- Palette library 是 theme pack 的設計輸入，不是 Widget 的 Hex 值來源。
+- Light/Dark 都要定義 background、surface、foreground、muted、border、primary、focus、success、warning、danger、info。
+- 新 theme pack 必須執行 `meets_wcag_aa()` 與 `wcag_report()`。
+- 優先使用現有 packs：apple、windows10、windows11、ubuntu、material、nord、dracula、solarized、gruvbox、one-dark。
 
-## Theme system
+配色資料見 `libraries/palettes.json`；視覺方向見 `libraries/style-recipes.yaml`。
 
-`acme_theme::Theme` holds semantic tokens — **never hardcode colors in widgets**;
-consume `theme.colors.<semantic_field>`. Key fields: `background`/`foreground`,
-`surface`/`surface_foreground`, `primary`/`primary_foreground`, `secondary`, `accent`,
-`muted`, `border`, `ring`, `success`/`warning`/`danger`/`info` (+ `_soft` variants),
-`surface_elevated`/`overlay`/`tooltip`, hover/pressed states, `disabled_bg`/`disabled_text`.
+## 8. 新增元件
 
-```rust
-use acme_theme::{Theme, ThemeMode};
-let theme = Theme::light();           // or Theme::dark()
-let bg = theme.colors.background;     // semantic, renderer-resolved
-```
+1. 確認 catalog 中不存在等價元件。
+2. 建立 `crates/acme-ui/src/<family>/<name>.rs`。
+3. 定義 `XxxBuilder<M>` 與 fluent setters。
+4. 若 `M` 未出現在欄位，加 `PhantomData<M>`。
+5. `From<XxxBuilder<M>> for WidgetNode<M>` 優先組合現有 primitives。
+6. 在 `mod.rs` 同時加入 `pub mod xxx;` 與 `pub use xxx::*;`。
+7. 測試 stable key、children、defaults、variant/state。
+8. 在 Gallery 加入可見示例；注意 `apps/acme-gallery` 的手動 button index 同步問題。
 
-### Brand theme packs (`acme_theme::packs`)
+## 9. 硬性規則
 
-10 curated packs, each `ThemePack` with light + dark: **apple, windows10, windows11,
-ubuntu, material, nord, dracula, solarized, gruvbox, one-dark**.
+- 禁止 GPUI。
+- Widget 禁止硬編碼 theme colors。
+- Text cursor 禁止使用 byte offsets；使用 char/grapheme indices。
+- 禁止公開 platform-specific winit/wgpu types。
+- 未手動驗證，不得聲稱繁體中文 IME 正常。
+- 不以 `cargo clean` 當例行修復。
+- Build 成功不等於 Visual QA 通過。
+- 不得把第三方產品的商標、文案與專屬視覺直接做成模板。
 
-```rust
-use acme_theme::packs::{theme_by_name, available_themes};
-let theme = theme_by_name("apple", ThemeMode::Dark).unwrap();
-for name in available_themes() { /* "apple", "windows10", … */ }
-```
-
-Build a pack from a palette via `Theme::from_colors(mode, colors, shadows)` (shares
-structural tokens), then tweak `theme.radii`/`spacing` for brand geometry.
-
-### WCAG contrast
-
-```rust
-use acme_theme::{contrast_ratio, ContrastLevel};
-let ratio = theme.contrast(theme.colors.foreground, theme.colors.background);
-let level = ContrastLevel::from_ratio(ratio); // Aaa ≥7, Aa ≥4.5, AaLarge ≥3, Fail
-assert!(theme.meets_wcag_aa());               // all key text pairs ≥ 4.5:1
-let report = theme.wcag_report();             // Vec<(pair_name, ratio, level)>
-```
-
-## Adding a new component (the established pattern)
-
-1. Create `crates/acme-ui/src/<module>/<name>.rs`.
-2. Define a builder struct `XxxBuilder<M>` with public config fields. If `M` is unused
-   in fields, add `_phantom: std::marker::PhantomData<M>` (and init it).
-3. Provide a constructor `pub fn xxx<M: Clone + 'static>(...) -> XxxBuilder<M>`.
-4. Add fluent `impl<M: Clone + 'static> XxxBuilder<M>` setters (`mut self -> Self`).
-5. Implement `impl<M: Clone + 'static> From<XxxBuilder<M>> for WidgetNode<M>` composing
-   existing primitives (`crate::row`, `crate::column`, `crate::card`, `crate::label`,
-   `crate::button`, `crate::icon`, …).
-6. Register in the module's `mod.rs`: `pub mod xxx;` **and** `pub use xxx::*;`.
-7. Add `#[cfg(test)] mod tests` with a local `enum Msg`, asserting the produced
-   `WidgetNode` variant, child counts, and builder defaults.
-8. Run `cargo test -p acme-ui --all-features -- <name>`.
-
-Reference implementations: `mobile/mobile_button.rs` (button wrap),
-`mobile/bottom_nav.rs` (multi-item builder), `foundations/progress.rs` (custom layout),
-`packs/apple.rs` (theme pack).
-
-## Hard rules (from AGENTS.md)
-
-- **Never add GPUI.** This is an independent framework.
-- **Never hardcode theme colors inside widgets** — use semantic `theme.colors.*`.
-- **Never use byte offsets for text cursors** — use char/grapheme indices via acme-textinput.
-- **Never expose platform-specific types publicly** — keep winit/wgpu types internal.
-- **Never claim Traditional Chinese IME works without manual validation.**
-- **Never use `cargo clean` as a routine fix.**
-
-## Verification commands
+## 10. 驗證命令
 
 ```bash
-cargo check --workspace                       # fast full compile
-cargo test -p acme-ui --all-features          # component tests
-cargo test -p acme-theme                      # theme + WCAG + packs tests
-cargo check -p acme-ui-gallery                # gallery app
+cargo fmt --all -- --check
+cargo check --workspace --all-targets
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test -p acme-ui --all-features
+cargo test -p acme-theme
+cargo check -p acme-ui-gallery
 ```
 
-## Gallery app notes (`apps/acme-gallery`)
+新 App 至少另外執行：
 
-Single-file `main.rs` with a manual wgpu render path. The toolbar has a light/dark
-toggle, a **theme-pack cycle button** (🎨, shows current pack + WCAG ✓AA/⚠AA), and an
-info button. Selection persists to `acme-gallery-theme.conf` (gitignored) via
-`load_theme_pref()`/`save_theme_pref()`. **Caution:** the manual renderer uses hardcoded
-button-index ranges (sidebar 0–6, toolbar 7–9, content 10+); adding/removing toolbar
-buttons requires updating `toolbar_buttons: [NodeId; N]`, `extract_gallery_ids`,
-`tb_labels`, and the content `btn_idx` base in lockstep.
+```bash
+cargo check -p <new-package>
+cargo run -p <new-package>
+```
+
+## 11. 完成回報格式
+
+```text
+Mode / Template / Recipe:
+Changed files:
+State and message wiring:
+Theme and WCAG result:
+Functional checks:
+Visual QA sizes and states:
+Visual score:
+Known limitations:
+```
+
+沒有證據不得使用「專業級」、「像素級一致」、「完整支援」等描述。
+
+## 12. 資源索引
+
+- `README.md`：人類與 Agent 快速使用說明
+- `templates/catalog.yaml`：可機器讀取的模板索引、區域與必要狀態
+- `templates/*.rs`：可複製的 WidgetNode starter views
+- `libraries/palettes.json`：semantic palette library
+- `libraries/style-recipes.yaml`：視覺方向 recipes
+- `assets/layout-gallery.svg`：App layout 圖庫
+- `assets/palette-gallery.svg`：配色圖庫

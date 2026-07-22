@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="620" viewBox="0 0 1280 620">
+  <rect width="1280" height="620" fill="#ffffff"/>
+  <text x="48" y="54" font-family="Segoe UI, sans-serif" font-size="28" font-weight="700" fill="#17202a">AcmeUI Semantic Palette Gallery</text>
+  <g font-family="Segoe UI, sans-serif" font-size="16" font-weight="600">
+    <g transform="translate(48 92)"><text y="22" fill="#17202a">Calm Voice</text><rect y="42" width="176" height="88" rx="12" fill="#F7F8FA" stroke="#DCE2E8"/><rect x="176" y="42" width="176" height="88" fill="#2764E7"/><rect x="352" y="42" width="176" height="88" rx="12" fill="#17202A"/></g>
+    <g transform="translate(672 92)"><text y="22" fill="#17202a">Focused Productivity</text><rect y="42" width="176" height="88" rx="12" fill="#F5F7FA" stroke="#D7DEE7"/><rect x="176" y="42" width="176" height="88" fill="#0F6CBD"/><rect x="352" y="42" width="176" height="88" rx="12" fill="#121820"/></g>
+    <g transform="translate(48 250)"><text y="22" fill="#17202a">Quiet Settings</text><rect y="42" width="176" height="88" rx="12" fill="#FAFAFB" stroke="#DDDEE2"/><rect x="176" y="42" width="176" height="88" fill="#4255D4"/><rect x="352" y="42" width="176" height="88" rx="12" fill="#1C1C1F"/></g>
+    <g transform="translate(672 250)"><text y="22" fill="#17202a">Studio Neutral</text><rect y="42" width="176" height="88" rx="12" fill="#F3F4F6" stroke="#D2D5DA"/><rect x="176" y="42" width="176" height="88" fill="#6D4AFF"/><rect x="352" y="42" width="176" height="88" rx="12" fill="#17191C"/></g>
+    <g transform="translate(48 408)"><text y="22" fill="#17202a">Industrial Command</text><rect y="42" width="176" height="88" rx="12" fill="#F2F4F5" stroke="#CDD4D8"/><rect x="176" y="42" width="176" height="88" fill="#B76800"/><rect x="352" y="42" width="176" height="88" rx="12" fill="#182026"/></g>
+    <g transform="translate(672 408)"><text y="22" fill="#17202a">Warm Editorial</text><rect y="42" width="176" height="88" rx="12" fill="#F8F4EE" stroke="#DCCFC2"/><rect x="176" y="42" width="176" height="88" fill="#9B4B22"/><rect x="352" y="42" width="176" height="88" rx="12" fill="#302821"/></g>
+  </g>
+</svg>
