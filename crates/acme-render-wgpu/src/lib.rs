@@ -216,7 +216,9 @@ struct GlyphInstance {
     viewport_mode: [f32; 4],
 }
 
-const ATLAS_SIZE: u32 = 2048;
+// Desktop applications with CJK-heavy settings/history pages need enough
+// resident glyph space to avoid invalidating toolbar text within one frame.
+const ATLAS_SIZE: u32 = 4096;
 
 /// Initial per-buffer instance capacity (1024 instances approx 64 KiB each).
 const INITIAL_QUAD_CAPACITY: u64 = 1024;

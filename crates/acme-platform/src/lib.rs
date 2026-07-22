@@ -205,6 +205,20 @@ pub trait Application: 'static {
     /// Applications owning CPU-side caches that mirror GPU resources should
     /// invalidate them here so the next frame repopulates the new GPU resources.
     fn on_gpu_recovered(&mut self, _window: WindowId) {}
+
+    /// Optional polling interval for background-thread work such as global hotkeys.
+    /// `None` keeps the runtime fully event-driven while `Some` schedules redraws
+    /// without forcing a busy `ControlFlow::Poll` loop.
+    fn background_poll_interval(&self) -> Option<std::time::Duration> {
+        None
+    }
+
+    /// Poll application-owned background queues. Return `true` when a redraw
+    /// is needed. The runtime calls this only when `background_poll_interval`
+    /// is enabled, so idle windows do not repaint continuously.
+    fn background_tick(&mut self) -> bool {
+        false
+    }
     fn frame(&mut self, context: FrameContext) -> Scene;
 }
 
@@ -268,6 +282,7 @@ struct Runtime<A> {
     app: A,
     windows: HashMap<WinitWindowId, WindowState>,
     next_window_id: u64,
+    next_background_poll: Option<std::time::Instant>,
 }
 
 impl<A> Runtime<A> {
@@ -276,11 +291,31 @@ impl<A> Runtime<A> {
             app,
             windows: HashMap::new(),
             next_window_id: 0,
+            next_background_poll: None,
         }
     }
 }
 
 impl<A: Application> ApplicationHandler for Runtime<A> {
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        let Some(interval) = self.app.background_poll_interval() else {
+            return;
+        };
+        let now = std::time::Instant::now();
+        let deadline = self.next_background_poll.unwrap_or(now);
+        if now >= deadline {
+            if self.app.background_tick() {
+                for state in self.windows.values() {
+                    state.window.request_redraw();
+                }
+            }
+            self.next_background_poll = Some(now + interval);
+        }
+        if let Some(next) = self.next_background_poll {
+            event_loop.set_control_flow(ControlFlow::WaitUntil(next));
+        }
+    }
+
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if !self.windows.is_empty() {
             return;
@@ -566,6 +601,19 @@ mod tests {
         assert_eq!(app.ime_cursor_area(WindowId(1)), None);
         let resolved = resolve_ime_cursor_area(app.ime_cursor_area(WindowId(1)), (5.0, 6.0));
         assert_eq!(resolved, [5.0, 6.0, 1.0, 24.0]);
+    }
+
+    #[test]
+    fn background_polling_is_opt_in() {
+        struct DefaultApp;
+        impl Application for DefaultApp {
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
+            }
+        }
+        let mut app = DefaultApp;
+        assert_eq!(app.background_poll_interval(), None);
+        assert!(!app.background_tick());
     }
 
     #[test]

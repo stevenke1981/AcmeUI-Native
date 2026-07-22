@@ -20,7 +20,7 @@ It combines:
 - **Semantic design tokens** — light/dark/high-contrast themes
 - **AccessKit accessibility** — screen reader support
 - **Animation engine** — tween/ease/bounce/yoyo/loop
-- **150 high-level components** — via `acme-ui` (shadcn/ui + Material UI + Ant Design inspired)
+- **165 high-level components** — via `acme-ui` (shadcn/ui + Material UI + Ant Design inspired)
 
 ### Default Template (acme-ui 0.2.0)
 
@@ -53,7 +53,7 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 
 | Layer | Crate | Role |
 |-------|-------|------|
-| UI Components | `acme-ui` | 150 high-level widgets (Slider, Switch, DatePicker, Toast, Dock, Masonry, FileUpload, VideoPlayer, Heatmap …) |
+| UI Components | `acme-ui` | 165 high-level widgets (Slider, Switch, DatePicker, Toast, Dock, Masonry, FileUpload, VideoPlayer, Heatmap, MobileCard …) |
 | Widget Primitives | `acme-widgets` | WidgetNode enum, builder DSL, overlay manager, visual states |
 | Text Editing | `acme-textinput` | Cursor, selection, clipboard, IME preedit/commit, undo/redo (✓ 100 tests) |
 | Layout | `acme-layout` | Taffy-based flexbox layout engine |
@@ -71,7 +71,7 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 | App | Package | Purpose |
 |-----|---------|---------|
 | `apps/gallery` | `acme-gallery` | Primary demo — 8-category navigation, live data/nav demos (Tree, Table, DataGrid, VirtualList), screenshot mode |
-| `apps/acme-gallery` | `acme-ui-gallery` | V2 component showcase — 150 high-level `acme-ui` components |
+| `apps/acme-gallery` | `acme-ui-gallery` | V2 component showcase — 165 high-level `acme-ui` components |
 | `apps/playground` | `playground` | Minimal dev sandbox for quick experiments |
 | `apps/benchmark` | `benchmark` | Headless layout/reconciliation/frame-build benchmarks |
 
@@ -222,7 +222,7 @@ component demonstrations.
 | Core framework | ✅ **Stable** — tree, layout, render, text, theme, animation, accessibility, widgets |
 | Text input + IME | ✅ **Stable** — 100 tests, caret geometry, Traditional Chinese preedit/commit |
 | Data components | 🧪 **Experimental** — Tree, Table, DataGrid, VirtualList with live Gallery demos |
-| UI component library | 🧪 **Experimental** — 150 components (acme-ui), showcased in acme-ui-gallery |
+| UI component library | 🧪 **Experimental** — 165 components (acme-ui), showcased in acme-ui-gallery |
 | GPU device-loss recovery | 🧪 **Wired** — pure-test state machine + `on_gpu_recovered` hook; **manual validation pending** |
 | Traditional Chinese 注音 IME | 🧪 **Architecture done** — **manual validation pending** |
 | Screenshot golden tests | 📋 **Scaffolded** — not yet in CI |
@@ -247,7 +247,7 @@ AcmeUI-Native/
 │   ├── acme-animation/     # Tween engine
 │   ├── acme-style/         # Styling abstraction layer
 │   ├── acme-widgets/       # WidgetNode enum + builder DSL
-│   ├── acme-ui/            # 150 high-level components
+│   ├── acme-ui/            # 165 high-level components
 │   ├── acme-accessibility/ # AccessKit bridge
 │   └── acme-devtools/      # Inspector, metrics, debugger
 ├── apps/
@@ -351,9 +351,9 @@ The `apps/gallery` (primary demo) has been fully converted from a 2593-line mono
 | `overlay/` | 10 | S1 | `overlay` | ✅ |
 | `desktop/` | 13 | S1 | `desktop` | — |
 | `charts/` | 20 | S0 (experimental) | `charts` | — |
-| `mobile/` | 5 | S1 (experimental) | `mobile` | — |
+| `mobile/` | 20 | S1 (experimental) | `mobile` | — |
 | `browser/` | 16 | S0 (experimental) | `browser` | — |
-| **Total** | **150 component files** | — | 8 feature gates | 4 default |
+| **Total** | **165 component files** | — | 8 feature gates | 4 default |
 
 > Component maturity levels: **S0** Scaffold, **S1** Visual, **S2** Interactive, **S3** Accessible, **S4** Production.  
 > Interactive features (pointer, keyboard, message dispatch) are listed per module.  
