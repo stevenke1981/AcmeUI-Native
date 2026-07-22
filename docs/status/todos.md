@@ -75,7 +75,7 @@
 > Each needs a builder-pattern struct + `From<Builder> for WidgetNode<M>` + unit tests,
 > following the `bottom_nav` / `action_sheet` reference pattern.
 
-- [ ] mobile_button — sized variants (sm/md/lg), disabled state, on_press message
+- [x] mobile_button — sized variants (sm/md/lg), disabled state, on_press message; 36/44/52px touch heights, Gallery page, and hit-index regression tests (2026-07-23)
 - [ ] mobile_card — title + subtitle + optional media slot + elevation
 - [ ] mobile_toggle — switch track + thumb layout, checked state, on_change
 - [ ] mobile_stepper — minus/plus buttons flanking a value label, min/max clamp

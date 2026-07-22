@@ -19,6 +19,7 @@ use acme_theme::{Theme, ThemeColor, ThemeMode};
 use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
+use acme_ui::mobile::{MobileButtonSize, mobile_button};
 use acme_widgets::{
     ButtonSize, ButtonState, ButtonVariant, CardVariant, WidgetNode, button, card, column, label,
     label_with_size, row, scroll_view, separator,
@@ -68,6 +69,10 @@ const CATEGORIES: &[CategoryInfo] = &[
         name: "Charts",
         pages: &["All Charts"],
     },
+    CategoryInfo {
+        name: "Mobile",
+        pages: &["Button sizes", "States"],
+    },
 ];
 
 // ── Messages ─────────────────────────────────────────────────────────────────
@@ -78,6 +83,7 @@ enum GalleryMessage {
     ToggleTheme,
     CycleTheme,
     DpiInfo,
+    MobilePressed(MobileButtonSize),
 }
 
 // ── Theme preference persistence ────────────────────────────────────────────
@@ -128,6 +134,7 @@ struct Gallery {
     scroll: f32,
     max_scroll: f32,
     button_info: Vec<HitRegion>,
+    last_mobile_press: Option<MobileButtonSize>,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -141,7 +148,7 @@ impl Gallery {
             .filter(|(pack, _)| pack == "default" || available_themes().contains(&pack.as_str()))
             .unwrap_or_else(|| ("default".to_string(), false));
         Self {
-            selected_category: 6, // Start on Charts page
+            selected_category: CATEGORIES.len() - 1, // Start on the newest showcase page.
             dark,
             theme_pack,
             cursor: (0.0, 0.0),
@@ -150,6 +157,7 @@ impl Gallery {
             scroll: 0.0,
             max_scroll: 0.0,
             button_info: Vec::new(),
+            last_mobile_press: None,
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::new(2048, 2048),
             layout: LayoutEngine::new(),
@@ -185,7 +193,11 @@ impl Gallery {
 
     fn toolbar(&self) -> WidgetNode<GalleryMessage> {
         let theme = self.current_theme();
-        let wcag_label = if theme.meets_wcag_aa() { "✓AA" } else { "⚠AA" };
+        let wcag_label = if theme.meets_wcag_aa() {
+            "✓AA"
+        } else {
+            "⚠AA"
+        };
         row()
             .key("toolbar")
             .gap(8.0)
@@ -195,11 +207,8 @@ impl Gallery {
                     .on_click(GalleryMessage::ToggleTheme),
             )
             .child(
-                button(
-                    "pack_btn",
-                    format!("🎨 {} {}", self.theme_pack, wcag_label),
-                )
-                .on_click(GalleryMessage::CycleTheme),
+                button("pack_btn", format!("🎨 {} {}", self.theme_pack, wcag_label))
+                    .on_click(GalleryMessage::CycleTheme),
             )
             .child(button("info_btn", "ℹ Info").on_click(GalleryMessage::DpiInfo))
             .build()
@@ -249,6 +258,7 @@ impl Gallery {
             4 => self.overlay_page(),
             5 => self.data_page(),
             6 => self.charts_page(),
+            7 => self.mobile_page(),
             _ => label("Unknown category"),
         }
     }
@@ -638,6 +648,59 @@ impl Gallery {
             .build()
     }
 
+    fn mobile_page(&self) -> WidgetNode<GalleryMessage> {
+        let status = match self.last_mobile_press {
+            Some(MobileButtonSize::Sm) => "Last action: Small button",
+            Some(MobileButtonSize::Md) => "Last action: Medium button",
+            Some(MobileButtonSize::Lg) => "Last action: Large button",
+            None => "Last action: none — activate a button to verify message dispatch",
+        };
+
+        column()
+            .gap(20.0)
+            .padding(24.0)
+            .child(label_with_size("Mobile", 24.0))
+            .child(separator())
+            .child(label(
+                "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
+            ))
+            .child(self.page_section(
+                "Mobile Button — sizes",
+                column()
+                    .gap(12.0)
+                    .child(WidgetNode::from(
+                        mobile_button("mobile_sm", "Small · 36 px")
+                            .size(MobileButtonSize::Sm)
+                            .on_press(GalleryMessage::MobilePressed(MobileButtonSize::Sm)),
+                    ))
+                    .child(WidgetNode::from(
+                        mobile_button("mobile_md", "Medium · 44 px")
+                            .size(MobileButtonSize::Md)
+                            .on_press(GalleryMessage::MobilePressed(MobileButtonSize::Md)),
+                    ))
+                    .child(WidgetNode::from(
+                        mobile_button("mobile_lg", "Large · 52 px")
+                            .size(MobileButtonSize::Lg)
+                            .on_press(GalleryMessage::MobilePressed(MobileButtonSize::Lg)),
+                    ))
+                    .build(),
+            ))
+            .child(self.page_section(
+                "States",
+                column()
+                    .gap(12.0)
+                    .child(label(status))
+                    .child(WidgetNode::from(
+                        mobile_button("mobile_disabled", "Disabled")
+                            .size(MobileButtonSize::Md)
+                            .disabled(true)
+                            .on_press(GalleryMessage::MobilePressed(MobileButtonSize::Md)),
+                    ))
+                    .build(),
+            ))
+            .build()
+    }
+
     fn design_system_page(&self) -> WidgetNode<GalleryMessage> {
         column()
             .gap(24.0)
@@ -870,6 +933,10 @@ impl Gallery {
                 true
             }
             GalleryMessage::DpiInfo => true,
+            GalleryMessage::MobilePressed(size) => {
+                self.last_mobile_press = Some(size);
+                true
+            }
         }
     }
 }
@@ -1085,7 +1152,11 @@ impl Application for Gallery {
 
         // 15. Toolbar buttons
         let tb_theme = self.current_theme();
-        let tb_wcag = if tb_theme.meets_wcag_aa() { "✓AA" } else { "⚠AA" };
+        let tb_wcag = if tb_theme.meets_wcag_aa() {
+            "✓AA"
+        } else {
+            "⚠AA"
+        };
         let tb_labels = [
             (if self.dark { "☀ Light" } else { "🌙 Dark" }).to_string(),
             format!("🎨 {} {}", self.theme_pack, tb_wcag),
@@ -1094,7 +1165,7 @@ impl Application for Gallery {
         for (ti, (&btn_id, label_text)) in
             ids.toolbar_buttons.iter().zip(tb_labels.iter()).enumerate()
         {
-            let btn_idx = 7 + ti;
+            let btn_idx = ids.sidebar_buttons.len() + ti;
             let Some(r) = snapshot.get(btn_id) else {
                 continue;
             };
@@ -1143,23 +1214,24 @@ impl Application for Gallery {
         // 16. Page content
         if let Some(sv_rect) = snapshot.get(ids.scroll_view) {
             let clip = [sv_rect.x, sv_rect.y, sv_rect.width, sv_rect.height];
-            // sidebar(0-6) + toolbar(7-9) = 10, content buttons start here.
-            let mut btn_idx = 10;
-            render_content(
-                &mut frame,
-                &description,
-                &root,
-                &snapshot,
-                &theme,
-                context.scale_factor,
-                self.scroll,
-                clip,
-                &mut btn_idx,
-                self.hovered,
-                self.pressed,
-                &mut self.fonts,
-                &mut self.atlas,
-            );
+            let mut btn_idx = ids.sidebar_buttons.len() + ids.toolbar_buttons.len();
+            if let Some((page_widget, page_layout)) = gallery_page_nodes(&description, &root) {
+                render_content(
+                    &mut frame,
+                    page_widget,
+                    page_layout,
+                    &snapshot,
+                    &theme,
+                    context.scale_factor,
+                    self.scroll,
+                    clip,
+                    &mut btn_idx,
+                    self.hovered,
+                    self.pressed,
+                    &mut self.fonts,
+                    &mut self.atlas,
+                );
+            }
         }
 
         scene_from_frame(&frame)
@@ -1171,7 +1243,7 @@ impl Application for Gallery {
 struct GalleryNodeIds {
     sidebar: NodeId,
     sidebar_label: NodeId,
-    sidebar_buttons: [NodeId; 7],
+    sidebar_buttons: Vec<NodeId>,
     toolbar: NodeId,
     toolbar_buttons: [NodeId; 3],
     scroll_view: NodeId,
@@ -1184,19 +1256,26 @@ fn extract_gallery_ids(root: &LayoutNode) -> GalleryNodeIds {
     GalleryNodeIds {
         sidebar: sb.id,
         sidebar_label: sb.children[0].id,
-        sidebar_buttons: [
-            sb.children[2].id,
-            sb.children[3].id,
-            sb.children[4].id,
-            sb.children[5].id,
-            sb.children[6].id,
-            sb.children[7].id,
-            sb.children[8].id,
-        ],
+        sidebar_buttons: sb.children.iter().skip(2).map(|child| child.id).collect(),
         toolbar: tb.id,
         toolbar_buttons: [tb.children[0].id, tb.children[1].id, tb.children[2].id],
         scroll_view: ca.children[1].id,
     }
+}
+
+fn gallery_page_nodes<'a>(
+    widget: &'a WidgetNode<GalleryMessage>,
+    layout: &'a LayoutNode,
+) -> Option<(&'a WidgetNode<GalleryMessage>, &'a LayoutNode)> {
+    let widget_root = widget.children();
+    let widget_content = widget_root.get(1)?;
+    let widget_content_children = widget_content.children();
+    let widget_scroll = widget_content_children.get(1)?;
+    let widget_scroll_children = widget_scroll.children();
+    let page_widget = widget_scroll_children.first()?;
+
+    let page_layout = layout.children.get(1)?.children.get(1)?.children.first()?;
+    Some((page_widget, page_layout))
 }
 
 // ── Styles ───────────────────────────────────────────────────────────────────
@@ -1224,9 +1303,9 @@ fn apply_gallery_styles(root: &mut LayoutNode, width: f32, height: f32) {
         },
         ..Default::default()
     };
-    for i in 2..9 {
-        sb.children[i].style.width = Length::px(SIDEBAR_WIDTH - 24.0);
-        sb.children[i].style.height = Length::px(38.0);
+    for button in sb.children.iter_mut().skip(2) {
+        button.style.width = Length::px(SIDEBAR_WIDTH - 24.0);
+        button.style.height = Length::px(38.0);
     }
 
     let cw = (width - SIDEBAR_WIDTH).max(400.0);
@@ -1347,18 +1426,9 @@ fn render_content(
             }
         }
         WidgetNode::Button(btn) => {
-            if btn.activate().is_none() {
-                return;
-            }
             if let Some(rect) = snapshot.get(layout.id) {
                 let y = rect.y - scroll_y;
-                let idx = *btn_idx;
-                *btn_idx += 1;
-                let st = ButtonState {
-                    hovered: hovered == Some(idx),
-                    pressed: pressed == Some(idx),
-                    focused: false,
-                };
+                let st = button_state_for_render(btn, btn_idx, hovered, pressed);
                 let resolved = btn.resolve_style(theme, st);
                 frame.quads.push(quad_rect(
                     [rect.x, y, rect.width, rect.height],
@@ -1458,6 +1528,24 @@ fn render_content(
                 );
             }
         }
+    }
+}
+
+fn button_state_for_render(
+    button: &acme_widgets::Button<GalleryMessage>,
+    interactive_index: &mut usize,
+    hovered: Option<usize>,
+    pressed: Option<usize>,
+) -> ButtonState {
+    let current = button.activate().map(|_| {
+        let index = *interactive_index;
+        *interactive_index += 1;
+        index
+    });
+    ButtonState {
+        hovered: hovered == current,
+        pressed: pressed == current,
+        focused: false,
     }
 }
 
@@ -1580,5 +1668,67 @@ fn quad_rect(
         radius,
         border_width,
         border_color: rgba(border_color),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn layout_context() -> WidgetLayoutContext {
+        WidgetLayoutContext {
+            body_font_size: 14.0,
+            body_line_height: 20.0,
+            label_font_size: 13.0,
+            control_height: 36.0,
+            scale_factor: 1.0,
+        }
+    }
+
+    #[test]
+    fn sidebar_ids_follow_category_catalog() {
+        let gallery = Gallery::new();
+        let description = gallery.description();
+        let root = description.to_layout_with_context(NodeId::new(1), &layout_context());
+        let ids = extract_gallery_ids(&root);
+        let (page_widget, page_layout) = gallery_page_nodes(&description, &root).unwrap();
+
+        assert_eq!(ids.sidebar_buttons.len(), CATEGORIES.len());
+        assert_eq!(gallery.selected_category, CATEGORIES.len() - 1);
+        assert!(matches!(page_widget, WidgetNode::Column(_)));
+        assert_eq!(page_layout.id, root.children[1].children[1].children[0].id);
+    }
+
+    #[test]
+    fn disabled_button_renders_without_consuming_hit_index() {
+        let WidgetNode::Button(disabled) = WidgetNode::from(
+            mobile_button("disabled", "Disabled")
+                .disabled(true)
+                .on_press(GalleryMessage::DpiInfo),
+        ) else {
+            panic!("expected Button");
+        };
+        let mut index = 11;
+
+        let state = button_state_for_render(&disabled, &mut index, Some(11), Some(11));
+
+        assert_eq!(state, ButtonState::default());
+        assert_eq!(index, 11);
+    }
+
+    #[test]
+    fn interactive_button_consumes_hit_index() {
+        let WidgetNode::Button(enabled) =
+            WidgetNode::from(mobile_button("enabled", "Enabled").on_press(GalleryMessage::DpiInfo))
+        else {
+            panic!("expected Button");
+        };
+        let mut index = 11;
+
+        let state = button_state_for_render(&enabled, &mut index, Some(11), None);
+
+        assert!(state.hovered);
+        assert!(!state.pressed);
+        assert_eq!(index, 12);
     }
 }

@@ -64,10 +64,18 @@ impl<M: Clone + 'static> MobileButtonBuilder<M> {
 
 impl<M: Clone + 'static> From<MobileButtonBuilder<M>> for WidgetNode<M> {
     fn from(b: MobileButtonBuilder<M>) -> Self {
+        let button_size = match b.size {
+            MobileButtonSize::Sm => acme_widgets::ButtonSize::Small,
+            MobileButtonSize::Md => acme_widgets::ButtonSize::Medium,
+            MobileButtonSize::Lg => acme_widgets::ButtonSize::Large,
+        };
         let mut btn = crate::button(b.id, b.text)
-            .size(acme_widgets::ButtonSize::Large)
+            .size(button_size)
             .full_width(true)
             .disabled(b.disabled);
+        // Mobile controls keep larger touch targets than the desktop button
+        // presets while reusing the same semantic visual states.
+        btn.style.height = Some(acme_layout::Length::px(b.size.height()));
         if let Some(msg) = b.on_press {
             btn = btn.primary();
             return btn.on_click(msg);
@@ -79,6 +87,8 @@ impl<M: Clone + 'static> From<MobileButtonBuilder<M>> for WidgetNode<M> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use acme_core::NodeId;
+    use acme_layout::{Length, WidgetLayoutContext};
 
     #[derive(Clone, Debug, PartialEq)]
     enum Msg {
@@ -101,11 +111,47 @@ mod tests {
             panic!("expected Button");
         };
         assert!(b.disabled);
+        assert_eq!(b.activate(), None);
     }
 
     #[test]
-    fn mobile_button_size_default() {
+    fn mobile_button_builder_defaults() {
         let b = mobile_button::<Msg>("b", "X");
         assert_eq!(b.size, MobileButtonSize::Md);
+        assert!(!b.disabled);
+        assert!(b.on_press.is_none());
+    }
+
+    #[test]
+    fn mobile_button_maps_size_and_touch_height() {
+        let cases = [
+            (MobileButtonSize::Sm, acme_widgets::ButtonSize::Small, 36.0),
+            (MobileButtonSize::Md, acme_widgets::ButtonSize::Medium, 44.0),
+            (MobileButtonSize::Lg, acme_widgets::ButtonSize::Large, 52.0),
+        ];
+
+        for (mobile_size, button_size, height) in cases {
+            let node: WidgetNode<Msg> = mobile_button("btn", "Tap")
+                .size(mobile_size)
+                .on_press(Msg::Pressed)
+                .into();
+            let WidgetNode::Button(button) = &node else {
+                panic!("expected Button");
+            };
+            assert_eq!(button.size, button_size);
+            assert!(button.full_width);
+            assert_eq!(button.activate(), Some(&Msg::Pressed));
+
+            let context = WidgetLayoutContext {
+                body_font_size: 14.0,
+                body_line_height: 20.0,
+                label_font_size: 13.0,
+                control_height: 36.0,
+                scale_factor: 1.0,
+            };
+            let layout = node.to_layout_with_context(NodeId::new(1), &context);
+            assert_eq!(layout.style.height, Length::px(height));
+            assert_eq!(layout.style.width, Length::Percent(100.0));
+        }
     }
 }

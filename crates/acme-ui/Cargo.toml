@@ -12,7 +12,7 @@ layout = []
 overlay = []
 charts = []
 desktop = []
-mobile = []
+mobile = ["foundations"]
 browser = []
 full = ["foundations", "inputs", "layout", "overlay", "charts", "desktop", "mobile", "browser"]
 
