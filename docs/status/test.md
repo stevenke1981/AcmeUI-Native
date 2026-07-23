@@ -1,5 +1,22 @@
 # Validation Record
 
+## 2026-07-23 — AcmeUI design Skill scope
+
+### Skill checks
+
+| Check | Result | Evidence |
+|---|---|---|
+| Trigger description | PASS | General Rust, GPUI, and Web UI usage is explicitly supported |
+| Stack routing | PASS | WidgetNode/wgpu/winit rules apply only to AcmeUI-Native targets |
+| Non-AcmeUI behavior | PASS | Existing component model and native quality gates are preserved |
+| Skill frontmatter | PASS | Standard `name` and `description` metadata only |
+| Codex interface metadata | PASS | Default prompt tells agents to preserve the target stack |
+
+### Scope note
+
+- This delivery changes Skill guidance and metadata only.
+- Rust source, public APIs, runtime behavior, and platform validation claims are unchanged.
+
 ## 2026-07-23 — README visual assets
 
 ### Asset checks

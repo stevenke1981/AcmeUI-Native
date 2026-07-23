@@ -1,5 +1,11 @@
 # Todos
 
+## AcmeUI design Skill scope (2026-07-23)
+
+- [x] Allow `acmeui-native-design` to guide general Rust, GPUI, and Web UI projects.
+- [x] Route WidgetNode/wgpu/winit implementation rules only to AcmeUI-Native targets.
+- [x] Preserve each non-AcmeUI project's existing component model and validation commands.
+
 ## Documentation and visual identity (2026-07-23)
 
 - [x] Add an original, text-free README hero illustration for the declarative UI → GPU rendering story.

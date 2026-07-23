@@ -9,6 +9,13 @@
 - 配色與視覺方向圖庫
 - Visual QA 90 分 Gate
 
+## 跨技術棧使用
+
+Skill 可用於一般 Rust、GPUI 與 Web UI 專案。使用時保留目標專案原有
+component/view model，只轉譯模式路由、模板工作流、Art Direction、
+semantic token、WCAG 與 Visual QA。啟用 Skill 不會自動把專案遷移成
+AcmeUI-Native，也不代表必須採用 `WidgetNode`。
+
 ## 最常用的 Agent 指令
 
 ### 建立 Typeless-like 語音輸入 App

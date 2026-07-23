@@ -1,17 +1,23 @@
 ---
 name: acmeui-native-design
-description: AcmeUI-Native 專用的 UI 設計、元件開發與 App 模板路由 Skill。當 Agent 需要建立新桌面 App、套用 voice-dictation/Typeless-like、dashboard、settings、media-studio 模板，或新增元件、主題、畫面、Gallery 頁面與執行視覺驗收時使用。強制先選工作模式與模板，再依 WidgetNode、semantic tokens、WCAG 與 Visual QA 流程實作。不得用於一般 Rust、GPUI 或 Web UI 專案。
-version: 2.0.0
-invocation: acmeui-native-design
+description: 以 AcmeUI-Native 設計流程為核心的 UI 設計、元件開發與 App 模板路由 Skill。當 Agent 需要建立桌面 App、套用 voice-dictation/Typeless-like、dashboard、settings、media-studio 模板，新增元件、主題、畫面、Gallery 頁面、執行視覺驗收，或把模板選擇、semantic tokens、WCAG 與 Visual QA 流程應用到其他 Rust、GPUI、Web UI 專案時使用。先辨識目標技術棧；只有 AcmeUI-Native 目標套用 WidgetNode、wgpu 與 winit 實作規則，其他專案保留原有架構。
 ---
 
 # AcmeUI-Native Design Director & App Template Skill
 
-本 Skill 是 AcmeUI-Native 專案的**設計路由器、App 模板庫、元件參考與視覺驗收入口**。
+本 Skill 以 AcmeUI-Native 的**設計路由器、App 模板庫、元件參考與視覺驗收流程**為核心，也可用於其他 UI 技術棧。
 
 Agent 不得只把它當成 API 文件。每次使用時必須先判斷任務模式、選擇模板或視覺方向、建立實作契約，再進入程式碼。
 
-## 0. 專案事實
+## 0. 技術棧路由
+
+開始前先辨識目標為 `acmeui-native`、`other-rust`、`gpui` 或 `web`：
+
+- `acmeui-native`：完整使用 WidgetNode、wgpu/winit、AcmeUI templates、semantic tokens 與 Cargo 驗證規則。
+- 其他技術棧：沿用模式路由、資訊架構、模板工作流、Art Direction、Component Inventory、WCAG 與 Visual QA，並將元件、token 與驗證命令映射到目標原有架構。
+- 啟用本 Skill 不代表同意遷移技術棧。是否採用 AcmeUI-Native 或 WidgetNode 必須由任務需求另行決定。
+
+## 0.1 AcmeUI-Native 專案事實
 
 - AcmeUI-Native 是從零建立的 Rust Native UI framework。
 - 渲染與視窗層為 wgpu + winit，排版為 Taffy，文字為 cosmic-text。
@@ -176,6 +182,8 @@ Validation: cargo check/test + screenshot/manual visual QA
 
 ## 6. WidgetNode 最小正確模式
 
+本節只適用於目標已採用或明確選擇 AcmeUI-Native 的任務。其他技術棧保留其既有 view/component model。
+
 ```rust
 use acme_ui::prelude::*;
 
@@ -236,7 +244,7 @@ fn view() -> WidgetNode<AppMessage> {
 
 ## 9. 硬性規則
 
-- 禁止 GPUI。
+- 在 AcmeUI-Native 目標中禁止加入 GPUI；其他專案沿用其既有技術棧。
 - Widget 禁止硬編碼 theme colors。
 - Text cursor 禁止使用 byte offsets；使用 char/grapheme indices。
 - 禁止公開 platform-specific winit/wgpu types。
@@ -246,6 +254,8 @@ fn view() -> WidgetNode<AppMessage> {
 - 不得把第三方產品的商標、文案與專屬視覺直接做成模板。
 
 ## 10. 驗證命令
+
+以下命令適用於 AcmeUI-Native 目標；其他專案改用其既有 formatter、lint、typecheck、test、build 與視覺驗收命令。
 
 ```bash
 cargo fmt --all -- --check

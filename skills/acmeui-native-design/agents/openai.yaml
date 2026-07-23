@@ -1,6 +1,6 @@
 interface:
   display_name: "AcmeUI Native Design"
-  short_description: "Build and validate polished AcmeUI native Rust interfaces"
-  default_prompt: "Use $acmeui-native-design to design, implement, and validate this native Rust interface."
+  short_description: "Design and validate AcmeUI and cross-stack interfaces"
+  default_prompt: "Use $acmeui-native-design to route, design, and validate this UI task while preserving the target stack."
 policy:
   allow_implicit_invocation: true

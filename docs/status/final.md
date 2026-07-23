@@ -1,5 +1,20 @@
 # Delivery Status
 
+## 2026-07-23 — AcmeUI design Skill scope
+
+### Completed
+
+- Removed the blanket restriction that excluded general Rust, GPUI, and Web UI projects.
+- Added stack-aware routing so cross-project use reuses design and Visual QA workflows without implicitly migrating the target to AcmeUI-Native.
+- Scoped WidgetNode, wgpu/winit, Cargo, and no-GPUI implementation rules to AcmeUI-Native targets.
+- Updated Codex-facing Skill metadata and user documentation.
+
+### Acceptance truth
+
+- Non-AcmeUI projects may invoke the Skill.
+- Skill activation alone does not authorize an architecture migration.
+- Runtime code and framework behavior are unchanged.
+
 ## 2026-07-23 — README visual identity
 
 ### Completed
