@@ -4,6 +4,10 @@
 
 > **🌐 語言：** [English](README.md) · [繁體中文](README-zhtw.md)
 
+![AcmeUI Native 宣告式 UI 與 GPU 渲染管線概念插畫](docs/assets/acmeui-native-hero.webp)
+
+*概念插畫，非 Gallery 實際截圖。*
+
 ---
 
 ## 什麼是 AcmeUI Native？
@@ -51,6 +55,12 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 | `apps/acme-gallery` | `acme-ui-gallery` | V2 元件展示 —— 165 個高階 `acme-ui` 元件 |
 | `apps/playground` | `playground` | 最小開發沙盒，快速實驗 |
 | `apps/benchmark` | `benchmark` | 無頭排版/調和/幀建置基準測試 |
+
+### Gallery 實際畫面
+
+![AcmeUI Native Gallery 顯示繁體中文、表情符號、主題控制與 DPI 內容](docs/gallery-smoke.png)
+
+*取自實際執行的 `acme-gallery`；各主題與互動的完整視覺驗收仍於獨立清單追蹤。*
 
 ---
 

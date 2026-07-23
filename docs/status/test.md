@@ -1,5 +1,25 @@
 # Validation Record
 
+## 2026-07-23 — README visual assets
+
+### Asset checks
+
+| Check | Result | Evidence |
+|---|---|---|
+| Generated hero inspection | PASS | Original, text-free concept artwork; no logos, trademarks, OS chrome, or fake screenshot claims |
+| Project asset persistence | PASS | `docs/assets/acmeui-native-hero.webp` is stored inside the repository |
+| Image optimization | PASS | 1600×900 WebP, 51,358 bytes |
+| English README references | PASS | Hero and real Gallery capture paths resolve |
+| Traditional Chinese README references | PASS | Shared hero and real Gallery capture paths resolve |
+| Evidence labeling | PASS | Both READMEs identify the hero as concept art and the Gallery image as a real capture |
+
+### Scope note
+
+- This delivery changes documentation and raster assets only; no Rust source,
+  public API, runtime behavior, or platform validation claim changed.
+- The generated hero does not replace `docs/gallery-smoke.png`.
+- Existing manual Light/Dark and pointer interaction sign-off remains open.
+
 ## 2026-07-23 — Mobile button and Gallery hardening
 
 ### Automated checks

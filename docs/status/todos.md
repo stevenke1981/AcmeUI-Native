@@ -1,5 +1,11 @@
 # Todos
 
+## Documentation and visual identity (2026-07-23)
+
+- [x] Add an original, text-free README hero illustration for the declarative UI → GPU rendering story.
+- [x] Clearly distinguish generated concept art from the real Gallery capture in both English and Traditional Chinese documentation.
+- [x] Optimize the project-bound hero as WebP and validate its dimensions, size, and Markdown references.
+
 ## P0
 - [x] Workspace and CI
 - [x] Compile-time baseline

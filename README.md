@@ -4,6 +4,10 @@
 
 > **🌐 Languages:** [English](README.md) · [繁體中文](README-zhtw.md)
 
+![Concept illustration of AcmeUI Native's declarative UI and GPU rendering pipeline](docs/assets/acmeui-native-hero.webp)
+
+*Concept illustration — not a Gallery screenshot.*
+
 ---
 
 ## What is AcmeUI Native?
@@ -74,6 +78,13 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 | `apps/acme-gallery` | `acme-ui-gallery` | V2 component showcase — 165 high-level `acme-ui` components |
 | `apps/playground` | `playground` | Minimal dev sandbox for quick experiments |
 | `apps/benchmark` | `benchmark` | Headless layout/reconciliation/frame-build benchmarks |
+
+### Gallery Preview
+
+![AcmeUI Native Gallery rendering Traditional Chinese, emoji, theme controls, and DPI content](docs/gallery-smoke.png)
+
+*Captured from the real `acme-gallery` application; visual sign-off for every
+theme and interaction remains tracked separately.*
 
 ---
 

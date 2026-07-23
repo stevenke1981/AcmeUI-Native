@@ -1,5 +1,26 @@
 # Delivery Status
 
+## 2026-07-23 — README visual identity
+
+### Completed
+
+- Added a project-owned, text-free concept hero that illustrates the
+  declarative widget → layout → GPU rendering story without inventing a logo
+  or imitating an operating-system screenshot.
+- Added the hero to both README languages with accurate localized alt text and
+  an explicit concept-art disclaimer.
+- Surfaced the existing real Gallery capture in both READMEs and kept its
+  remaining manual validation caveat visible.
+- Optimized the generated source to a 1600×900 WebP stored in the repository.
+
+### Acceptance truth
+
+- Visual asset review: passed for composition, absence of text/logos, and
+  truthful labeling.
+- Markdown asset references: validated locally in both READMEs.
+- Runtime behavior and public API: unchanged.
+- Gallery manual Light/Dark and pointer-interaction sign-off: still pending.
+
 ## 2026-07-23 — Mobile button and Gallery hardening
 
 ### Completed
