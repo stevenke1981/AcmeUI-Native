@@ -1,3 +1,6 @@
+use std::fmt;
+use std::sync::Arc;
+
 use crate::{Color, Logical, Point, Radius, Rect};
 
 // ---------------------------------------------------------------------------
@@ -19,6 +22,8 @@ pub enum DrawCommand {
     Quad(QuadPrimitive),
     /// Text run with pre-rasterized glyphs and atlas uploads.
     Text(TextPrimitive),
+    /// RGBA8 image backed by stable, backend-neutral CPU data.
+    Image(ImagePrimitive),
     /// Push a rectangular clip region.
     PushClip(Rect<Logical>),
     /// Pop back to previous clip region.
@@ -27,6 +32,157 @@ pub enum DrawCommand {
     BeginLayer(LayerParams),
     /// End the current composited layer.
     EndLayer,
+}
+
+/// Stable application-owned identity for an image texture.
+///
+/// Reuse the same key across frames and increment the image revision whenever
+/// its pixels or dimensions change.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ImageKey(u64);
+
+impl ImageKey {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
+/// Error returned when constructing malformed RGBA8 image data.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ImageDataError {
+    ZeroDimension,
+    SizeOverflow,
+    InvalidDataLength { expected: usize, actual: usize },
+}
+
+impl fmt::Display for ImageDataError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ZeroDimension => write!(f, "image dimensions must be non-zero"),
+            Self::SizeOverflow => write!(f, "image dimensions exceed addressable memory"),
+            Self::InvalidDataLength { expected, actual } => {
+                write!(
+                    f,
+                    "invalid RGBA8 data length: expected {expected} bytes, got {actual}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for ImageDataError {}
+
+/// Immutable RGBA8 pixels that can be shared cheaply between application frames.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Rgba8Image {
+    key: ImageKey,
+    revision: u64,
+    width: u32,
+    height: u32,
+    pixels: Arc<[u8]>,
+}
+
+impl Rgba8Image {
+    pub fn new(
+        key: ImageKey,
+        revision: u64,
+        width: u32,
+        height: u32,
+        pixels: impl Into<Arc<[u8]>>,
+    ) -> Result<Self, ImageDataError> {
+        if width == 0 || height == 0 {
+            return Err(ImageDataError::ZeroDimension);
+        }
+        let expected = (width as usize)
+            .checked_mul(height as usize)
+            .and_then(|pixels| pixels.checked_mul(4))
+            .ok_or(ImageDataError::SizeOverflow)?;
+        let pixels = pixels.into();
+        if pixels.len() != expected {
+            return Err(ImageDataError::InvalidDataLength {
+                expected,
+                actual: pixels.len(),
+            });
+        }
+        Ok(Self {
+            key,
+            revision,
+            width,
+            height,
+            pixels,
+        })
+    }
+
+    pub const fn key(&self) -> ImageKey {
+        self.key
+    }
+
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+
+    pub const fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub const fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn pixels(&self) -> &[u8] {
+        &self.pixels
+    }
+}
+
+/// How image pixels are fitted into their destination rectangle.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ImageFit {
+    /// Preserve aspect ratio and show the complete image.
+    #[default]
+    Contain,
+    /// Stretch independently on each axis to fill the destination.
+    Fill,
+}
+
+/// An RGBA8 image draw in logical pixels.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ImagePrimitive {
+    pub image: Rgba8Image,
+    pub rect: Rect<Logical>,
+    pub fit: ImageFit,
+}
+
+impl ImagePrimitive {
+    pub fn contain(image: Rgba8Image, rect: Rect<Logical>) -> Self {
+        Self {
+            image,
+            rect,
+            fit: ImageFit::Contain,
+        }
+    }
+
+    /// Resolve the fitted logical rectangle used by render backends.
+    pub fn fitted_rect(&self) -> Rect<Logical> {
+        if self.fit == ImageFit::Fill {
+            return self.rect;
+        }
+        let target_width = self.rect.size.width.get().max(0.0);
+        let target_height = self.rect.size.height.get().max(0.0);
+        let scale =
+            (target_width / self.image.width as f32).min(target_height / self.image.height as f32);
+        let width = self.image.width as f32 * scale;
+        let height = self.image.height as f32 * scale;
+        Rect::new(
+            self.rect.origin.x.get() + (target_width - width) * 0.5,
+            self.rect.origin.y.get() + (target_height - height) * 0.5,
+            width,
+            height,
+        )
+    }
 }
 
 /// A quad primitive: solid fill + optional rounded corner + optional border.
@@ -416,6 +572,49 @@ mod tests {
         };
         scene.push(DrawCommand::Text(text));
         assert_eq!(scene.commands().len(), 1);
+    }
+
+    #[test]
+    fn rgba8_image_validates_length_and_keeps_stable_key() {
+        let key = ImageKey::new(42);
+        let image = Rgba8Image::new(key, 7, 2, 1, vec![255; 8]).unwrap();
+        assert_eq!(image.key(), key);
+        assert_eq!(image.revision(), 7);
+        assert_eq!((image.width(), image.height()), (2, 1));
+        assert_eq!(image.pixels(), &[255; 8]);
+
+        assert_eq!(
+            Rgba8Image::new(key, 8, 2, 2, vec![0; 4]),
+            Err(ImageDataError::InvalidDataLength {
+                expected: 16,
+                actual: 4,
+            })
+        );
+    }
+
+    #[test]
+    fn image_contain_centers_without_distortion() {
+        let image =
+            Rgba8Image::new(ImageKey::new(1), 0, 1920, 1080, vec![0; 1920 * 1080 * 4]).unwrap();
+        let primitive = ImagePrimitive::contain(image, Rect::new(0.0, 0.0, 100.0, 100.0));
+        assert_eq!(
+            primitive.fitted_rect(),
+            Rect::new(0.0, 21.875, 100.0, 56.25)
+        );
+    }
+
+    #[test]
+    fn image_command_roundtrips_through_scene() {
+        let image = Rgba8Image::new(ImageKey::new(9), 2, 1, 1, vec![1, 2, 3, 4]).unwrap();
+        let mut scene = Scene::new();
+        scene.push(DrawCommand::Image(ImagePrimitive::contain(
+            image,
+            Rect::new(5.0, 6.0, 7.0, 8.0),
+        )));
+        assert!(matches!(
+            scene.commands(),
+            [DrawCommand::Image(ImagePrimitive { .. })]
+        ));
     }
 
     #[test]

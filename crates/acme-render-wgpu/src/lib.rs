@@ -5,11 +5,13 @@ pub mod batch;
 pub mod golden;
 pub use batch::scene_from_frame;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{any::Any, sync::Arc};
 
-use acme_core::{DrawCommand, GlyphFormat as SceneGlyphFormat, Scene};
+use acme_core::{
+    DrawCommand, GlyphFormat as SceneGlyphFormat, ImageKey, ImagePrimitive, Rgba8Image, Scene,
+};
 use acme_text::{AtlasFormat, PreparedText};
 use bytemuck::{Pod, Zeroable};
 use thiserror::Error;
@@ -79,6 +81,7 @@ pub struct RenderStats {
     pub draw_calls: u64,
     pub quad_count: u64,
     pub glyph_count: u64,
+    pub image_count: u64,
     /// Percentage of atlas uploads that were already resident (0.0-100.0).
     pub atlas_hit_rate: f64,
 }
@@ -87,9 +90,10 @@ impl RenderStats {
     /// Compact one-line summary for debug / devtools.
     pub fn summary(&self) -> String {
         format!(
-            "quads={} glyphs={} draws={} grows={} uploaded={}B atlas_hit={:.1}%",
+            "quads={} glyphs={} images={} draws={} grows={} uploaded={}B atlas_hit={:.1}%",
             self.quad_count,
             self.glyph_count,
+            self.image_count,
             self.draw_calls,
             self.buffer_grows,
             self.bytes_uploaded,
@@ -216,6 +220,25 @@ struct GlyphInstance {
     viewport_mode: [f32; 4],
 }
 
+struct ImageResource {
+    image: Rgba8Image,
+    _texture: wgpu::Texture,
+    bind_group: wgpu::BindGroup,
+}
+
+type ImageResourceKey = (ImageKey, u64);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct ImageUploadLayout {
+    bytes_per_row: u32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ImageUploadError {
+    ExceedsMaxDimension { width: u32, height: u32, max: u32 },
+    RowPitchOverflow,
+}
+
 // Desktop applications with CJK-heavy settings/history pages need enough
 // resident glyph space to avoid invalidating toolbar text within one frame.
 const ATLAS_SIZE: u32 = 4096;
@@ -237,6 +260,10 @@ pub struct Renderer {
     rgba_atlas: wgpu::Texture,
     alpha_bind_group: wgpu::BindGroup,
     rgba_bind_group: wgpu::BindGroup,
+    texture_layout: wgpu::BindGroupLayout,
+    image_sampler: wgpu::Sampler,
+    live_images: HashMap<ImageResourceKey, Rgba8Image>,
+    images: HashMap<ImageResourceKey, ImageResource>,
     size: (u32, u32),
     status: SurfaceStatus,
     scale_factor: f32,
@@ -289,8 +316,16 @@ impl Renderer {
             .ok_or(RenderError::Adapter)?;
         config.present_mode = wgpu::PresentMode::Fifo;
         surface.configure(&device, &config);
-        let (pipeline, text_pipeline, alpha_atlas, rgba_atlas, alpha_bind_group, rgba_bind_group) =
-            build_render_resources(&device, &config);
+        let (
+            pipeline,
+            text_pipeline,
+            alpha_atlas,
+            rgba_atlas,
+            alpha_bind_group,
+            rgba_bind_group,
+            texture_layout,
+            image_sampler,
+        ) = build_render_resources(&device, &config);
         let quad_cap = INITIAL_QUAD_CAPACITY * std::mem::size_of::<Instance>() as u64;
         let glyph_cap = INITIAL_GLYPH_CAPACITY * std::mem::size_of::<GlyphInstance>() as u64;
         let mk_buf = |device: &wgpu::Device, size: u64, label: &str| {
@@ -321,6 +356,10 @@ impl Renderer {
             rgba_atlas,
             alpha_bind_group,
             rgba_bind_group,
+            texture_layout,
+            image_sampler,
+            live_images: HashMap::new(),
+            images: HashMap::new(),
             size: (width, height),
             status: if width == 0 || height == 0 {
                 SurfaceStatus::Suspended
@@ -365,11 +404,90 @@ impl Renderer {
         self.status = SurfaceStatus::Ready;
     }
 
+    fn update_live_scene_images(&mut self, scene: &Scene) {
+        let max_dimension = self.device.limits().max_texture_dimension_2d;
+        let scene_images = collect_scene_images(scene);
+        let mut live_images = HashMap::new();
+        for (resource_key, image) in scene_images {
+            match validate_image_upload(image.width(), image.height(), max_dimension) {
+                Ok(_) => {
+                    live_images.insert(resource_key, image.clone());
+                }
+                Err(error) => {
+                    tracing::warn!(
+                        key = image.key().get(),
+                        revision = image.revision(),
+                        ?error,
+                        "rejected RGBA8 image upload"
+                    );
+                }
+            }
+        }
+        self.live_images = live_images;
+    }
+
+    fn sync_scene_images(&mut self) -> u64 {
+        let max_dimension = self.device.limits().max_texture_dimension_2d;
+        let live: HashSet<ImageResourceKey> = self.live_images.keys().copied().collect();
+        let valid: Vec<(ImageResourceKey, Rgba8Image, ImageUploadLayout)> = self
+            .live_images
+            .iter()
+            .filter_map(|(key, image)| {
+                validate_image_upload(image.width(), image.height(), max_dimension)
+                    .ok()
+                    .map(|layout| (*key, image.clone(), layout))
+            })
+            .collect();
+        let mut uploaded = 0;
+        for (resource_key, image, layout) in valid {
+            if self.images.contains_key(&resource_key) {
+                continue;
+            }
+
+            let reusable_key = self
+                .images
+                .iter()
+                .find(|(existing_key, resource)| {
+                    existing_key.0 == resource_key.0
+                        && !live.contains(existing_key)
+                        && resource.image.width() == image.width()
+                        && resource.image.height() == image.height()
+                })
+                .map(|(existing_key, _)| *existing_key);
+            if let Some(reusable_key) = reusable_key {
+                let mut resource = self
+                    .images
+                    .remove(&reusable_key)
+                    .expect("selected reusable image resource must exist");
+                write_rgba8_texture(&self.queue, &resource._texture, &image, layout);
+                resource.image = image.clone();
+                self.images.insert(resource_key, resource);
+            } else {
+                let resource = create_image_resource(
+                    &self.device,
+                    &self.queue,
+                    &self.texture_layout,
+                    &self.image_sampler,
+                    image.clone(),
+                    layout,
+                );
+                self.images.insert(resource_key, resource);
+            }
+            uploaded += image.pixels().len() as u64;
+        }
+        retain_live_image_resources(&mut self.images, &live);
+        uploaded
+    }
+
     /// Render a [`Scene`] directly, bypassing the legacy [`Frame`] format.
     ///
     /// This is the primary render entry point.  The legacy [`render`](Self::render)
     /// method bridges to this via [`batch::scene_from_frame`].
     pub fn render_scene(&mut self, scene: &Scene) -> SurfaceAction {
+        // Keep backend-neutral CPU image state current even when acquisition
+        // immediately reports device loss. Recovery rebuilds only this live set.
+        self.update_live_scene_images(scene);
+
         // ---- surface acquire preamble ----
         let suspended = self.status == SurfaceStatus::Suspended;
         let lost = is_device_lost(&self.device_lost_flag);
@@ -411,6 +529,8 @@ impl Renderer {
             _ => return SurfaceAction::Skip,
         };
 
+        self.stats.bytes_uploaded += self.sync_scene_images();
+
         // ---- atlas upload from scene ----
         let mut uploaded_regions: HashSet<(u32, u32, u32, u32)> = HashSet::new();
         let mut atlas_total = 0u64;
@@ -437,21 +557,32 @@ impl Renderer {
 
         // ---- extract instances per batch ----
         struct QuadBatchDesc {
-            clip: Option<[u32; 4]>,
+            clip: Option<[f32; 4]>,
             start: u32,
             count: u32,
         }
         struct GlyphBatchDesc {
             format: AtlasFormat,
-            clip: Option<[u32; 4]>,
+            clip: Option<[f32; 4]>,
             start: u32,
             count: u32,
+        }
+        struct ImageBatchDesc {
+            key: ImageResourceKey,
+            clip: Option<[f32; 4]>,
+            start: u32,
+            count: u32,
+        }
+        enum DrawBatchDesc {
+            Quad(QuadBatchDesc),
+            Glyph(GlyphBatchDesc),
+            Image(ImageBatchDesc),
         }
 
         let mut all_quads: Vec<Instance> = Vec::new();
         let mut all_glyphs: Vec<GlyphInstance> = Vec::new();
-        let mut quad_batches: Vec<QuadBatchDesc> = Vec::new();
-        let mut glyph_batches: Vec<GlyphBatchDesc> = Vec::new();
+        let mut draw_batches: Vec<DrawBatchDesc> = Vec::new();
+        let mut image_count = 0u64;
 
         for batch in &batches {
             let cmd_range = batch.command_start..batch.command_end;
@@ -466,11 +597,11 @@ impl Renderer {
                     }
                     let count = all_quads.len() as u32 - start;
                     if count > 0 {
-                        quad_batches.push(QuadBatchDesc {
+                        draw_batches.push(DrawBatchDesc::Quad(QuadBatchDesc {
                             clip: batch.clip,
                             start,
                             count,
-                        });
+                        }));
                     }
                 }
                 batch::BatchPipeline::TextAlpha => {
@@ -489,12 +620,12 @@ impl Renderer {
                     }
                     let count = all_glyphs.len() as u32 - start;
                     if count > 0 {
-                        glyph_batches.push(GlyphBatchDesc {
+                        draw_batches.push(DrawBatchDesc::Glyph(GlyphBatchDesc {
                             format: AtlasFormat::Alpha8,
                             clip: batch.clip,
                             start,
                             count,
-                        });
+                        }));
                     }
                 }
                 batch::BatchPipeline::TextRgba => {
@@ -513,12 +644,29 @@ impl Renderer {
                     }
                     let count = all_glyphs.len() as u32 - start;
                     if count > 0 {
-                        glyph_batches.push(GlyphBatchDesc {
+                        draw_batches.push(DrawBatchDesc::Glyph(GlyphBatchDesc {
                             format: AtlasFormat::Rgba8,
                             clip: batch.clip,
                             start,
                             count,
-                        });
+                        }));
+                    }
+                }
+                batch::BatchPipeline::Image => {
+                    for cmd_idx in cmd_range {
+                        if let DrawCommand::Image(primitive) = &scene.commands()[cmd_idx] {
+                            let start = all_glyphs.len() as u32;
+                            all_glyphs.push(image_primitive_to_instance(
+                                primitive, scale, config_w, config_h,
+                            ));
+                            draw_batches.push(DrawBatchDesc::Image(ImageBatchDesc {
+                                key: image_resource_key(&primitive.image),
+                                clip: batch.clip,
+                                start,
+                                count: 1,
+                            }));
+                            image_count += 1;
+                        }
                     }
                 }
             }
@@ -585,16 +733,20 @@ impl Renderer {
 
             let mut draw_count = 0u64;
 
-            // Draw quad batches in order.
-            for b in &quad_batches {
-                let scissor_rect = match b.clip {
-                    Some(c) => scissor(
-                        [c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32],
-                        scale,
-                        config_w,
-                        config_h,
-                    )
-                    .unwrap_or([0, 0, config_w, config_h]),
+            // Draw all pipelines in the Scene's painter order.
+            for batch in &draw_batches {
+                let clip = match batch {
+                    DrawBatchDesc::Quad(batch) => batch.clip,
+                    DrawBatchDesc::Glyph(batch) => batch.clip,
+                    DrawBatchDesc::Image(batch) => batch.clip,
+                };
+                let scissor_rect = match clip {
+                    Some(c) => {
+                        let Some(scissor_rect) = scissor(c, scale, config_w, config_h) else {
+                            continue;
+                        };
+                        scissor_rect
+                    }
                     None => [0, 0, config_w, config_h],
                 };
                 pass.set_scissor_rect(
@@ -603,42 +755,38 @@ impl Renderer {
                     scissor_rect[2],
                     scissor_rect[3],
                 );
-                pass.set_pipeline(&self.pipeline);
-                pass.set_vertex_buffer(0, self.quad_buffers[buf_idx].slice(..));
-                pass.draw(0..6, b.start..b.start + b.count);
-                draw_count += 1;
-            }
-
-            // Draw glyph batches in order.
-            for b in &glyph_batches {
-                let scissor_rect = match b.clip {
-                    Some(c) => scissor(
-                        [c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32],
-                        scale,
-                        config_w,
-                        config_h,
-                    )
-                    .unwrap_or([0, 0, config_w, config_h]),
-                    None => [0, 0, config_w, config_h],
-                };
-                pass.set_scissor_rect(
-                    scissor_rect[0],
-                    scissor_rect[1],
-                    scissor_rect[2],
-                    scissor_rect[3],
-                );
-                pass.set_pipeline(&self.text_pipeline);
-                pass.set_bind_group(
-                    0,
-                    match b.format {
-                        AtlasFormat::Alpha8 => &self.alpha_bind_group,
-                        AtlasFormat::Rgba8 => &self.rgba_bind_group,
-                    },
-                    &[],
-                );
-                pass.set_vertex_buffer(0, self.glyph_buffers[buf_idx].slice(..));
-                pass.draw(0..6, b.start..b.start + b.count);
-                draw_count += 1;
+                match batch {
+                    DrawBatchDesc::Quad(batch) => {
+                        pass.set_pipeline(&self.pipeline);
+                        pass.set_vertex_buffer(0, self.quad_buffers[buf_idx].slice(..));
+                        pass.draw(0..6, batch.start..batch.start + batch.count);
+                        draw_count += 1;
+                    }
+                    DrawBatchDesc::Glyph(batch) => {
+                        pass.set_pipeline(&self.text_pipeline);
+                        pass.set_bind_group(
+                            0,
+                            match batch.format {
+                                AtlasFormat::Alpha8 => &self.alpha_bind_group,
+                                AtlasFormat::Rgba8 => &self.rgba_bind_group,
+                            },
+                            &[],
+                        );
+                        pass.set_vertex_buffer(0, self.glyph_buffers[buf_idx].slice(..));
+                        pass.draw(0..6, batch.start..batch.start + batch.count);
+                        draw_count += 1;
+                    }
+                    DrawBatchDesc::Image(batch) => {
+                        let Some(resource) = self.images.get(&batch.key) else {
+                            continue;
+                        };
+                        pass.set_pipeline(&self.text_pipeline);
+                        pass.set_bind_group(0, &resource.bind_group, &[]);
+                        pass.set_vertex_buffer(0, self.glyph_buffers[buf_idx].slice(..));
+                        pass.draw(0..6, batch.start..batch.start + batch.count);
+                        draw_count += 1;
+                    }
+                }
             }
 
             self.stats.draw_calls = draw_count;
@@ -649,7 +797,8 @@ impl Renderer {
 
         // ---- update stats ----
         self.stats.quad_count = quad_instances_needed;
-        self.stats.glyph_count = all_glyphs.len() as u64;
+        self.stats.glyph_count = all_glyphs.len() as u64 - image_count;
+        self.stats.image_count = image_count;
         // ---- flip frame ring ----
         self.current_frame ^= 1;
         if reconfigure_after_present {
@@ -753,14 +902,44 @@ impl Renderer {
 
         self.surface.configure(&self.device, &self.config);
 
-        let (pipeline, text_pipeline, alpha_atlas, rgba_atlas, alpha_bind_group, rgba_bind_group) =
-            build_render_resources(&self.device, &self.config);
+        let (
+            pipeline,
+            text_pipeline,
+            alpha_atlas,
+            rgba_atlas,
+            alpha_bind_group,
+            rgba_bind_group,
+            texture_layout,
+            image_sampler,
+        ) = build_render_resources(&self.device, &self.config);
         self.pipeline = pipeline;
         self.text_pipeline = text_pipeline;
         self.alpha_atlas = alpha_atlas;
         self.rgba_atlas = rgba_atlas;
         self.alpha_bind_group = alpha_bind_group;
         self.rgba_bind_group = rgba_bind_group;
+        self.texture_layout = texture_layout;
+        self.image_sampler = image_sampler;
+
+        self.images.clear();
+        let max_dimension = self.device.limits().max_texture_dimension_2d;
+        for (key, image) in &self.live_images {
+            let Ok(layout) = validate_image_upload(image.width(), image.height(), max_dimension)
+            else {
+                continue;
+            };
+            self.images.insert(
+                *key,
+                create_image_resource(
+                    &self.device,
+                    &self.queue,
+                    &self.texture_layout,
+                    &self.image_sampler,
+                    image.clone(),
+                    layout,
+                ),
+            );
+        }
 
         // Recreate persistent buffers for the new device.
         let quad_cap = INITIAL_QUAD_CAPACITY * std::mem::size_of::<Instance>() as u64;
@@ -934,6 +1113,120 @@ impl Renderer {
     }
 }
 
+fn image_resource_key(image: &Rgba8Image) -> ImageResourceKey {
+    (image.key(), image.revision())
+}
+
+fn collect_scene_images(scene: &Scene) -> HashMap<ImageResourceKey, &Rgba8Image> {
+    scene
+        .commands()
+        .iter()
+        .filter_map(|command| match command {
+            DrawCommand::Image(primitive) => {
+                Some((image_resource_key(&primitive.image), &primitive.image))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+fn retain_live_image_resources<T>(
+    resources: &mut HashMap<ImageResourceKey, T>,
+    live: &HashSet<ImageResourceKey>,
+) {
+    resources.retain(|key, _| live.contains(key));
+}
+
+fn validate_image_upload(
+    width: u32,
+    height: u32,
+    max_dimension: u32,
+) -> Result<ImageUploadLayout, ImageUploadError> {
+    if width > max_dimension || height > max_dimension {
+        return Err(ImageUploadError::ExceedsMaxDimension {
+            width,
+            height,
+            max: max_dimension,
+        });
+    }
+    let bytes_per_row = width
+        .checked_mul(4)
+        .ok_or(ImageUploadError::RowPitchOverflow)?;
+    Ok(ImageUploadLayout { bytes_per_row })
+}
+
+fn create_image_resource(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    layout: &wgpu::BindGroupLayout,
+    sampler: &wgpu::Sampler,
+    image: Rgba8Image,
+    upload_layout: ImageUploadLayout,
+) -> ImageResource {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("acme rgba8 image"),
+        size: wgpu::Extent3d {
+            width: image.width(),
+            height: image.height(),
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    });
+    write_rgba8_texture(queue, &texture, &image, upload_layout);
+    let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("acme rgba8 image bind group"),
+        layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(sampler),
+            },
+        ],
+    });
+    ImageResource {
+        image,
+        _texture: texture,
+        bind_group,
+    }
+}
+
+fn write_rgba8_texture(
+    queue: &wgpu::Queue,
+    texture: &wgpu::Texture,
+    image: &Rgba8Image,
+    upload_layout: ImageUploadLayout,
+) {
+    queue.write_texture(
+        wgpu::TexelCopyTextureInfo {
+            texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        image.pixels(),
+        wgpu::TexelCopyBufferLayout {
+            offset: 0,
+            bytes_per_row: Some(upload_layout.bytes_per_row),
+            rows_per_image: Some(image.height()),
+        },
+        wgpu::Extent3d {
+            width: image.width(),
+            height: image.height(),
+            depth_or_array_layers: 1,
+        },
+    );
+}
+
 /// Shared helper: creates pipelines, atlas textures, and bind groups from a device + config.
 /// Used by both `Renderer::new()` and `Renderer::on_device_lost()`.
 fn build_render_resources(
@@ -946,6 +1239,8 @@ fn build_render_resources(
     wgpu::Texture,
     wgpu::BindGroup,
     wgpu::BindGroup,
+    wgpu::BindGroupLayout,
+    wgpu::Sampler,
 ) {
     let shader = device.create_shader_module(wgpu::include_wgsl!("quad.wgsl"));
     let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -1036,7 +1331,7 @@ fn build_render_resources(
     let alpha_atlas = create_atlas(device, wgpu::TextureFormat::R8Unorm, "alpha");
     let rgba_atlas = create_atlas(device, wgpu::TextureFormat::Rgba8UnormSrgb, "rgba");
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-        label: Some("acme glyph sampler"),
+        label: Some("acme linear image sampler"),
         mag_filter: wgpu::FilterMode::Linear,
         min_filter: wgpu::FilterMode::Linear,
         ..Default::default()
@@ -1052,6 +1347,8 @@ fn build_render_resources(
         rgba_atlas,
         alpha_bind_group,
         rgba_bind_group,
+        texture_layout,
+        sampler,
     )
 }
 
@@ -1161,6 +1458,26 @@ fn quad_primitive_to_instance(
     }
 }
 
+fn image_primitive_to_instance(
+    primitive: &ImagePrimitive,
+    scale: f32,
+    width: u32,
+    height: u32,
+) -> GlyphInstance {
+    let rect = primitive.fitted_rect();
+    GlyphInstance {
+        rect: [
+            rect.origin.x.get() * scale,
+            rect.origin.y.get() * scale,
+            rect.size.width.get().max(0.0) * scale,
+            rect.size.height.get().max(0.0) * scale,
+        ],
+        uv: [0.0, 0.0, 1.0, 1.0],
+        color: [1.0; 4],
+        viewport_mode: [width as f32, height as f32, 1.0, 0.0],
+    }
+}
+
 /// Extract [`GlyphInstance`]s from a [`TextPrimitive`] for the given format.
 /// Applies origin offset and scale in the same way as the original
 /// `glyph_instances` helper.
@@ -1210,6 +1527,82 @@ fn text_primitive_glyphs(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn test_image(revision: u64, width: u32, height: u32) -> Rgba8Image {
+        Rgba8Image::new(
+            ImageKey::new(1),
+            revision,
+            width,
+            height,
+            vec![255; width as usize * height as usize * 4],
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn same_key_revisions_are_distinct_resources_within_one_scene() {
+        let mut scene = Scene::new();
+        for revision in [10, 11] {
+            scene.push(DrawCommand::Image(ImagePrimitive::contain(
+                test_image(revision, 2, 2),
+                acme_core::Rect::new(0.0, 0.0, 10.0, 10.0),
+            )));
+        }
+
+        let images = collect_scene_images(&scene);
+        assert_eq!(images.len(), 2);
+        assert!(images.contains_key(&(ImageKey::new(1), 10)));
+        assert!(images.contains_key(&(ImageKey::new(1), 11)));
+    }
+
+    #[test]
+    fn image_resource_retention_is_bounded_to_live_scene_keys() {
+        let mut resources = HashMap::from([
+            ((ImageKey::new(1), 1), "old"),
+            ((ImageKey::new(1), 2), "current"),
+            ((ImageKey::new(2), 1), "removed"),
+        ]);
+        let live = HashSet::from([(ImageKey::new(1), 2)]);
+        retain_live_image_resources(&mut resources, &live);
+
+        assert_eq!(resources.len(), 1);
+        assert_eq!(resources[&(ImageKey::new(1), 2)], "current");
+    }
+
+    #[test]
+    fn image_upload_layout_rejects_device_limit_and_row_pitch_overflow() {
+        assert_eq!(
+            validate_image_upload(4097, 10, 4096),
+            Err(ImageUploadError::ExceedsMaxDimension {
+                width: 4097,
+                height: 10,
+                max: 4096,
+            })
+        );
+        assert_eq!(
+            validate_image_upload(u32::MAX, 1, u32::MAX),
+            Err(ImageUploadError::RowPitchOverflow)
+        );
+        assert_eq!(
+            validate_image_upload(1920, 1080, 8192),
+            Ok(ImageUploadLayout {
+                bytes_per_row: 7680,
+            })
+        );
+    }
+
+    #[test]
+    fn image_instance_uses_contained_rect_and_rgba_mode() {
+        let primitive = ImagePrimitive::contain(
+            test_image(0, 2, 1),
+            acme_core::Rect::new(0.0, 0.0, 100.0, 100.0),
+        );
+        let instance = image_primitive_to_instance(&primitive, 2.0, 800, 600);
+        assert_eq!(instance.rect, [0.0, 50.0, 200.0, 100.0]);
+        assert_eq!(instance.uv, [0.0, 0.0, 1.0, 1.0]);
+        assert_eq!(instance.viewport_mode, [800.0, 600.0, 1.0, 0.0]);
+    }
+
     #[test]
     fn solid_quad_defaults_are_valid() {
         let q = Quad::solid([1.0, 2.0, 3.0, 4.0], [1.0, 0.0, 0.0, 1.0]);
@@ -1226,7 +1619,13 @@ mod tests {
             scissor([-5.0, 4.0, 20.0, 10.0], 2.0, 100, 100),
             Some([0, 8, 30, 20])
         );
+        assert_eq!(
+            scissor([0.25, 1.5, 10.75, 20.125], 2.0, 100, 100),
+            Some([0, 3, 22, 41])
+        );
         assert_eq!(scissor([200.0, 0.0, 10.0, 10.0], 1.0, 100, 100), None);
+        assert_eq!(scissor([10.0, 10.0, 0.0, 10.0], 1.0, 100, 100), None);
+        assert_eq!(scissor([f32::NAN, 0.0, 10.0, 10.0], 1.0, 100, 100), None);
     }
 
     #[test]

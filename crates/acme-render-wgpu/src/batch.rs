@@ -19,6 +19,8 @@ pub enum BatchPipeline {
     TextAlpha,
     /// RGBA text glyphs (colour emoji atlas).
     TextRgba,
+    /// Application-provided RGBA8 image.
+    Image,
 }
 
 /// A batch of adjacent draw commands sharing the same pipeline and clip rect.
@@ -29,8 +31,8 @@ pub enum BatchPipeline {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderBatch {
     pub pipeline: BatchPipeline,
-    /// Physical-pixel scissor rect `[x, y, w, h]`, or `None` for full viewport.
-    pub clip: Option<[u32; 4]>,
+    /// Logical-pixel clip rect `[x, y, w, h]`, or `None` for full viewport.
+    pub clip: Option<[f32; 4]>,
     /// Layer depth (currently always 0; future composited-layer support).
     pub layer: u32,
     /// Index of the first draw command in this batch (within Scene.commands).
@@ -40,7 +42,7 @@ pub struct RenderBatch {
 }
 
 impl RenderBatch {
-    fn new(pipeline: BatchPipeline, clip: Option<[u32; 4]>, layer: u32, cmd_idx: usize) -> Self {
+    fn new(pipeline: BatchPipeline, clip: Option<[f32; 4]>, layer: u32, cmd_idx: usize) -> Self {
         Self {
             pipeline,
             clip,
@@ -54,7 +56,7 @@ impl RenderBatch {
     /// the command was compatible and the batch was extended, `false` if
     /// the merge was rejected (caller must flush and start a new batch).
     #[allow(dead_code)]
-    fn try_extend(&mut self, _cmd: &DrawCommand, _clip: Option<[u32; 4]>) -> bool {
+    fn try_extend(&mut self, _cmd: &DrawCommand, _clip: Option<[f32; 4]>) -> bool {
         // For Phase 2 we only merge identically-typed adjacent commands.
         // This prevents merging Quad with Text, or across clip changes.
         //
@@ -84,13 +86,13 @@ impl RenderBatch {
 /// 7. No merging happens across clip or layer boundaries.
 ///
 /// Get current clip as logical `[x, y, w, h]`, or `None` for full viewport.
-fn clip_as_rect(clip_stack: &ClipStack) -> Option<[u32; 4]> {
+fn clip_as_rect(clip_stack: &ClipStack) -> Option<[f32; 4]> {
     let r = clip_stack.current()?;
     Some([
-        r.origin.x.get() as u32,
-        r.origin.y.get() as u32,
-        r.size.width.get() as u32,
-        r.size.height.get() as u32,
+        r.origin.x.get(),
+        r.origin.y.get(),
+        r.size.width.get(),
+        r.size.height.get(),
     ])
 }
 
@@ -148,8 +150,14 @@ pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
                         DrawCommand::Text(_) => {
                             break;
                         }
+                        DrawCommand::Image(_) => break,
                     }
                 }
+            }
+            DrawCommand::Image(_) => {
+                let clip = clip_as_rect(&clip_stack);
+                batches.push(RenderBatch::new(BatchPipeline::Image, clip, layer_depth, i));
+                i += 1;
             }
             DrawCommand::Text(prim) => {
                 // Split glyphs by format.
@@ -212,6 +220,7 @@ pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
                             }
                         }
                         DrawCommand::Quad(_)
+                        | DrawCommand::Image(_)
                         | DrawCommand::PushClip(_)
                         | DrawCommand::PopClip
                         | DrawCommand::BeginLayer(_)
@@ -446,6 +455,38 @@ mod tests {
     }
 
     #[test]
+    fn image_batches_preserve_painter_order() {
+        let image = acme_core::Rgba8Image::new(
+            acme_core::ImageKey::new(3),
+            0,
+            1,
+            1,
+            vec![255, 255, 255, 255],
+        )
+        .unwrap();
+        let mut scene = Scene::new();
+        scene.push(make_quad(0.0, 0.0, 20.0, 20.0));
+        scene.push(DrawCommand::Image(acme_core::ImagePrimitive::contain(
+            image,
+            Rect::new(0.0, 0.0, 20.0, 20.0),
+        )));
+        scene.push(make_quad(5.0, 5.0, 10.0, 10.0));
+
+        let pipelines = compile_scene(&scene)
+            .iter()
+            .map(|batch| batch.pipeline)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            pipelines,
+            vec![
+                BatchPipeline::Quad,
+                BatchPipeline::Image,
+                BatchPipeline::Quad,
+            ]
+        );
+    }
+
+    #[test]
     fn clip_boundary_flushes_batches() {
         let mut scene = Scene::new();
         scene.push(make_quad(0.0, 0.0, 10.0, 10.0));
@@ -463,6 +504,18 @@ mod tests {
         assert_eq!(batches[1].command_end, 3);
         assert_eq!(batches[2].command_start, 4);
         assert_eq!(batches[2].command_end, 5);
+    }
+
+    #[test]
+    fn clip_keeps_fractional_logical_coordinates() {
+        let mut scene = Scene::new();
+        scene.push(DrawCommand::PushClip(Rect::new(0.25, 1.5, 10.75, 20.125)));
+        scene.push(make_quad(0.0, 0.0, 20.0, 30.0));
+        scene.push(DrawCommand::PopClip);
+
+        let batches = compile_scene(&scene);
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].clip, Some([0.25, 1.5, 10.75, 20.125]));
     }
 
     #[test]

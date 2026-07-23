@@ -161,6 +161,10 @@ pub trait Application: 'static {
     fn window_config(&self) -> WindowConfig {
         WindowConfig::default()
     }
+    /// Minimum logical window size applied to every application window.
+    fn minimum_window_size(&self) -> Option<(f64, f64)> {
+        None
+    }
     /// Returns the configurations for all windows that should be created on startup.
     ///
     /// By default, returns a single window from [`window_config()`].
@@ -299,6 +303,9 @@ impl<A> Runtime<A> {
 impl<A: Application> ApplicationHandler for Runtime<A> {
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         let Some(interval) = self.app.background_poll_interval() else {
+            if self.next_background_poll.take().is_some() {
+                event_loop.set_control_flow(ControlFlow::Wait);
+            }
             return;
         };
         let now = std::time::Instant::now();
@@ -321,11 +328,15 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             return;
         }
         let configs = self.app.windows();
+        let minimum_size = self.app.minimum_window_size();
         for config in configs {
-            let attrs = Window::default_attributes()
+            let mut attrs = Window::default_attributes()
                 .with_title(&config.title)
                 .with_inner_size(LogicalSize::new(config.width, config.height))
                 .with_resizable(true);
+            if let Some((width, height)) = minimum_size {
+                attrs = attrs.with_min_inner_size(LogicalSize::new(width, height));
+            }
             let Ok(window) = event_loop.create_window(attrs) else {
                 tracing::error!("failed to create window: {}", config.title);
                 continue;
@@ -526,6 +537,72 @@ mod tests {
         assert_eq!(configs.len(), 2);
         assert_eq!(configs[0].title, "Window 1");
         assert_eq!(configs[1].title, "Window 2");
+    }
+
+    #[test]
+    fn application_frame_can_stream_backend_neutral_rgba8_images() {
+        struct ImageApp {
+            revision: u64,
+            width: u32,
+            height: u32,
+        }
+
+        impl Application for ImageApp {
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                use acme_core::{DrawCommand, ImageKey, ImagePrimitive, Rect, Rgba8Image};
+
+                let pixels = vec![0x80; self.width as usize * self.height as usize * 4];
+                let image = Rgba8Image::new(
+                    ImageKey::new(0xCAFE),
+                    self.revision,
+                    self.width,
+                    self.height,
+                    pixels,
+                )
+                .unwrap();
+                let mut scene = Scene::new();
+                scene.push(DrawCommand::Image(ImagePrimitive::contain(
+                    image,
+                    Rect::new(10.0, 20.0, 640.0, 360.0),
+                )));
+                scene
+            }
+        }
+
+        let mut app = ImageApp {
+            revision: 0,
+            width: 2,
+            height: 1,
+        };
+        let ctx = FrameContext {
+            window: WindowId(1),
+            logical_width: 800.0,
+            logical_height: 600.0,
+            scale_factor: 1.0,
+        };
+        let first = app.frame(ctx.clone());
+        let acme_core::DrawCommand::Image(first_image) = &first.commands()[0] else {
+            panic!("expected image command");
+        };
+        assert_eq!(first_image.image.revision(), 0);
+        assert_eq!(
+            (first_image.image.width(), first_image.image.height()),
+            (2, 1)
+        );
+
+        app.revision += 1;
+        app.width = 1;
+        app.height = 2;
+        let second = app.frame(ctx);
+        let acme_core::DrawCommand::Image(second_image) = &second.commands()[0] else {
+            panic!("expected image command");
+        };
+        assert_eq!(second_image.image.key(), first_image.image.key());
+        assert_eq!(second_image.image.revision(), 1);
+        assert_eq!(
+            (second_image.image.width(), second_image.image.height()),
+            (1, 2)
+        );
     }
 
     #[test]
@@ -972,17 +1049,21 @@ fn handle_ime_commit(
 
 fn handle_file_drop(
     app: &mut dyn Application,
-    windows: &HashMap<WinitWindowId, WindowState>,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
     id: WinitWindowId,
     path: std::path::PathBuf,
 ) {
-    if let Some(state) = windows.get(&id) {
+    if let Some(state) = windows.get_mut(&id) {
         let win_id = state.id;
         let paths = vec![lossy_path_string(&path)];
-        let _ = app.event(PlatformEvent::FileDropped {
+        let dirty = app.event(PlatformEvent::FileDropped {
             window: win_id,
             paths,
         });
+        state.dirty |= dirty;
+        if state.dirty {
+            state.window.request_redraw();
+        }
     }
 }
 
