@@ -43,7 +43,9 @@ For an Apple-inspired shell with quieter spacing and a more restrained
 hierarchy, use `apple_template("Dashboard")` from the same prelude.
 
 Platform presets are also available: `windows11_template("Dashboard")` and
-`ubuntu25_template("Dashboard")`.
+`ubuntu25_template("Dashboard")`. Use `native_template("Dashboard")`,
+`native_theme(...)`, and `native_button(...)` when the same component tree should
+automatically adopt Windows, macOS, Linux, Android, iOS, or Web defaults.
 
 The template provides a stable root key, semantic light theme defaults, and a
 token-driven surface for composing foundations, inputs, layout, and overlay
@@ -92,9 +94,9 @@ theme and interaction remains tracked separately.*
 
 ### Prerequisites
 
-- **Rust** 1.85+ (MSRV, edition 2024)
-- **Windows 10/11** (primary target; Linux/macOS secondary)
-- A GPU with **DirectX 12** or **Vulkan** support
+- **Rust** 1.88+ (MSRV, edition 2024; pinned by `rust-toolchain.toml`)
+- **Desktop targets:** Windows 10/11, macOS, and Linux
+- A backend supported by wgpu: **DirectX 12**, **Metal**, **Vulkan**, or **WebGPU**
 
 ### Run the Gallery
 
