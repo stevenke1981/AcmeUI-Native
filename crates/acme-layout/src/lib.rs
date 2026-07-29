@@ -720,45 +720,45 @@ mod tests {
     }
 
     #[test]
-fn constrained_text_wraps_to_more_lines() {
-    let mut fonts = FontSystem::new();
-    // Keep this integration test independent of optional system font
-    // coverage. Script-specific fallback is tested in acme-text.
-    let text = "AcmeUI native components wrap consistently across platforms";
-    let style = TextStyle {
-        font_size: 16.0,
-        line_height: 20.0,
-        ..TextStyle::default()
-    };
-    let narrow = fonts.shape(
-        text,
-        &style,
-        TextConstraints {
-            max_width: Some(100.0),
-            wrap: TextWrap::WordOrGlyph,
-        },
-        1.0,
-    );
-    let wide = fonts.shape(
-        text,
-        &style,
-        TextConstraints {
-            max_width: Some(1_000.0),
-            wrap: TextWrap::WordOrGlyph,
-        },
-        1.0,
-    );
-    assert!(
-        narrow.line_count > wide.line_count,
-        "expected narrow line count ({}) > wide line count ({})",
-        narrow.line_count,
-        wide.line_count,
-    );
-    assert!(
-        narrow.height > wide.height,
-        "expected narrow height ({}) > wide height ({})",
-        narrow.height,
-        wide.height,
-    );
-}
+    fn constrained_text_wraps_to_more_lines() {
+        let mut fonts = FontSystem::new();
+        // Keep this integration test independent of optional system font
+        // coverage. Script-specific fallback is tested in acme-text.
+        let text = "AcmeUI native components wrap consistently across platforms";
+        let style = TextStyle {
+            font_size: 16.0,
+            line_height: 20.0,
+            ..TextStyle::default()
+        };
+        let narrow = fonts.shape(
+            text,
+            &style,
+            TextConstraints {
+                max_width: Some(100.0),
+                wrap: TextWrap::WordOrGlyph,
+            },
+            1.0,
+        );
+        let wide = fonts.shape(
+            text,
+            &style,
+            TextConstraints {
+                max_width: Some(1_000.0),
+                wrap: TextWrap::WordOrGlyph,
+            },
+            1.0,
+        );
+        assert!(
+            narrow.line_count > wide.line_count,
+            "expected narrow line count ({}) > wide line count ({})",
+            narrow.line_count,
+            wide.line_count,
+        );
+        assert!(
+            narrow.height > wide.height,
+            "expected narrow height ({}) > wide height ({})",
+            narrow.height,
+            wide.height,
+        );
+    }
 }
