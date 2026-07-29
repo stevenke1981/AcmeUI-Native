@@ -25,7 +25,11 @@ jobs:
         run: python scripts/check_changed_rustfmt.py
       - run: cargo check --workspace --all-targets
       - run: cargo check -p acme-ui --all-targets --all-features
-      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Check Clippy diagnostics in changed Rust files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: python scripts/check_changed_clippy.py
       - run: cargo test --workspace
       - run: cargo test -p acme-ui --all-features
 
