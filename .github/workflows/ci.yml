@@ -6,6 +6,7 @@ on:
 jobs:
   rust:
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
@@ -32,6 +33,37 @@ jobs:
         run: python scripts/check_changed_clippy.py
       - run: cargo test --workspace
       - run: cargo test -p acme-ui --all-features
+
+  cross-target:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: wasm32-unknown-unknown
+            label: WebAssembly
+          - os: ubuntu-latest
+            target: aarch64-linux-android
+            label: Android ARM64
+          - os: macos-latest
+            target: aarch64-apple-ios
+            label: iOS ARM64
+    name: cross-target (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88.0
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - run: >-
+          cargo check -p acme-ui
+          --lib
+          --all-features
+          --target ${{ matrix.target }}
 
   audit:
     runs-on: ubuntu-latest
