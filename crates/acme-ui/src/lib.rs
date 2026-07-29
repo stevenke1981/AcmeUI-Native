@@ -56,8 +56,8 @@ pub mod prelude {
     pub use crate::{
         AppleTemplate, DESIGN_SYSTEM_VERSION, DefaultTemplate, NativeDensity, NativeMetrics,
         NativePlatform, NativeProfile, NativeTemplate, PrimaryShortcutModifier, Ubuntu25Template,
-        VERSION, Windows11Template, apple_template, default_template, default_theme,
-        native_button, native_button_for, native_layout_context, native_profile, native_template,
+        VERSION, Windows11Template, apple_template, default_template, default_theme, native_button,
+        native_button_for, native_layout_context, native_profile, native_template,
         native_template_for, native_theme, ubuntu25_template, windows11_template,
     };
     pub use crate::{ControlSize, Tone, resolve_tone, tone_color};
