@@ -34,12 +34,6 @@ smallvec = "1"
 slotmap = "1"
 bitflags = "2"
 
-# wayland-scanner 0.31.10 on crates.io still constrains quick-xml to the
-# vulnerable 0.39 line. Upstream keeps the same package version but has moved
-# to quick-xml 0.41. Pin the focused security-fix commit until the next release.
-[patch.crates-io]
-wayland-scanner = { git = "https://github.com/Smithay/wayland-rs", rev = "d07c4f91f28b42e5a485823ffd9d8d5a210b1053" }
-
 [profile.dev]
 incremental = true
 debug = 1
