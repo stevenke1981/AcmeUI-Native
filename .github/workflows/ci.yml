@@ -36,6 +36,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.88.0
-      - run: cargo install cargo-deny cargo-audit
+      - run: cargo install --locked cargo-deny cargo-audit
       - run: cargo deny check
       - run: cargo audit
