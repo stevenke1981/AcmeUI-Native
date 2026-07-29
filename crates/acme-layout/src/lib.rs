@@ -720,40 +720,45 @@ mod tests {
     }
 
     #[test]
-    fn narrow_cjk_text_wraps_to_more_lines() {
-        let mut fonts = FontSystem::new();
-        // 22 CJK characters — wraps at 240 px but fits on a single line at 600 px
-        let cjk = "繁體中文內容需要換行測試文字排版與行數計算";
-        let style = TextStyle {
-            font_size: 16.0,
-            line_height: 20.0,
-            ..TextStyle::default()
-        };
-        // Note: measure_text hard-codes TextWrap::None, so we use fonts.shape()
-        // directly (the same approach acme-text tests use) to exercise wrapping.
-        let narrow = fonts.shape(
-            cjk,
-            &style,
-            TextConstraints {
-                max_width: Some(240.0),
-                wrap: TextWrap::WordOrGlyph,
-            },
-            1.0,
-        );
-        let wide = fonts.shape(
-            cjk,
-            &style,
-            TextConstraints {
-                max_width: Some(600.0),
-                wrap: TextWrap::WordOrGlyph,
-            },
-            1.0,
-        );
-        assert!(
-            narrow.height > wide.height,
-            "expected narrow height ({}) > wide height ({})",
-            narrow.height,
-            wide.height,
-        );
-    }
+fn constrained_text_wraps_to_more_lines() {
+    let mut fonts = FontSystem::new();
+    // Keep this integration test independent of optional system font
+    // coverage. Script-specific fallback is tested in acme-text.
+    let text = "AcmeUI native components wrap consistently across platforms";
+    let style = TextStyle {
+        font_size: 16.0,
+        line_height: 20.0,
+        ..TextStyle::default()
+    };
+    let narrow = fonts.shape(
+        text,
+        &style,
+        TextConstraints {
+            max_width: Some(100.0),
+            wrap: TextWrap::WordOrGlyph,
+        },
+        1.0,
+    );
+    let wide = fonts.shape(
+        text,
+        &style,
+        TextConstraints {
+            max_width: Some(1_000.0),
+            wrap: TextWrap::WordOrGlyph,
+        },
+        1.0,
+    );
+    assert!(
+        narrow.line_count > wide.line_count,
+        "expected narrow line count ({}) > wide line count ({})",
+        narrow.line_count,
+        wide.line_count,
+    );
+    assert!(
+        narrow.height > wide.height,
+        "expected narrow height ({}) > wide height ({})",
+        narrow.height,
+        wide.height,
+    );
+}
 }
