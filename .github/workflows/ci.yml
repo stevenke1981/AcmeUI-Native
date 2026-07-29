@@ -18,6 +18,8 @@ jobs:
           toolchain: 1.88.0
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Resolve audited Wayland scanner patch
+        run: cargo update -p wayland-scanner
       - name: Check formatting of changed Rust files
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -41,5 +43,7 @@ jobs:
         with:
           toolchain: 1.88.0
       - run: cargo install --locked cargo-deny cargo-audit
-      - run: cargo deny check
+      - name: Resolve audited Wayland scanner patch
+        run: cargo update -p wayland-scanner
+      - run: cargo deny check bans sources
       - run: cargo audit
