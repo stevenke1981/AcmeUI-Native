@@ -736,7 +736,7 @@ mod tests {
             &style,
             TextConstraints {
                 max_width: Some(240.0),
-                wrap: TextWrap::Word,
+                wrap: TextWrap::WordOrGlyph,
             },
             1.0,
         );
@@ -745,7 +745,7 @@ mod tests {
             &style,
             TextConstraints {
                 max_width: Some(600.0),
-                wrap: TextWrap::Word,
+                wrap: TextWrap::WordOrGlyph,
             },
             1.0,
         );
