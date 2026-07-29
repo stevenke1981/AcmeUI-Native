@@ -52,6 +52,11 @@ The profile applies platform geometry to existing semantic theme tokens. It
 does not insert literal colors into widgets. `WidgetLayoutContext` receives the
 same body, label, line-height, control-height, and scale-factor contract.
 
+Text that may contain CJK or another script without reliable whitespace word
+boundaries should use AcmeUI's `WordOrGlyph` fallback. Word-only line breaking
+can legitimately differ with the operating system's installed fonts and line
+breaker; glyph fallback keeps constrained text measurable across targets.
+
 ## Rendering boundary
 
 The current implementation is a native-feeling, platform-adaptive component
@@ -66,6 +71,10 @@ CI runs formatting, workspace checks, Clippy, and tests on Windows, macOS, and
 Ubuntu. The component crate is additionally built and tested with all optional
 families enabled so browser, mobile, chart, desktop, and overlay APIs cannot
 silently drift apart.
+
+Target-only builds additionally compile the full component feature set for
+Android ARM64, iOS ARM64, and WebAssembly. This catches target-configuration and
+dependency regressions even where CI cannot launch a native application window.
 
 Tests in `native.rs` verify that every profile produces valid light and dark
 themes, touch targets remain large enough, invalid scale factors normalize to
