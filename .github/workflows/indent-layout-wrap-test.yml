@@ -1,0 +1,40 @@
+name: Indent platform-neutral layout wrapping test
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/indent-layout-wrap-test.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'agent/native-platform-adaptation'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/native-platform-adaptation
+      - name: Restore module indentation
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("crates/acme-layout/src/lib.rs")
+          text = path.read_text(encoding="utf-8")
+          start = text.index("fn constrained_text_wraps_to_more_lines()")
+          end = text.index("\n}\n}", start) + len("\n}")
+          block = text[start:end]
+          if block.startswith("    "):
+              raise SystemExit("Test is already indented")
+          block = "\n".join("    " + line for line in block.splitlines())
+          path.write_text(text[:start] + block + text[end:], encoding="utf-8")
+      - name: Commit indentation fix and remove this one-time workflow
+        run: |
+          rm .github/workflows/indent-layout-wrap-test.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/acme-layout/src/lib.rs .github/workflows/indent-layout-wrap-test.yml
+          git commit -m "style(layout): format wrapping test"
+          git push origin HEAD:agent/native-platform-adaptation
