@@ -1,6 +1,6 @@
 //! Ubuntu (Yaru) theme pack — Ubuntu orange, aubergine accent.
 
-use crate::packs::{shadow_ladder, ThemePack};
+use crate::packs::{ThemePack, shadow_ladder};
 use crate::{ColorTokens, Theme, ThemeColor, ThemeMode};
 
 /// Ubuntu Yaru design pack.
@@ -55,7 +55,11 @@ impl ThemePack for UbuntuPack {
             disabled_bg: ThemeColor::rgb(238, 238, 238),
             disabled_text: ThemeColor::rgb(170, 170, 170),
         };
-        let mut t = Theme::from_colors(ThemeMode::Light, colors, shadow_ladder(0.05, 0.07, 0.09, 0.12));
+        let mut t = Theme::from_colors(
+            ThemeMode::Light,
+            colors,
+            shadow_ladder(0.05, 0.07, 0.09, 0.12),
+        );
         t.radii.sm = 4.0;
         t.radii.md = 6.0;
         t.radii.lg = 8.0;
@@ -107,7 +111,11 @@ impl ThemePack for UbuntuPack {
             disabled_bg: ThemeColor::rgb(72, 72, 72),
             disabled_text: ThemeColor::rgb(110, 110, 110),
         };
-        let mut t = Theme::from_colors(ThemeMode::Dark, colors, shadow_ladder(0.30, 0.35, 0.45, 0.55));
+        let mut t = Theme::from_colors(
+            ThemeMode::Dark,
+            colors,
+            shadow_ladder(0.30, 0.35, 0.45, 0.55),
+        );
         t.radii.sm = 4.0;
         t.radii.md = 6.0;
         t.radii.lg = 8.0;

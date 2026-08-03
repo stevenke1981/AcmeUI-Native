@@ -1,6 +1,6 @@
 //! Windows 10 (Fluent) theme pack — accent blue, squared geometry.
 
-use crate::packs::{shadow_ladder, ThemePack};
+use crate::packs::{ThemePack, shadow_ladder};
 use crate::{ColorTokens, Theme, ThemeColor, ThemeMode};
 
 /// Windows 10 Fluent design pack.
@@ -55,7 +55,11 @@ impl ThemePack for Windows10Pack {
             disabled_bg: ThemeColor::rgb(238, 238, 238),
             disabled_text: ThemeColor::rgb(160, 160, 160),
         };
-        let mut t = Theme::from_colors(ThemeMode::Light, colors, shadow_ladder(0.05, 0.07, 0.09, 0.12));
+        let mut t = Theme::from_colors(
+            ThemeMode::Light,
+            colors,
+            shadow_ladder(0.05, 0.07, 0.09, 0.12),
+        );
         // Windows 10 is comparatively squared.
         t.radii.sm = 2.0;
         t.radii.md = 2.0;
@@ -108,7 +112,11 @@ impl ThemePack for Windows10Pack {
             disabled_bg: ThemeColor::rgb(53, 53, 53),
             disabled_text: ThemeColor::rgb(102, 102, 102),
         };
-        let mut t = Theme::from_colors(ThemeMode::Dark, colors, shadow_ladder(0.30, 0.35, 0.45, 0.55));
+        let mut t = Theme::from_colors(
+            ThemeMode::Dark,
+            colors,
+            shadow_ladder(0.30, 0.35, 0.45, 0.55),
+        );
         t.radii.sm = 2.0;
         t.radii.md = 2.0;
         t.radii.lg = 4.0;

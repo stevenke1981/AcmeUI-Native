@@ -116,9 +116,7 @@ mod tests {
 
     #[test]
     fn float_button_with_icon() {
-        let node: WidgetNode<Msg> = float_button()
-            .icon(crate::IconName::Plus)
-            .into();
+        let node: WidgetNode<Msg> = float_button().icon(crate::IconName::Plus).into();
         let WidgetNode::Stack(s) = &node else {
             panic!("expected Stack");
         };

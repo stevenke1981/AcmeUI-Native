@@ -1,6 +1,6 @@
 //! Dracula theme pack — vibrant dark palette with purple accent.
 
-use crate::packs::{shadow_ladder, ThemePack};
+use crate::packs::{ThemePack, shadow_ladder};
 use crate::{ColorTokens, Theme, ThemeColor, ThemeMode};
 
 /// Dracula design pack.
@@ -56,14 +56,18 @@ impl ThemePack for DraculaPack {
             disabled_bg: ThemeColor::rgb(235, 235, 230),
             disabled_text: ThemeColor::rgb(170, 170, 165),
         };
-        Theme::from_colors(ThemeMode::Light, colors, shadow_ladder(0.05, 0.07, 0.09, 0.12))
+        Theme::from_colors(
+            ThemeMode::Light,
+            colors,
+            shadow_ladder(0.05, 0.07, 0.09, 0.12),
+        )
     }
 
     fn dark(&self) -> Theme {
         let colors = ColorTokens {
-            background: ThemeColor::rgb(40, 42, 54),   // Dracula bg
+            background: ThemeColor::rgb(40, 42, 54),    // Dracula bg
             foreground: ThemeColor::rgb(248, 248, 242), // foreground
-            surface: ThemeColor::rgb(68, 71, 90),      // current line
+            surface: ThemeColor::rgb(68, 71, 90),       // current line
             surface_foreground: ThemeColor::rgb(248, 248, 242),
 
             primary: ThemeColor::rgb(189, 147, 249), // purple
@@ -103,6 +107,10 @@ impl ThemePack for DraculaPack {
             disabled_bg: ThemeColor::rgb(68, 71, 90),
             disabled_text: ThemeColor::rgb(98, 114, 164),
         };
-        Theme::from_colors(ThemeMode::Dark, colors, shadow_ladder(0.30, 0.35, 0.45, 0.55))
+        Theme::from_colors(
+            ThemeMode::Dark,
+            colors,
+            shadow_ladder(0.30, 0.35, 0.45, 0.55),
+        )
     }
 }

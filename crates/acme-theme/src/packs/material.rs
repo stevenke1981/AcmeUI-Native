@@ -1,6 +1,6 @@
 //! Material Design 3 theme pack — baseline purple, tonal surfaces.
 
-use crate::packs::{shadow_ladder, ThemePack};
+use crate::packs::{ThemePack, shadow_ladder};
 use crate::{ColorTokens, Theme, ThemeColor, ThemeMode};
 
 /// Material Design 3 (baseline) design pack.
@@ -55,7 +55,11 @@ impl ThemePack for MaterialPack {
             disabled_bg: ThemeColor::rgb(231, 224, 236),
             disabled_text: ThemeColor::rgb(150, 144, 156),
         };
-        let mut t = Theme::from_colors(ThemeMode::Light, colors, shadow_ladder(0.05, 0.08, 0.11, 0.15));
+        let mut t = Theme::from_colors(
+            ThemeMode::Light,
+            colors,
+            shadow_ladder(0.05, 0.08, 0.11, 0.15),
+        );
         // M3 uses fully rounded pill shapes for many components.
         t.radii.sm = 8.0;
         t.radii.md = 12.0;
@@ -108,7 +112,11 @@ impl ThemePack for MaterialPack {
             disabled_bg: ThemeColor::rgb(49, 48, 51),
             disabled_text: ThemeColor::rgb(90, 87, 95),
         };
-        let mut t = Theme::from_colors(ThemeMode::Dark, colors, shadow_ladder(0.30, 0.35, 0.45, 0.55));
+        let mut t = Theme::from_colors(
+            ThemeMode::Dark,
+            colors,
+            shadow_ladder(0.30, 0.35, 0.45, 0.55),
+        );
         t.radii.sm = 8.0;
         t.radii.md = 12.0;
         t.radii.lg = 16.0;

@@ -1,6 +1,6 @@
 //! Windows 11 (Mica / WinUI 3) theme pack — accent blue, rounded geometry.
 
-use crate::packs::{shadow_ladder, ThemePack};
+use crate::packs::{ThemePack, shadow_ladder};
 use crate::{ColorTokens, Theme, ThemeColor, ThemeMode};
 
 /// Windows 11 WinUI 3 design pack.
@@ -55,7 +55,11 @@ impl ThemePack for Windows11Pack {
             disabled_bg: ThemeColor::rgb(238, 238, 238),
             disabled_text: ThemeColor::rgb(160, 160, 160),
         };
-        let mut t = Theme::from_colors(ThemeMode::Light, colors, shadow_ladder(0.05, 0.08, 0.10, 0.14));
+        let mut t = Theme::from_colors(
+            ThemeMode::Light,
+            colors,
+            shadow_ladder(0.05, 0.08, 0.10, 0.14),
+        );
         // Windows 11 uses 4-8px rounded corners (WinUI).
         t.radii.sm = 4.0;
         t.radii.md = 4.0;
@@ -108,7 +112,11 @@ impl ThemePack for Windows11Pack {
             disabled_bg: ThemeColor::rgb(53, 53, 53),
             disabled_text: ThemeColor::rgb(102, 102, 102),
         };
-        let mut t = Theme::from_colors(ThemeMode::Dark, colors, shadow_ladder(0.30, 0.35, 0.45, 0.55));
+        let mut t = Theme::from_colors(
+            ThemeMode::Dark,
+            colors,
+            shadow_ladder(0.30, 0.35, 0.45, 0.55),
+        );
         t.radii.sm = 4.0;
         t.radii.md = 4.0;
         t.radii.lg = 8.0;

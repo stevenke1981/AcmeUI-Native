@@ -94,9 +94,7 @@ mod tests {
 
     #[test]
     fn data_list_produces_column() {
-        let node: WidgetNode<Msg> = data_list()
-            .item(DataListItem::new("Name", "Alice"))
-            .into();
+        let node: WidgetNode<Msg> = data_list().item(DataListItem::new("Name", "Alice")).into();
         assert!(matches!(node, WidgetNode::Column(_)));
     }
 

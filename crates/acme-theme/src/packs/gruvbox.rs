@@ -1,6 +1,6 @@
 //! Gruvbox theme pack — retro groove warm palette with aqua/orange accents.
 
-use crate::packs::{shadow_ladder, ThemePack};
+use crate::packs::{ThemePack, shadow_ladder};
 use crate::{ColorTokens, Theme, ThemeColor, ThemeMode};
 
 /// Gruvbox design pack.
@@ -55,7 +55,11 @@ impl ThemePack for GruvboxPack {
             disabled_bg: ThemeColor::rgb(235, 219, 178),
             disabled_text: ThemeColor::rgb(124, 111, 100),
         };
-        Theme::from_colors(ThemeMode::Light, colors, shadow_ladder(0.05, 0.07, 0.09, 0.12))
+        Theme::from_colors(
+            ThemeMode::Light,
+            colors,
+            shadow_ladder(0.05, 0.07, 0.09, 0.12),
+        )
     }
 
     fn dark(&self) -> Theme {
@@ -102,6 +106,10 @@ impl ThemePack for GruvboxPack {
             disabled_bg: ThemeColor::rgb(60, 56, 54),
             disabled_text: ThemeColor::rgb(168, 153, 132),
         };
-        Theme::from_colors(ThemeMode::Dark, colors, shadow_ladder(0.30, 0.35, 0.45, 0.55))
+        Theme::from_colors(
+            ThemeMode::Dark,
+            colors,
+            shadow_ladder(0.30, 0.35, 0.45, 0.55),
+        )
     }
 }

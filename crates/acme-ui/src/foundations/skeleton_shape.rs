@@ -67,15 +67,10 @@ impl<M: Clone + 'static> SkeletonShapeBuilder<M> {
 impl<M: Clone + 'static> From<SkeletonShapeBuilder<M>> for WidgetNode<M> {
     fn from(b: SkeletonShapeBuilder<M>) -> Self {
         let variant = match b.shape {
-            SkeletonShape::Rounded | SkeletonShape::Circle => {
-                acme_widgets::CardVariant::Elevated
-            }
+            SkeletonShape::Rounded | SkeletonShape::Circle => acme_widgets::CardVariant::Elevated,
             _ => acme_widgets::CardVariant::Muted,
         };
-        crate::card::<M>()
-            .key(b.id)
-            .variant(variant)
-            .build()
+        crate::card::<M>().key(b.id).variant(variant).build()
     }
 }
 

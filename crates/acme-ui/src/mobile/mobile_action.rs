@@ -85,9 +85,7 @@ mod tests {
 
     #[test]
     fn mobile_action_with_icon() {
-        let node: WidgetNode<Msg> = mobile_action("Share")
-            .icon(crate::IconName::Star)
-            .into();
+        let node: WidgetNode<Msg> = mobile_action("Share").icon(crate::IconName::Star).into();
         let WidgetNode::Row(r) = &node else {
             panic!("expected Row");
         };

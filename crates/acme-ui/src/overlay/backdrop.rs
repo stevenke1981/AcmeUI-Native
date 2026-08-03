@@ -83,9 +83,7 @@ mod tests {
 
     #[test]
     fn backdrop_with_child() {
-        let node: WidgetNode<Msg> = backdrop()
-            .child(crate::label("Loading…"))
-            .into();
+        let node: WidgetNode<Msg> = backdrop().child(crate::label("Loading…")).into();
         let WidgetNode::Stack(s) = &node else {
             panic!("expected Stack");
         };

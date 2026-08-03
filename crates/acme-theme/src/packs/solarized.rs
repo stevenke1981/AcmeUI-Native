@@ -1,6 +1,6 @@
 //! Solarized theme pack — Ethan Schoonover's precision light/dark palette.
 
-use crate::packs::{shadow_ladder, ThemePack};
+use crate::packs::{ThemePack, shadow_ladder};
 use crate::{ColorTokens, Theme, ThemeColor, ThemeMode};
 
 /// Solarized design pack.
@@ -55,14 +55,18 @@ impl ThemePack for SolarizedPack {
             disabled_bg: ThemeColor::rgb(238, 232, 213),
             disabled_text: ThemeColor::rgb(147, 161, 161),
         };
-        Theme::from_colors(ThemeMode::Light, colors, shadow_ladder(0.05, 0.07, 0.09, 0.12))
+        Theme::from_colors(
+            ThemeMode::Light,
+            colors,
+            shadow_ladder(0.05, 0.07, 0.09, 0.12),
+        )
     }
 
     fn dark(&self) -> Theme {
         let colors = ColorTokens {
-            background: ThemeColor::rgb(0, 43, 54),    // base03
+            background: ThemeColor::rgb(0, 43, 54),     // base03
             foreground: ThemeColor::rgb(131, 148, 150), // base0
-            surface: ThemeColor::rgb(7, 54, 66),       // base02
+            surface: ThemeColor::rgb(7, 54, 66),        // base02
             surface_foreground: ThemeColor::rgb(131, 148, 150),
 
             primary: ThemeColor::rgb(38, 139, 210), // blue
@@ -102,6 +106,10 @@ impl ThemePack for SolarizedPack {
             disabled_bg: ThemeColor::rgb(7, 54, 66),
             disabled_text: ThemeColor::rgb(88, 110, 117),
         };
-        Theme::from_colors(ThemeMode::Dark, colors, shadow_ladder(0.30, 0.35, 0.45, 0.55))
+        Theme::from_colors(
+            ThemeMode::Dark,
+            colors,
+            shadow_ladder(0.30, 0.35, 0.45, 0.55),
+        )
     }
 }

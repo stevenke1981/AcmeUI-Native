@@ -153,9 +153,7 @@ mod tests {
 
     #[test]
     fn notification_with_description() {
-        let node: WidgetNode<Msg> = notification("Title")
-            .description("Details here")
-            .into();
+        let node: WidgetNode<Msg> = notification("Title").description("Details here").into();
         let WidgetNode::Card(c) = &node else {
             panic!("expected Card");
         };

@@ -89,10 +89,7 @@ mod tests {
 
     #[test]
     fn input_group_with_prefix_suffix() {
-        let node: WidgetNode<Msg> = input_group("0.00")
-            .prefix("$")
-            .suffix("USD")
-            .into();
+        let node: WidgetNode<Msg> = input_group("0.00").prefix("$").suffix("USD").into();
         let WidgetNode::Row(r) = &node else {
             panic!("expected Row");
         };

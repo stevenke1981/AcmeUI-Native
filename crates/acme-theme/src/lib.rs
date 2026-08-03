@@ -406,7 +406,11 @@ impl Theme {
             ("foreground/background", c.foreground, c.background),
             ("surface_fg/surface", c.surface_foreground, c.surface),
             ("primary_fg/primary", c.primary_foreground, c.primary),
-            ("secondary_fg/secondary", c.secondary_foreground, c.secondary),
+            (
+                "secondary_fg/secondary",
+                c.secondary_foreground,
+                c.secondary,
+            ),
             ("muted_fg/muted", c.muted_foreground, c.muted),
             ("accent_fg/accent", c.accent_foreground, c.accent),
         ];
@@ -421,7 +425,9 @@ impl Theme {
 
     /// True if all key text pairs meet at least WCAG AA (≥ 4.5:1).
     pub fn meets_wcag_aa(&self) -> bool {
-        self.wcag_report().iter().all(|(_, _, level)| level.meets_aa())
+        self.wcag_report()
+            .iter()
+            .all(|(_, _, level)| level.meets_aa())
     }
 
     pub fn validate(&self) -> Result<(), ThemeValidationError> {
@@ -840,6 +846,10 @@ mod tests {
     fn wcag_report_covers_key_pairs() {
         let report = Theme::light().wcag_report();
         assert_eq!(report.len(), 6);
-        assert!(report.iter().any(|(name, _, _)| *name == "foreground/background"));
+        assert!(
+            report
+                .iter()
+                .any(|(name, _, _)| *name == "foreground/background")
+        );
     }
 }

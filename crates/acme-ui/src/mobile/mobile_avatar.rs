@@ -31,9 +31,7 @@ pub struct MobileAvatarBuilder<M> {
 }
 
 /// Create a mobile avatar builder.
-pub fn mobile_avatar<M: Clone + 'static>(
-    initials: impl Into<String>,
-) -> MobileAvatarBuilder<M> {
+pub fn mobile_avatar<M: Clone + 'static>(initials: impl Into<String>) -> MobileAvatarBuilder<M> {
     MobileAvatarBuilder {
         id: WidgetKey::from("mobile_avatar"),
         initials: initials.into(),

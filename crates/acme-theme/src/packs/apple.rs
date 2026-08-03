@@ -1,6 +1,6 @@
 //! Apple (macOS / iOS) theme pack — system blue, restrained grays, rounded geometry.
 
-use crate::packs::{shadow_ladder, ThemePack};
+use crate::packs::{ThemePack, shadow_ladder};
 use crate::{ColorTokens, Theme, ThemeColor, ThemeMode};
 
 /// Apple design system pack.
@@ -31,10 +31,10 @@ impl ThemePack for ApplePack {
             input: ThemeColor::rgb(229, 229, 234),
             ring: ThemeColor::rgb(0, 122, 255),
 
-            success: ThemeColor::rgb(52, 199, 89),  // systemGreen
-            warning: ThemeColor::rgb(255, 149, 0),  // systemOrange
-            danger: ThemeColor::rgb(255, 59, 48),   // systemRed
-            info: ThemeColor::rgb(90, 200, 250),    // systemTeal
+            success: ThemeColor::rgb(52, 199, 89), // systemGreen
+            warning: ThemeColor::rgb(255, 149, 0), // systemOrange
+            danger: ThemeColor::rgb(255, 59, 48),  // systemRed
+            info: ThemeColor::rgb(90, 200, 250),   // systemTeal
 
             success_soft: ThemeColor::rgb(232, 247, 236),
             warning_soft: ThemeColor::rgb(255, 242, 224),
@@ -55,7 +55,11 @@ impl ThemePack for ApplePack {
             disabled_bg: ThemeColor::rgb(229, 229, 234),
             disabled_text: ThemeColor::rgb(199, 199, 204),
         };
-        let mut t = Theme::from_colors(ThemeMode::Light, colors, shadow_ladder(0.06, 0.08, 0.10, 0.14));
+        let mut t = Theme::from_colors(
+            ThemeMode::Light,
+            colors,
+            shadow_ladder(0.06, 0.08, 0.10, 0.14),
+        );
         // Apple uses generously rounded corners.
         t.radii.sm = 6.0;
         t.radii.md = 10.0;
@@ -84,10 +88,10 @@ impl ThemePack for ApplePack {
             input: ThemeColor::rgb(56, 56, 58),
             ring: ThemeColor::rgb(10, 132, 255),
 
-            success: ThemeColor::rgb(48, 209, 88),  // systemGreen (dark)
+            success: ThemeColor::rgb(48, 209, 88), // systemGreen (dark)
             warning: ThemeColor::rgb(255, 159, 10), // systemOrange (dark)
-            danger: ThemeColor::rgb(255, 69, 58),   // systemRed (dark)
-            info: ThemeColor::rgb(100, 210, 255),   // systemTeal (dark)
+            danger: ThemeColor::rgb(255, 69, 58),  // systemRed (dark)
+            info: ThemeColor::rgb(100, 210, 255),  // systemTeal (dark)
 
             success_soft: ThemeColor::rgb(13, 40, 24),
             warning_soft: ThemeColor::rgb(45, 31, 4),
@@ -108,7 +112,11 @@ impl ThemePack for ApplePack {
             disabled_bg: ThemeColor::rgb(44, 44, 46),
             disabled_text: ThemeColor::rgb(72, 72, 74),
         };
-        let mut t = Theme::from_colors(ThemeMode::Dark, colors, shadow_ladder(0.30, 0.35, 0.45, 0.55));
+        let mut t = Theme::from_colors(
+            ThemeMode::Dark,
+            colors,
+            shadow_ladder(0.30, 0.35, 0.45, 0.55),
+        );
         t.radii.sm = 6.0;
         t.radii.md = 10.0;
         t.radii.lg = 14.0;

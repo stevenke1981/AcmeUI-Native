@@ -1,6 +1,6 @@
 //! One Dark theme pack — Atom's One Dark / One Light palette.
 
-use crate::packs::{shadow_ladder, ThemePack};
+use crate::packs::{ThemePack, shadow_ladder};
 use crate::{ColorTokens, Theme, ThemeColor, ThemeMode};
 
 /// One Dark design pack.
@@ -32,10 +32,10 @@ impl ThemePack for OneDarkPack {
             input: ThemeColor::rgb(219, 219, 220),
             ring: ThemeColor::rgb(64, 120, 242),
 
-            success: ThemeColor::rgb(80, 161, 79),  // green
-            warning: ThemeColor::rgb(193, 132, 1),  // yellow
-            danger: ThemeColor::rgb(228, 86, 73),   // red
-            info: ThemeColor::rgb(1, 132, 188),     // cyan
+            success: ThemeColor::rgb(80, 161, 79), // green
+            warning: ThemeColor::rgb(193, 132, 1), // yellow
+            danger: ThemeColor::rgb(228, 86, 73),  // red
+            info: ThemeColor::rgb(1, 132, 188),    // cyan
 
             success_soft: ThemeColor::rgb(224, 240, 222),
             warning_soft: ThemeColor::rgb(248, 238, 214),
@@ -56,7 +56,11 @@ impl ThemePack for OneDarkPack {
             disabled_bg: ThemeColor::rgb(240, 240, 242),
             disabled_text: ThemeColor::rgb(160, 161, 167),
         };
-        Theme::from_colors(ThemeMode::Light, colors, shadow_ladder(0.05, 0.07, 0.09, 0.12))
+        Theme::from_colors(
+            ThemeMode::Light,
+            colors,
+            shadow_ladder(0.05, 0.07, 0.09, 0.12),
+        )
     }
 
     fn dark(&self) -> Theme {
@@ -103,6 +107,10 @@ impl ThemePack for OneDarkPack {
             disabled_bg: ThemeColor::rgb(33, 37, 43),
             disabled_text: ThemeColor::rgb(92, 99, 112),
         };
-        Theme::from_colors(ThemeMode::Dark, colors, shadow_ladder(0.30, 0.35, 0.45, 0.55))
+        Theme::from_colors(
+            ThemeMode::Dark,
+            colors,
+            shadow_ladder(0.30, 0.35, 0.45, 0.55),
+        )
     }
 }

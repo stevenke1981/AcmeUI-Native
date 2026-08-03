@@ -117,7 +117,11 @@ impl<M: Clone + 'static> From<TourBuilder<M>> for WidgetNode<M> {
         let is_last = b.current + 1 >= b.steps.len();
         if is_last {
             if let Some(msg) = b.on_finish {
-                nav_row = nav_row.child(crate::button("tour_finish", "Finish").primary().on_click(msg));
+                nav_row = nav_row.child(
+                    crate::button("tour_finish", "Finish")
+                        .primary()
+                        .on_click(msg),
+                );
             }
         } else if let Some(msg) = b.on_next {
             nav_row = nav_row.child(crate::button("tour_next", "Next").primary().on_click(msg));
@@ -140,9 +144,7 @@ mod tests {
 
     #[test]
     fn tour_produces_card() {
-        let node: WidgetNode<Msg> = tour()
-            .step(TourStep::new("Welcome"))
-            .into();
+        let node: WidgetNode<Msg> = tour().step(TourStep::new("Welcome")).into();
         assert!(matches!(node, WidgetNode::Card(_)));
     }
 

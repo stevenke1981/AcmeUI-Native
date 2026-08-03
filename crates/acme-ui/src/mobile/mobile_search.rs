@@ -12,9 +12,7 @@ pub struct MobileSearchBuilder<M> {
 }
 
 /// Create a mobile search bar builder.
-pub fn mobile_search<M: Clone + 'static>(
-    placeholder: impl Into<String>,
-) -> MobileSearchBuilder<M> {
+pub fn mobile_search<M: Clone + 'static>(placeholder: impl Into<String>) -> MobileSearchBuilder<M> {
     MobileSearchBuilder {
         id: WidgetKey::from("mobile_search"),
         placeholder: placeholder.into(),

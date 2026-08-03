@@ -1,6 +1,6 @@
 //! Nord theme pack — arctic, north-bluish palette.
 
-use crate::packs::{shadow_ladder, ThemePack};
+use crate::packs::{ThemePack, shadow_ladder};
 use crate::{ColorTokens, Theme, ThemeColor, ThemeMode};
 
 /// Nord design pack (arctic blue palette).
@@ -56,19 +56,23 @@ impl ThemePack for NordPack {
             disabled_bg: ThemeColor::rgb(229, 233, 240),
             disabled_text: ThemeColor::rgb(156, 163, 175),
         };
-        Theme::from_colors(ThemeMode::Light, colors, shadow_ladder(0.05, 0.07, 0.09, 0.12))
+        Theme::from_colors(
+            ThemeMode::Light,
+            colors,
+            shadow_ladder(0.05, 0.07, 0.09, 0.12),
+        )
     }
 
     fn dark(&self) -> Theme {
         let colors = ColorTokens {
-            background: ThemeColor::rgb(46, 52, 64),  // nord0 (Polar Night)
+            background: ThemeColor::rgb(46, 52, 64), // nord0 (Polar Night)
             foreground: ThemeColor::rgb(236, 239, 244), // nord6
-            surface: ThemeColor::rgb(59, 66, 82),     // nord1
+            surface: ThemeColor::rgb(59, 66, 82),    // nord1
             surface_foreground: ThemeColor::rgb(236, 239, 244),
 
             primary: ThemeColor::rgb(136, 192, 208), // nord8 (frost)
             primary_foreground: ThemeColor::rgb(46, 52, 64),
-            secondary: ThemeColor::rgb(67, 76, 94),  // nord2
+            secondary: ThemeColor::rgb(67, 76, 94), // nord2
             secondary_foreground: ThemeColor::rgb(229, 233, 240),
             accent: ThemeColor::rgb(67, 76, 94),
             accent_foreground: ThemeColor::rgb(136, 192, 208),
@@ -103,6 +107,10 @@ impl ThemePack for NordPack {
             disabled_bg: ThemeColor::rgb(67, 76, 94),
             disabled_text: ThemeColor::rgb(76, 86, 106),
         };
-        Theme::from_colors(ThemeMode::Dark, colors, shadow_ladder(0.30, 0.35, 0.45, 0.55))
+        Theme::from_colors(
+            ThemeMode::Dark,
+            colors,
+            shadow_ladder(0.30, 0.35, 0.45, 0.55),
+        )
     }
 }
