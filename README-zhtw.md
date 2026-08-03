@@ -68,9 +68,9 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 
 ### 前置需求
 
-- **Rust** 1.85+（MSRV，edition 2024）
-- **Windows 10/11**（主要目標；Linux/macOS 次要）
-- 支援 **DirectX 12** 或 **Vulkan** 的 GPU
+- **Rust** 1.88+（MSRV、edition 2024；由 `rust-toolchain.toml` 固定）
+- **桌面目標：** Windows 10/11、macOS 與 Linux
+- wgpu 支援的後端：**DirectX 12**、**Metal**、**Vulkan** 或 **WebGPU**
 
 ### 執行 Gallery
 

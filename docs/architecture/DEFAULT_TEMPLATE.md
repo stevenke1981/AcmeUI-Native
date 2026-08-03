@@ -1,9 +1,14 @@
-# AcmeUI Native Default Template v0.2.0
+# AcmeUI Native application templates v0.2.0
 
 `acme-ui` is the application-facing component library. Its default feature set
 ships the foundations, inputs, layout and overlay families. Optional chart,
-desktop, mobile and browser families remain opt-in so a small desktop app does
+desktop, mobile and browser families remain opt-in so a small application does
 not pay for every category.
+
+## Deterministic default template
+
+Use `default_template(...)` when screenshots, examples, or products require the
+same geometry on every target:
 
 ```rust
 use acme_ui::prelude::*;
@@ -15,29 +20,60 @@ let view = default_template::<AppMessage>("Ledger")
     .build();
 ```
 
-The template follows four reference ideas:
+The default template remains platform-neutral and keeps its stable
+`acmeui-default-template` root key.
 
-- shadcn/ui: semantic tokens and composition over a fixed visual skin;
-- MUI: predictable builders, control sizes and a discoverable component API;
-- Ant Design: clear families for inputs, navigation, data display and feedback;
-- Radix: stable parts, focus/keyboard behavior and accessibility boundaries.
+## Target-aware native template
 
-The public version constants are `acme_ui::VERSION` and
-`acme_ui::DESIGN_SYSTEM_VERSION`; both are `0.2.0` for this release.
+Use `native_template(...)` when one component tree should adopt the target's
+page rhythm, typography, control scale, corner geometry, theme pack, and
+shortcut-label convention:
 
-## Apple-inspired template
+```rust
+use acme_ui::prelude::*;
 
-Use `apple_template("Dashboard")` for a quieter hierarchy with a tighter
-12px rhythm, 20px shell inset, and stable `acmeui-apple-template` root key.
-Colors remain semantic and platform-neutral; materials and motion are left to
-the active theme and renderer.
+let profile = native_profile();
+let theme = native_theme(ThemeMode::Light);
+let layout_context = native_layout_context(1.0);
 
-## Platform templates
+let view = native_template("Settings")
+    .subtitle(format!("Save with {}", profile.shortcut_label("S")))
+    .child(
+        native_button("save", "Save")
+            .primary()
+            .on_click(AppMessage::Save),
+    )
+    .build();
+```
 
-- `windows11_template(...)`: 16px rhythm and 24px inset for a spacious,
-  layered desktop workspace.
-- `ubuntu25_template(...)`: 12px rhythm and 24px inset for a compact,
-  efficient developer-oriented workspace.
+For Gallery previews and deterministic tests, select a target explicitly:
 
-Both expose stable root keys and keep platform-specific behavior out of the
-public API.
+```rust
+let mac = native_template_for::<AppMessage>(NativePlatform::MacOs, "Settings");
+let android = NativeProfile::for_platform(NativePlatform::Android);
+let touch_button = native_button_for(android, "continue", "Continue");
+```
+
+`native_template`, `native_theme`, `native_layout_context`, and
+`native_button` are designed to use the same `NativeProfile`. This prevents a
+Windows shell from accidentally using macOS control heights or an Android
+button from using desktop hit targets.
+
+## Compatibility templates
+
+The existing entry points remain available and keep their stable root keys:
+
+- `apple_template(...)` uses the macOS profile;
+- `windows11_template(...)` uses the Windows profile;
+- `ubuntu25_template(...)` uses the Linux profile.
+
+These are platform-inspired GPU-rendered components, not wrappers around WinUI,
+AppKit/UIKit, GTK, or Android Views. Native OS-control backends can be added
+later without leaking platform-specific types into the public component API.
+
+The template system follows four reference ideas:
+
+- semantic tokens and composition over a fixed visual skin;
+- predictable builders, control sizes, and a discoverable component API;
+- clear families for inputs, navigation, data display, and feedback;
+- stable parts, focus/keyboard behavior, and accessibility boundaries.

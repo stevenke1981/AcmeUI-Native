@@ -3,6 +3,7 @@
 //! High-level UI components built on acme-widgets primitives.
 //! Design system inspired by shadcn/ui, Material UI, and Ant Design.
 
+pub mod native;
 mod template;
 
 #[cfg(feature = "browser")]
@@ -27,9 +28,14 @@ pub use acme_core::{NodeId, WidgetKey};
 pub use acme_layout::{LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
 pub use acme_theme::ThemeColor;
 pub use acme_widgets::*;
+pub use native::{
+    NativeDensity, NativeMetrics, NativePlatform, NativeProfile, PrimaryShortcutModifier,
+    native_button, native_button_for, native_layout_context, native_profile, native_theme,
+};
 pub use template::{
-    AppleTemplate, DefaultTemplate, Ubuntu25Template, Windows11Template, apple_template,
-    default_template, ubuntu25_template, windows11_template,
+    AppleTemplate, DefaultTemplate, NativeTemplate, Ubuntu25Template, Windows11Template,
+    apple_template, default_template, native_template, native_template_for, ubuntu25_template,
+    windows11_template,
 };
 
 /// AcmeUI component-library version, kept in lockstep with the workspace package.
@@ -37,17 +43,22 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Design-token and default-template contract version.
 pub const DESIGN_SYSTEM_VERSION: &str = "0.2.0";
 
-/// The default semantic theme for new applications.
+/// The deterministic default semantic theme for new applications.
+///
+/// Use [`native_theme`] when the application should automatically select an
+/// operating-system-aware palette, geometry, typography, and control scale.
 pub fn default_theme() -> acme_theme::Theme {
     acme_theme::Theme::light()
 }
 
-/// Convenient imports for applications using the default AcmeUI template.
+/// Convenient imports for applications using the AcmeUI component layer.
 pub mod prelude {
     pub use crate::{
-        AppleTemplate, DESIGN_SYSTEM_VERSION, DefaultTemplate, Ubuntu25Template, VERSION,
-        Windows11Template, apple_template, default_template, default_theme, ubuntu25_template,
-        windows11_template,
+        AppleTemplate, DESIGN_SYSTEM_VERSION, DefaultTemplate, NativeDensity, NativeMetrics,
+        NativePlatform, NativeProfile, NativeTemplate, PrimaryShortcutModifier, Ubuntu25Template,
+        VERSION, Windows11Template, apple_template, default_template, default_theme, native_button,
+        native_button_for, native_layout_context, native_profile, native_template,
+        native_template_for, native_theme, ubuntu25_template, windows11_template,
     };
     pub use crate::{ControlSize, Tone, resolve_tone, tone_color};
     pub use crate::{button, card, column, label, row, scroll_view, separator, stack};

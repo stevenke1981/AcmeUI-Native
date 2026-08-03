@@ -1,13 +1,35 @@
-//! Opinionated, usable application shell for new AcmeUI applications.
+//! Opinionated, usable application shells for AcmeUI applications.
 
-use acme_widgets::{WidgetNode, column, label};
+use acme_widgets::{WidgetNode, column, label, label_with_size};
+
+use crate::native::{NativePlatform, NativeProfile};
+
+fn build_profile_shell<M>(
+    key: &'static str,
+    title: String,
+    subtitle: Option<String>,
+    children: Vec<WidgetNode<M>>,
+    profile: NativeProfile,
+) -> WidgetNode<M> {
+    let metrics = profile.metrics;
+    let mut root = column::<M>()
+        .key(key)
+        .gap(metrics.content_gap)
+        .padding(metrics.page_padding)
+        .child(label_with_size(title, metrics.title_font_size));
+    if let Some(subtitle) = subtitle {
+        root = root.child(label_with_size(subtitle, metrics.body_font_size));
+    }
+    for child in children {
+        root = root.child(child);
+    }
+    root.build()
+}
 
 /// A composable default application template.
 ///
-/// The template is intentionally declarative: callers provide their content
-/// nodes, while the shell supplies stable keys, spacing and a title region.
-/// Visual colors remain in `acme-theme` semantic tokens and are resolved by the
-/// renderer/application theme.
+/// The default template remains deterministic and platform-neutral. Applications
+/// that want automatic operating-system adaptation should use [`native_template`].
 #[derive(Clone, Debug, PartialEq)]
 pub struct DefaultTemplate<M> {
     title: String,
@@ -54,31 +76,44 @@ impl<M> DefaultTemplate<M> {
     }
 }
 
-/// Start the default AcmeUI application template.
+/// Start the deterministic default AcmeUI application template.
 pub fn default_template<M>(title: impl Into<String>) -> DefaultTemplate<M> {
     DefaultTemplate::new(title)
 }
 
-/// Apple-inspired application shell with restrained spacing and hierarchy.
+/// A target-aware application shell backed by [`NativeProfile`].
 ///
-/// The template keeps all colors semantic and delegates material, typography,
-/// and motion decisions to the active theme/renderer. It is suitable as a
-/// calm macOS/iOS-style starting point without exposing platform types.
+/// The shell adapts page rhythm and typography while keeping colors semantic.
+/// Use the same profile with `native_theme` and `native_layout_context` so the
+/// component tree, theme, and layout engine share one platform contract.
 #[derive(Clone, Debug, PartialEq)]
-pub struct AppleTemplate<M> {
+pub struct NativeTemplate<M> {
     title: String,
     subtitle: Option<String>,
     children: Vec<WidgetNode<M>>,
+    profile: NativeProfile,
 }
 
-impl<M> AppleTemplate<M> {
-    /// Create an Apple-inspired template with a title.
+impl<M> NativeTemplate<M> {
+    /// Create a shell for the current compilation target.
     pub fn new(title: impl Into<String>) -> Self {
+        Self::with_profile(title, NativeProfile::current())
+    }
+
+    /// Create a shell for an explicit platform profile.
+    pub fn with_profile(title: impl Into<String>, profile: NativeProfile) -> Self {
         Self {
             title: title.into(),
             subtitle: None,
             children: Vec::new(),
+            profile,
         }
+    }
+
+    /// Replace the profile used to build this shell.
+    pub fn profile(mut self, profile: NativeProfile) -> Self {
+        self.profile = profile;
+        self
     }
 
     /// Add supporting text below the title.
@@ -93,30 +128,44 @@ impl<M> AppleTemplate<M> {
         self
     }
 
-    /// Build the stable Apple-style declarative root node.
+    /// Return the profile selected for this shell.
+    pub const fn native_profile(&self) -> NativeProfile {
+        self.profile
+    }
+
+    /// Build the stable target-aware root node.
     pub fn build(self) -> WidgetNode<M> {
-        let mut root = column::<M>()
-            .key("acmeui-apple-template")
-            .gap(12.0)
-            .padding(20.0)
-            .child(label(self.title));
-        if let Some(subtitle) = self.subtitle {
-            root = root.child(label(subtitle));
-        }
-        for child in self.children {
-            root = root.child(child);
-        }
-        root.build()
+        build_profile_shell(
+            "acmeui-native-template",
+            self.title,
+            self.subtitle,
+            self.children,
+            self.profile,
+        )
     }
 }
 
-/// Start the Apple-inspired AcmeUI application template.
-pub fn apple_template<M>(title: impl Into<String>) -> AppleTemplate<M> {
-    AppleTemplate::new(title)
+/// Start a target-aware application shell for the current compilation target.
+pub fn native_template<M>(title: impl Into<String>) -> NativeTemplate<M> {
+    NativeTemplate::new(title)
+}
+
+/// Start a deterministic target-aware shell for previews and tests.
+pub fn native_template_for<M>(
+    platform: NativePlatform,
+    title: impl Into<String>,
+) -> NativeTemplate<M> {
+    NativeTemplate::with_profile(title, NativeProfile::for_platform(platform))
 }
 
 macro_rules! platform_template {
-    ($name:ident, $constructor:ident, $key:literal, $gap:literal, $padding:literal, $doc:literal) => {
+    (
+        $name:ident,
+        $constructor:ident,
+        $platform:expr,
+        $key:literal,
+        $doc:literal
+    ) => {
         #[doc = $doc]
         #[derive(Clone, Debug, PartialEq)]
         pub struct $name<M> {
@@ -149,18 +198,13 @@ macro_rules! platform_template {
 
             /// Build the stable platform-style declarative root node.
             pub fn build(self) -> WidgetNode<M> {
-                let mut root = column::<M>()
-                    .key($key)
-                    .gap($gap)
-                    .padding($padding)
-                    .child(label(self.title));
-                if let Some(subtitle) = self.subtitle {
-                    root = root.child(label(subtitle));
-                }
-                for child in self.children {
-                    root = root.child(child);
-                }
-                root.build()
+                build_profile_shell(
+                    $key,
+                    self.title,
+                    self.subtitle,
+                    self.children,
+                    NativeProfile::for_platform($platform),
+                )
             }
         }
 
@@ -172,20 +216,25 @@ macro_rules! platform_template {
 }
 
 platform_template!(
+    AppleTemplate,
+    apple_template,
+    NativePlatform::MacOs,
+    "acmeui-apple-template",
+    "Apple-inspired shell driven by the shared macOS native profile."
+);
+platform_template!(
     Windows11Template,
     windows11_template,
+    NativePlatform::Windows,
     "acmeui-windows11-template",
-    16.0,
-    24.0,
-    "Windows 11-inspired shell with layered spacing and a clear content hierarchy."
+    "Windows 11-inspired shell driven by the shared Windows native profile."
 );
 platform_template!(
     Ubuntu25Template,
     ubuntu25_template,
+    NativePlatform::Linux,
     "acmeui-ubuntu25-template",
-    12.0,
-    24.0,
-    "Ubuntu 25-inspired shell with compact rhythm and efficient workspace density."
+    "Ubuntu-inspired shell driven by the shared Linux native profile."
 );
 
 #[cfg(test)]
@@ -206,26 +255,37 @@ mod tests {
     }
 
     #[test]
-    fn apple_template_has_stable_root_and_content() {
-        let node = apple_template::<()>("Acme App")
-            .subtitle("Native and calm")
-            .child(label("Content"))
-            .build();
+    fn native_template_uses_explicit_profile_and_stable_key() {
+        let template = native_template_for::<()>(NativePlatform::Android, "Acme App")
+            .subtitle("Touch first")
+            .child(label("Content"));
+        assert_eq!(
+            template.native_profile(),
+            NativeProfile::for_platform(NativePlatform::Android)
+        );
+        let node = template.build();
         assert_eq!(
             node.key().expect("template key").as_str(),
-            "acmeui-apple-template"
+            "acmeui-native-template"
         );
         assert_eq!(node.children().len(), 3);
     }
 
     #[test]
     fn platform_templates_have_stable_keys() {
+        let apple = apple_template::<()>("Apple")
+            .child(label("Content"))
+            .build();
         let windows = windows11_template::<()>("Windows")
             .child(label("Content"))
             .build();
         let ubuntu = ubuntu25_template::<()>("Ubuntu")
             .child(label("Content"))
             .build();
+        assert_eq!(
+            apple.key().expect("template key").as_str(),
+            "acmeui-apple-template"
+        );
         assert_eq!(
             windows.key().expect("template key").as_str(),
             "acmeui-windows11-template"
@@ -234,5 +294,17 @@ mod tests {
             ubuntu.key().expect("template key").as_str(),
             "acmeui-ubuntu25-template"
         );
+    }
+
+    #[test]
+    fn platform_templates_use_different_native_geometry() {
+        let apple = apple_template::<()>("Apple")
+            .build()
+            .to_layout(acme_core::NodeId::new(1));
+        let windows = windows11_template::<()>("Windows")
+            .build()
+            .to_layout(acme_core::NodeId::new(1));
+        assert_ne!(apple.style.padding, windows.style.padding);
+        assert_ne!(apple.style.gap, windows.style.gap);
     }
 }
