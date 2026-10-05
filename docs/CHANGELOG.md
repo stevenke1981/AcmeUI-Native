@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased - Core invalidation and text editing
+
+- Invalidate a parent's structure, layout, paint and semantics after child insertion,
+  removal or reorder, preserving keyed node IDs.
+- Propagate layout invalidation to ancestors after reconciliation changes a node's
+  kind, focusability, disabled state or children. Unchanged frames remain clean.
+- Add regression coverage and a headless `reconcile_dirty` example.
+- Preserve text-input readonly state and history during undo/redo; record selected
+  Ctrl+Backspace/Delete as undoable edits and clear obsolete redo branches.
+- Wire Gallery Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z; ignore key-release shortcuts.
+- Windows GNU / Rust 1.94.1 workspace check/build/tests and formatting passed;
+  Clippy has no changed-file warnings. Pinned Rust 1.88, cross-platform and
+  Gallery visual gates remain pending. See
+  [the validation report](reports/retained-tree-invalidation.md).
+
 ## v0.2.3 — Interactive Gallery demos + manual validation checklists (2026-07-20)
 
 ### Interactive Data / Nav (Gallery state on app, rebuild each frame)

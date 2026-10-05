@@ -127,7 +127,11 @@ impl TextInputState {
     /// Undo the last mutation.
     ///
     /// Returns `true` if a transaction was available and was reverted.
+    /// Readonly inputs leave both state and history unchanged.
     pub fn undo(&mut self) -> bool {
+        if self.readonly {
+            return false;
+        }
         let tx = match self.undo_stack.pop() {
             Some(t) => t,
             None => return false,
@@ -155,7 +159,11 @@ impl TextInputState {
     /// Redo the last undone mutation.
     ///
     /// Returns `true` if a transaction was available and was re-applied.
+    /// Readonly inputs leave both state and history unchanged.
     pub fn redo(&mut self) -> bool {
+        if self.readonly {
+            return false;
+        }
         let tx = match self.redo_stack.pop() {
             Some(t) => t,
             None => return false,
@@ -519,7 +527,7 @@ impl TextInputState {
             return false;
         }
         if self.selection.is_some() {
-            return self.delete_selection();
+            return self.delete_before_cursor();
         }
         if self.cursor == 0 || self.text.is_empty() {
             return false;
@@ -542,7 +550,7 @@ impl TextInputState {
             return false;
         }
         if self.selection.is_some() {
-            return self.delete_selection();
+            return self.delete_after_cursor();
         }
         if self.cursor >= self.text.len() || self.text.is_empty() {
             return false;
@@ -1277,11 +1285,12 @@ pub fn handle_key(
     }
 }
 
-/// Handle clipboard shortcuts for a text input.
+/// Handle clipboard and edit-history shortcuts for a text input.
 ///
 /// Call this from the application event loop when `PlatformEvent::Key` has
 /// `ctrl: true` and `text` is `Some("a")`, `Some("c")`, `Some("v")`, or
-/// `Some("x")`.
+/// `Some("x")`, `Some("z")` (undo), or `Some("y")` (redo).
+/// Callers should invoke this only on key press, and map Ctrl+Shift+Z to `"y"`.
 ///
 /// Returns `true` if the state or clipboard was modified.
 pub fn handle_keyboard_shortcut(
@@ -1293,6 +1302,8 @@ pub fn handle_keyboard_shortcut(
         return false;
     }
     match key_text {
+        "z" => state.undo(),
+        "y" => state.redo(),
         "a" => {
             state.select_all();
             true
@@ -2121,7 +2132,7 @@ mod tests {
         let mut s = TextInputState::new();
         s.text = "hello".to_string();
         s.focused = true;
-        assert!(!handle_keyboard_shortcut(&mut s, "z", None));
+        assert!(!handle_keyboard_shortcut(&mut s, "q", None));
     }
 
     // ---- Clipboard integration test ----
@@ -2269,6 +2280,80 @@ mod tests {
     }
 
     // ---- New: undo / redo ----
+
+    #[test]
+    fn readonly_history_operations_preserve_state_and_history() {
+        let mut s = TextInputState::new();
+        handle_text(&mut s, "hello");
+        s.set_selection_range(1, 4);
+        handle_text(&mut s, "i");
+        s.set_preedit("pending", None);
+        s.readonly = true;
+        for _ in 0..2 {
+            assert!(!s.undo());
+            assert_eq!(s.text, "hio");
+            assert_eq!(s.cursor(), 2);
+            assert_eq!(s.selection(), None);
+            assert_eq!(s.preedit, "pending");
+        }
+        s.readonly = false;
+        assert!(s.undo());
+        assert_eq!(s.text, "hello");
+        assert_eq!(s.selection(), Some((1, 4)));
+        s.set_preedit("pending", None);
+        s.readonly = true;
+        for _ in 0..2 {
+            assert!(!s.redo());
+            assert_eq!(s.text, "hello");
+            assert_eq!(s.cursor(), 4);
+            assert_eq!(s.selection(), Some((1, 4)));
+            assert_eq!(s.preedit, "pending");
+        }
+        s.readonly = false;
+        assert!(s.redo());
+        assert_eq!(s.text, "hio");
+        assert_eq!(s.cursor(), 2);
+    }
+
+    #[test]
+    fn ctrl_delete_selection_is_one_undoable_edit() {
+        for key in [PlatformKey::Backspace, PlatformKey::Delete] {
+            let mut s = TextInputState::new();
+            s.focused = true;
+            handle_text(&mut s, "hello world");
+            s.set_selection_range(0, 5);
+            assert!(handle_key(&mut s, &key, true, None, true, false));
+            assert_eq!(s.text, " world");
+            assert!(s.undo());
+            assert_eq!(s.text, "hello world");
+            assert_eq!(s.selection(), Some((0, 5)));
+            assert_eq!(s.cursor(), 5);
+            assert!(s.redo());
+            assert_eq!(s.text, " world");
+            assert_eq!(s.selection(), None);
+            assert_eq!(s.cursor(), 0);
+            assert!(s.undo());
+            assert!(s.undo());
+            assert_eq!(s.text, "");
+        }
+    }
+
+    #[test]
+    fn ctrl_delete_selection_discards_old_redo_branch() {
+        for key in [PlatformKey::Backspace, PlatformKey::Delete] {
+            let mut s = TextInputState::new();
+            s.focused = true;
+            handle_text(&mut s, "hello");
+            handle_text(&mut s, " world");
+            assert!(s.undo());
+            s.select_all();
+            assert!(handle_key(&mut s, &key, true, None, true, false));
+            assert_eq!(s.text, "");
+            assert!(!s.redo());
+            assert!(s.undo());
+            assert_eq!(s.text, "hello");
+        }
+    }
 
     #[test]
     fn undo_redo_basic() {

@@ -216,13 +216,15 @@ pub fn handle_general_key(
     last_scale_factor: f32,
     ime_caret_window_rect: &mut Option<[f32; 4]>,
 ) -> bool {
-    if !text_input.focused {
+    if !text_input.focused || !pressed {
         return false;
     }
+    let shortcut = text.map(str::to_ascii_lowercase);
     let changed = if ctrl
-        && let Some(t) = text
-        && matches!(t, "a" | "c" | "v" | "x")
+        && let Some(t) = shortcut.as_deref()
+        && matches!(t, "a" | "c" | "v" | "x" | "z" | "y")
     {
+        let t = if t == "z" && shift { "y" } else { t };
         acme_textinput::handle_keyboard_shortcut(text_input, t, clipboard.as_ref())
     } else {
         acme_textinput::handle_key(text_input, key, pressed, clipboard.as_ref(), ctrl, shift)
@@ -269,4 +271,62 @@ pub fn handle_ime_commit(
     *ime_caret_window_rect =
         compute_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn text_edit_history_flows_through_gallery_key_dispatch() {
+        let mut input = TextInputState::new();
+        let mut fonts = acme_text::FontSystem::new();
+        let mut caret = None;
+        input.focused = true;
+        acme_textinput::handle_text(&mut input, "hello world");
+        let mut send = |input: &mut TextInputState, key, text, pressed, shift| {
+            handle_general_key(
+                input, &key, pressed, true, shift, text, &None, [0.0; 4], false, &mut fonts, 1.0,
+                &mut caret,
+            )
+        };
+        assert!(send(&mut input, PlatformKey::Other, Some("a"), true, false));
+        assert!(send(&mut input, PlatformKey::Backspace, None, true, false));
+        assert_eq!(input.text, "");
+        assert!(send(&mut input, PlatformKey::Other, Some("z"), true, false));
+        assert_eq!(input.text, "hello world");
+        assert!(!send(
+            &mut input,
+            PlatformKey::Other,
+            Some("z"),
+            false,
+            false
+        ));
+        assert_eq!(input.text, "hello world");
+        assert!(send(&mut input, PlatformKey::Other, Some("Z"), true, true));
+        assert_eq!(input.text, "");
+        assert!(send(&mut input, PlatformKey::Other, Some("z"), true, false));
+        assert!(send(&mut input, PlatformKey::Other, Some("y"), true, false));
+        assert_eq!(input.text, "");
+        input.readonly = true;
+        assert!(!send(
+            &mut input,
+            PlatformKey::Other,
+            Some("z"),
+            true,
+            false
+        ));
+        input.readonly = false;
+        input.focused = false;
+        assert!(!send(
+            &mut input,
+            PlatformKey::Other,
+            Some("z"),
+            true,
+            false
+        ));
+        input.focused = true;
+        assert!(send(&mut input, PlatformKey::Other, Some("z"), true, false));
+        assert_eq!(input.text, "hello world");
+    }
 }

@@ -1,5 +1,20 @@
 # Todos
 
+## Retained-tree invalidation (bounded local patch)
+
+- [x] Detect child insertion/removal/reorder and invalidate the owning node.
+- [x] Propagate reconciliation layout changes to ancestors, preserving stable IDs.
+- [x] Verify unchanged frames remain clean and invalid input preserves dirty state.
+- [x] Run headless core tests, Clippy and the reproducible reorder example.
+- [x] Guard readonly undo/redo and make selected word deletion undoable.
+- [x] Wire Gallery history shortcuts and test the actual event handler flow.
+- [x] Run full Windows GNU workspace check/build/tests, all features, formatting
+  and changed-file Clippy validation with existing Rust 1.94.1.
+- [ ] Run pinned Rust 1.88 and cross-platform CI gates.
+- [ ] Gallery visual validation remains pending; the retained tree is currently shadow-only.
+
+Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-invalidation.md).
+
 ## AcmeUI design Skill scope (2026-07-23)
 
 - [x] Allow `acmeui-native-design` to guide general Rust, GPUI, and Web UI projects.

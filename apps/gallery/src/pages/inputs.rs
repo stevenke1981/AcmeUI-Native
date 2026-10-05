@@ -24,7 +24,7 @@ impl crate::Gallery {
                     "Click the input below to focus, then type or use IME:",
                 ))
                 .child(label(TEXT_INPUT_MARKER))
-                .child(label(""))
+                .child(label("Undo: Ctrl+Z | Redo: Ctrl+Y / Ctrl+Shift+Z"))
                 .build(),
         ));
         self.build_component_page("TextInput", secs)

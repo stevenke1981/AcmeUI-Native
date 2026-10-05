@@ -215,22 +215,37 @@ impl RetainedTree {
                 .nodes
                 .get_mut(&id)
                 .expect("node just inserted or found in old_by_key");
+            let mut changed = DirtyFlags::NONE;
             if node.kind != view.kind
                 || node.focusable != view.focusable
                 || node.disabled != view.disabled
             {
-                node.dirty.insert(
+                changed.insert(
                     DirtyFlags::STYLE
                         | DirtyFlags::LAYOUT
                         | DirtyFlags::PAINT
                         | DirtyFlags::SEMANTICS,
                 )
             }
+            if old_children != children {
+                changed.insert(
+                    DirtyFlags::CHILDREN
+                        | DirtyFlags::LAYOUT
+                        | DirtyFlags::PAINT
+                        | DirtyFlags::SEMANTICS,
+                );
+            }
+            node.dirty.insert(changed);
             node.kind = view.kind.clone();
             node.parent = parent;
             node.children = children;
             node.focusable = view.focusable;
             node.disabled = view.disabled;
+            if changed.contains(DirtyFlags::LAYOUT) {
+                // Ancestors may size themselves from this subtree. Keep paint,
+                // style and direct-child invalidation local to the changed node.
+                self.mark_dirty(id, DirtyFlags::LAYOUT);
+            }
             ids.push(id);
         }
         let ids_set: HashSet<NodeId> = ids.iter().copied().collect();
@@ -270,6 +285,96 @@ fn merge(a: &mut ReconcileReport, b: ReconcileReport) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn clear_subtree_dirty(tree: &mut RetainedTree, id: NodeId) {
+        let children = tree.get(id).unwrap().children.clone();
+        tree.clear_dirty(id);
+        for child in children {
+            clear_subtree_dirty(tree, child);
+        }
+    }
+
+    #[test]
+    fn child_structure_changes_invalidate_layout_without_changing_reused_ids() {
+        let view = |keys: &[&str]| {
+            let mut parent = ViewNode::new("parent", "column");
+            for key in keys {
+                parent = parent.child(ViewNode::new(*key, "label"));
+            }
+            ViewNode::new("root", "column").child(parent)
+        };
+        let mut tree = RetainedTree::new();
+        tree.reconcile_roots(&[view(&["a", "b"])]).unwrap();
+        let root = tree.roots()[0];
+        let parent = tree.get(root).unwrap().children[0];
+        let original = tree.get(parent).unwrap().children.clone();
+
+        // Reorder, insert, remove, then remove the last child.
+        for keys in [&["b", "a"][..], &["b", "a", "c"], &["a"], &[]] {
+            clear_subtree_dirty(&mut tree, root);
+            let report = tree.reconcile_roots(&[view(keys)]).unwrap();
+            let node = tree.get(parent).unwrap();
+            assert!(node.dirty.contains(
+                DirtyFlags::CHILDREN
+                    | DirtyFlags::LAYOUT
+                    | DirtyFlags::PAINT
+                    | DirtyFlags::SEMANTICS
+            ));
+            assert_eq!(tree.get(root).unwrap().dirty, DirtyFlags::LAYOUT);
+            for (key, id) in keys.iter().zip(&node.children) {
+                if let Some(index) = ["a", "b"].iter().position(|old| old == key) {
+                    assert_eq!(*id, original[index]);
+                    assert!(report.reused.contains(id));
+                    assert!(tree.get(*id).unwrap().dirty.is_empty());
+                }
+            }
+
+            // Repeating the same frame must not schedule more work.
+            clear_subtree_dirty(&mut tree, root);
+            let report = tree.reconcile_roots(&[view(keys)]).unwrap();
+            assert!(report.mounted.is_empty());
+            assert!(report.removed.is_empty());
+            for id in report.reused {
+                assert!(tree.get(id).unwrap().dirty.is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn descendant_property_changes_propagate_layout_to_all_ancestors() {
+        let mut leaf = ViewNode::new("leaf", "button");
+        let view = |leaf: ViewNode| {
+            ViewNode::new("root", "column")
+                .child(ViewNode::new("parent", "row").child(leaf))
+                .child(ViewNode::new("sibling", "label"))
+        };
+        let mut tree = RetainedTree::new();
+        tree.reconcile_roots(&[view(leaf.clone())]).unwrap();
+        let root = tree.roots()[0];
+        let parent = tree.get(root).unwrap().children[0];
+        let sibling = tree.get(root).unwrap().children[1];
+        let child = tree.get(parent).unwrap().children[0];
+        for change in 0..3 {
+            clear_subtree_dirty(&mut tree, root);
+            match change {
+                0 => leaf.kind = "input".into(),
+                1 => leaf.focusable = true,
+                _ => leaf.disabled = true,
+            }
+            let report = tree.reconcile_roots(&[view(leaf.clone())]).unwrap();
+            assert!(report.mounted.is_empty());
+            assert!(report.removed.is_empty());
+            assert_eq!(tree.get(parent).unwrap().children, vec![child]);
+            assert_eq!(tree.get(root).unwrap().dirty, DirtyFlags::LAYOUT);
+            assert_eq!(tree.get(parent).unwrap().dirty, DirtyFlags::LAYOUT);
+            assert!(tree.get(sibling).unwrap().dirty.is_empty());
+            assert_eq!(
+                tree.get(child).unwrap().dirty,
+                DirtyFlags::STYLE | DirtyFlags::LAYOUT | DirtyFlags::PAINT | DirtyFlags::SEMANTICS
+            );
+        }
+    }
+
     #[test]
     fn keyed_reorder_preserves_ids_and_removes_atomically() {
         let mut t = RetainedTree::new();
@@ -299,12 +404,14 @@ mod tests {
         let mut t = RetainedTree::new();
         t.reconcile_roots(&[ViewNode::new("root", "old")]).unwrap();
         let root = t.roots()[0];
+        t.clear_dirty(root);
         let result = t.reconcile_roots(&[ViewNode::new("new", "new")
             .child(ViewNode::new("same", "x"))
             .child(ViewNode::new("same", "x"))]);
         assert!(matches!(result, Err(TreeError::DuplicateSiblingKey(_))));
         assert_eq!(t.roots(), &[root]);
         assert_eq!(t.get(root).unwrap().kind, "old");
+        assert!(t.get(root).unwrap().dirty.is_empty());
     }
     #[test]
     fn layout_dirty_propagates_but_paint_does_not() {
