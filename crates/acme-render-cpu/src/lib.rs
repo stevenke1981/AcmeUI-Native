@@ -492,7 +492,7 @@ mod tests {
         s.push(DrawCommand::PopClip);
         let c = render(&s, 5, 5);
         assert_eq!(c.pixels()[2 * 5 + 2], 0x00ff0000);
-        assert_eq!(c.pixels()[1 * 5 + 1], 0);
+        assert_eq!(c.pixels()[6], 0);
         assert_eq!(c.pixels()[3 * 5 + 3], 0);
     }
     #[test]
@@ -508,7 +508,7 @@ mod tests {
         let c = render(&s, 8, 8);
         assert_eq!(c.pixels()[0], 0);
         assert_eq!(c.pixels()[3 * 8 + 3], 0x0000ff00);
-        assert_eq!(c.pixels()[0 * 8 + 4], 0x00ff0000);
+        assert_eq!(c.pixels()[4], 0x00ff0000);
     }
     #[test]
     fn image_contain_keeps_letterbox() {
@@ -528,8 +528,8 @@ mod tests {
         }));
         let c = render(&s, 4, 4);
         assert_eq!(c.pixels()[0], 0);
-        assert_eq!(c.pixels()[1 * 4 + 0], 0x00ff0000);
-        assert_eq!(c.pixels()[1 * 4 + 3], 0x000000ff);
+        assert_eq!(c.pixels()[4], 0x00ff0000);
+        assert_eq!(c.pixels()[7], 0x000000ff);
     }
     #[test]
     fn alpha_glyph_and_persistent_atlas() {
