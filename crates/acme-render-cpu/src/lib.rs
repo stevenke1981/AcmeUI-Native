@@ -81,9 +81,9 @@ fn blend(dst: u32, src: u32, opacity: f32) -> u32 {
     if out_a <= 0.0 {
         return 0;
     }
-    let c = |shift| {
-        let s = ((src >> shift) & 255) as f32;
-        let d = ((dst >> shift) & 255) as f32;
+    let c = |shift: u32| {
+        let s = ((src >> shift) & 255u32) as f32;
+        let d = ((dst >> shift) & 255u32) as f32;
         ((s * sa + d * da * (1.0 - sa / 255.0)) / out_a).round() as u32
     };
     ((out_a.round() as u32) << 24) | (c(16) << 16) | (c(8) << 8) | c(0)
