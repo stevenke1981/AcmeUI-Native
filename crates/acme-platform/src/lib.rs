@@ -279,6 +279,8 @@ fn apply_ime_cursor_area(
 enum WindowRenderer {
     Gpu(Box<Renderer>),
     #[cfg(feature = "cpu-renderer")]
+    Failed,
+    #[cfg(feature = "cpu-renderer")]
     Cpu(CpuWindowRenderer),
 }
 
@@ -286,6 +288,8 @@ impl WindowRenderer {
     fn resize(&mut self, width: u32, height: u32, scale: f32) {
         match self {
             Self::Gpu(renderer) => renderer.resize(width, height, scale),
+            #[cfg(feature = "cpu-renderer")]
+            Self::Failed => {},
             #[cfg(feature = "cpu-renderer")]
             Self::Cpu(renderer) => {
                 if let Err(error) = renderer.resize(width, height, scale) {
@@ -298,6 +302,8 @@ impl WindowRenderer {
     fn render_scene(&mut self, scene: &Scene) -> SurfaceAction {
         match self {
             Self::Gpu(renderer) => renderer.render_scene(scene),
+            #[cfg(feature = "cpu-renderer")]
+            Self::Failed => SurfaceAction::Exit,
             #[cfg(feature = "cpu-renderer")]
             Self::Cpu(renderer) => match renderer.present(scene) {
                 Ok(()) => SurfaceAction::Rendered,
@@ -1168,6 +1174,8 @@ fn handle_redraw(
                     renderer.on_device_lost().map_err(|e| e.to_string())
                 }
                 #[cfg(feature = "cpu-renderer")]
+                WindowRenderer::Failed => Err("renderer already failed".into()),
+                #[cfg(feature = "cpu-renderer")]
                 WindowRenderer::Cpu(_) => Ok(()),
             };
             match recovery {
@@ -1183,6 +1191,10 @@ fn handle_redraw(
                     tracing::error!(%error, "GPU device recovery failed");
                     #[cfg(feature = "cpu-renderer")]
                     {
+                        // Release the old GPU surface before acquiring a native
+                        // software surface for the same window.
+                        let old = std::mem::replace(&mut state.renderer, WindowRenderer::Failed);
+                        drop(old);
                         match CpuWindowRenderer::new(
                             state.window.clone(),
                             size.width,

@@ -10,6 +10,7 @@ use acme_core::{
 const ATLAS: usize = 2048;
 const MAX_PIXELS: usize = 32_000_000;
 const MAX_LAYERS: usize = 16;
+const MAX_LAYER_PIXELS: usize = 48_000_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CpuRenderError {
@@ -363,8 +364,10 @@ impl CpuRenderer {
                     }
                 }
                 DrawCommand::BeginLayer(params) => {
-                    if layers.len() == MAX_LAYERS {
-                        return Err(CpuRenderError::InvalidScene("layer nesting limit exceeded"));
+                    let next_layer_count = layers.len() + 1;
+                    let max_by_pixels = MAX_LAYER_PIXELS / self.framebuffer.len().max(1);
+                    if next_layer_count > MAX_LAYERS || next_layer_count > max_by_pixels {
+                        return Err(CpuRenderError::InvalidScene("layer allocation budget exceeded"));
                     }
                     layers.push(Layer {
                         opacity: params.opacity.clamp(0.0, 1.0),
