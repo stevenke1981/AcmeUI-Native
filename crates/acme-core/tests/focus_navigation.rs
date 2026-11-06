@@ -30,13 +30,7 @@ fn duplicate_ids_do_not_trap_forward_or_reverse_navigation() {
 fn mixed_duplicates_use_first_eligible_occurrence() {
     let [a, b, c] = ids();
     let mut focus = FocusManager::new();
-    focus.set_order([
-        (a, false),
-        (b, true),
-        (a, true),
-        (c, false),
-        (b, false),
-    ]);
+    focus.set_order([(a, false), (b, true), (a, true), (c, false), (b, false)]);
     assert!(!focus.request_focus(c));
     for expected in [b, a, b, a] {
         assert_eq!(focus.focus_next(false), Some(expected));
