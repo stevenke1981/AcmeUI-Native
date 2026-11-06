@@ -16,9 +16,15 @@ pub(crate) struct CpuWindowRenderer {
 }
 
 impl CpuWindowRenderer {
-    pub(crate) fn new(window: Arc<Window>, width: u32, height: u32, scale: f32) -> Result<Self, String> {
+    pub(crate) fn new(
+        window: Arc<Window>,
+        width: u32,
+        height: u32,
+        scale: f32,
+    ) -> Result<Self, String> {
         let context = Context::new(window.clone()).map_err(|e| format!("software context: {e}"))?;
-        let surface = Surface::new(&context, window).map_err(|e| format!("software surface: {e}"))?;
+        let surface =
+            Surface::new(&context, window).map_err(|e| format!("software surface: {e}"))?;
         let mut instance = Self {
             raster: CpuRenderer::new(width, height, scale).map_err(|e| e.to_string())?,
             _context: context,
@@ -29,9 +35,13 @@ impl CpuWindowRenderer {
     }
 
     pub(crate) fn resize(&mut self, width: u32, height: u32, scale: f32) -> Result<(), String> {
-        self.raster.resize(width, height, scale).map_err(|e| e.to_string())?;
+        self.raster
+            .resize(width, height, scale)
+            .map_err(|e| e.to_string())?;
         if let (Some(w), Some(h)) = (NonZeroU32::new(width), NonZeroU32::new(height)) {
-            self.surface.resize(w, h).map_err(|e| format!("software resize: {e}"))?;
+            self.surface
+                .resize(w, h)
+                .map_err(|e| format!("software resize: {e}"))?;
         }
         Ok(())
     }
@@ -41,11 +51,16 @@ impl CpuWindowRenderer {
             return Ok(());
         }
         self.raster.render_scene(scene).map_err(|e| e.to_string())?;
-        let mut buffer = self.surface.buffer_mut().map_err(|e| format!("software buffer: {e}"))?;
+        let mut buffer = self
+            .surface
+            .buffer_mut()
+            .map_err(|e| format!("software buffer: {e}"))?;
         if buffer.len() != self.raster.pixels().len() {
             return Err("software buffer dimensions mismatch".into());
         }
         buffer.copy_from_slice(self.raster.pixels());
-        buffer.present().map_err(|e| format!("software present: {e}"))
+        buffer
+            .present()
+            .map_err(|e| format!("software present: {e}"))
     }
 }

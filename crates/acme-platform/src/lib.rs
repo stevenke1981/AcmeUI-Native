@@ -305,16 +305,19 @@ impl WindowRenderer {
                     tracing::error!(%error, "CPU renderer present failed");
                     SurfaceAction::Exit
                 }
-            }
+            },
         }
     }
 }
 
 fn initialize_renderer(
-    window: Arc<Window>, width: u32, height: u32, scale: f32,
+    window: Arc<Window>,
+    width: u32,
+    height: u32,
+    scale: f32,
 ) -> Result<WindowRenderer, String> {
-    let cpu_requested = std::env::var("ACME_RENDER_BACKEND")
-        .is_ok_and(|value| value.eq_ignore_ascii_case("cpu"));
+    let cpu_requested =
+        std::env::var("ACME_RENDER_BACKEND").is_ok_and(|value| value.eq_ignore_ascii_case("cpu"));
     if cpu_requested {
         #[cfg(feature = "cpu-renderer")]
         {
@@ -1161,7 +1164,9 @@ fn handle_redraw(
         SurfaceAction::DeviceLost => {
             tracing::warn!("GPU device lost, attempting recovery...");
             let recovery = match &mut state.renderer {
-                WindowRenderer::Gpu(renderer) => renderer.on_device_lost().map_err(|e| e.to_string()),
+                WindowRenderer::Gpu(renderer) => {
+                    renderer.on_device_lost().map_err(|e| e.to_string())
+                }
                 #[cfg(feature = "cpu-renderer")]
                 WindowRenderer::Cpu(_) => Ok(()),
             };
@@ -1178,7 +1183,12 @@ fn handle_redraw(
                     tracing::error!(%error, "GPU device recovery failed");
                     #[cfg(feature = "cpu-renderer")]
                     {
-                        match CpuWindowRenderer::new(state.window.clone(), size.width, size.height, scale) {
+                        match CpuWindowRenderer::new(
+                            state.window.clone(),
+                            size.width,
+                            size.height,
+                            scale,
+                        ) {
                             Ok(cpu) => {
                                 tracing::warn!("Switched from failed GPU recovery to CPU renderer");
                                 state.renderer = WindowRenderer::Cpu(cpu);
@@ -1187,7 +1197,9 @@ fn handle_redraw(
                                 state.window.request_redraw();
                                 return;
                             }
-                            Err(cpu_error) => tracing::error!(%cpu_error, "CPU fallback also failed"),
+                            Err(cpu_error) => {
+                                tracing::error!(%cpu_error, "CPU fallback also failed")
+                            }
                         }
                     }
                     event_loop.exit();
