@@ -277,7 +277,7 @@ fn apply_ime_cursor_area(
 
 // Renderer dispatch is private: Application always emits the same backend-neutral Scene.
 enum WindowRenderer {
-    Gpu(Renderer),
+    Gpu(Box<Renderer>),
     #[cfg(feature = "cpu-renderer")]
     Cpu(CpuWindowRenderer),
 }
@@ -330,7 +330,7 @@ fn initialize_renderer(
         }
     }
     match pollster::block_on(Renderer::new(window.clone(), width, height, scale)) {
-        Ok(renderer) => Ok(WindowRenderer::Gpu(renderer)),
+        Ok(renderer) => Ok(WindowRenderer::Gpu(Box::new(renderer))),
         Err(error) => {
             #[cfg(feature = "cpu-renderer")]
             {
