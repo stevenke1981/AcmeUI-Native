@@ -367,7 +367,9 @@ impl CpuRenderer {
                     let next_layer_count = layers.len() + 1;
                     let max_by_pixels = MAX_LAYER_PIXELS / self.framebuffer.len().max(1);
                     if next_layer_count > MAX_LAYERS || next_layer_count > max_by_pixels {
-                        return Err(CpuRenderError::InvalidScene("layer allocation budget exceeded"));
+                        return Err(CpuRenderError::InvalidScene(
+                            "layer allocation budget exceeded",
+                        ));
                     }
                     layers.push(Layer {
                         opacity: params.opacity.clamp(0.0, 1.0),

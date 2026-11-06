@@ -289,7 +289,7 @@ impl WindowRenderer {
         match self {
             Self::Gpu(renderer) => renderer.resize(width, height, scale),
             #[cfg(feature = "cpu-renderer")]
-            Self::Failed => {},
+            Self::Failed => {}
             #[cfg(feature = "cpu-renderer")]
             Self::Cpu(renderer) => {
                 if let Err(error) = renderer.resize(width, height, scale) {
