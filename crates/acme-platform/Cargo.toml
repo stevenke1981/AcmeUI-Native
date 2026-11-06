@@ -4,6 +4,10 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+default = ["cpu-renderer"]
+cpu-renderer = ["dep:acme-render-cpu", "dep:softbuffer"]
+
 [dependencies]
 winit.workspace = true
 thiserror.workspace = true
@@ -12,3 +16,5 @@ tracing.workspace = true
 arboard.workspace = true
 acme-core = { path = "../acme-core" }
 acme-render-wgpu = { path = "../acme-render-wgpu" }
+acme-render-cpu = { path = "../acme-render-cpu", optional = true }
+softbuffer = { workspace = true, optional = true }
