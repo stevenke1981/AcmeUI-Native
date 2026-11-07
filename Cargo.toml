@@ -36,6 +36,23 @@ smallvec = "1"
 slotmap = "1"
 bitflags = "2"
 
+# Internal crates: path for the workspace, version for packaging (bump together
+# with [workspace.package].version; see docs/guides/RELEASE.md).
+acme-core = { path = "crates/acme-core", version = "0.2.0" }
+acme-platform = { path = "crates/acme-platform", version = "0.2.0" }
+acme-render-wgpu = { path = "crates/acme-render-wgpu", version = "0.2.0" }
+acme-layout = { path = "crates/acme-layout", version = "0.2.0" }
+acme-text = { path = "crates/acme-text", version = "0.2.0" }
+acme-render-cpu = { path = "crates/acme-render-cpu", version = "0.2.0" }
+acme-accessibility = { path = "crates/acme-accessibility", version = "0.2.0" }
+acme-theme = { path = "crates/acme-theme", version = "0.2.0" }
+acme-animation = { path = "crates/acme-animation", version = "0.2.0" }
+acme-style = { path = "crates/acme-style", version = "0.2.0" }
+acme-widgets = { path = "crates/acme-widgets", version = "0.2.0" }
+acme-textinput = { path = "crates/acme-textinput", version = "0.2.0" }
+acme-devtools = { path = "crates/acme-devtools", version = "0.2.0" }
+acme-ui = { path = "crates/acme-ui", version = "0.2.0" }
+
 [profile.dev]
 incremental = true
 debug = 1
