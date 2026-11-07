@@ -213,19 +213,29 @@ fn atlas_pair_scene(uploads: Vec<AtlasUpload>) -> Scene {
 
 fn assert_rejection_preserves_atlas_pair(scene: &Scene, error: CpuRenderError) {
     let mut cpu = CpuRenderer::new(2, 1, 1.0).unwrap();
-    cpu.render_scene(&atlas_pair_scene(atlas_pair_uploads(255, [17, 34, 51, 255])))
-        .unwrap();
+    cpu.render_scene(&atlas_pair_scene(atlas_pair_uploads(
+        255,
+        [17, 34, 51, 255],
+    )))
+    .unwrap();
     let previous = [0x00ffffff, 0x00112233];
     assert_eq!(cpu.pixels(), &previous);
 
     assert_eq!(cpu.render_scene(scene), Err(error));
     assert_eq!(cpu.pixels(), &previous, "rejected frame changed output");
     cpu.render_scene(&atlas_pair_scene(vec![])).unwrap();
-    assert_eq!(cpu.pixels(), &previous, "rejected frame changed cached glyphs");
+    assert_eq!(
+        cpu.pixels(),
+        &previous,
+        "rejected frame changed cached glyphs"
+    );
 
     // A rejected update must not prevent a later successful replacement.
-    cpu.render_scene(&atlas_pair_scene(atlas_pair_uploads(128, [68, 85, 102, 255])))
-        .unwrap();
+    cpu.render_scene(&atlas_pair_scene(atlas_pair_uploads(
+        128,
+        [68, 85, 102, 255],
+    )))
+    .unwrap();
     let replacement = [0x00808080, 0x00445566];
     assert_eq!(cpu.pixels(), &replacement);
     cpu.render_scene(&atlas_pair_scene(vec![])).unwrap();
