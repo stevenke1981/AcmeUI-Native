@@ -21,3 +21,10 @@ P0 rules:
 - Escape cancels composition.
 - Cursor works on grapheme clusters, never UTF-8 bytes.
 - CJK fallback is tested before TextInput release.
+
+## Known limitation: long compositions (2026-11-07)
+
+`scroll_caret_into_view` keeps the committed caret inside the field. The
+preedit is drawn from the caret and is not part of that computation, so a
+composition wider than the remaining field width is clipped at the right edge.
+Bopomofo compositions are normally short; this is tracked as a follow-up.

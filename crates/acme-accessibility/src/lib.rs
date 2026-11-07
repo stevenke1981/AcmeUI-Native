@@ -7,12 +7,14 @@
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 
-use accesskit::{Action, Node as AccessNode, NodeId as AccessNodeId, Rect, Role, Tree, TreeUpdate};
+use accesskit::{
+    Action, Invalid, Node as AccessNode, NodeId as AccessNodeId, Rect, Role, Tree, TreeUpdate,
+};
 use acme_core::NodeId;
 use acme_layout::LayoutSnapshot;
 use acme_platform::{PlatformEvent, WindowId};
-use acme_widgets::WidgetNode;
 use acme_widgets::retained_binding::{RetainedBinding, SyntheticIds};
+use acme_widgets::{TextInput, WidgetNode};
 
 /// Re-export AccessKit types used in the public API.
 pub use accesskit::{Node as AccNode, NodeId as AccNodeId};
@@ -126,7 +128,7 @@ impl AccessibilityAdapter {
             synthetic: SyntheticIds::new(),
         };
         let mut nodes = Vec::new();
-        let (root_id, _) = walk(root, snapshot, &mut ids, None, &mut nodes);
+        let (root_id, _) = walk(root, snapshot, &mut ids, None, &mut nodes, Slot::Plain);
         self.store(root_id, nodes, snapshot);
     }
 
@@ -231,6 +233,13 @@ impl AccessibilityAdapter {
         self.focused_node = Some(target_id);
     }
 
+    /// Forget the tracked widget focus, so the next [`TreeUpdate`] reports the
+    /// root as focused. Call this when keyboard focus moves to something that
+    /// has no accessibility node (for example a synthetic table row).
+    pub fn clear_widget_focus(&mut self) {
+        self.focused_node = None;
+    }
+
     /// Build an AccessKit [`TreeUpdate`] from the current tree with
     /// the tracked focus applied.
     pub fn build_tree_update(&self) -> Option<TreeUpdate> {
@@ -260,6 +269,14 @@ impl AccessibilityAdapter {
 /// | `Button`                | `Button`          |
 /// | `Separator`             | `Splitter`        |
 /// | `ScrollView`            | `ScrollView`      |
+/// | `TextInput`             | `TextInput`, or `PasswordInput` when `password` |
+/// | `TabBar`                | `TabList`; each tab child is `Tab`, with `selected` |
+/// | `NavRail`               | `Navigation`; the selected item is `selected`   |
+/// | `Dialog`                | `Dialog`, `modal` when `modal`                  |
+///
+/// A disabled `Button` has no `Click` action. A `TextInput` never exposes a
+/// password's value. Tables and trees keep their generic roles (not yet
+/// mapped to row, cell or tree-item roles).
 ///
 /// # Parameters
 ///
@@ -317,7 +334,7 @@ fn build_with_ids<M: Clone + 'static>(
     label_override: Option<&str>,
 ) -> TreeUpdate {
     let mut nodes: Vec<(AccessNodeId, AccessNode)> = Vec::new();
-    let (root_id, _) = walk(root, snapshot, ids, label_override, &mut nodes);
+    let (root_id, _) = walk(root, snapshot, ids, label_override, &mut nodes, Slot::Plain);
 
     let focus = match focus_id {
         Some(id) => AccessNodeId::from(id.get()),
@@ -380,36 +397,46 @@ impl IdSource<'_, '_> {
     }
 }
 
-/// Recursively walk the widget tree, producing AccessKit nodes.
-///
-/// IDs are sequential, starting at `*next_id`; `*next_id` is advanced past
-/// the last ID assigned. Returns the root's AccessKit ID.
-pub fn walk_node<M: Clone + 'static>(
-    node: &WidgetNode<M>,
-    snapshot: &LayoutSnapshot,
-    next_id: &mut u64,
-    label_override: Option<&str>,
-    nodes: &mut Vec<(AccessNodeId, AccessNode)>,
-) -> AccessNodeId {
-    let mut ids = IdSource::Sequential(next_id);
-    walk(node, snapshot, &mut ids, label_override, nodes).0
+/// Where a node sits inside its parent, when the parent gives it extra meaning.
+#[derive(Clone, Copy, Debug)]
+enum Slot<'a> {
+    /// No parent-specific meaning: role and state come from the widget alone.
+    Plain,
+    /// A tab of a TabBar: `Role::Tab`, named by the tab's own label.
+    Tab { label: &'a str, selected: bool },
+    /// An item of a NavRail: named by the item's own label.
+    NavItem { label: &'a str, selected: bool },
 }
 
-/// Walk `node` and its descendants with the IDs supplied by `ids`.
+/// The slot of child `index` within `parent`.
 ///
-/// Returns the AccessKit ID of `node` and the layout node whose rectangle it
-/// reads. The two differ only for a transparent wrapper in a bound walk.
-fn walk<M: Clone + 'static>(
-    node: &WidgetNode<M>,
-    snapshot: &LayoutSnapshot,
-    ids: &mut IdSource<'_, '_>,
-    label_override: Option<&str>,
-    nodes: &mut Vec<(AccessNodeId, AccessNode)>,
-) -> (AccessNodeId, NodeId) {
-    let own = ids.assign(node);
-    let id = AccessNodeId::from(own.get());
+/// TabBar and NavRail children are materialized one per tab or item, in the
+/// same order, so the index maps onto the parent's `tabs` or `items`.
+fn child_slot<M>(parent: &WidgetNode<M>, index: usize) -> Slot<'_> {
+    match parent {
+        // Tabs and items map to children by index; if a caller mutated one list
+        // after `build()`, the mapping is unreliable, so expose plain children.
+        WidgetNode::TabBar(bar) if bar.tabs.len() != bar.children.len() => Slot::Plain,
+        WidgetNode::NavRail(rail) if rail.items.len() != rail.children.len() => Slot::Plain,
+        WidgetNode::TabBar(bar) => bar.tabs.get(index).map_or(Slot::Plain, |tab| Slot::Tab {
+            label: &tab.label,
+            selected: index == bar.selected,
+        }),
+        WidgetNode::NavRail(rail) => {
+            rail.items
+                .get(index)
+                .map_or(Slot::Plain, |item| Slot::NavItem {
+                    label: &item.label,
+                    selected: rail.selected == Some(index),
+                })
+        }
+        _ => Slot::Plain,
+    }
+}
 
-    let role = match node {
+/// The AccessKit role of a widget, before any parent-specific override.
+fn widget_role<M>(node: &WidgetNode<M>) -> Role {
+    match node {
         WidgetNode::Row(_) | WidgetNode::Column(_) | WidgetNode::Stack(_) | WidgetNode::Card(_) => {
             Role::Group
         }
@@ -425,11 +452,49 @@ fn walk<M: Clone + 'static>(
         WidgetNode::Tree(_) => Role::Tree,
         WidgetNode::Table(_) => Role::Table,
         WidgetNode::DataGrid(_) => Role::Grid,
+        WidgetNode::TextInput(input) if input.password => Role::PasswordInput,
         WidgetNode::TextInput(_) => Role::TextInput,
         WidgetNode::NavRail(_) | WidgetNode::Sidebar(_) | WidgetNode::Breadcrumb(_) => {
             Role::Navigation
         }
         WidgetNode::TabBar(_) => Role::TabList,
+    }
+}
+
+/// Recursively walk the widget tree, producing AccessKit nodes.
+///
+/// IDs are sequential, starting at `*next_id`; `*next_id` is advanced past
+/// the last ID assigned. Returns the root's AccessKit ID.
+pub fn walk_node<M: Clone + 'static>(
+    node: &WidgetNode<M>,
+    snapshot: &LayoutSnapshot,
+    next_id: &mut u64,
+    label_override: Option<&str>,
+    nodes: &mut Vec<(AccessNodeId, AccessNode)>,
+) -> AccessNodeId {
+    let mut ids = IdSource::Sequential(next_id);
+    walk(node, snapshot, &mut ids, label_override, nodes, Slot::Plain).0
+}
+
+/// Walk `node` and its descendants with the IDs supplied by `ids`.
+///
+/// Returns the AccessKit ID of `node` and the layout node whose rectangle it
+/// reads. The two differ only for a transparent wrapper in a bound walk.
+/// `slot` is where `node` sits in its parent; see [`Slot`].
+fn walk<M: Clone + 'static>(
+    node: &WidgetNode<M>,
+    snapshot: &LayoutSnapshot,
+    ids: &mut IdSource<'_, '_>,
+    label_override: Option<&str>,
+    nodes: &mut Vec<(AccessNodeId, AccessNode)>,
+    slot: Slot<'_>,
+) -> (AccessNodeId, NodeId) {
+    let own = ids.assign(node);
+    let id = AccessNodeId::from(own.get());
+
+    let role = match slot {
+        Slot::Tab { .. } => Role::Tab,
+        Slot::Plain | Slot::NavItem { .. } => widget_role(node),
     };
 
     let mut access_node = AccessNode::new(role);
@@ -439,7 +504,17 @@ fn walk<M: Clone + 'static>(
     let child_results: Vec<(AccessNodeId, NodeId)> = node
         .children()
         .iter()
-        .map(|child| walk(child, snapshot, ids, label_override, nodes))
+        .enumerate()
+        .map(|(index, child)| {
+            walk(
+                child,
+                snapshot,
+                ids,
+                label_override,
+                nodes,
+                child_slot(node, index),
+            )
+        })
         .collect();
     let layout_id = ids.layout_lookup(
         node,
@@ -457,24 +532,24 @@ fn walk<M: Clone + 'static>(
         ));
     }
 
-    // Determine the accessible name.
-    let label = match node {
-        WidgetNode::Label(l) => label_override.unwrap_or(&l.text).to_string(),
-        WidgetNode::Button(b) => b.label.clone(),
+    // Determine the accessible name. A tab or nav item is named by its own
+    // label, because the widget text carries visual decoration ("[Tab]", "• Item").
+    // An explicit `label_override` still replaces the text of every Label.
+    let label = match (slot, node) {
+        (_, WidgetNode::Label(_)) if label_override.is_some() => {
+            label_override.unwrap_or_default().to_string()
+        }
+        (Slot::Tab { label, .. } | Slot::NavItem { label, .. }, _) => label.to_string(),
+        (_, WidgetNode::Label(l)) => l.text.clone(),
+        (_, WidgetNode::Button(b)) => b.label.clone(),
+        (_, WidgetNode::TextInput(input)) => text_input_name(input).to_string(),
         _ => String::new(),
     };
     if !label.is_empty() {
         access_node.set_label(label);
     }
 
-    // Interactive state.
-    if let WidgetNode::Button(b) = node {
-        if b.disabled {
-            access_node.set_disabled();
-        }
-        access_node.add_action(Action::Focus);
-        access_node.add_action(Action::Click);
-    }
+    apply_widget_state(&mut access_node, node, slot);
 
     let child_ids: Vec<AccessNodeId> = child_results.iter().map(|&(child, _)| child).collect();
     if !child_ids.is_empty() {
@@ -483,6 +558,74 @@ fn walk<M: Clone + 'static>(
 
     nodes.push((id, access_node));
     (id, layout_id)
+}
+
+/// Accessible name of a text input: its label, else its placeholder.
+fn text_input_name<M>(input: &TextInput<M>) -> &str {
+    non_empty(input.label.as_deref())
+        .or_else(|| non_empty(input.placeholder.as_deref()))
+        .unwrap_or("")
+}
+
+fn non_empty(text: Option<&str>) -> Option<&str> {
+    text.filter(|text| !text.is_empty())
+}
+
+/// Adds the state and actions that `node` exposes beyond its name and role.
+fn apply_widget_state<M>(access_node: &mut AccessNode, node: &WidgetNode<M>, slot: Slot<'_>) {
+    match node {
+        WidgetNode::Button(button) => {
+            if button.disabled {
+                access_node.set_disabled();
+            }
+            access_node.add_action(Action::Focus);
+            // A disabled button must not advertise activation.
+            if !button.disabled {
+                access_node.add_action(Action::Click);
+            }
+        }
+        WidgetNode::TextInput(input) => apply_text_input_state(access_node, input),
+        WidgetNode::Dialog(dialog) => {
+            if dialog.modal {
+                access_node.set_modal();
+            }
+        }
+        _ => {}
+    }
+    match slot {
+        // A tab is selectable, so an unselected tab states `false` explicitly.
+        Slot::Tab { selected, .. } => access_node.set_selected(selected),
+        // A nav item is button-like: omit the flag rather than announce "not selected".
+        Slot::NavItem { selected: true, .. } => access_node.set_selected(true),
+        Slot::Plain
+        | Slot::NavItem {
+            selected: false, ..
+        } => {}
+    }
+}
+
+/// Text input state and actions.
+///
+/// A password's value is never written to the node: it carries no value
+/// property at all, so the secret cannot reach any assistive technology.
+fn apply_text_input_state<M>(access_node: &mut AccessNode, input: &TextInput<M>) {
+    if !input.password {
+        access_node.set_value(input.value.clone());
+    }
+    if input.disabled {
+        access_node.set_disabled();
+    }
+    if input.readonly {
+        access_node.set_read_only();
+    }
+    if input.invalid {
+        access_node.set_invalid(Invalid::True);
+    }
+    access_node.add_action(Action::Focus);
+    // Only an editable field accepts a value from assistive technology.
+    if !input.disabled && !input.readonly {
+        access_node.add_action(Action::SetValue);
+    }
 }
 
 /// Create a minimal initial [`TreeUpdate`] with a single root window node.
@@ -516,7 +659,8 @@ mod tests {
     use acme_widgets::retained_binding::bind_retained;
     use acme_widgets::view_bridge::widget_to_views;
     use acme_widgets::{
-        WidgetNode, button, column, label, row, scroll_view, separator, stack, tooltip,
+        TabItem, WidgetNode, button, column, dialog, label, nav_item, nav_rail, row, scroll_view,
+        separator, stack, tab_bar, text_input, tooltip,
     };
 
     #[derive(Clone, Debug, PartialEq)]
@@ -1023,6 +1167,50 @@ mod tests {
     }
 
     #[test]
+    fn label_override_still_renames_label_only_tabs() {
+        let bar: WidgetNode<TestMsg> = tab_bar("t").tab("A").tab("B").build();
+        let snapshot = LayoutSnapshot::default();
+        let update = build_tree_update(&bar, &snapshot, None, Some("X"));
+        let tabs: Vec<_> = update
+            .nodes
+            .iter()
+            .filter(|(_, n)| n.role() == Role::Tab)
+            .map(|(_, n)| n.label().map(str::to_string))
+            .collect();
+        assert_eq!(tabs, vec![Some("X".to_string()), Some("X".to_string())]);
+    }
+
+    #[test]
+    fn tab_semantics_are_dropped_when_tabs_and_children_diverge() {
+        let mut bar = match tab_bar::<TestMsg>("t").tab("A").tab("B").build() {
+            WidgetNode::TabBar(bar) => bar,
+            other => panic!("expected TabBar, got {other:?}"),
+        };
+        bar.tabs.pop();
+        let node = WidgetNode::TabBar(bar);
+        let update = build_tree_update(&node, &LayoutSnapshot::default(), None, None);
+        assert!(
+            update.nodes.iter().all(|(_, n)| n.role() != Role::Tab),
+            "diverged tab lists must not produce mislabelled tabs"
+        );
+    }
+
+    #[test]
+    fn clear_widget_focus_returns_focus_to_the_root() {
+        let tree = column::<TestMsg>().child(label("Hi")).build();
+        let snapshot = LayoutSnapshot::default();
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update(&tree, &snapshot);
+        adapter.focus_widget(NodeId::new(2));
+        adapter.clear_widget_focus();
+
+        let update = adapter
+            .build_tree_update()
+            .expect("build_tree_update should return Some");
+        assert_eq!(update.focus, AccessNodeId::from(1u64));
+    }
+
+    #[test]
     fn adapter_build_tree_update_defaults_to_root_focus() {
         let tree = column::<TestMsg>().child(label("Hi")).build();
         let snapshot = LayoutSnapshot::default();
@@ -1456,5 +1644,371 @@ mod tests {
 
         assert_eq!(update.nodes.len(), 3);
         assert_eq!(update.focus, to_access_id(id_b));
+    }
+
+    // ------------------------------------------------------------------
+    // Control semantics: roles, names, state and actions of core controls.
+    // ------------------------------------------------------------------
+
+    fn nodes_of(root: &WidgetNode<TestMsg>) -> Vec<(AccessNodeId, AccessNode)> {
+        build_tree_update(root, &LayoutSnapshot::default(), None, None).nodes
+    }
+
+    fn node_with_id(nodes: &[(AccessNodeId, AccessNode)], id: AccessNodeId) -> &AccessNode {
+        nodes
+            .iter()
+            .find(|(node_id, _)| *node_id == id)
+            .map(|(_, node)| node)
+            .expect("child id should be in the tree")
+    }
+
+    fn nodes_with_role(nodes: &[(AccessNodeId, AccessNode)], role: Role) -> Vec<&AccessNode> {
+        nodes
+            .iter()
+            .filter(|(_, node)| node.role() == role)
+            .map(|(_, node)| node)
+            .collect()
+    }
+
+    fn only_node_with_role(nodes: &[(AccessNodeId, AccessNode)], role: Role) -> &AccessNode {
+        let found = nodes_with_role(nodes, role);
+        assert_eq!(found.len(), 1, "expected exactly one {role:?} node");
+        found[0]
+    }
+
+    /// The accessibility node of a single text input built from `input`.
+    fn input_node(input: impl Into<WidgetNode<TestMsg>>) -> AccessNode {
+        let tree = column::<TestMsg>().child(input).build();
+        nodes_of(&tree)
+            .into_iter()
+            .map(|(_, node)| node)
+            .find(|node| matches!(node.role(), Role::TextInput | Role::PasswordInput))
+            .expect("expected a text input node")
+    }
+
+    fn tab_strip(selected: usize) -> WidgetNode<TestMsg> {
+        tab_bar::<TestMsg>("tabs")
+            .item(TabItem::new("Home").on_click(TestMsg))
+            .item(TabItem::new("Files").on_click(TestMsg))
+            .tab("Logs")
+            .selected(selected)
+            .build()
+    }
+
+    fn nav(selected: usize) -> WidgetNode<TestMsg> {
+        nav_rail::<TestMsg>("nav")
+            .item(nav_item("Home").on_click(TestMsg))
+            .item(nav_item("Settings").on_click(TestMsg))
+            .selected(selected)
+            .build()
+    }
+
+    // --- TextInput -----------------------------------------------------
+
+    #[test]
+    fn text_input_is_named_by_its_label_before_its_placeholder() {
+        let node = input_node(
+            text_input::<TestMsg>("name")
+                .label("Full name")
+                .placeholder("e.g. Ada"),
+        );
+        assert_eq!(node.label(), Some("Full name"));
+    }
+
+    #[test]
+    fn text_input_without_label_is_named_by_its_placeholder() {
+        let node = input_node(text_input::<TestMsg>("query").placeholder("Search"));
+        assert_eq!(node.label(), Some("Search"));
+    }
+
+    #[test]
+    fn text_input_with_neither_label_nor_placeholder_has_no_name() {
+        let node = input_node(text_input::<TestMsg>("query"));
+        assert_eq!(node.label(), None);
+    }
+
+    #[test]
+    fn text_input_exposes_its_value_when_not_a_password() {
+        let node = input_node(text_input::<TestMsg>("name").label("Name").value("Ada"));
+        assert_eq!(node.role(), Role::TextInput);
+        assert_eq!(node.value(), Some("Ada"));
+    }
+
+    #[test]
+    fn password_input_uses_password_role() {
+        let node = input_node(text_input::<TestMsg>("pw").label("Password").password(true));
+        assert_eq!(node.role(), Role::PasswordInput);
+    }
+
+    #[test]
+    fn disabled_text_input_is_disabled_focusable_and_not_settable() {
+        let node = input_node(
+            text_input::<TestMsg>("id")
+                .label("Id")
+                .disabled(true)
+                .value("42"),
+        );
+        assert!(node.is_disabled());
+        assert!(node.supports_action(Action::Focus));
+        assert!(!node.supports_action(Action::SetValue));
+    }
+
+    #[test]
+    fn read_only_text_input_is_read_only_and_not_settable() {
+        let node = input_node(
+            text_input::<TestMsg>("code")
+                .label("Code")
+                .readonly(true)
+                .value("X1"),
+        );
+        assert!(node.is_read_only());
+        assert!(!node.is_disabled());
+        assert!(node.supports_action(Action::Focus));
+        assert!(!node.supports_action(Action::SetValue));
+    }
+
+    #[test]
+    fn editable_text_input_supports_focus_and_set_value() {
+        let node = input_node(text_input::<TestMsg>("note").label("Note"));
+        assert!(!node.is_read_only());
+        assert!(!node.is_disabled());
+        assert!(node.supports_action(Action::Focus));
+        assert!(node.supports_action(Action::SetValue));
+    }
+
+    #[test]
+    fn invalid_text_input_is_marked_invalid_and_valid_one_is_not() {
+        let invalid = input_node(text_input::<TestMsg>("email").label("Email").invalid(true));
+        assert_eq!(invalid.invalid(), Some(Invalid::True));
+
+        let valid = input_node(text_input::<TestMsg>("email").label("Email"));
+        assert_eq!(valid.invalid(), None);
+    }
+
+    #[test]
+    fn password_value_never_appears_in_any_node_property() {
+        const SECRET: &str = "hunter2-s3cret";
+        let tree = column::<TestMsg>()
+            .child(
+                text_input::<TestMsg>("pw")
+                    .label("Password")
+                    .password(true)
+                    .value(SECRET),
+            )
+            .child(
+                text_input::<TestMsg>("pin")
+                    .placeholder("PIN")
+                    .password(true)
+                    .value(SECRET)
+                    .disabled(true)
+                    .invalid(true),
+            )
+            .child(
+                text_input::<TestMsg>("ro")
+                    .label("Read only secret")
+                    .password(true)
+                    .value(SECRET)
+                    .readonly(true),
+            )
+            .build();
+        let nodes = nodes_of(&tree);
+
+        let passwords = nodes_with_role(&nodes, Role::PasswordInput);
+        assert_eq!(passwords.len(), 3, "each password field is a PasswordInput");
+        assert!(passwords.iter().all(|node| node.value().is_none()));
+
+        // The Debug dump lists every property that is set, so a secret in any
+        // property shows up in it. The sentinel label proves the dump is not empty.
+        let label_dump = format!("{:?}", passwords[0]);
+        assert!(
+            label_dump.contains("Password"),
+            "dump should list the label"
+        );
+
+        for (id, node) in &nodes {
+            let dump = format!("{node:?}");
+            assert!(
+                !dump.contains(SECRET),
+                "node {id:?} exposes the password: {dump}"
+            );
+            let texts = [
+                node.label(),
+                node.value(),
+                node.placeholder(),
+                node.description(),
+                node.tooltip(),
+                node.role_description(),
+                node.state_description(),
+            ];
+            for text in texts.into_iter().flatten() {
+                assert!(
+                    !text.contains(SECRET),
+                    "node {id:?} has the password as text"
+                );
+            }
+        }
+    }
+
+    // --- Button --------------------------------------------------------
+
+    #[test]
+    fn disabled_button_keeps_focus_but_has_no_click() {
+        let tree = column::<TestMsg>()
+            .child(button("save", "Save").disabled(true).on_click(TestMsg))
+            .build();
+        let nodes = nodes_of(&tree);
+        let save = only_node_with_role(&nodes, Role::Button);
+        assert!(save.supports_action(Action::Focus));
+        assert!(!save.supports_action(Action::Click));
+    }
+
+    // --- TabBar --------------------------------------------------------
+
+    #[test]
+    fn tab_children_have_tab_role_inside_the_tab_list() {
+        let nodes = nodes_of(&tab_strip(0));
+        let tab_list = only_node_with_role(&nodes, Role::TabList);
+        let tabs: Vec<&AccessNode> = tab_list
+            .children()
+            .iter()
+            .map(|id| node_with_id(&nodes, *id))
+            .collect();
+        assert_eq!(tabs.len(), 3);
+        assert!(tabs.iter().all(|tab| tab.role() == Role::Tab));
+    }
+
+    #[test]
+    fn only_the_selected_tab_is_marked_selected() {
+        for selected in 0..3 {
+            let nodes = nodes_of(&tab_strip(selected));
+            let states: Vec<Option<bool>> = nodes_with_role(&nodes, Role::Tab)
+                .iter()
+                .map(|tab| tab.is_selected())
+                .collect();
+            let expected: Vec<Option<bool>> = (0..3).map(|i| Some(i == selected)).collect();
+            assert_eq!(states, expected, "selected index {selected}");
+        }
+    }
+
+    #[test]
+    fn tab_is_named_by_its_label_without_visual_decoration() {
+        // The selected tab's widget text is "[Files]"; its name must be "Files".
+        let nodes = nodes_of(&tab_strip(1));
+        let names: Vec<&str> = nodes_with_role(&nodes, Role::Tab)
+            .iter()
+            .map(|tab| tab.label().unwrap_or(""))
+            .collect();
+        assert_eq!(names, ["Home", "Files", "Logs"]);
+    }
+
+    #[test]
+    fn disabled_tab_is_disabled_and_not_clickable() {
+        let tree = tab_bar::<TestMsg>("locked")
+            .item(TabItem::new("Locked").disabled(true).on_click(TestMsg))
+            .build();
+        let nodes = nodes_of(&tree);
+        let tab = only_node_with_role(&nodes, Role::Tab);
+        assert!(tab.is_disabled());
+        assert!(!tab.supports_action(Action::Click));
+    }
+
+    // --- NavRail -------------------------------------------------------
+
+    #[test]
+    fn selected_nav_item_is_selected_and_named_without_decoration() {
+        let nodes = nodes_of(&nav(1));
+        let rail = only_node_with_role(&nodes, Role::Navigation);
+        let items: Vec<&AccessNode> = rail
+            .children()
+            .iter()
+            .map(|id| node_with_id(&nodes, *id))
+            .collect();
+
+        let names: Vec<&str> = items
+            .iter()
+            .map(|item| item.label().unwrap_or(""))
+            .collect();
+        assert_eq!(names, ["Home", "Settings"]);
+        // Absent means "not selected" for a button-like item; only the selected one is flagged.
+        let states: Vec<Option<bool>> = items.iter().map(|item| item.is_selected()).collect();
+        assert_eq!(states, [None, Some(true)]);
+    }
+
+    // --- Dialog --------------------------------------------------------
+
+    #[test]
+    fn modal_dialog_is_marked_modal_and_modeless_is_not() {
+        let modal = column::<TestMsg>()
+            .child(dialog::<TestMsg>("confirm", label("Sure?")).modal(true))
+            .build();
+        let modeless = column::<TestMsg>()
+            .child(dialog::<TestMsg>("hint", label("Tip")).modal(false))
+            .build();
+
+        assert!(only_node_with_role(&nodes_of(&modal), Role::Dialog).is_modal());
+        assert!(!only_node_with_role(&nodes_of(&modeless), Role::Dialog).is_modal());
+    }
+
+    // --- Retained binding path -----------------------------------------
+
+    #[test]
+    fn retained_binding_path_applies_the_same_control_semantics() {
+        const SECRET: &str = "hunter2-s3cret";
+        let mut tree = RetainedTree::new();
+        let roots: Vec<WidgetNode<TestMsg>> = vec![
+            column::<TestMsg>()
+                .child(
+                    text_input::<TestMsg>("pw")
+                        .label("Password")
+                        .password(true)
+                        .value(SECRET),
+                )
+                .child(tab_strip(1))
+                .child(nav(0))
+                .child(
+                    button::<TestMsg>("off", "Off")
+                        .disabled(true)
+                        .on_click(TestMsg),
+                )
+                .build(),
+        ];
+        reconcile_frame(&mut tree, &roots);
+        let binding = bind_retained(&roots, &tree);
+
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update_with_binding(&roots[0], &LayoutSnapshot::default(), &binding);
+        let nodes = &adapter.tree_ref().expect("tree should exist").nodes;
+
+        let password = only_node_with_role(nodes, Role::PasswordInput);
+        assert_eq!(password.label(), Some("Password"));
+        assert_eq!(password.value(), None);
+        for (_, node) in nodes {
+            assert!(!format!("{node:?}").contains(SECRET), "password leaked");
+        }
+
+        let tab_names: Vec<&str> = nodes_with_role(nodes, Role::Tab)
+            .iter()
+            .map(|tab| tab.label().unwrap_or(""))
+            .collect();
+        assert_eq!(tab_names, ["Home", "Files", "Logs"]);
+        let tab_states: Vec<Option<bool>> = nodes_with_role(nodes, Role::Tab)
+            .iter()
+            .map(|tab| tab.is_selected())
+            .collect();
+        assert_eq!(tab_states, [Some(false), Some(true), Some(false)]);
+
+        let selected_buttons: Vec<&str> = nodes_with_role(nodes, Role::Button)
+            .iter()
+            .filter(|button| button.is_selected() == Some(true))
+            .map(|button| button.label().unwrap_or(""))
+            .collect();
+        assert_eq!(selected_buttons, ["Home"]);
+
+        let off = nodes_with_role(nodes, Role::Button)
+            .into_iter()
+            .find(|button| button.label() == Some("Off"))
+            .expect("expected the disabled button");
+        assert!(off.is_disabled());
+        assert!(!off.supports_action(Action::Click));
     }
 }

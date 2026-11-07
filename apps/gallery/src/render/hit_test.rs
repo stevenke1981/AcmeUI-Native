@@ -24,6 +24,7 @@ pub fn collect_hit_regions(
                     rect: [rect.x, rect.y, rect.width, rect.height],
                     message: *msg,
                     scrolled,
+                    node: layout.id,
                 });
             }
         }
@@ -45,6 +46,7 @@ pub fn collect_hit_regions(
                     rect: [rect.x, rect.y, rect.width, rect.height],
                     message: *msg,
                     scrolled,
+                    node: layout.id,
                 });
             }
             for (w, l) in widget.children().iter().zip(layout.children.iter()) {
@@ -92,6 +94,7 @@ pub fn collect_data_widget_hits(
                         rect: [rect.x, rect.y, chevron_w, rect.height],
                         message: GalleryMessage::TreeToggleKey(key),
                         scrolled: true,
+                        node: child_layout.id,
                     });
                     result.push(HitRegion {
                         rect: [
@@ -102,12 +105,14 @@ pub fn collect_data_widget_hits(
                         ],
                         message: GalleryMessage::TreeSelectKey(key),
                         scrolled: true,
+                        node: child_layout.id,
                     });
                 } else {
                     result.push(HitRegion {
                         rect: full,
                         message: GalleryMessage::TreeSelectKey(key),
                         scrolled: true,
+                        node: child_layout.id,
                     });
                 }
             }
@@ -128,6 +133,7 @@ pub fn collect_data_widget_hits(
                                 rect: [rect.x, rect.y, rect.width, rect.height],
                                 message: GalleryMessage::TableSort(ci),
                                 scrolled: true,
+                                node: cell_layout.id,
                             });
                         }
                     }
@@ -144,6 +150,7 @@ pub fn collect_data_widget_hits(
                         rect: [rect.x, rect.y, rect.width, rect.height],
                         message: GalleryMessage::TableSelectRow(orig),
                         scrolled: true,
+                        node: row_layout.id,
                     });
                 }
             }
@@ -187,6 +194,7 @@ pub fn collect_data_widget_hits(
                     rect: [rect.x, rect.y, rect.width, rect.height],
                     message: *msg,
                     scrolled: true,
+                    node: layout.id,
                 });
             }
             let wc = widget.children();

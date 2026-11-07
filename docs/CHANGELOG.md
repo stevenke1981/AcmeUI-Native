@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased - Focus, semantics, DPI/IME automation (ROADMAP 004-005, 2026-11-07)
+
+- Gallery keyboard focus is keyed by stable identity (retained node + message).
+  Fixes an Enter/Space index-out-of-bounds panic after switching to a page with
+  fewer controls, and focus drift on page/tree/table changes. Accessibility
+  focus follows keyboard focus; `AccessibilityAdapter::clear_widget_focus` added.
+- Accessibility semantics: TextInput name/value/`PasswordInput` (password text
+  never exposed), disabled/read-only/invalid, `SetValue` only when editable;
+  Buttons expose `Click` only when enabled; TabBar children are `Tab` with
+  selected state; selected NavRail item; modal dialogs.
+- Text input: `move_cursor_to_offset` snaps to a grapheme boundary (a mid-char
+  offset made caret geometry panic); committed text clears the preedit; Escape
+  cancels an active composition before blurring; new `scroll_caret_into_view`.
+- Gallery TextInput: the field was laid out one line (21 px) tall, clipping text
+  to a ~5 px band; it now reserves the theme control height. Overflowing text
+  scrolls so the caret and IME candidate rect stay inside the field.
+- Automated DPI evidence at 1.0/1.25/1.5/1.75/2.0: Gallery logical layout and IME
+  caret drift measured 0.0 px on every page; CPU renderer exact physical-pixel
+  mapping; mixed 注音/ASCII caret geometry. **Manual 注音 IME and Windows DPI
+  sessions remain NOT validated.**
+
 ## Unreleased - Retained IDs in the app path (ROADMAP 003, 2026-11-07)
 
 - `acme-widgets`: `retained_binding` (`bind_retained`, `RetainedBinding`,

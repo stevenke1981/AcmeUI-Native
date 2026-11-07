@@ -10,7 +10,10 @@
 - [x] acme-ui test warnings removed.
 - [ ] Native runtime check of fatal paths (no-window, forced CPU failure) — NOT_RUN.
 - [x] ROADMAP 003: Gallery layout and accessibility use retained NodeIds (see docs/team/roadmap-003/REPORT.md).
-- [ ] ROADMAP 004: keyboard focus keyed by stable NodeId; most-used controls and semantics.
+- [x] ROADMAP 004: keyboard focus keyed by stable identity; core control semantics (docs/team/roadmap-004/REPORT.md).
+- [x] ROADMAP 005 (automated part): DPI matrix and IME geometry tests; 3 IME bugs and 2 TextInput field bugs fixed (docs/team/roadmap-005/REPORT.md).
+- [ ] ROADMAP 005 (manual): 注音 sessions at 100/125/150/200 % — human sign-off still required.
+- [ ] Follow-ups: hovered/pressed indices drift after page switch; TextInput validation_message as AccessKit error text; Table/DataGrid cell and Tree item roles; preedit wider than the field does not scroll; CPU sharp-corner coverage (ignored test).
 
 ## Retained-tree invalidation (bounded local patch)
 

@@ -205,7 +205,17 @@ impl TextInputState {
     ///
     /// Any active selection is cleared.
     pub fn move_cursor_to_offset(&mut self, byte_offset: usize) {
-        self.cursor = byte_offset.min(self.text.len());
+        let clamped = byte_offset.min(self.text.len());
+        // Snap down to a grapheme boundary: a caret inside a character (or a
+        // combining sequence) would make later slicing panic.
+        self.cursor = self
+            .text
+            .grapheme_indices(true)
+            .map(|(start, _)| start)
+            .chain(std::iter::once(self.text.len()))
+            .take_while(|&start| start <= clamped)
+            .last()
+            .unwrap_or(0);
         self.selection = None;
     }
 
@@ -274,11 +284,11 @@ impl TextInputState {
         scale: f32,
     ) -> [f32; 4] {
         let display = self.display_text();
-        let raw_x = byte_offset_to_x(&display, self.cursor, fonts, style, scale);
+        let raw_x = byte_offset_to_x(&display, self.display_cursor(), fonts, style, scale);
         // Match render_text_input: text_origin_x = content_x - scroll_offset.
         let x = raw_x - self.scroll_offset;
         let h = style.line_height;
-        [x, 0.0, 1.5, h]
+        [x, 0.0, CARET_WIDTH, h]
     }
 
     /// Insert a single character at the cursor, replacing any active selection.
@@ -638,7 +648,21 @@ impl TextInputState {
     /// Shapes the text up to the cursor byte offset and returns its width.
     pub fn cursor_x(&self, fonts: &mut FontSystem, style: &TextStyle, scale: f32) -> f32 {
         let display = self.display_text();
-        byte_offset_to_x(&display, self.cursor, fonts, style, scale)
+        byte_offset_to_x(&display, self.display_cursor(), fonts, style, scale)
+    }
+
+    /// The cursor as a byte offset into [`display_text`](Self::display_text).
+    ///
+    /// Equal to the cursor for plain text. For password inputs every grapheme
+    /// is shown as one `password_char`, so the offset is re-counted in mask
+    /// characters; using the raw cursor there sliced inside a mask character.
+    fn display_cursor(&self) -> usize {
+        let cursor = floor_char_boundary(&self.text, self.cursor);
+        if self.password {
+            self.text[..cursor].graphemes(true).count() * self.password_char.len_utf8()
+        } else {
+            cursor
+        }
     }
 
     // ---- internal helpers ----
@@ -992,7 +1016,7 @@ pub fn render_text_input(
     }
     // 5. Cursor blink
     if focused {
-        let cx = byte_offset_to_x_inner(&display, state.cursor, fonts, &style, scale);
+        let cx = byte_offset_to_x_inner(&display, state.display_cursor(), fonts, &style, scale);
         let cursor_x_pos = text_origin_x + cx;
         // Only draw cursor if it's within the visible content area
         if cursor_x_pos < content_x + content_w {
@@ -1003,7 +1027,7 @@ pub fn render_text_input(
                 effective_clip[3],
             )));
             scene.push(DrawCommand::Quad(QuadPrimitive {
-                rect: Rect::new(cursor_x_pos, content_y, 1.5, content_h),
+                rect: Rect::new(cursor_x_pos, content_y, CARET_WIDTH, content_h),
                 color: Color::rgba(
                     colors.text_color[0],
                     colors.text_color[1],
@@ -1101,7 +1125,11 @@ fn byte_offset_to_x_inner(
     if text.is_empty() || offset == 0 {
         return 0.0;
     }
-    let clamped = offset.min(text.len());
+    // Never slice inside a character, whatever offset a caller passes.
+    let clamped = floor_char_boundary(text, offset.min(text.len()));
+    if clamped == 0 {
+        return 0.0;
+    }
     if clamped >= text.len() {
         // Full width
         let layout = fonts.shape(text, style, TextConstraints::default(), scale);
@@ -1112,6 +1140,18 @@ fn byte_offset_to_x_inner(
     let (prefix, _) = text.split_at(clamped);
     let layout = fonts.shape(prefix, style, TextConstraints::default(), scale);
     layout.width
+}
+
+/// Width of the drawn caret and of the IME caret area, in logical pixels.
+const CARET_WIDTH: f32 = 1.5;
+
+/// Largest char boundary of `text` that is `<= offset` (clamped to the length).
+fn floor_char_boundary(text: &str, offset: usize) -> usize {
+    let mut offset = offset.min(text.len());
+    while !text.is_char_boundary(offset) {
+        offset -= 1;
+    }
+    offset
 }
 
 /// Convert a byte offset into a text string to its pixel x-coordinate.
@@ -1127,6 +1167,53 @@ pub fn byte_offset_to_x(
     scale: f32,
 ) -> f32 {
     byte_offset_to_x_inner(text, offset, fonts, style, scale)
+}
+
+/// Adjust [`TextInputState::scroll_offset`] so the caret stays inside the
+/// visible text area.
+///
+/// `style` supplies the font size used to measure text, the same input as
+/// [`TextInputState::ime_caret_area`]. `content_width` is the visible text width
+/// in logical pixels (field width minus horizontal padding). A negative or
+/// non-finite `content_width` is treated as `0`.
+///
+/// After the call, the content-local caret x (`ime_caret_area(..)[0]`, which is
+/// `caret_x - scroll_offset`) lies in `[0, content_width]`. The scroll stays in
+/// `[0, text_width - content_width]`, so it shrinks when text is removed and
+/// returns to `0` when the whole text fits. Text is not modified, and a
+/// focused or readonly flag is not checked, so the caller decides when to call.
+pub fn scroll_caret_into_view(
+    state: &mut TextInputState,
+    fonts: &mut FontSystem,
+    style: &TextStyle,
+    scale: f32,
+    content_width: f32,
+) {
+    let content_width = if content_width.is_finite() {
+        content_width.max(0.0)
+    } else {
+        0.0
+    };
+    let display = state.display_text();
+    let caret_x = byte_offset_to_x(&display, state.display_cursor(), fonts, style, scale);
+    let text_width = byte_offset_to_x(&display, display.len(), fonts, style, scale);
+    // Reserve the caret's own width so a caret at the end of the text is drawn
+    // inside the content area (render_text_input skips one at the right edge).
+    let visible = (content_width - CARET_WIDTH).max(0.0);
+    let max_scroll = (text_width - visible).max(0.0);
+    let current = if state.scroll_offset.is_finite() {
+        state.scroll_offset
+    } else {
+        0.0
+    };
+    // Clamp first so text removal shrinks the scroll before the caret check.
+    let mut scroll = current.clamp(0.0, max_scroll);
+    if caret_x - scroll < 0.0 {
+        scroll = caret_x;
+    } else if caret_x - scroll > visible {
+        scroll = caret_x - visible;
+    }
+    state.scroll_offset = scroll.clamp(0.0, max_scroll);
 }
 
 // ---------------------------------------------------------------------------
@@ -1153,7 +1240,7 @@ pub fn byte_offset_to_x(
 /// | `Ctrl`+`Delete`         | Delete next word              |
 /// | `Home`                  | `cursor_home()`               |
 /// | `End`                   | `cursor_end()`                |
-/// | `Escape`                | Blur (clear focus)            |
+/// | `Escape`                | Cancel preedit, else blur     |
 /// | `Tab`                   | (handled by focus manager — no-op here) |
 /// | `Enter`                 | (submitted — no-op here)      |
 ///
@@ -1189,7 +1276,11 @@ pub fn handle_key(
             false
         }
         PlatformKey::Escape => {
-            if state.focused {
+            if state.focused && !state.preedit.is_empty() {
+                // First Escape cancels the IME composition and keeps focus.
+                state.cancel_preedit();
+                true
+            } else if state.focused {
                 state.focused = false;
                 true
             } else {
@@ -1383,6 +1474,8 @@ pub fn handle_text(state: &mut TextInputState, text: &str) -> bool {
     state.text.insert_str(state.cursor, text);
     state.cursor += text.len();
     state.selection = None;
+    // Committed text ends any IME composition; never leave a stale preedit drawn.
+    state.cancel_preedit();
 
     state.push_undo_with_state(old_text, old_cursor, old_selection);
     true

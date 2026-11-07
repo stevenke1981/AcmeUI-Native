@@ -107,6 +107,15 @@ Until this table is filled with a real PASS, status remains
 
 **NOT YET MANUALLY VALIDATED**
 
+Automated evidence available since ROADMAP 005 (2026-11-07), which narrows but
+does **not** replace this checklist:
+`apps/gallery/src/dpi_tests.rs` (caret inside the field at 1.0-2.0 scale,
+overflow scrolling), `crates/acme-textinput/tests/ime_dpi.rs` (mixed 注音/ASCII
+caret geometry, preedit commit/cancel, Escape cancels composition) and
+`crates/acme-render-cpu/tests/dpi.rs` (physical pixel mapping). Still only a
+human can confirm the real candidate window, Bopomofo composition flow and
+glyph quality at 100/125/150/200 % Windows scaling.
+
 ### Prerequisites
 
 - Windows 10/11 with **Microsoft 注音** (or equivalent Traditional Chinese
