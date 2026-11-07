@@ -123,9 +123,11 @@ fn multi_page_text_frame_matches_single_page_pixels() {
     let scene = text_frame(FRAME_TEXT, &theme, &mut fonts, &mut atlas);
     let pages = glyph_pages(&scene);
     assert!(!pages.is_empty(), "final frame must draw glyphs");
+    // Larger host glyphs can open page 2 or 3 within one filler frame, so the
+    // final frame may land on any page after 0; it must not stay on page 0.
     assert!(
-        pages.contains(&1),
-        "at least one glyph must be drawn from page 1, got pages {pages:?}"
+        pages.iter().any(|&page| page > 0),
+        "at least one glyph must be drawn from a page after 0, got pages {pages:?}"
     );
     renderer
         .render_scene(&scene)
