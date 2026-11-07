@@ -9,7 +9,7 @@
 
 #![allow(clippy::collapsible_if)]
 
-use acme_core::NodeId;
+use acme_core::{NodeId, RetainedTree};
 use acme_layout::{LayoutEngine, LayoutNode, LayoutStyle, Length, Overflow, WidgetLayoutContext};
 use acme_platform::{Application, FrameContext, PlatformEvent, WindowConfig, WindowId};
 use acme_render_wgpu::{Frame, Quad, TextRun, scene_from_frame};
@@ -20,6 +20,8 @@ use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_ui::mobile::{MobileButtonSize, mobile_button};
+use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
+use acme_widgets::view_bridge::widget_to_views;
 use acme_widgets::{
     ButtonSize, ButtonState, ButtonVariant, CardVariant, WidgetNode, button, card, column, label,
     label_with_size, row, scroll_view, separator,
@@ -139,6 +141,9 @@ struct Gallery {
     fonts: FontSystem,
     atlas: GlyphAtlas,
     layout: LayoutEngine,
+    retained: RetainedLayoutState,
+    #[cfg(test)]
+    last_frame_layout: Option<(LayoutNode, acme_layout::LayoutSnapshot)>,
 }
 
 impl Gallery {
@@ -161,6 +166,9 @@ impl Gallery {
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::new(2048, 2048),
             layout: LayoutEngine::new(),
+            retained: RetainedLayoutState::new(),
+            #[cfg(test)]
+            last_frame_layout: None,
         }
     }
 
@@ -182,7 +190,7 @@ impl Gallery {
         col = col.child(label_with_size("AcmeUI", 18.0));
         col = col.child(separator());
         for (i, cat) in CATEGORIES.iter().enumerate() {
-            let mut btn = button::<GalleryMessage>("", cat.name);
+            let mut btn = button::<GalleryMessage>(format!("category_{i}"), cat.name);
             if i == self.selected_category {
                 btn = btn.primary();
             }
@@ -265,6 +273,7 @@ impl Gallery {
 
     fn foundations_page(&self) -> WidgetNode<GalleryMessage> {
         column()
+            .key("foundations_page")
             .gap(16.0)
             .padding(24.0)
             .child(label_with_size("Foundations", 24.0))
@@ -330,6 +339,7 @@ impl Gallery {
 
     fn inputs_page(&self) -> WidgetNode<GalleryMessage> {
         column()
+            .key("inputs_page")
             .gap(24.0)
             .padding(24.0)
             .child(label_with_size("Inputs", 24.0))
@@ -431,6 +441,7 @@ impl Gallery {
 
     fn layout_page(&self) -> WidgetNode<GalleryMessage> {
         column()
+            .key("layout_page")
             .gap(16.0)
             .padding(24.0)
             .child(label_with_size("Layout", 24.0))
@@ -476,6 +487,7 @@ impl Gallery {
 
     fn overlay_page(&self) -> WidgetNode<GalleryMessage> {
         column()
+            .key("overlay_page")
             .gap(16.0)
             .padding(24.0)
             .child(label_with_size("Overlay", 24.0))
@@ -505,6 +517,7 @@ impl Gallery {
 
     fn data_page(&self) -> WidgetNode<GalleryMessage> {
         column()
+            .key("data_page")
             .gap(16.0)
             .padding(24.0)
             .child(label_with_size("Data", 24.0))
@@ -536,6 +549,7 @@ impl Gallery {
 
     fn charts_page(&self) -> WidgetNode<GalleryMessage> {
         column()
+            .key("charts_page")
             .gap(20.0)
             .padding(24.0)
             .child(label_with_size("Charts", 24.0))
@@ -657,6 +671,7 @@ impl Gallery {
         };
 
         column()
+            .key("mobile_page")
             .gap(20.0)
             .padding(24.0)
             .child(label_with_size("Mobile", 24.0))
@@ -703,6 +718,7 @@ impl Gallery {
 
     fn design_system_page(&self) -> WidgetNode<GalleryMessage> {
         column()
+            .key("design_system_page")
             .gap(24.0)
             .padding(24.0)
             .child(label_with_size("Design System", 24.0))
@@ -866,7 +882,7 @@ impl Gallery {
     /// Create a color swatch label: a small colored square + descriptive text.
     /// Uses a special encoding prefix (`\x01`) that `render_content` detects.
     fn swatch(&self, color_name: &str, display: &str) -> WidgetNode<GalleryMessage> {
-        label(format!("\x01{}|{}", color_name, display))
+        label(format!("\x01{color_name}|{display}"))
     }
 
     /// Create a small card showing a base surface color.
@@ -1003,8 +1019,8 @@ impl Application for Gallery {
             scale_factor: context.scale_factor,
         };
 
-        // 4. Widget → Layout
-        let mut root = description.to_layout_with_context(NodeId::new(1), &layout_context);
+        // 4. Reconcile and use stable IDs for layout, rendering and hit regions.
+        let mut root = retained_layout_root(&description, &mut self.retained, &layout_context);
 
         // 5. Apply sizes
         apply_gallery_styles(&mut root, width, height);
@@ -1019,6 +1035,11 @@ impl Application for Gallery {
                 context.scale_factor,
             )
             .expect("finite gallery viewport");
+
+        #[cfg(test)]
+        {
+            self.last_frame_layout = Some((root.clone(), snapshot.clone()));
+        }
 
         // 7. Extract IDs
         let ids = extract_gallery_ids(&root);
@@ -1239,6 +1260,73 @@ impl Application for Gallery {
 }
 
 // ── Layout IDs ───────────────────────────────────────────────────────────────
+
+/// Use only a complete binding; a failed reconcile or partial binding keeps
+/// the entire frame on the original sequential layout IDs.
+fn layout_root(
+    description: &WidgetNode<GalleryMessage>,
+    binding: Option<&RetainedBinding<'_>>,
+    context: &WidgetLayoutContext,
+) -> LayoutNode {
+    match binding {
+        Some(binding) if binding.mismatches() == 0 => {
+            description.to_layout_with_binding(binding, context)
+        }
+        _ => description.to_layout_with_context(NodeId::new(1), context),
+    }
+}
+
+struct RetainedLayoutState {
+    tree: RetainedTree,
+    failure_logged: bool,
+}
+
+impl RetainedLayoutState {
+    fn new() -> Self {
+        Self {
+            tree: RetainedTree::new(),
+            failure_logged: false,
+        }
+    }
+
+    fn log_failure(&mut self, reason: std::fmt::Arguments<'_>) {
+        if !self.failure_logged {
+            eprintln!("AcmeUI Gallery: {reason}; using sequential layout IDs");
+            self.failure_logged = true;
+        }
+    }
+
+    fn accept_binding(&mut self, mismatches: usize) -> bool {
+        if mismatches == 0 {
+            self.failure_logged = false;
+            true
+        } else {
+            self.log_failure(format_args!("retained binding has {mismatches} mismatches"));
+            false
+        }
+    }
+}
+
+fn retained_layout_root(
+    description: &WidgetNode<GalleryMessage>,
+    retained: &mut RetainedLayoutState,
+    context: &WidgetLayoutContext,
+) -> LayoutNode {
+    let roots = std::slice::from_ref(description);
+    let binding = match retained.tree.reconcile_roots(&widget_to_views(roots)) {
+        Ok(_) => {
+            let binding = bind_retained(roots, &retained.tree);
+            retained
+                .accept_binding(binding.mismatches())
+                .then_some(binding)
+        }
+        Err(error) => {
+            retained.log_failure(format_args!("retained reconcile failed: {error:?}"));
+            None
+        }
+    };
+    layout_root(description, binding.as_ref(), context)
+}
 
 struct GalleryNodeIds {
     sidebar: NodeId,
@@ -1670,6 +1758,9 @@ fn quad_rect(
         border_color: rgba(border_color),
     }
 }
+
+#[cfg(test)]
+mod retained_tests;
 
 #[cfg(test)]
 mod tests {
