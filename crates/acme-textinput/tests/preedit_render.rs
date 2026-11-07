@@ -19,6 +19,13 @@ use acme_theme::Theme;
 const EPS: f32 = 0.01;
 const SCALES: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
 
+/// Glyph boxes from [`runs`] are pixel-snapped ink bitmaps, not advances, so
+/// their edges can sit up to one device pixel off the shaped advance (bearings
+/// differ per platform font). Use this slack only for ink-box comparisons.
+fn ink_slop(scale: f32) -> f32 {
+    1.0 / scale + EPS
+}
+
 /// Committed text for the plain cases.
 const COMMITTED: &str = "abc";
 /// A short bopomofo preedit (3 chars, 8 bytes) for 注.
@@ -248,9 +255,9 @@ fn trailing_run_is_unshifted_without_a_preedit() {
     let w_ab = h.width("ab");
     let (b_left, _) = run.glyphs[1];
     assert!(
-        b_left < h.content_x() + w_ab && b_left > h.content_x() + w_first - EPS,
+        b_left < h.content_x() + w_ab && b_left > h.content_x() + w_first - ink_slop(1.0),
         "'b' at {b_left} outside ({}, {})",
-        h.content_x() + w_first - EPS,
+        h.content_x() + w_first - ink_slop(1.0),
         h.content_x() + w_ab
     );
 }
@@ -638,7 +645,7 @@ fn backwards_selection_highlight_matches_the_tail_glyphs() {
         );
         let (c_left, c_right) = tail.glyphs[0];
         assert!(
-            x <= c_left + EPS && x + w >= c_right - EPS,
+            x <= c_left + ink_slop(scale) && x + w >= c_right - ink_slop(scale),
             "scale {scale}: highlight [{x}, {}] misses the tail glyph [{c_left}, {c_right}]",
             x + w
         );
