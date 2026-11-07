@@ -1,13 +1,11 @@
-//! Per-page glyph atlas textures (ROADMAP 011). Implemented by P4.
-// P5 removes: the module is not wired into the renderer until P5 lands.
-#![allow(dead_code)]
+//! Per-page glyph atlas textures (ROADMAP 011).
 
 use acme_core::{ATLAS_MAX_PAGES, ATLAS_PAGE_EDGE, GlyphFormat};
 
 /// One atlas page: an `ATLAS_PAGE_EDGE` square texture plus the bind group
 /// that exposes it to the text pipeline.
 pub(crate) struct AtlasPage {
-    _texture: wgpu::Texture,
+    pub(crate) texture: wgpu::Texture,
     pub(crate) bind_group: wgpu::BindGroup,
 }
 
@@ -101,7 +99,7 @@ impl AtlasPage {
             ],
         });
         Self {
-            _texture: texture,
+            texture,
             bind_group,
         }
     }
@@ -472,11 +470,11 @@ mod tests {
         let mut pages = AtlasPages::default();
         assert!(pages.get(GlyphFormat::Alpha8, 0).is_none());
         let page = pages.ensure(&device, &layout, &sampler, GlyphFormat::Alpha8, 0);
-        assert_eq!(page._texture.format(), wgpu::TextureFormat::R8Unorm);
-        assert_eq!(page._texture.size().width, EDGE);
-        assert_eq!(page._texture.size().height, EDGE);
+        assert_eq!(page.texture.format(), wgpu::TextureFormat::R8Unorm);
+        assert_eq!(page.texture.size().width, EDGE);
+        assert_eq!(page.texture.size().height, EDGE);
         let rgba = pages.ensure(&device, &layout, &sampler, GlyphFormat::Rgba8, 7);
-        assert_eq!(rgba._texture.format(), wgpu::TextureFormat::Rgba8UnormSrgb);
+        assert_eq!(rgba.texture.format(), wgpu::TextureFormat::Rgba8UnormSrgb);
         assert!(pages.get(GlyphFormat::Rgba8, 7).is_some());
         assert!(pages.get(GlyphFormat::Rgba8, 6).is_none());
     }

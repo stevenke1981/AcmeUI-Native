@@ -721,4 +721,48 @@ mod tests {
         let batches = compile_scene(&scene);
         assert!(!batches.is_empty(), "non-empty frame → at least one batch");
     }
+
+    #[test]
+    fn scene_from_frame_propagates_glyph_and_upload_pages() {
+        use acme_text::{AtlasFormat as TextFormat, AtlasUpload as TextUpload, PreparedGlyph};
+        let prepared = acme_text::PreparedText {
+            atlas_generation: 0,
+            glyphs: vec![PreparedGlyph {
+                atlas_id: 1,
+                x: 0,
+                y: 0,
+                width: 4,
+                height: 4,
+                atlas_x: 0,
+                atlas_y: 0,
+                atlas_page: 3,
+                format: TextFormat::Alpha8,
+            }],
+            uploads: vec![TextUpload {
+                page: 3,
+                x: 0,
+                y: 0,
+                width: 1,
+                height: 1,
+                format: TextFormat::Alpha8,
+                pixels: vec![255],
+            }],
+        };
+        let frame = Frame {
+            text: vec![crate::TextRun {
+                prepared,
+                origin: [0.0, 0.0],
+                color: [1.0; 4],
+                clip: None,
+            }],
+            ..Frame::default()
+        };
+
+        let scene = scene_from_frame(&frame);
+        let DrawCommand::Text(prim) = &scene.commands()[0] else {
+            panic!("expected a text command");
+        };
+        assert_eq!(prim.glyphs[0].atlas_page, 3, "glyph keeps its page");
+        assert_eq!(prim.uploads[0].page, 3, "upload keeps its page");
+    }
 }
