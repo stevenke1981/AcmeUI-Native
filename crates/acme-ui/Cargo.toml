@@ -22,8 +22,8 @@ browser = []
 full = ["foundations", "inputs", "layout", "overlay", "charts", "desktop", "mobile", "browser"]
 
 [dependencies]
-acme-core = { path = "../acme-core" }
-acme-widgets = { path = "../acme-widgets" }
-acme-layout = { path = "../acme-layout" }
-acme-theme = { path = "../acme-theme" }
-acme-text = { path = "../acme-text" }
+acme-core.workspace = true
+acme-widgets.workspace = true
+acme-layout.workspace = true
+acme-theme.workspace = true
+acme-text.workspace = true

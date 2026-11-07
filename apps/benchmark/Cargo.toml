@@ -3,12 +3,13 @@ name = "acme-benchmark"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish = false
 
 [dependencies]
 anyhow.workspace = true
-acme-core = { path = "../../crates/acme-core" }
-acme-layout = { path = "../../crates/acme-layout" }
-acme-render-cpu = { path = "../../crates/acme-render-cpu" }
-acme-render-wgpu = { path = "../../crates/acme-render-wgpu" }
-acme-text = { path = "../../crates/acme-text" }
-acme-widgets = { path = "../../crates/acme-widgets" }
+acme-core.workspace = true
+acme-layout.workspace = true
+acme-render-cpu.workspace = true
+acme-render-wgpu.workspace = true
+acme-text.workspace = true
+acme-widgets.workspace = true

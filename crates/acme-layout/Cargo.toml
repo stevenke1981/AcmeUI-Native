@@ -11,5 +11,5 @@ categories = ["gui"]
 
 [dependencies]
 taffy.workspace = true
-acme-core = { path = "../acme-core" }
-acme-text = { path = "../acme-text" }
+acme-core.workspace = true
+acme-text.workspace = true

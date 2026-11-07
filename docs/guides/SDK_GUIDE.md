@@ -25,15 +25,18 @@ Path dependencies inherit `version`, `edition`, `license`, `repository`, and
 `rust-version` from the repository's `[workspace.package]`, so the repository
 root must be present (a standalone copy of a single crate is not supported).
 
-### 1.2 Git dependency (not verified)
+### 1.2 Git dependency (verified locally)
 
 ```toml
 [dependencies]
 acme-ui = { git = "https://github.com/stevenke1981/AcmeUI-Native", rev = "<commit-sha>" }
 ```
 
-Pin a `rev` or tag. This form has **not been verified** by the current batch.
-No crate is published to crates.io.
+Pin a `rev` or tag. ROADMAP 007 checked this form with a scratch crate that
+depended on `acme-ui` and `acme-core` through `git = "file:///..."` at a fixed
+`rev` (`cargo check` PASS, Windows). CI does not run it, and the GitHub URL form
+was not checked. No crate is published to crates.io; every library crate
+packages (`python scripts/check_package.py`), see [RELEASE.md](RELEASE.md).
 
 ### 1.3 Minimal application
 
@@ -218,6 +221,10 @@ Rules for claiming support:
   implementation details stay private.
 - Unreleased changes, including the new `PlatformError` variants, are listed
   under "Unreleased" in [`docs/CHANGELOG.md`](../CHANGELOG.md).
+
+- Upgrade notes for the next release: [MIGRATION.md](MIGRATION.md). Release
+  procedure and version proposal: [RELEASE.md](RELEASE.md). Licenses:
+  [LICENSES.md](LICENSES.md).
 
 ## 8. Known limitations
 

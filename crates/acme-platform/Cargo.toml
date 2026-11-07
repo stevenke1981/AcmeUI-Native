@@ -19,7 +19,7 @@ thiserror.workspace = true
 pollster.workspace = true
 tracing.workspace = true
 arboard.workspace = true
-acme-core = { path = "../acme-core" }
-acme-render-wgpu = { path = "../acme-render-wgpu" }
-acme-render-cpu = { path = "../acme-render-cpu", optional = true }
+acme-core.workspace = true
+acme-render-wgpu.workspace = true
+acme-render-cpu = { workspace = true, optional = true }
 softbuffer = { workspace = true, optional = true }

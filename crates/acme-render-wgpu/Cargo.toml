@@ -16,5 +16,5 @@ bytemuck.workspace = true
 thiserror.workspace = true
 pollster.workspace = true
 tracing.workspace = true
-acme-core = { path = "../acme-core" }
-acme-text = { path = "../acme-text" }
+acme-core.workspace = true
+acme-text.workspace = true

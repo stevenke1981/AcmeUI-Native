@@ -10,4 +10,4 @@ categories = ["rendering"]
 rust-version.workspace = true
 
 [dependencies]
-acme-core = { path = "../acme-core" }
+acme-core.workspace = true
