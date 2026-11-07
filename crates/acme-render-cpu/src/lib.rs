@@ -7,6 +7,9 @@ use acme_core::{
     TextPrimitive,
 };
 
+mod coverage;
+use coverage::quad_coverage;
+
 const ATLAS: usize = 2048;
 const MAX_PIXELS: usize = 32_000_000;
 const MAX_LAYERS: usize = 16;
@@ -90,22 +93,6 @@ fn blend(dst: u32, src: u32, opacity: f32) -> u32 {
     ((out_a.round() as u32) << 24) | (c(16) << 16) | (c(8) << 8) | c(0)
 }
 
-fn inside_rounded(rect: Bounds, radius: f32, x: f32, y: f32) -> f32 {
-    let half_x = (rect.right - rect.left) * 0.5;
-    let half_y = (rect.bottom - rect.top) * 0.5;
-    if half_x <= 0.0 || half_y <= 0.0 {
-        return 0.0;
-    }
-    let radius = radius.clamp(0.0, half_x.min(half_y));
-    let cx = (rect.left + rect.right) * 0.5;
-    let cy = (rect.top + rect.bottom) * 0.5;
-    let qx = (x - cx).abs() - (half_x - radius);
-    let qy = (y - cy).abs() - (half_y - radius);
-    let outside = qx.max(0.0).hypot(qy.max(0.0));
-    let distance = outside + qx.max(qy).min(0.0) - radius;
-    (0.5 - distance).clamp(0.0, 1.0)
-}
-
 fn for_pixels(
     width: u32,
     height: u32,
@@ -159,15 +146,17 @@ fn draw_quad(
         right: rect.right - border,
         bottom: rect.bottom - border,
     };
+    let inner_radius = (radius - border).max(0.0);
     let fill = pack(quad.color);
     let stroke = pack(quad.border_color);
     for_pixels(width, height, rect, clip, |idx, x, y| {
-        let coverage = inside_rounded(rect, radius, x, y);
+        let coverage = quad_coverage(rect, radius, x, y);
         if coverage <= 0.0 {
             return;
         }
         if border > 0.0 {
-            let inside = inside_rounded(inner, (radius - border).max(0.0), x, y);
+            // Stroke area is outer minus inner, so it cannot go negative.
+            let inside = quad_coverage(inner, inner_radius, x, y);
             pixels[idx] = blend(pixels[idx], fill, inside);
             pixels[idx] = blend(pixels[idx], stroke, (coverage - inside).max(0.0));
         } else {
@@ -574,7 +563,15 @@ mod tests {
             border_color: Color::rgba(1.0, 0.0, 0.0, 1.0),
         }));
         let c = render(&s, 8, 8);
-        assert_eq!(c.pixels()[0], 0);
+        // Corner pixel (0, 0): the r = 3 arc clips a sliver of its far corner. The exact
+        // area is 0.029 (red 7). The 8x8 estimate resolves one sample of 64 (red 4).
+        // The old signed-distance rule dropped it to 0 because its centre sits more
+        // than half a pixel outside the arc.
+        let corner_red = (c.pixels()[0] >> 16) & 255;
+        assert!(
+            (1..=8).contains(&corner_red),
+            "corner sliver red {corner_red}"
+        );
         assert_eq!(c.pixels()[3 * 8 + 3], 0x0000ff00);
         assert_eq!(c.pixels()[4], 0x00ff0000);
     }
