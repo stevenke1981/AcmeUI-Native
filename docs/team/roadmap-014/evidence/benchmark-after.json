@@ -1,0 +1,25 @@
+{
+  "schema": "acmeui-bench",
+  "schema_version": 1,
+  "package": "acme-benchmark",
+  "package_version": "0.2.0",
+  "mode": "full",
+  "config": {"warmup": 10, "samples": 51},
+  "environment": {"git_sha": "e0e44892997eda7c9ab42b18c303463c750cc602", "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)", "os": "windows", "arch": "x86_64", "profile": "release", "cpu_count": 24, "cpu_model": null, "timestamp_utc": "2026-11-07T19:27:21Z"},
+  "benchmarks": [
+    {"name": "layout/100_nodes", "stats": {"samples": 51, "min_ns": 265400, "median_ns": 275800, "p95_ns": 359600, "mean_ns": 288613.7254901961, "max_ns": 412200}, "meta": {"layout_results": 100}},
+    {"name": "layout/500_nodes", "stats": {"samples": 51, "min_ns": 1566200, "median_ns": 1645900, "p95_ns": 2480200, "mean_ns": 1772139.2156862745, "max_ns": 3151000}, "meta": {"layout_results": 500}},
+    {"name": "layout/1000_nodes", "stats": {"samples": 51, "min_ns": 3202200, "median_ns": 3444000, "p95_ns": 4023100, "mean_ns": 3511109.8039215687, "max_ns": 4120700}, "meta": {"layout_results": 1000}},
+    {"name": "reconcile/100_keys_5_rounds_fresh_tree", "stats": {"samples": 51, "min_ns": 186800, "median_ns": 189900, "p95_ns": 201900, "mean_ns": 191576.4705882353, "max_ns": 207600}, "meta": {"mounted": 120, "reused": 360, "removed": 30}},
+    {"name": "retained/widget_to_views_1011_widgets", "stats": {"samples": 51, "min_ns": 38400, "median_ns": 38900, "p95_ns": 42900, "mean_ns": 39396.07843137255, "max_ns": 48400}, "meta": {"widgets": 1011}},
+    {"name": "retained/reconcile_steady_1011_widgets", "stats": {"samples": 51, "min_ns": 417700, "median_ns": 446300, "p95_ns": 650900, "mean_ns": 503035.29411764705, "max_ns": 660900}, "meta": {"widgets": 1011}},
+    {"name": "retained/bind_1011_widgets", "stats": {"samples": 51, "min_ns": 64100, "median_ns": 65100, "p95_ns": 110900, "mean_ns": 70452.94117647059, "max_ns": 180800}, "meta": {"widgets": 1011}},
+    {"name": "retained/to_layout_with_binding_1011_widgets", "stats": {"samples": 51, "min_ns": 131600, "median_ns": 150800, "p95_ns": 191200, "mean_ns": 160709.80392156861, "max_ns": 328400}, "meta": {"widgets": 1011}},
+    {"name": "frame_build/1200_quads_100_clipped_50_text", "stats": {"samples": 51, "min_ns": 25800, "median_ns": 27000, "p95_ns": 45600, "mean_ns": 32803.92156862745, "max_ns": 50300}, "meta": {"quads": 1200, "clipped_quads": 100, "text_runs": 50}},
+    {"name": "widget_tree/build_50_rows", "stats": {"samples": 51, "min_ns": 32200, "median_ns": 36300, "p95_ns": 62700, "mean_ns": 45137.25490196078, "max_ns": 99400}, "meta": {"rows": 50}},
+    {"name": "text/shape_prepare_4_strings", "stats": {"samples": 51, "min_ns": 456100, "median_ns": 472800, "p95_ns": 605800, "mean_ns": 492764.70588235295, "max_ns": 685700}, "meta": {"atlas_len": 113}},
+    {"name": "text/atlas_pressure_multipage", "stats": {"samples": 51, "min_ns": 15064100, "median_ns": 16437500, "p95_ns": 23134300, "mean_ns": 17597217.647058822, "max_ns": 26293500}, "meta": {"frames_per_sample": 144, "page_edge": 256, "single_max_pages": 1, "single_pages": 1, "single_evictions": 5, "single_generation": 5, "single_drawn_glyphs": 1568, "single_refused_glyphs": 16, "multi_max_pages": 4, "multi_pages": 3, "multi_evictions": 0, "multi_generation": 0, "multi_drawn_glyphs": 1584, "multi_refused_glyphs": 0}},
+    {"name": "render_cpu/2000_quads_scale_1.0", "stats": {"samples": 51, "min_ns": 102972600, "median_ns": 110719200, "p95_ns": 133893500, "mean_ns": 113565337.25490196, "max_ns": 136504300}, "meta": {"quads": 2000, "framebuffer": "1100x760", "checksum_fnv1a64": "169ee4ec45ef267f"}},
+    {"name": "render_cpu/2000_quads_scale_2.0", "stats": {"samples": 51, "min_ns": 381397200, "median_ns": 398275800, "p95_ns": 438614700, "mean_ns": 404047184.3137255, "max_ns": 509053100}, "meta": {"quads": 2000, "framebuffer": "1100x760", "checksum_fnv1a64": "c8f7e585b37698fe"}}
+  ]
+}

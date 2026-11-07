@@ -1,0 +1,10 @@
+    Blocking waiting for file lock on package cache
+    Checking acme-render-cpu v0.2.0 (.\crates\acme-render-cpu)
+    Checking acme-platform v0.2.0 (.\crates\acme-platform)
+    Checking acme-benchmark v0.2.0 (.\apps\benchmark)
+    Checking acme-textinput v0.2.0 (.\crates\acme-textinput)
+    Checking acme-accessibility v0.2.0 (.\crates\acme-accessibility)
+    Checking acme-playground v0.2.0 (.\apps\playground)
+    Checking acme-ui-gallery v0.2.0 (.\apps\acme-gallery)
+    Checking acme-gallery v0.2.0 (.\apps\gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.21s

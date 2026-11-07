@@ -1,0 +1,18 @@
+{
+  "fixture": "crates/acme-render-cpu/tests/golden/rounded_bordered.ppm",
+  "dimensions": [
+    64,
+    64
+  ],
+  "pixels_changed": 192,
+  "pixels_over_tolerance_2": 68,
+  "max_per_channel_delta": 5,
+  "max_rgb_delta": [
+    5,
+    5,
+    5
+  ],
+  "before_sha256": "a921daa871a266264d0106c3e58cdb48f5deaea9db3824c12d7625ee39689ce8",
+  "after_sha256": "d33dc0789bc9161cd5afaca1b8a5fc8ce3a3a98c1bbdcefd3dc5251db5b3fbc1",
+  "other_fixtures": "5 scenes passed original fixtures; no re-blessing"
+}
