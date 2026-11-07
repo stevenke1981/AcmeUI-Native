@@ -235,7 +235,7 @@ pub struct GlyphDraw {
 }
 
 /// Glyph atlas pixel format.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum GlyphFormat {
     /// 8-bit alpha mask.
     Alpha8,
