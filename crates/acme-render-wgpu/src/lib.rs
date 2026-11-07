@@ -1,6 +1,7 @@
 //! GPU surface lifecycle and the small batched rectangle renderer used by AcmeUI.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+mod atlas_pages;
 pub mod batch;
 pub mod golden;
 pub use batch::scene_from_frame;
