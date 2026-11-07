@@ -882,7 +882,7 @@ impl Gallery {
     /// Create a color swatch label: a small colored square + descriptive text.
     /// Uses a special encoding prefix (`\x01`) that `render_content` detects.
     fn swatch(&self, color_name: &str, display: &str) -> WidgetNode<GalleryMessage> {
-        label(format!("\x01{}|{}", color_name, display))
+        label(format!("\x01{color_name}|{display}"))
     }
 
     /// Create a small card showing a base surface color.
