@@ -71,7 +71,7 @@ impl<M: Clone + 'static> From<FormFieldBuilder<M>> for WidgetNode<M> {
             col = col.child(ctrl);
         }
         if let Some(err) = b.error {
-            col = col.child(crate::label(format!("⚠ {}", err)));
+            col = col.child(crate::label(format!("⚠ {err}")));
         }
         col.build()
     }

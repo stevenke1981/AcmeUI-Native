@@ -71,27 +71,27 @@ impl<M: Clone + 'static> From<TimePickerBuilder<M>> for WidgetNode<M> {
         // Open: hour spinner, ":", minute spinner.
         let hour_spinner = column::<M>()
             .gap(2.0)
-            .child(button::<M>(format!("{}-hour-up", id_str).as_str(), "▲"))
+            .child(button::<M>(format!("{id_str}-hour-up").as_str(), "▲"))
             .child(
                 card::<M>()
                     .padding(4.0)
                     .variant(CardVariant::Outlined)
                     .child(label::<M>(format!("{:02}", b.hour))),
             )
-            .child(button::<M>(format!("{}-hour-down", id_str).as_str(), "▼"));
+            .child(button::<M>(format!("{id_str}-hour-down").as_str(), "▼"));
 
         let colon = column::<M>().child(label::<M>(":"));
 
         let minute_spinner = column::<M>()
             .gap(2.0)
-            .child(button::<M>(format!("{}-min-up", id_str).as_str(), "▲"))
+            .child(button::<M>(format!("{id_str}-min-up").as_str(), "▲"))
             .child(
                 card::<M>()
                     .padding(4.0)
                     .variant(CardVariant::Outlined)
                     .child(label::<M>(format!("{:02}", b.minute))),
             )
-            .child(button::<M>(format!("{}-min-down", id_str).as_str(), "▼"));
+            .child(button::<M>(format!("{id_str}-min-down").as_str(), "▼"));
 
         row::<M>()
             .key(b.id)

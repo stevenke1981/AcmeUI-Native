@@ -90,7 +90,7 @@ impl<M: Clone + 'static> BarChartBuilder<M> {
 
             let label_text = format!("{}:", entry.label);
             let bar_row = row::<M>()
-                .key(format!("{}_row_{}", id_prefix, i).as_str())
+                .key(format!("{id_prefix}_row_{i}").as_str())
                 .gap(6.0)
                 .child(label_with_size::<M>(label_text, 13.0))
                 .child(label_with_size::<M>(bar_text, 13.0))

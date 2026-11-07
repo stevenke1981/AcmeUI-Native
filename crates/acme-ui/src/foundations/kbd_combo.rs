@@ -34,7 +34,7 @@ impl<M: Clone + 'static> From<KbdComboBuilder<M>> for WidgetNode<M> {
             if i > 0 {
                 row = row.child(crate::label("+"));
             }
-            row = row.child(crate::label(format!("[{}]", key)));
+            row = row.child(crate::label(format!("[{key}]")));
         }
         row.build()
     }

@@ -150,7 +150,7 @@ mod tests {
         // First 3 children should be filled Cards (Interactive variant)
         for i in 0..3 {
             let WidgetNode::Card(card) = &container.children[i] else {
-                panic!("expected Card at position {}", i);
+                panic!("expected Card at position {i}");
             };
             assert_eq!(card.variant, CardVariant::Interactive);
         }

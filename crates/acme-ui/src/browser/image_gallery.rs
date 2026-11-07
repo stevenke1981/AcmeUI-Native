@@ -106,14 +106,14 @@ impl<M: Clone + 'static> ImageGalleryBuilder<M> {
 
         // Gallery grid
         let mut grid = crate::row::<M>()
-            .key(format!("{}_grid", id_prefix).as_str())
+            .key(format!("{id_prefix}_grid").as_str())
             .gap(self.gap);
 
         for (i, img) in self.images.iter().enumerate() {
             let thumb_height = self.thumbnail_size / img.aspect_ratio;
 
             let mut thumb_col = crate::column::<M>()
-                .key(format!("{}_thumb_{}", id_prefix, i).as_str())
+                .key(format!("{id_prefix}_thumb_{i}").as_str())
                 .gap(4.0);
 
             // Thumbnail placeholder using a Card inside a sized container

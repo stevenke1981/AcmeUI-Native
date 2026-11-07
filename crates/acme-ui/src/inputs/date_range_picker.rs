@@ -60,13 +60,13 @@ impl<M: Clone + 'static> DateRangePickerBuilder<M> {
 
 impl<M: Clone + 'static> From<DateRangePickerBuilder<M>> for WidgetNode<M> {
     fn from(b: DateRangePickerBuilder<M>) -> Self {
-        let start_display = b.start_date.unwrap_or_else(|| b.start_label);
-        let end_display = b.end_date.unwrap_or_else(|| b.end_label);
+        let start_display = b.start_date.unwrap_or(b.start_label);
+        let end_display = b.end_date.unwrap_or(b.end_label);
 
         let mut row = crate::row::<M>().key(b.id).gap(8.0).padding(8.0);
-        row = row.child(crate::label(format!("📅 {}", start_display)));
+        row = row.child(crate::label(format!("📅 {start_display}")));
         row = row.child(crate::label("→"));
-        row = row.child(crate::label(format!("📅 {}", end_display)));
+        row = row.child(crate::label(format!("📅 {end_display}")));
 
         if let Some(msg) = b.on_apply {
             let btn = crate::button("range_apply", "Apply").on_click(msg);

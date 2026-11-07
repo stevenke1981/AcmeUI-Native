@@ -43,7 +43,7 @@ impl<M: Clone + 'static> MobileProgressBuilder<M> {
 impl<M: Clone + 'static> From<MobileProgressBuilder<M>> for WidgetNode<M> {
     fn from(b: MobileProgressBuilder<M>) -> Self {
         let pct = ((b.value / b.total).clamp(0.0, 1.0) * 100.0) as u32;
-        let bar_label = format!("{}%", pct);
+        let bar_label = format!("{pct}%");
 
         let mut col = crate::column::<M>().key(b.id).gap(4.0).padding(8.0);
         if let Some(text) = b.label {

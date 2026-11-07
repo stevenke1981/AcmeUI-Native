@@ -83,9 +83,9 @@ impl<M: Clone + 'static> SliderBuilder<M> {
 /// Format a numeric value for display, trimming unnecessary decimals.
 fn format_numeric(v: f32) -> String {
     if v.fract() == 0.0 {
-        format!("{:.0}", v)
+        format!("{v:.0}")
     } else {
-        format!("{:.1}", v)
+        format!("{v:.1}")
     }
 }
 
