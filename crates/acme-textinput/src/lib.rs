@@ -205,7 +205,17 @@ impl TextInputState {
     ///
     /// Any active selection is cleared.
     pub fn move_cursor_to_offset(&mut self, byte_offset: usize) {
-        self.cursor = byte_offset.min(self.text.len());
+        let clamped = byte_offset.min(self.text.len());
+        // Snap down to a grapheme boundary: a caret inside a character (or a
+        // combining sequence) would make later slicing panic.
+        self.cursor = self
+            .text
+            .grapheme_indices(true)
+            .map(|(start, _)| start)
+            .chain(std::iter::once(self.text.len()))
+            .take_while(|&start| start <= clamped)
+            .last()
+            .unwrap_or(0);
         self.selection = None;
     }
 
@@ -1153,7 +1163,7 @@ pub fn byte_offset_to_x(
 /// | `Ctrl`+`Delete`         | Delete next word              |
 /// | `Home`                  | `cursor_home()`               |
 /// | `End`                   | `cursor_end()`                |
-/// | `Escape`                | Blur (clear focus)            |
+/// | `Escape`                | Cancel preedit, else blur     |
 /// | `Tab`                   | (handled by focus manager — no-op here) |
 /// | `Enter`                 | (submitted — no-op here)      |
 ///
@@ -1189,7 +1199,11 @@ pub fn handle_key(
             false
         }
         PlatformKey::Escape => {
-            if state.focused {
+            if state.focused && !state.preedit.is_empty() {
+                // First Escape cancels the IME composition and keeps focus.
+                state.cancel_preedit();
+                true
+            } else if state.focused {
                 state.focused = false;
                 true
             } else {
@@ -1383,6 +1397,8 @@ pub fn handle_text(state: &mut TextInputState, text: &str) -> bool {
     state.text.insert_str(state.cursor, text);
     state.cursor += text.len();
     state.selection = None;
+    // Committed text ends any IME composition; never leave a stale preedit drawn.
+    state.cancel_preedit();
 
     state.push_undo_with_state(old_text, old_cursor, old_selection);
     true
