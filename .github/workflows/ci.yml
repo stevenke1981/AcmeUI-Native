@@ -42,6 +42,32 @@ jobs:
       - run: cargo test --locked --workspace
       - run: cargo test --locked -p acme-ui --all-features
 
+  sdk-consumer:
+    # Builds the standalone external-consumer example against the SDK crates
+    # through path dependencies, seeded with the workspace lockfile versions.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: examples/sdk-consumer
+      - name: Seed consumer lockfile from the workspace
+        shell: bash
+        run: cp Cargo.lock examples/sdk-consumer/Cargo.lock
+      - name: Headless consumer test
+        working-directory: examples/sdk-consumer
+        run: cargo test
+      - name: Consumer build
+        working-directory: examples/sdk-consumer
+        run: cargo build
+
   cross-target:
     strategy:
       fail-fast: false

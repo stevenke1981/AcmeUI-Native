@@ -3,6 +3,11 @@ name = "acme-accessibility"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "AccessKit bridge that builds accessibility trees from AcmeUI widgets and routes assistive-technology actions"
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["acmeui", "accessibility", "accesskit"]
+categories = ["gui"]
 
 [dependencies]
 accesskit.workspace = true

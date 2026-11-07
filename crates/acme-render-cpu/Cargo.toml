@@ -3,6 +3,10 @@ name = "acme-render-cpu"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Deterministic headless software rasterizer for AcmeUI's backend-neutral Scene"
+repository.workspace = true
+keywords = ["acmeui", "rasterizer", "software-rendering"]
+categories = ["rendering"]
 rust-version.workspace = true
 
 [dependencies]

@@ -1,0 +1,20 @@
+[package]
+name = "acme-sdk-consumer"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+description = "Minimal external consumer of the AcmeUI-Native SDK built from path dependencies"
+publish = false
+
+# Standalone package: this empty table keeps it out of the AcmeUI-Native root workspace.
+[workspace]
+
+[dependencies]
+acme-core = { path = "../../crates/acme-core" }
+acme-layout = { path = "../../crates/acme-layout" }
+acme-platform = { path = "../../crates/acme-platform" }
+acme-render-wgpu = { path = "../../crates/acme-render-wgpu" }
+acme-text = { path = "../../crates/acme-text" }
+acme-theme = { path = "../../crates/acme-theme" }
+acme-ui = { path = "../../crates/acme-ui" }

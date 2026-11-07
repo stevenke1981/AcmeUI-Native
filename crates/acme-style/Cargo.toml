@@ -3,6 +3,10 @@ name = "acme-style"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["acmeui", "gui", "styling"]
+categories = ["gui"]
 description = "GPUI-inspired Styled trait + Tailwind CSS-like utility methods for AcmeUI Native"
 
 [dependencies]

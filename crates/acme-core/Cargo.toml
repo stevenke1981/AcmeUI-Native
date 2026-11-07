@@ -3,5 +3,10 @@ name = "acme-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Platform-independent data model (tree, geometry, events, Scene) for AcmeUI Native"
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["acmeui", "gui", "scene"]
+categories = ["gui"]
 
 [dependencies]
