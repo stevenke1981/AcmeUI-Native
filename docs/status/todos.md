@@ -1,12 +1,23 @@
 # Todos
 
+## ROADMAP 009 — structural accessibility and exact-area CPU coverage (2026-11-07)
+
+- [x] Virtual TreeItem / Row / ColumnHeader nodes with counts, indices, positions, selection, bounds.
+- [x] CPU quad exact-area coverage (analytic + 8x8 arc supersample); DESIGN test un-ignored.
+- [ ] Cell bounds: sequential-path cell IDs can read a different layout leaf; retained-path cells have no layout entry (pre-existing). Needs layout/a11y ID alignment.
+- [ ] Widgets inside tree-item content are not walked (name only); TreeItem has no Focus/Click action.
+- [ ] DataGrid merged-cell spans; ragged Table rows that divide evenly are grouped as rectangular.
+- [ ] Area-based clip edges; analytic arc area (currently 8x8 sampled).
+- [ ] Multi-page glyph atlas (cross-crate Scene contract) — not started.
+- [ ] Screen-reader confirmation of TreeItem/Row/ColumnHeader — NOT_RUN (manual).
+
 ## ROADMAP 008 — interaction and accessibility follow-ups (2026-11-07)
 
 - [x] Gallery hovered/pressed indices no longer drift after a page switch (headless tests).
 - [x] TextInput `validation_message` → AccessKit invalid + description.
 - [x] Table/DataGrid cells → `Role::Cell` (label/container content).
-- [ ] Tree item roles: needs `Tree` to expose per-item widgets and layout IDs first.
-- [ ] Table `Row` nodes and column headers; TextInput `description` field not exposed.
+- [x] Tree item roles — virtual `TreeItem` nodes (ROADMAP 009).
+- [x] Table `Row` nodes and column headers (ROADMAP 009). TextInput `description` field still not exposed.
 - [x] MIGRATION.md snippets compiled by the sdk-consumer tests.
 - [x] Headless benchmark smoke run in CI (no thresholds).
 - [ ] Screen-reader confirmation of the new roles — NOT_RUN (manual).

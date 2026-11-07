@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased - Structural accessibility and exact-area CPU coverage (ROADMAP 009, 2026-11-07)
+
+- `acme-accessibility`: `Tree` exposes one virtual `TreeItem` per visible item
+  (level, expanded, selected, position/size among visible siblings, bounds from
+  the tree rect). `Table`/`DataGrid` cells are grouped into `Row` nodes under a
+  header `Row` of `ColumnHeader`s; the table carries row/column counts (the
+  header row counts as row 0), rows and cells carry indices, row/header bounds
+  come from the table rect, and unselected rows/cells state `selected=false`
+  when the selection mode can select them. Malformed grids keep the 008 flat
+  layout. Retained-path virtual nodes use IDs from `2^56`, disjoint from
+  retained (< `2^48`) and layout synthetic IDs. Sequential-path IDs of widgets
+  after a Tree/Table/DataGrid shift by the virtual nodes inserted.
+- `acme-render-cpu`: quad coverage is pixel area (analytic for sharp edges and
+  corners, 8x8 supersample for pixels crossed by a rounded-corner arc); border
+  coverage is outer minus inner area. `rounded_bordered.ppm` golden re-blessed
+  (188 px, max channel diff 12). Clip edges remain pixel-centre snapped.
+
 ## Unreleased - Interaction and accessibility follow-ups (ROADMAP 008, 2026-11-07)
 
 - `acme-accessibility`: a `TextInput` with `validation_message` is now
