@@ -137,4 +137,10 @@ mod tests {
         let b = bottom_navigation::<Msg>().selected_index(2);
         assert_eq!(b.selected_index, 2);
     }
+
+    #[test]
+    fn bottom_navigation_on_select_emits_selected_with_index() {
+        let b = bottom_navigation::<Msg>().on_select(select_msg);
+        assert_eq!(b.on_select.map(|f| f(3)), Some(Msg::Selected(3)));
+    }
 }

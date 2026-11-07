@@ -96,4 +96,10 @@ mod tests {
         let b = mobile_chip::<Msg>("Filter").selected(true);
         assert!(b.selected);
     }
+
+    #[test]
+    fn mobile_chip_stores_tap_message() {
+        let b = mobile_chip::<Msg>("Tag").on_tap(Msg::Tap);
+        assert_eq!(b.on_tap, Some(Msg::Tap));
+    }
 }

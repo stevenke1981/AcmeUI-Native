@@ -95,4 +95,10 @@ mod tests {
         };
         assert_eq!(r.children.len(), 3);
     }
+
+    #[test]
+    fn input_otp_on_submit_stores_message() {
+        let b = input_otp::<Msg>(4).on_submit(Msg::Submit);
+        assert_eq!(b.on_submit, Some(Msg::Submit));
+    }
 }

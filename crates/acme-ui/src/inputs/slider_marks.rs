@@ -75,7 +75,7 @@ impl<M: Clone + 'static> From<SliderMarksBuilder<M>> for WidgetNode<M> {
         let mut col = crate::column::<M>().key(b.id).gap(4.0).padding(4.0);
 
         // Value display
-        col = col.child(crate::label(format!("{:.0}", clamped)));
+        col = col.child(crate::label(format!("{clamped:.0}")));
 
         // Track with marks
         let mut track = crate::row::<M>().gap(8.0);
@@ -126,5 +126,11 @@ mod tests {
     fn slider_marks_clamps_value() {
         let b = slider_marks::<Msg>(200.0).max(100.0);
         assert_eq!(b.max, 100.0);
+    }
+
+    #[test]
+    fn slider_marks_on_change_emits_changed_with_value() {
+        let b = slider_marks::<Msg>(0.0).on_change(change_msg);
+        assert_eq!(b.on_change.map(|f| f(2.5)), Some(Msg::Changed(2.5)));
     }
 }

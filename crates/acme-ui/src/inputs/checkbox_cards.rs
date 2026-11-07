@@ -132,4 +132,13 @@ mod tests {
         let b = checkbox_cards::<Msg>();
         assert!(b.selected.is_empty());
     }
+
+    #[test]
+    fn checkbox_cards_on_toggle_emits_toggled_with_value() {
+        let b = checkbox_cards::<Msg>().on_toggle(toggle_msg);
+        assert_eq!(
+            b.on_toggle.map(|f| f("a")),
+            Some(Msg::Toggled("a".to_string()))
+        );
+    }
 }

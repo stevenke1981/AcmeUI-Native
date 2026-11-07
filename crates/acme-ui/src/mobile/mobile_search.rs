@@ -92,4 +92,10 @@ mod tests {
         };
         assert_eq!(r.children.len(), 3);
     }
+
+    #[test]
+    fn mobile_search_stores_submit_message() {
+        let b = mobile_search::<Msg>("Q").on_submit(Msg::Submit);
+        assert_eq!(b.on_submit, Some(Msg::Submit));
+    }
 }

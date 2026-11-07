@@ -148,4 +148,10 @@ mod tests {
         };
         assert!(!c.children.is_empty());
     }
+
+    #[test]
+    fn speed_dial_on_action_emits_action_with_index() {
+        let b = speed_dial::<Msg>().on_action(action_msg);
+        assert_eq!(b.on_action.map(|f| f(1)), Some(Msg::Action(1)));
+    }
 }

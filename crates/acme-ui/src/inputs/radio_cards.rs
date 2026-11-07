@@ -126,4 +126,13 @@ mod tests {
         let b = radio_cards::<Msg>();
         assert!(b.selected.is_none());
     }
+
+    #[test]
+    fn radio_cards_on_select_emits_selected_with_value() {
+        let b = radio_cards::<Msg>().on_select(select_msg);
+        assert_eq!(
+            b.on_select.map(|f| f("b")),
+            Some(Msg::Selected("b".to_string()))
+        );
+    }
 }

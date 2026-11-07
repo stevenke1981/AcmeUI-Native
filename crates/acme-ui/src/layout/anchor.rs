@@ -127,4 +127,13 @@ mod tests {
         let b = anchor::<Msg>().active_href("#intro");
         assert_eq!(b.active_href, Some("#intro".to_string()));
     }
+
+    #[test]
+    fn anchor_on_navigate_emits_nav_with_href() {
+        let b = anchor::<Msg>().on_navigate(nav_msg);
+        assert_eq!(
+            b.on_navigate.map(|f| f("#api")),
+            Some(Msg::Nav("#api".to_string()))
+        );
+    }
 }

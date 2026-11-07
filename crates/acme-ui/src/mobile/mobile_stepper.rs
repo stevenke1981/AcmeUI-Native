@@ -125,4 +125,13 @@ mod tests {
         };
         assert_eq!(l.text, "10");
     }
+
+    #[test]
+    fn mobile_stepper_stores_increment_and_decrement_messages() {
+        let b = mobile_stepper::<Msg>(5)
+            .on_decrement(Msg::Dec)
+            .on_increment(Msg::Inc);
+        assert_eq!(b.on_decrement, Some(Msg::Dec));
+        assert_eq!(b.on_increment, Some(Msg::Inc));
+    }
 }

@@ -135,4 +135,13 @@ mod tests {
         let b = toggle_group::<Msg>();
         assert_eq!(b.mode, ToggleGroupMode::Single);
     }
+
+    #[test]
+    fn toggle_group_on_select_emits_selected_with_value() {
+        let b = toggle_group::<Msg>().on_select(select_msg);
+        assert_eq!(
+            b.on_select.map(|f| f("i")),
+            Some(Msg::Selected("i".to_string()))
+        );
+    }
 }

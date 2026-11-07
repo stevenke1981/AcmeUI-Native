@@ -45,7 +45,7 @@ impl<M: Clone + 'static> From<MobileSegmentedBuilder<M>> for WidgetNode<M> {
         let mut row = crate::row::<M>().key(b.id).gap(0.0).padding(4.0);
         for (i, seg) in b.segments.iter().enumerate() {
             let prefix = if i == b.selected_index { "▣ " } else { "" };
-            let text = format!("{}{}", prefix, seg);
+            let text = format!("{prefix}{seg}");
             row = row.child(crate::label(text));
         }
         row.build()
@@ -80,5 +80,12 @@ mod tests {
     fn mobile_segmented_selected_index() {
         let b = mobile_segmented::<Msg>(vec!["A", "B"]).selected_index(1);
         assert_eq!(b.selected_index, 1);
+    }
+
+    #[test]
+    fn mobile_segmented_on_select_maps_index_to_message() {
+        let b = mobile_segmented::<Msg>(vec!["A", "B"]).on_select(Msg::Selected);
+        let f = b.on_select.expect("on_select stored");
+        assert_eq!(f(1), Msg::Selected(1));
     }
 }
