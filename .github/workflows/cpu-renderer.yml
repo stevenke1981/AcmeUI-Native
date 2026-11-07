@@ -12,6 +12,8 @@ jobs:
   headless:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

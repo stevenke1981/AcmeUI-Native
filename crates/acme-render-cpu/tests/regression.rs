@@ -1,6 +1,6 @@
 use acme_core::{
-    AtlasUpload, Color, DrawCommand, GlyphDraw, GlyphFormat, LayerParams, Point, QuadPrimitive, Rect,
-    Scene, TextPrimitive,
+    AtlasUpload, Color, DrawCommand, GlyphDraw, GlyphFormat, LayerParams, Point, QuadPrimitive,
+    Rect, Scene, TextPrimitive,
 };
 use acme_render_cpu::{CpuRenderError, CpuRenderer};
 
