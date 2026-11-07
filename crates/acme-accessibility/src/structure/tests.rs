@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-use accesskit::{Action, Node as AccessNode, NodeId as AccessNodeId, Rect, Role, TreeUpdate};
-use acme_core::{NodeId, RetainedTree, WidgetKey};
-use acme_layout::{LayoutEngine, LayoutNode, LayoutRect, LayoutSnapshot, WidgetLayoutContext};
+use accesskit::{Action, Node as AccessNode, NodeId as AccessNodeId, Role, TreeUpdate};
+use acme_core::{NodeId, RetainedTree};
+use acme_layout::LayoutSnapshot;
 use acme_widgets::retained_binding::bind_retained;
 use acme_widgets::view_bridge::widget_to_views;
 use acme_widgets::{
@@ -11,132 +11,8 @@ use acme_widgets::{
 };
 
 use super::VIRTUAL_ID_BASE;
+use super::tests_support::*;
 use crate::{build_tree_update, build_tree_update_with_binding};
-
-#[derive(Clone, Debug, PartialEq)]
-struct Msg;
-
-// ------------------------------------------------------------------
-// Fixtures and helpers
-// ------------------------------------------------------------------
-
-/// A tree rooted at `files`: `src` (with children `lib.rs` and `main.rs`)
-/// and a leaf `docs`. `src` starts expanded or collapsed, and `selected`
-/// names the key of the selected node.
-fn files_tree(selected: Option<&str>, src_expanded: bool) -> WidgetNode<Msg> {
-    let src = TreeNode::new("src", label::<Msg>("src"))
-        .child(TreeNode::new("lib", label::<Msg>("lib.rs")))
-        .child(TreeNode::new("main", label::<Msg>("main.rs")))
-        .expanded(src_expanded);
-    let mut files = tree::<Msg>("files")
-        .child(src)
-        .child(TreeNode::new("docs", label::<Msg>("docs")));
-    files.selected = selected.map(WidgetKey::new);
-    files.build()
-}
-
-/// A table with two columns (`Name`, `Age`) and two rows.
-fn people_table() -> WidgetNode<Msg> {
-    table::<Msg>("people")
-        .column(TableColumn::new("name", label::<Msg>("Name"), 120.0))
-        .column(TableColumn::new("age", label::<Msg>("Age"), 80.0))
-        .add_row(TableRow::new(vec![label::<Msg>("Ada"), label::<Msg>("36")]))
-        .add_row(TableRow::new(vec![label::<Msg>("Bob"), label::<Msg>("25")]))
-        .build()
-}
-
-/// A grid with one column (`Name`) and one row.
-fn one_by_one_grid() -> WidgetNode<Msg> {
-    datagrid::<Msg>("grid")
-        .column(DataGridColumn::new("name", label::<Msg>("Name"), 120.0))
-        .add_row(DataGridRow::new(vec![label::<Msg>("Ada")]))
-        .build()
-}
-
-/// Builds `root` on both paths and runs `check` on each result.
-///
-/// The sequential path numbers the root `1`. The retained path binds a
-/// fresh frame and places `root_rect` under the root's retained ID.
-fn both_paths(root: &WidgetNode<Msg>, root_rect: Option<LayoutRect>, check: impl Fn(&TreeUpdate)) {
-    let mut sequential_snapshot = LayoutSnapshot::default();
-    if let Some(rect) = root_rect {
-        sequential_snapshot.insert(NodeId::new(1), rect);
-    }
-    check(&build_tree_update(root, &sequential_snapshot, None, None));
-
-    let mut retained = RetainedTree::new();
-    let roots = std::slice::from_ref(root);
-    retained
-        .reconcile_roots(&widget_to_views(roots))
-        .expect("reconciliation should succeed");
-    let binding = bind_retained(roots, &retained);
-    let mut bound_snapshot = LayoutSnapshot::default();
-    if let (Some(rect), Some(id)) = (root_rect, binding.id_for(root)) {
-        bound_snapshot.insert(id, rect);
-    }
-    check(&build_tree_update_with_binding(
-        root,
-        &bound_snapshot,
-        &binding,
-        None,
-        None,
-    ));
-}
-
-fn rect(x: f32, y: f32, width: f32, height: f32) -> LayoutRect {
-    LayoutRect {
-        x,
-        y,
-        width,
-        height,
-    }
-}
-
-fn node_by_id(update: &TreeUpdate, id: AccessNodeId) -> &AccessNode {
-    update
-        .nodes
-        .iter()
-        .find(|(node_id, _)| *node_id == id)
-        .map(|(_, node)| node)
-        .expect("child id should be in the update")
-}
-
-fn root_of(update: &TreeUpdate) -> &AccessNode {
-    let root = update
-        .tree
-        .as_ref()
-        .expect("update should name a tree")
-        .root;
-    node_by_id(update, root)
-}
-
-fn children_of<'u>(update: &'u TreeUpdate, node: &AccessNode) -> Vec<&'u AccessNode> {
-    node.children()
-        .iter()
-        .map(|id| node_by_id(update, *id))
-        .collect()
-}
-
-fn named(nodes: &[&AccessNode]) -> Vec<Option<String>> {
-    nodes
-        .iter()
-        .map(|node| node.label().map(str::to_string))
-        .collect()
-}
-
-fn bounds_of(node: &AccessNode) -> Option<(f64, f64, f64, f64)> {
-    node.bounds()
-        .map(|Rect { x0, y0, x1, y1 }| (x0, y0, x1, y1))
-}
-
-fn nodes_with_role(update: &TreeUpdate, role: Role) -> Vec<&AccessNode> {
-    update
-        .nodes
-        .iter()
-        .filter(|(_, node)| node.role() == role)
-        .map(|(_, node)| node)
-        .collect()
-}
 
 // ------------------------------------------------------------------
 // Tree items
@@ -383,23 +259,26 @@ fn control_in_a_cell_keeps_its_role_inside_its_row() {
 }
 
 #[test]
-fn malformed_cell_count_falls_back_to_flat_cells() {
-    // Two columns, but the second row has one cell: 3 cells is not a multiple of 2.
-    let ragged = table::<Msg>("ragged")
-        .column(TableColumn::new("a", label::<Msg>("A"), 80.0))
-        .column(TableColumn::new("b", label::<Msg>("B"), 80.0))
-        .add_row(TableRow::new(vec![label::<Msg>("a1"), label::<Msg>("b1")]))
-        .add_row(TableRow::new(vec![label::<Msg>("a2")]))
-        .build();
+fn rows_changed_after_build_fall_back_to_flat_cells() {
+    // `children()` is fixed at build time. A row added afterwards is not in it,
+    // so the flattened cells no longer match the rows and the grid stays flat.
+    let mut people = match people_table() {
+        WidgetNode::Table(table) => table,
+        _ => panic!("expected a Table"),
+    };
+    people
+        .rows
+        .push(TableRow::new(vec![label::<Msg>("Cy"), label::<Msg>("9")]));
+    let root = WidgetNode::Table(people);
 
-    both_paths(&ragged, None, |update| {
+    both_paths(&root, None, |update| {
         let table_node = root_of(update);
         assert_eq!(table_node.row_count(), None);
         assert_eq!(table_node.column_count(), None);
         assert!(nodes_with_role(update, Role::Row).is_empty());
         assert!(nodes_with_role(update, Role::ColumnHeader).is_empty());
         let cells = children_of(update, table_node);
-        assert_eq!(cells.len(), 3);
+        assert_eq!(cells.len(), 4);
         assert!(cells.iter().all(|c| c.role() == Role::Cell));
     });
 }
@@ -461,67 +340,6 @@ fn table_rows_and_headers_have_no_bounds_without_a_table_rect() {
     }
 }
 
-// ------------------------------------------------------------------
-// Real layout: the crate's own layout path, on both ID paths.
-// ------------------------------------------------------------------
-
-fn layout_context() -> WidgetLayoutContext {
-    WidgetLayoutContext {
-        body_font_size: 14.0,
-        body_line_height: 21.0,
-        label_font_size: 13.0,
-        control_height: 36.0,
-        scale_factor: 1.0,
-    }
-}
-
-fn compute_layout(layout: &LayoutNode) -> LayoutSnapshot {
-    LayoutEngine::new()
-        .compute(layout, (400.0, 300.0))
-        .expect("layout should succeed")
-}
-
-/// Lays `root` out with the crate's layout path on both ID paths and runs
-/// `check` with the update, the layout tree and its snapshot.
-fn laid_out_both_paths(
-    root: &WidgetNode<Msg>,
-    check: impl Fn(&TreeUpdate, &LayoutNode, &LayoutSnapshot),
-) {
-    let layout = root.to_layout(NodeId::new(1));
-    let snapshot = compute_layout(&layout);
-    check(
-        &build_tree_update(root, &snapshot, None, None),
-        &layout,
-        &snapshot,
-    );
-
-    let mut retained = RetainedTree::new();
-    let roots = std::slice::from_ref(root);
-    retained
-        .reconcile_roots(&widget_to_views(roots))
-        .expect("reconciliation should succeed");
-    let binding = bind_retained(roots, &retained);
-    let layout = root.to_layout_with_binding(&binding, &layout_context());
-    let snapshot = compute_layout(&layout);
-    check(
-        &build_tree_update_with_binding(root, &snapshot, &binding, None, None),
-        &layout,
-        &snapshot,
-    );
-}
-
-/// The accessibility bounds that a layout node's rectangle maps to.
-fn layout_bounds(snapshot: &LayoutSnapshot, layout: &LayoutNode) -> Option<(f64, f64, f64, f64)> {
-    snapshot.get(layout.id).map(|r| {
-        (
-            f64::from(r.x),
-            f64::from(r.y),
-            f64::from(r.x + r.width),
-            f64::from(r.y + r.height),
-        )
-    })
-}
-
 #[test]
 fn table_rows_and_headers_have_the_bounds_of_the_layout_rows() {
     laid_out_both_paths(&people_table(), |update, layout, snapshot| {
@@ -543,7 +361,7 @@ fn table_rows_and_headers_have_the_bounds_of_the_layout_rows() {
 }
 
 #[test]
-fn retained_path_virtual_ids_are_not_layout_keys_and_tree_bounds_follow_the_formula() {
+fn retained_path_virtual_ids_are_not_layout_keys_and_tree_items_read_their_layout_rows() {
     let roots = vec![mixed_frame()];
     let mut retained = RetainedTree::new();
     retained
@@ -554,20 +372,16 @@ fn retained_path_virtual_ids_are_not_layout_keys_and_tree_bounds_follow_the_form
     let snapshot = compute_layout(&layout);
     let update = build_tree_update_with_binding(&roots[0], &snapshot, &binding, None, None);
 
-    // The tree is the column's first child. Its visible rows are src, lib,
-    // main and docs, at (depth, index) = (0, 0), (1, 1), (1, 2), (0, 3).
-    let tree_id = binding
-        .id_for(&roots[0].children()[0])
-        .expect("tree should be bound");
-    let frame = *snapshot
-        .get(tree_id)
-        .expect("tree should have a layout rect");
+    // The tree is the column's first child, and its layout node holds one row
+    // per visible item: src, lib, main and docs. Each item reads its row.
     let tree_node = only_with_role(&update, Role::Tree);
     let items = children_of(&update, tree_node);
-    for (item, (depth, index)) in items.iter().zip([(0, 0), (1, 1), (1, 2), (0, 3)]) {
+    assert_eq!(items.len(), layout.children[0].children.len());
+    for (index, item) in items.iter().enumerate() {
         assert_eq!(
             bounds_of(item),
-            Some(formula_item_bounds(frame, depth, index))
+            layout_bounds(&snapshot, &layout.children[0].children[index]),
+            "tree item {index} reads its layout row"
         );
     }
 
@@ -581,25 +395,6 @@ fn retained_path_virtual_ids_are_not_layout_keys_and_tree_bounds_follow_the_form
             );
         }
     }
-}
-
-/// The expected bounds of a tree row at `depth` and `index` inside `frame`,
-/// with the default indent of 20 and the 24 px row height, clipped to `frame`.
-fn formula_item_bounds(frame: LayoutRect, depth: usize, index: usize) -> (f64, f64, f64, f64) {
-    let inset = depth as f32 * 20.0;
-    let left = frame.x + inset;
-    let top = frame.y + index as f32 * 24.0;
-    let right = left + (frame.width - inset).max(0.0);
-    let bottom = top + 24.0;
-    let frame_right = frame.x + frame.width;
-    let frame_bottom = frame.y + frame.height;
-    let clip = |value: f32, low: f32, high: f32| value.max(low).min(high);
-    (
-        f64::from(clip(left, frame.x, frame_right)),
-        f64::from(clip(top, frame.y, frame_bottom)),
-        f64::from(clip(right, frame.x, frame_right)),
-        f64::from(clip(bottom, frame.y, frame_bottom)),
-    )
 }
 
 fn only_with_role(update: &TreeUpdate, role: Role) -> &AccessNode {

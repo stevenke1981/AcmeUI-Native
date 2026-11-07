@@ -87,13 +87,19 @@ impl AccessibilityAdapter {
 
     /// Rebuild the accessibility tree from the widget tree and layout snapshot.
     ///
-    /// Walks `root` in DFS order (matching [`WidgetNode::to_layout`]), assigns
-    /// sequential IDs, and stores the result as the current tree.
+    /// Walks `root` in DFS order, taking the IDs that [`WidgetNode::to_layout`]
+    /// takes, so each widget that layout lowers keeps its layout ID and reads
+    /// its layout rectangle. Tooltip and Popover wrappers, Dialog content,
+    /// VirtualList children, the non-first children of a Popover, and grid cell
+    /// content have no layout node of their own. They take IDs at or above
+    /// 2^56, which never match a layout ID, and have no rectangle. Tree items,
+    /// grid rows, and column headers are numbered by layout and read its
+    /// rectangles, so their IDs match layout too.
     ///
-    /// NOTE: the IDs are a per-call counter starting at 1. They are not stable
-    /// across rebuilds and are not guaranteed to match retained layout IDs.
-    /// Use [`AccessibilityAdapter::update_with_binding`] with a
-    /// [`RetainedBinding`] to get IDs that stay stable across frames.
+    /// The result is stored as the current tree. The IDs restart at 1 on every
+    /// call, so they are not stable across rebuilds. Use
+    /// [`AccessibilityAdapter::update_with_binding`] with a [`RetainedBinding`]
+    /// for IDs that stay stable across frames.
     pub fn update<M>(&mut self, root: &WidgetNode<M>, snapshot: &LayoutSnapshot)
     where
         M: Clone + 'static,
@@ -125,13 +131,21 @@ impl AccessibilityAdapter {
     ) where
         M: Clone + 'static,
     {
-        let mut ids = IdSource::Bound {
-            binding,
-            synthetic: SyntheticIds::new(),
-            virtual_ids: structure::VirtualIds::new(),
-        };
+        let mut ids = IdSource::bound(binding);
         let mut nodes = Vec::new();
-        let (root_id, _) = walk(root, snapshot, &mut ids, None, &mut nodes, Slot::Plain);
+        let ctx = Ctx {
+            snapshot,
+            label_override: None,
+        };
+        let root_id = walk(
+            root,
+            ctx,
+            &mut ids,
+            &mut nodes,
+            Slot::Plain,
+            Lowering::Lowered,
+        )
+        .id;
         self.store(root_id, nodes, snapshot);
     }
 
@@ -283,22 +297,32 @@ impl AccessibilityAdapter {
 /// password's value. A `TextInput` with a `validation_message` is `invalid`,
 /// and the message is its description.
 ///
-/// Tree items, grid rows and column headers have no widget of their own, so
-/// they are virtual nodes: their IDs come from the walk's counter (sequential
-/// walk) or from a range above layout's synthetic IDs (retained walk), so
-/// they never collide with retained or layout IDs. A `TreeItem` has its `level`,
-/// and its `position_in_set` and `size_of_set` among the visible items that
-/// share its parent (zero-based position, as AccessKit expects). `expanded` is
-/// set only when the item has children, and `selected` is `false` on
-/// unselected items. A `Row` has `row_index` (header `0`, data rows from `1`);
-/// a cell has `row_index` and `column_index`, and the table or grid has
-/// `row_count` (including the header) and `column_count`. The selected row or
-/// cell is `selected`. A table whose mode selects rows states `false` on its
-/// other rows; one whose mode selects cells does the same for its other cells.
-/// Rows and headers take bounds from the table's layout rectangle, 24 px per
-/// row, clipped to it. A table or grid whose cell count is not a multiple of
-/// its column count, or that has no columns, keeps its cells as flat children
-/// with no row structure.
+/// The IDs and rectangles follow layout. A walk takes the IDs that layout
+/// lowering takes, in layout's order: a tree's visible rows, a grid's header
+/// leaves and header row, then each row's cell leaves and row container. A
+/// sequential walk uses those IDs as AccessKit IDs, so a node reads its layout
+/// node's rectangle. A retained walk keeps each widget's retained ID and gives
+/// tree items, grid rows, column headers and grid cell content a virtual ID,
+/// which never collides with a layout ID, while each still reads the rectangle
+/// of its layout node. Widgets that layout does not number (dialog content,
+/// the cell content of a grid, the non-first children of a popover) take a
+/// virtual ID and have no rectangle. A grid whose cells match its rows is
+/// grouped by each row's own cells, even when the rows differ in length. A
+/// grid whose cells do not match its rows, or that has no columns, keeps its
+/// cells flat.
+///
+/// A `TreeItem` has its `level`, and its `position_in_set` and `size_of_set`
+/// among the visible items that share its parent (zero-based position, as
+/// AccessKit expects). `expanded` is set only when the item has children, and
+/// `selected` is `false` on unselected items. A `Row` has `row_index` (header
+/// `0`, data rows from `1`); a cell has `row_index` and `column_index`, and the
+/// table or grid has `row_count` (including the header) and `column_count`.
+/// The selected row or cell is `selected`. A table whose mode selects rows
+/// states `false` on its other rows; one whose mode selects cells does the same
+/// for its other cells. A widget that layout does not lower, or whose rectangle
+/// the snapshot lacks, has no bounds from the layout. Without a snapshot entry
+/// for a row, the fallback is the table's rectangle: its width, 24 px per row,
+/// clipped to it.
 ///
 /// # Parameters
 ///
@@ -320,7 +344,7 @@ where
     build_with_ids(
         root,
         snapshot,
-        &mut IdSource::Sequential(&mut next_id),
+        &mut IdSource::sequential(&mut next_id),
         focus_id,
         label_override,
     )
@@ -341,11 +365,7 @@ pub fn build_tree_update_with_binding<M>(
 where
     M: Clone + 'static,
 {
-    let mut ids = IdSource::Bound {
-        binding,
-        synthetic: SyntheticIds::new(),
-        virtual_ids: structure::VirtualIds::new(),
-    };
+    let mut ids = IdSource::bound(binding);
     build_with_ids(root, snapshot, &mut ids, focus_id, label_override)
 }
 
@@ -357,7 +377,11 @@ fn build_with_ids<M: Clone + 'static>(
     label_override: Option<&str>,
 ) -> TreeUpdate {
     let mut nodes: Vec<(AccessNodeId, AccessNode)> = Vec::new();
-    let (root_id, _) = walk(root, snapshot, ids, label_override, &mut nodes, Slot::Plain);
+    let ctx = Ctx {
+        snapshot,
+        label_override,
+    };
+    let root_id = walk(root, ctx, ids, &mut nodes, Slot::Plain, Lowering::Lowered).id;
 
     let focus = match focus_id {
         Some(id) => AccessNodeId::from(id.get()),
@@ -373,13 +397,18 @@ fn build_with_ids<M: Clone + 'static>(
 
 /// Where the IDs of one walk come from.
 ///
-/// `Sequential` numbers nodes from a counter in DFS order, as the original
-/// `update` and `build_tree_update` did. `Bound` takes the retained ID of each
-/// widget from a [`RetainedBinding`], uses [`SyntheticIds`] for widgets the
-/// binding does not contain, and uses [`structure::VirtualIds`] for nodes with
-/// no widget (tree items, grid rows and column headers).
+/// A walk takes the IDs that layout lowering takes, in the same order as
+/// `WidgetNode::to_layout` (sequential) and `WidgetNode::to_layout_with_binding`
+/// (bound). Every node that has a layout node therefore reads that node's
+/// rectangle. Nodes that layout does not number take [`structure::VirtualIds`].
 enum IdSource<'s, 'b> {
-    Sequential(&'s mut u64),
+    /// Layout's sequential counter.
+    Sequential {
+        next: &'s mut u64,
+        virtual_ids: structure::VirtualIds,
+    },
+    /// Retained IDs from `binding`, and [`SyntheticIds`] for what layout
+    /// numbers without a retained ID.
     Bound {
         binding: &'b RetainedBinding<'b>,
         synthetic: SyntheticIds,
@@ -387,15 +416,36 @@ enum IdSource<'s, 'b> {
     },
 }
 
+impl<'s, 'b> IdSource<'s, 'b> {
+    fn sequential(next: &'s mut u64) -> Self {
+        Self::Sequential {
+            next,
+            virtual_ids: structure::VirtualIds::new(),
+        }
+    }
+
+    fn bound(binding: &'b RetainedBinding<'b>) -> Self {
+        Self::Bound {
+            binding,
+            synthetic: SyntheticIds::new(),
+            virtual_ids: structure::VirtualIds::new(),
+        }
+    }
+}
+
+/// Takes the next value of a sequential counter.
+fn take_next(next: &mut u64) -> NodeId {
+    let id = NodeId::new(*next);
+    *next += 1;
+    id
+}
+
 impl IdSource<'_, '_> {
-    /// The ID of `widget`. Called before the widget's children are visited.
-    fn assign<M>(&mut self, widget: &WidgetNode<M>) -> NodeId {
+    /// The layout ID of a lowered widget, taken before its children: the
+    /// counter, or the widget's retained ID (a synthetic ID when unbound).
+    fn lowered_widget<M>(&mut self, widget: &WidgetNode<M>) -> NodeId {
         match self {
-            Self::Sequential(next) => {
-                let id = NodeId::new(**next);
-                **next += 1;
-                id
-            }
+            Self::Sequential { next, .. } => take_next(next),
             Self::Bound {
                 binding, synthetic, ..
             } => binding
@@ -404,38 +454,69 @@ impl IdSource<'_, '_> {
         }
     }
 
-    /// The ID of a node that has no widget: the next counter value in a
-    /// sequential walk, or a [`structure::VirtualIds`] ID in a bound walk.
-    fn allocate_virtual(&mut self) -> AccessNodeId {
-        let id = match self {
-            Self::Sequential(next) => {
-                let id = NodeId::new(**next);
-                **next += 1;
-                id
-            }
-            Self::Bound { virtual_ids, .. } => virtual_ids.allocate(),
-        };
-        to_access_id(id)
-    }
-
-    /// The layout node whose rectangle `widget` reads.
-    ///
-    /// Layout makes Tooltip and Popover transparent: their layout node is the
-    /// first child's. A bound walk therefore reads that child's ID. A
-    /// sequential walk keeps the historical lookup of the node's own ID.
-    fn layout_lookup<M>(
-        &self,
-        widget: &WidgetNode<M>,
-        own: NodeId,
-        first_child: Option<NodeId>,
-    ) -> NodeId {
-        match (self, widget) {
-            (Self::Bound { .. }, WidgetNode::Tooltip(_) | WidgetNode::Popover(_)) => {
-                first_child.unwrap_or(own)
-            }
-            _ => own,
+    /// The next layout ID of a node that has no widget of its own: a tree row,
+    /// a header leaf or row, a cell leaf or a row container.
+    fn structural(&mut self) -> NodeId {
+        match self {
+            Self::Sequential { next, .. } => take_next(next),
+            Self::Bound { synthetic, .. } => synthetic.allocate(),
         }
     }
+
+    /// The AccessKit ID of a node layout numbers as `layout` (`None` when it has
+    /// no layout node). A sequential walk uses the layout ID, so AccessKit IDs
+    /// are layout IDs; a retained walk uses a virtual ID.
+    fn structural_identity(&mut self, layout: Option<NodeId>) -> AccessNodeId {
+        match self {
+            Self::Sequential { virtual_ids, .. } => {
+                layout.map_or_else(|| to_access_id(virtual_ids.allocate()), to_access_id)
+            }
+            Self::Bound { virtual_ids, .. } => to_access_id(virtual_ids.allocate()),
+        }
+    }
+
+    /// The AccessKit ID of a widget that is not numbered as a widget of its own:
+    /// a grid cell (`layout` is its leaf), a layout-transparent wrapper, or a
+    /// widget under a leaf or outside layout. A retained walk keeps the retained
+    /// ID of a bound widget.
+    fn detached_identity<M>(
+        &mut self,
+        widget: &WidgetNode<M>,
+        layout: Option<NodeId>,
+    ) -> AccessNodeId {
+        let retained = match self {
+            Self::Bound { binding, .. } => binding.id_for(widget),
+            Self::Sequential { .. } => None,
+        };
+        retained.map_or_else(|| self.structural_identity(layout), to_access_id)
+    }
+}
+
+/// How layout treats a widget during a walk.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Lowering {
+    /// Layout lowers the widget and numbers it, along with the structure it owns.
+    Lowered,
+    /// A grid cell: layout has one leaf for the cell, with this ID, and nothing
+    /// for the cell's content.
+    Cell(NodeId),
+    /// Layout has no node for the widget or anything under it.
+    Unlowered,
+}
+
+/// The AccessKit ID of a walked node, and the layout node whose rectangle it
+/// reads.
+#[derive(Clone, Copy, Debug)]
+struct Walked {
+    id: AccessNodeId,
+    layout: Option<NodeId>,
+}
+
+/// What a walk reads from the layout snapshot, and the label override.
+#[derive(Clone, Copy)]
+struct Ctx<'a> {
+    snapshot: &'a LayoutSnapshot,
+    label_override: Option<&'a str>,
 }
 
 /// Where a node sits inside its parent, when the parent gives it extra meaning.
@@ -448,36 +529,14 @@ enum Slot<'a> {
     /// An item of a NavRail: named by the item's own label.
     NavItem { label: &'a str, selected: bool },
     /// A cell child of a Table or DataGrid. Text and plain containers take
-    /// `Role::Cell`; controls keep their own role (see [`walk`]). `place` is
-    /// set when the cells fill whole rows. `selected` is `Some(true)` for the
+    /// `Role::Cell`; controls keep their own role (see [`walk`]). `place` is set
+    /// when the cells are grouped into rows; `selected` is `Some(true)` for the
     /// selected cell, `Some(false)` for the other cells when the grid selects
     /// cells, and `None` otherwise.
     Cell {
         place: Option<structure::CellPlace>,
         selected: Option<bool>,
     },
-}
-
-/// The slot of cell `index` in a grid of `columns` columns and `cells` cells.
-/// `selectable` says whether the grid's mode selects cells.
-fn grid_cell_slot(
-    columns: usize,
-    cells: usize,
-    index: usize,
-    selected_cell: Option<(usize, usize)>,
-    selectable: bool,
-) -> Slot<'static> {
-    let place = structure::cell_place(columns, cells, index);
-    let selected = place.and_then(|place| {
-        if selected_cell == Some((place.data_row, place.column)) {
-            Some(true)
-        } else if selectable {
-            Some(false)
-        } else {
-            None
-        }
-    });
-    Slot::Cell { place, selected }
 }
 
 /// The slot of child `index` within `parent`.
@@ -494,21 +553,6 @@ fn child_slot<M>(parent: &WidgetNode<M>, index: usize) -> Slot<'_> {
             label: &tab.label,
             selected: index == bar.selected,
         }),
-        // Table and DataGrid children are their cells, in row-major order.
-        WidgetNode::Table(table) => grid_cell_slot(
-            table.columns.len(),
-            parent.children().len(),
-            index,
-            table.selected_cell,
-            structure::cells_selectable(parent),
-        ),
-        WidgetNode::DataGrid(grid) => grid_cell_slot(
-            grid.columns.len(),
-            parent.children().len(),
-            index,
-            grid.selected_cell,
-            structure::cells_selectable(parent),
-        ),
         WidgetNode::NavRail(rail) => {
             rail.items
                 .get(index)
@@ -518,6 +562,21 @@ fn child_slot<M>(parent: &WidgetNode<M>, index: usize) -> Slot<'_> {
                 })
         }
         _ => Slot::Plain,
+    }
+}
+
+/// How layout treats child `index` of `parent`, when `parent` is `lowering`.
+fn child_lowering<M>(parent: &WidgetNode<M>, index: usize, lowering: Lowering) -> Lowering {
+    match (lowering, parent) {
+        // A Dialog's content and a VirtualList's children are not laid out.
+        (Lowering::Lowered, WidgetNode::Dialog(_) | WidgetNode::VirtualList(_)) => {
+            Lowering::Unlowered
+        }
+        // A Popover lays out only its first child, in its own place.
+        (Lowering::Lowered, WidgetNode::Popover(_)) if index > 0 => Lowering::Unlowered,
+        (Lowering::Lowered, _) => Lowering::Lowered,
+        // Under a grid cell, or under anything that is not laid out, nothing is.
+        _ => Lowering::Unlowered,
     }
 }
 
@@ -550,8 +609,9 @@ fn widget_role<M>(node: &WidgetNode<M>) -> Role {
 
 /// Recursively walk the widget tree, producing AccessKit nodes.
 ///
-/// IDs are sequential, starting at `*next_id`; `*next_id` is advanced past
-/// the last ID assigned. Returns the root's AccessKit ID.
+/// IDs are sequential, starting at `*next_id`, as `to_layout` numbers them;
+/// `*next_id` is advanced past the last layout ID taken. Returns the root's
+/// AccessKit ID.
 pub fn walk_node<M: Clone + 'static>(
     node: &WidgetNode<M>,
     snapshot: &LayoutSnapshot,
@@ -559,74 +619,190 @@ pub fn walk_node<M: Clone + 'static>(
     label_override: Option<&str>,
     nodes: &mut Vec<(AccessNodeId, AccessNode)>,
 ) -> AccessNodeId {
-    let mut ids = IdSource::Sequential(next_id);
-    walk(node, snapshot, &mut ids, label_override, nodes, Slot::Plain).0
+    let mut ids = IdSource::sequential(next_id);
+    let ctx = Ctx {
+        snapshot,
+        label_override,
+    };
+    walk(node, ctx, &mut ids, nodes, Slot::Plain, Lowering::Lowered).id
 }
 
-/// Walk `node` and its descendants with the IDs supplied by `ids`.
+/// Walk `node` and its descendants, taking IDs from `ids` in layout's order.
 ///
-/// Returns the AccessKit ID of `node` and the layout node whose rectangle it
-/// reads. The two differ only for a transparent wrapper in a bound walk.
-/// `slot` is where `node` sits in its parent; see [`Slot`].
+/// `lowering` says how layout treats `node`. The node's own ID comes first,
+/// then its structure (a tree's rows, a grid's header and rows), then its
+/// children: the order in which layout lowering takes them.
 fn walk<M: Clone + 'static>(
     node: &WidgetNode<M>,
-    snapshot: &LayoutSnapshot,
+    ctx: Ctx<'_>,
     ids: &mut IdSource<'_, '_>,
-    label_override: Option<&str>,
     nodes: &mut Vec<(AccessNodeId, AccessNode)>,
     slot: Slot<'_>,
-) -> (AccessNodeId, NodeId) {
-    let own = ids.assign(node);
-    let id = AccessNodeId::from(own.get());
+    lowering: Lowering,
+) -> Walked {
+    let (id, own_layout) = own_identity(node, lowering, ids);
+    let is_lowered = lowering == Lowering::Lowered;
+    let plan = take_plan(node, is_lowered, ids);
+    let children = walk_children(node, ctx, ids, nodes, lowering, &plan);
+    // A layout-transparent wrapper is laid out as its first child.
+    let layout = if is_transparent(node) && is_lowered {
+        children.first().and_then(|child| child.layout)
+    } else {
+        own_layout
+    };
 
-    let role = match (slot, widget_role(node)) {
+    let mut access_node = AccessNode::new(role_of(node, slot));
+    if let Some(rect) = layout.and_then(|layout_id| ctx.snapshot.get(layout_id)) {
+        access_node.set_bounds(structure::rect_of(*rect));
+    }
+    let label = node_label(node, slot, ctx.label_override);
+    if !label.is_empty() {
+        access_node.set_label(label);
+    }
+    apply_widget_state(&mut access_node, node, slot);
+
+    let child_ids = structure_child_ids(node, layout, plan, &children, ctx, ids, nodes);
+    if !child_ids.is_empty() {
+        access_node.set_children(child_ids);
+    }
+
+    nodes.push((id, access_node));
+    Walked { id, layout }
+}
+
+/// The AccessKit ID of `node` and the layout node whose rectangle it reads.
+/// The ID is taken before the node's structure and children, as layout does.
+fn own_identity<M>(
+    node: &WidgetNode<M>,
+    lowering: Lowering,
+    ids: &mut IdSource<'_, '_>,
+) -> (AccessNodeId, Option<NodeId>) {
+    match lowering {
+        // A layout-transparent wrapper takes no ID: its first child's layout
+        // node is its own, and is read once that child has been walked.
+        Lowering::Lowered if is_transparent(node) => (ids.detached_identity(node, None), None),
+        Lowering::Lowered => {
+            let own = ids.lowered_widget(node);
+            (to_access_id(own), Some(own))
+        }
+        Lowering::Cell(leaf) => (ids.detached_identity(node, Some(leaf)), Some(leaf)),
+        Lowering::Unlowered => (ids.detached_identity(node, None), None),
+    }
+}
+
+/// What layout numbers below a node, taken before its children.
+enum Plan {
+    /// A table or grid: its header leaves and header row, then each row's cells and row container.
+    Grid(structure::GridLayout),
+    /// A tree: one layout ID per visible row.
+    Tree(Vec<Option<NodeId>>),
+    /// Anything else: nothing beyond the children.
+    Flat,
+}
+
+fn take_plan<M: Clone + 'static>(
+    node: &WidgetNode<M>,
+    lowered: bool,
+    ids: &mut IdSource<'_, '_>,
+) -> Plan {
+    match node {
+        WidgetNode::Table(_) | WidgetNode::DataGrid(_) => {
+            Plan::Grid(structure::plan_grid(node, lowered, ids))
+        }
+        WidgetNode::Tree(tree) => Plan::Tree(structure::tree_row_layouts(tree, lowered, ids)),
+        _ => Plan::Flat,
+    }
+}
+
+/// Walks the children of `node`, in order. A grid's children are its cells,
+/// each lowered as its leaf in `plan`.
+fn walk_children<M: Clone + 'static>(
+    node: &WidgetNode<M>,
+    ctx: Ctx<'_>,
+    ids: &mut IdSource<'_, '_>,
+    nodes: &mut Vec<(AccessNodeId, AccessNode)>,
+    lowering: Lowering,
+    plan: &Plan,
+) -> Vec<Walked> {
+    match plan {
+        Plan::Grid(grid) => structure::cell_slots(node, grid)
+            .into_iter()
+            .zip(node.children())
+            .map(|(cell, child)| {
+                let slot = Slot::Cell {
+                    place: cell.place,
+                    selected: cell.selected,
+                };
+                walk(child, ctx, ids, nodes, slot, cell.lowering)
+            })
+            .collect(),
+        Plan::Tree(_) | Plan::Flat => node
+            .children()
+            .iter()
+            .enumerate()
+            .map(|(index, child)| {
+                let child_lowering = child_lowering(node, index, lowering);
+                walk(
+                    child,
+                    ctx,
+                    ids,
+                    nodes,
+                    child_slot(node, index),
+                    child_lowering,
+                )
+            })
+            .collect(),
+    }
+}
+
+/// The AccessKit IDs of the children of `node`: a tree's rows, a grid's header
+/// and row nodes, or the walked children themselves.
+fn structure_child_ids<M: Clone + 'static>(
+    node: &WidgetNode<M>,
+    layout: Option<NodeId>,
+    plan: Plan,
+    children: &[Walked],
+    ctx: Ctx<'_>,
+    ids: &mut IdSource<'_, '_>,
+    nodes: &mut Vec<(AccessNodeId, AccessNode)>,
+) -> Vec<AccessNodeId> {
+    let walked: Vec<AccessNodeId> = children.iter().map(|child| child.id).collect();
+    match (node, plan) {
+        (WidgetNode::Tree(tree), Plan::Tree(rows)) => {
+            structure::tree_item_ids(tree, layout, &rows, ctx, ids, nodes)
+        }
+        (WidgetNode::Table(_) | WidgetNode::DataGrid(_), Plan::Grid(grid)) => {
+            structure::grid_row_ids(node, &grid, layout, children, ctx, ids, nodes)
+                .unwrap_or(walked)
+        }
+        _ => walked,
+    }
+}
+
+/// Whether `node` is a layout-transparent wrapper: a Tooltip or a Popover.
+fn is_transparent<M>(node: &WidgetNode<M>) -> bool {
+    matches!(node, WidgetNode::Tooltip(_) | WidgetNode::Popover(_))
+}
+
+/// The AccessKit role of `node` in `slot`.
+fn role_of<M>(node: &WidgetNode<M>, slot: Slot<'_>) -> Role {
+    match (slot, widget_role(node)) {
         (Slot::Tab { .. }, _) => Role::Tab,
         // A cell's text or plain container is the cell itself. A control or a
         // nested composite keeps its own role: AccessKit has no wrapper node
         // to hold it, and `Cell` would hide its activation semantics.
         (Slot::Cell { .. }, Role::Label | Role::Group) => Role::Cell,
         (_, own) => own,
-    };
-
-    let mut access_node = AccessNode::new(role);
-
-    // Process children first: a transparent wrapper reads its first child's
-    // layout node, which is only known once that child has been walked.
-    let child_results: Vec<(AccessNodeId, NodeId)> = node
-        .children()
-        .iter()
-        .enumerate()
-        .map(|(index, child)| {
-            walk(
-                child,
-                snapshot,
-                ids,
-                label_override,
-                nodes,
-                child_slot(node, index),
-            )
-        })
-        .collect();
-    let layout_id = ids.layout_lookup(
-        node,
-        own,
-        child_results.first().map(|&(_, child_layout)| child_layout),
-    );
-
-    // Map the layout bounding box into an AccessKit rectangle.
-    if let Some(rect) = snapshot.get(layout_id) {
-        access_node.set_bounds(Rect::new(
-            rect.x as f64,
-            rect.y as f64,
-            (rect.x + rect.width) as f64,
-            (rect.y + rect.height) as f64,
-        ));
     }
+}
 
-    // Determine the accessible name. A tab or nav item is named by its own
-    // label, because the widget text carries visual decoration ("[Tab]", "• Item").
-    // An explicit `label_override` still replaces the text of every Label.
-    let label = match (slot, node) {
+/// The accessible name of `node` in `slot`, or an empty string.
+///
+/// A tab or nav item is named by its own label, because the widget text carries
+/// visual decoration ("[Tab]", "• Item"). An explicit `label_override` still
+/// replaces the text of every Label.
+fn node_label<M>(node: &WidgetNode<M>, slot: Slot<'_>, label_override: Option<&str>) -> String {
+    match (slot, node) {
         (_, WidgetNode::Label(_)) if label_override.is_some() => {
             label_override.unwrap_or_default().to_string()
         }
@@ -635,39 +811,7 @@ fn walk<M: Clone + 'static>(
         (_, WidgetNode::Button(b)) => b.label.clone(),
         (_, WidgetNode::TextInput(input)) => text_input_name(input).to_string(),
         _ => String::new(),
-    };
-    if !label.is_empty() {
-        access_node.set_label(label);
     }
-
-    apply_widget_state(&mut access_node, node, slot);
-
-    // Tree items and grid rows are virtual nodes created from the widget's
-    // data; a grid whose cells do not fill rows keeps its flat cell children.
-    let child_ids = match node {
-        WidgetNode::Tree(tree) => structure::tree_item_ids(
-            tree,
-            snapshot.get(layout_id).copied(),
-            label_override,
-            ids,
-            nodes,
-        ),
-        _ => structure::grid_row_ids(
-            node,
-            &child_results,
-            snapshot.get(layout_id).copied(),
-            label_override,
-            ids,
-            nodes,
-        )
-        .unwrap_or_else(|| child_results.iter().map(|&(child, _)| child).collect()),
-    };
-    if !child_ids.is_empty() {
-        access_node.set_children(child_ids);
-    }
-
-    nodes.push((id, access_node));
-    (id, layout_id)
 }
 
 /// Accessible name of a text input: its label, else its placeholder.
