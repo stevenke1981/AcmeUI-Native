@@ -5,9 +5,9 @@
 - [x] Re-verify accessibility findings: retained-bound IDs and Gallery wiring were already fixed by merged PR #8/#9; preserve the sequential compatibility APIs.
 - [x] Extend retained-ID regression coverage across insertion, reorder and removal, including focus and layout bounds.
 - [x] Document Rust 1.88 MSRV and 199 component source modules (excluding category `mod.rs`); module count is not a maturity claim.
-- [x] Guard automatic and explicit stale eviction against invalidating glyphs used in the current frame; queue a full clear for `begin_frame`, not per-glyph LRU reclamation.
+- [x] Add a font-independent regression that automatic overflow eviction waits for `begin_frame` (full clear, not per-glyph LRU). Explicit `evict_stale`/`clear` stay immediate (ROADMAP 006 contract).
 - [x] Inspect PR #6: already merged, including lockfile hardening; no historical branch update needed.
-- [x] Reconcile with merged PR #12: preserve benchmark work, pressure/overflow-triggered frame-boundary eviction and the 600-frame lifecycle suite; additionally protect explicit `evict_stale` requests.
+- [x] Reconcile with merged PR #12: preserve benchmark work, pressure/overflow-triggered frame-boundary eviction and the 600-frame lifecycle suite.
 - [ ] Manual Gallery/visual, 注音 IME, physical DPI, GPU failover and screen-reader checks — NOT_RUN in this batch.
 
 ## SDK production hardening — batch-002 (2026-11-07)
@@ -19,6 +19,7 @@
 - [x] ROADMAP 006 bounded atlas-lifecycle follow-up: reject invalid CPU scenes before changing glyph caches; add dual-format cache/painter-order regressions (docs/team/cpu-atlas-atomic/REPORT.md). Gallery/GPU baselines and measured performance remain open.
 - [x] ROADMAP 006: headless benchmark runner with statistics/JSON and methodology (docs/guides/BENCHMARKS.md); atlas lifecycle tests and deferred mid-frame eviction fix (docs/team/roadmap-006/REPORT.md). Gallery/GPU screenshot goldens and GPU timing remain NOT_RUN.
 - [x] Crate metadata, external consumer example + CI job, SDK guide.
+- [x] ROADMAP 007: packageable crates (check_package.py in CI), LICENSE files + cargo-deny license policy in CI, MIGRATION.md, RELEASE.md (docs/team/roadmap-007/REPORT.md). Publish, version bump and crate-name collision are owner decisions.
 - [x] acme-ui test warnings removed.
 - [ ] Native runtime check of fatal paths (no-window, forced CPU failure) — NOT_RUN.
 - [x] ROADMAP 003: Gallery layout and accessibility use retained NodeIds (see docs/team/roadmap-003/REPORT.md).

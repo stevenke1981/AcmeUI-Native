@@ -107,7 +107,9 @@ jobs:
         with:
           toolchain: 1.88.0
       - run: cargo install --locked cargo-deny cargo-audit
-      - run: cargo deny check bans sources
+      - run: cargo deny check bans licenses sources
+      - name: Package every library crate (no publish)
+        run: python scripts/check_package.py
       - name: Audit runtime dependency graph
         # wayland-scanner uses quick-xml only inside a build-time proc macro to
         # parse trusted protocol XML shipped by Wayland crates. The upstream

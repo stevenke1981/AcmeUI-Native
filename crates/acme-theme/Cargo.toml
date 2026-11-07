@@ -10,4 +10,4 @@ keywords = ["acmeui", "theme", "design-tokens"]
 categories = ["gui"]
 
 [dependencies]
-acme-core = { path = "../acme-core" }
+acme-core.workspace = true

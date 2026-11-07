@@ -36,7 +36,7 @@ Rust **1.88** MSRV and pins **1.88.0** in `rust-toolchain.toml`.
 
 | Component | Notes |
 |-----------|-------|
-| Glyph atlas eviction/aging | Configurable shelf atlas; stale detection triggers a full-atlas clear, not per-glyph LRU reclamation. Mid-frame eviction is deferred until `begin_frame`; overflowing glyphs may be omitted for that frame. Explicit `clear()` invalidates prior prepared text |
+| Glyph atlas eviction/aging | Configurable shelf atlas; stale detection triggers a full-atlas clear, not per-glyph LRU reclamation. Automatic (overflow/pressure) eviction is deferred until `begin_frame`; overflowing glyphs may be omitted for that frame. Explicit `evict_stale()` and `clear()` act immediately and invalidate prior prepared text |
 | Screenshot golden pipeline | CPU-renderer text-free pixel goldens run in CI (`acme-render-cpu/tests/golden.rs`); Gallery/text screenshot capture still not in CI |
 | Full end-to-end GPU recovery on Windows | Callbacks + pure tests wired; interactive device-loss still manual — [../guides/MANUAL_VALIDATION.md](../guides/MANUAL_VALIDATION.md#a-gpu-device-loss-recovery) |
 
@@ -59,7 +59,7 @@ Human checklists (both still **NOT YET MANUALLY VALIDATED**):
 
 - Gallery/GPU/text screenshot golden comparison (CPU text-free pixel goldens already exist)
 - Performance baseline thresholds (clean build, warm incremental, frame prep)
-- `cargo-deny` / `cargo-audit`
+- `cargo-deny` / `cargo-audit` beyond the CI `audit` job (`cargo deny check bans licenses sources`, `cargo audit`)
 - Manual platform acceptance beyond the automated Windows/Ubuntu/macOS CI matrix
 - Compatibility below the declared Rust 1.88 MSRV (not supported or claimed)
 - Manual Traditional Chinese 注音 IME — [checklist B](../guides/MANUAL_VALIDATION.md#b-traditional-chinese-ime-注音) (status: **NOT YET MANUALLY VALIDATED**)

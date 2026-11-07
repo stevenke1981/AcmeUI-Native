@@ -1,19 +1,32 @@
 # Changelog
 
-## Unreleased - Atlas frame safety and audit reconciliation (2026-11-07)
+## Unreleased - Packaging, licenses, migration (ROADMAP 007, 2026-11-07)
 
-- Extend merged PR #12's frame pinning to explicit `evict_stale` requests:
-  a manual clear now waits for `begin_frame` once any glyph has been allocated
-  or touched this frame. PR #12's automatic overflow/pressure eviction is
-  preserved.
-  `evict_stale` returns zero when deferred; overflowing glyphs may be omitted
-  until the next frame. Explicit `clear` still immediately invalidates prepared
-  text for recovery. This remains full-clear aging, not per-glyph LRU eviction.
-- Added font-independent allocator regressions and multi-frame retained
-  accessibility identity/focus/bounds coverage. Retained binding already existed;
-  the legacy sequential accessibility APIs retain their compatibility behavior.
+- Added `LICENSE-MIT` and `LICENSE-APACHE` (the workspace already declared
+  `MIT OR Apache-2.0`) and `docs/guides/LICENSES.md`. `deny.toml` gains a
+  `[licenses]` allow list of the 9 licenses actually used; CI runs
+  `cargo deny check bans licenses sources`.
+- Internal dependencies use `[workspace.dependencies]` with `path` + `version`,
+  so every library crate packages; apps are `publish = false`. CI runs
+  `scripts/check_package.py` (per-crate `cargo package --no-verify`).
+- New `docs/guides/MIGRATION.md` (0.2.0 to the next release) and
+  `docs/guides/RELEASE.md` (checklist, publish order, version drift; proposes
+  0.3.0 — not applied).
+- Correction: the v0.2.0 entry below says `route_action` returns `Option`; the
+  code changed to `Vec` the next day (`229ca22`). Not listed before: `RenderBatch.clip`
+  changed from `Option<[u32; 4]>` to `Option<[f32; 4]>`, and `Application` gained
+  default methods `background_tick` / `background_poll_interval` (see MIGRATION.md).
+
+## Unreleased - Audit reconciliation (PR #13, 2026-11-07)
+
+- Added a font-independent allocator regression for frame-boundary overflow
+  eviction, and multi-frame retained accessibility identity/focus/bounds
+  coverage across insertion, reorder and removal. Retained binding already
+  existed; the legacy sequential accessibility APIs are unchanged.
 - Reconciled STATUS/todos, Rust 1.88 MSRV and the English/Traditional Chinese
   source inventory (199 category modules, not 199 fully interactive widgets).
+- No atlas behavior change: `evict_stale` and `clear` remain immediate explicit
+  operations, as defined by ROADMAP 006.
 
 ## Unreleased - Benchmarks and atlas lifecycle (ROADMAP 006, 2026-11-07)
 
