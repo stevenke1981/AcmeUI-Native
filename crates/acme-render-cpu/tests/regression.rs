@@ -176,3 +176,215 @@ fn rgba_atlas_updates_replace_previous_pixels() {
         assert_eq!(cpu.pixels(), &[expected]);
     }
 }
+
+fn atlas_pair_uploads(alpha: u8, rgba: [u8; 4]) -> Vec<AtlasUpload> {
+    [
+        (GlyphFormat::Alpha8, vec![alpha]),
+        (GlyphFormat::Rgba8, rgba.to_vec()),
+    ]
+    .into_iter()
+    .map(|(format, pixels)| AtlasUpload {
+        page: 0,
+        origin: [0, 0],
+        size: [1, 1],
+        format,
+        pixels,
+    })
+    .collect()
+}
+
+fn atlas_pair_scene(uploads: Vec<AtlasUpload>) -> Scene {
+    let mut scene = Scene::new();
+    scene.push(DrawCommand::Text(TextPrimitive {
+        origin: Point::new(0.0, 0.0),
+        color: Color::rgba(1.0, 1.0, 1.0, 1.0),
+        glyphs: vec![
+            glyph(),
+            GlyphDraw {
+                x: 1.0,
+                format: GlyphFormat::Rgba8,
+                ..glyph()
+            },
+        ],
+        uploads,
+    }));
+    scene
+}
+
+fn assert_rejection_preserves_atlas_pair(scene: &Scene, error: CpuRenderError) {
+    let mut cpu = CpuRenderer::new(2, 1, 1.0).unwrap();
+    cpu.render_scene(&atlas_pair_scene(atlas_pair_uploads(
+        255,
+        [17, 34, 51, 255],
+    )))
+    .unwrap();
+    let previous = [0x00ffffff, 0x00112233];
+    assert_eq!(cpu.pixels(), &previous);
+
+    assert_eq!(cpu.render_scene(scene), Err(error));
+    assert_eq!(cpu.pixels(), &previous, "rejected frame changed output");
+    cpu.render_scene(&atlas_pair_scene(vec![])).unwrap();
+    assert_eq!(
+        cpu.pixels(),
+        &previous,
+        "rejected frame changed cached glyphs"
+    );
+
+    // A rejected update must not prevent a later successful replacement.
+    cpu.render_scene(&atlas_pair_scene(atlas_pair_uploads(
+        128,
+        [68, 85, 102, 255],
+    )))
+    .unwrap();
+    let replacement = [0x00808080, 0x00445566];
+    assert_eq!(cpu.pixels(), &replacement);
+    cpu.render_scene(&atlas_pair_scene(vec![])).unwrap();
+    assert_eq!(cpu.pixels(), &replacement);
+}
+
+#[test]
+fn rejected_scene_structure_preserves_both_glyph_atlases() {
+    let cases = [
+        (vec![DrawCommand::PopClip], "unmatched PopClip"),
+        (vec![DrawCommand::EndLayer], "unmatched EndLayer"),
+        (
+            vec![DrawCommand::PushClip(Rect::new(0.0, 0.0, 2.0, 1.0))],
+            "unclosed clip or layer",
+        ),
+        (
+            vec![DrawCommand::BeginLayer(LayerParams { opacity: 1.0 })],
+            "unclosed clip or layer",
+        ),
+        (
+            vec![DrawCommand::BeginLayer(LayerParams { opacity: 1.0 }); 17],
+            "layer allocation budget exceeded",
+        ),
+    ];
+    for (commands, reason) in cases {
+        let mut rejected = atlas_pair_scene(atlas_pair_uploads(0, [255, 0, 0, 255]));
+        for command in commands {
+            rejected.push(command);
+        }
+        assert_rejection_preserves_atlas_pair(&rejected, CpuRenderError::InvalidScene(reason));
+    }
+}
+
+fn bad_atlas_uploads() -> Vec<AtlasUpload> {
+    let mut bad = Vec::new();
+    for valid in atlas_pair_uploads(255, [255, 255, 255, 255]) {
+        bad.push(AtlasUpload {
+            page: 1,
+            ..valid.clone()
+        });
+        bad.push(AtlasUpload {
+            origin: [2048, 0],
+            ..valid.clone()
+        });
+        bad.push(AtlasUpload {
+            origin: [0, 2048],
+            ..valid.clone()
+        });
+        bad.push(AtlasUpload {
+            size: [2, 1],
+            ..valid.clone()
+        });
+        bad.push(AtlasUpload {
+            size: [u32::MAX, u32::MAX],
+            ..valid
+        });
+    }
+    bad
+}
+
+#[test]
+fn later_bad_upload_in_same_text_preserves_both_glyph_atlases() {
+    for bad in bad_atlas_uploads() {
+        let mut uploads = atlas_pair_uploads(0, [255, 0, 0, 255]);
+        uploads.push(bad);
+        assert_rejection_preserves_atlas_pair(
+            &atlas_pair_scene(uploads),
+            CpuRenderError::InvalidGlyphUpload,
+        );
+    }
+}
+
+#[test]
+fn later_bad_text_primitive_preserves_both_glyph_atlases() {
+    for bad in bad_atlas_uploads() {
+        let mut rejected = atlas_pair_scene(atlas_pair_uploads(0, [255, 0, 0, 255]));
+        rejected.push(DrawCommand::Text(TextPrimitive {
+            origin: Point::new(0.0, 0.0),
+            color: Color::TRANSPARENT,
+            glyphs: vec![],
+            uploads: vec![bad],
+        }));
+        assert_rejection_preserves_atlas_pair(&rejected, CpuRenderError::InvalidGlyphUpload);
+    }
+}
+
+#[test]
+fn rejected_scene_does_not_seed_either_glyph_atlas() {
+    let mut cpu = CpuRenderer::new(2, 1, 1.0).unwrap();
+    cpu.render_scene(&Scene::with_clear(Color::rgba(0.0, 1.0, 0.0, 1.0)))
+        .unwrap();
+    let mut rejected = atlas_pair_scene(atlas_pair_uploads(255, [255, 0, 0, 255]));
+    rejected.push(DrawCommand::EndLayer);
+    assert_eq!(
+        cpu.render_scene(&rejected),
+        Err(CpuRenderError::InvalidScene("unmatched EndLayer"))
+    );
+    assert_eq!(cpu.pixels(), &[0x0000ff00; 2]);
+    cpu.render_scene(&atlas_pair_scene(vec![])).unwrap();
+    assert_eq!(cpu.pixels(), &[0; 2]);
+}
+
+#[test]
+fn accepted_uploads_keep_text_command_order_and_cached_replacements() {
+    for (format, first, second, expected) in [
+        (
+            GlyphFormat::Alpha8,
+            vec![255],
+            vec![128],
+            [0x00ffffff, 0x00808080, 0x00808080],
+        ),
+        (
+            GlyphFormat::Rgba8,
+            vec![255, 0, 0, 255],
+            vec![0, 0, 255, 255],
+            [0x00ff0000, 0x000000ff, 0x000000ff],
+        ),
+    ] {
+        let mut scene = Scene::new();
+        scene.push(DrawCommand::PushClip(Rect::new(0.0, 0.0, 3.0, 1.0)));
+        scene.push(DrawCommand::BeginLayer(LayerParams { opacity: 1.0 }));
+        for (x, pixels) in [Some(first), Some(second), None].into_iter().enumerate() {
+            scene.push(DrawCommand::Text(TextPrimitive {
+                origin: Point::new(0.0, 0.0),
+                color: Color::rgba(1.0, 1.0, 1.0, 1.0),
+                glyphs: vec![GlyphDraw {
+                    x: x as f32,
+                    format,
+                    ..glyph()
+                }],
+                uploads: pixels
+                    .into_iter()
+                    .map(|pixels| AtlasUpload {
+                        page: 0,
+                        origin: [0, 0],
+                        size: [1, 1],
+                        format,
+                        pixels,
+                    })
+                    .collect(),
+            }));
+        }
+        scene.push(DrawCommand::EndLayer);
+        scene.push(DrawCommand::PopClip);
+        let mut cpu = CpuRenderer::new(3, 1, 1.0).unwrap();
+        cpu.render_scene(&scene).unwrap();
+        assert_eq!(cpu.pixels(), &expected);
+        cpu.render_scene(&text_scene(GlyphDraw { format, ..glyph() }, vec![]))
+            .unwrap();
+        assert_eq!(cpu.pixels(), &[expected[2], 0, 0]);
+    }
+}

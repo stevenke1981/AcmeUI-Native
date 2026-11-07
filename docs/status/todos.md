@@ -6,6 +6,7 @@
 - [x] Explicit renderer backend policy with unit tests (`RenderBackendPreference`).
 - [x] `run()` reports `NoWindows` / `Renderer` failures instead of `Ok(())`.
 - [x] Deterministic CPU golden pixel tests.
+- [x] ROADMAP 006 bounded atlas-lifecycle follow-up: reject invalid CPU scenes before changing glyph caches; add dual-format cache/painter-order regressions (docs/team/cpu-atlas-atomic/REPORT.md). Gallery/GPU baselines and measured performance remain open.
 - [x] Crate metadata, external consumer example + CI job, SDK guide.
 - [x] acme-ui test warnings removed.
 - [ ] Native runtime check of fatal paths (no-window, forced CPU failure) — NOT_RUN.
