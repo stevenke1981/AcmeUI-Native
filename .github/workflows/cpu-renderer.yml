@@ -11,7 +11,7 @@ concurrency:
 jobs:
   headless:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
@@ -34,6 +34,8 @@ jobs:
         run: cargo check --locked -p acme-platform --no-default-features
       - name: Render a headless CPU snapshot
         run: cargo run --locked -p acme-render-cpu --example cpu_snapshot -- target/cpu-evidence/frame.ppm
+      - name: Headless benchmark smoke run (no thresholds; numbers are noisy)
+        run: cargo run --locked --release -p acme-benchmark -- --quick --json target/cpu-evidence/benchmark.json
       - name: Capture exact tested source
         if: always()
         shell: bash
