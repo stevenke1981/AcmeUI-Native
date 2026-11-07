@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased - SDK production hardening (batch-002, 2026-11-07)
+
+- Merge the CPU software renderer with GPU fallback (PR #6) and focus-navigation
+  hardening (PR #5).
+- `acme-platform`: add `RenderBackendPreference` (`ACME_RENDER_BACKEND` =
+  `auto` | `gpu` | `cpu`, trimmed and case-insensitive). Invalid values now log a
+  warning and fall back to `auto`; previously a value such as ` cpu` was ignored.
+- **Breaking (0.x):** `PlatformError` gains `NoWindows { reasons }` and
+  `Renderer(String)`. `run()` now returns `Err` when no window can be created or
+  the loop stops on an unrecoverable renderer failure, instead of `Ok(())`. A
+  recorded renderer error takes precedence over an event-loop error. Normal
+  close of the last window still returns `Ok(())`.
+- `acme-render-cpu`: deterministic, text-free golden pixel regression tests
+  (`tests/golden.rs`, six 64x64 PPM fixtures, tolerance 2 per channel; regenerate
+  with `ACME_BLESS_GOLDEN=1`).
+- Packaging: crate descriptions, repository, rust-version, keywords and
+  categories; new standalone `examples/sdk-consumer` built in CI against the
+  workspace lockfile; new `docs/guides/SDK_GUIDE.md`.
+- `acme-ui`: remove all 21 test-only dead-code warnings by exercising each
+  component's message wiring (14 new tests); inline format arguments flagged by
+  Clippy in touched files.
+- Not verified: native windows, injected GPU device loss, 注音 IME, DPI
+  125/150/200%, screen readers. See `docs/team/sdk-hardening/REPORT.md`.
+
 ## Unreleased - Core invalidation and text editing
 
 - Invalidate a parent's structure, layout, paint and semantics after child insertion,

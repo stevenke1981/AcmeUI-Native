@@ -1,5 +1,16 @@
 # Todos
 
+## SDK production hardening — batch-002 (2026-11-07)
+
+- [x] Integrate PR #5 (focus navigation) and PR #6 (CPU renderer fallback).
+- [x] Explicit renderer backend policy with unit tests (`RenderBackendPreference`).
+- [x] `run()` reports `NoWindows` / `Renderer` failures instead of `Ok(())`.
+- [x] Deterministic CPU golden pixel tests.
+- [x] Crate metadata, external consumer example + CI job, SDK guide.
+- [x] acme-ui test warnings removed.
+- [ ] Native runtime check of fatal paths (no-window, forced CPU failure) — NOT_RUN.
+- [ ] Next batch (ROADMAP 003): verify retained-tree integration in the real app path.
+
 ## Retained-tree invalidation (bounded local patch)
 
 - [x] Detect child insertion/removal/reorder and invalidate the owning node.
@@ -94,7 +105,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [ ] Manual DPI interaction at 125/150/200% Windows scaling
 - [x] Glyph atlas eviction/aging when full
 - [ ] Benchmark headless CI thresholds
-- [ ] Screenshot golden / pixel regression
+- [x] Pixel regression: CPU-renderer text-free goldens (batch-002); Gallery screenshot goldens still open
 
 ## P3 — Mobile component real implementations (CBM audit 2026-07-21)
 
