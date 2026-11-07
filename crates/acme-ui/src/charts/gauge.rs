@@ -71,7 +71,7 @@ impl<M: Clone + 'static> GaugeBuilder<M> {
 
         let arc_filled = "\u{2588}".repeat(filled_count);
         let arc_empty = "\u{2591}".repeat(empty_count);
-        let arc = format!("{}{}", arc_filled, arc_empty);
+        let arc = format!("{arc_filled}{arc_empty}");
 
         let mut col = column::<M>()
             .key(format!("{}_gauge", &id_prefix).as_str())

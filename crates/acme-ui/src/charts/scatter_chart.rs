@@ -115,7 +115,7 @@ impl<M: Clone + 'static> ScatterChartBuilder<M> {
             let marker = format!("{} ({:.1}, {:.1})", p.marker_char(), p.x, p.y,);
 
             let row = crate::row::<M>()
-                .key(format!("{}_point_{}", id_prefix, i).as_str())
+                .key(format!("{id_prefix}_point_{i}").as_str())
                 .gap(6.0)
                 .child(crate::label_with_size::<M>(format!("{}:", p.label), 12.0))
                 .child(crate::label_with_size::<M>(marker, 12.0))

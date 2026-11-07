@@ -120,7 +120,7 @@ fn render_level<M: Clone + 'static>(
     let mut col = column::<M>().gap(2.0);
     for (i, opt) in options.iter().enumerate() {
         let is_selected = selected.is_some_and(|s| s == opt.value);
-        let opt_key = format!("{}-l{}-o{}", id_prefix, level, i);
+        let opt_key = format!("{id_prefix}-l{level}-o{i}");
         let opt_card = card::<M>()
             .key(opt_key.as_str())
             .padding(6.0)

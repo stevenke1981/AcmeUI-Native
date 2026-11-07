@@ -14,9 +14,9 @@ use acme_widgets::*;
 /// decimal part, fractional values show up to two decimal places.
 fn display_value(v: f64) -> String {
     if v.fract() == 0.0 {
-        format!("{:.0}", v)
+        format!("{v:.0}")
     } else {
-        format!("{:.2}", v)
+        format!("{v:.2}")
     }
 }
 

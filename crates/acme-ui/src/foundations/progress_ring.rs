@@ -49,7 +49,7 @@ impl<M: Clone + 'static> From<ProgressRingBuilder<M>> for WidgetNode<M> {
             0 => "○",
             1 => "◔",
             2 | 3 => "◑",
-            4 | 5 | 6 | 7 => "◕",
+            4..=7 => "◕",
             _ => "●",
         };
 

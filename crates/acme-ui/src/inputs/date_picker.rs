@@ -99,7 +99,6 @@ impl<M: Clone + 'static> DatePickerBuilder<M> {
 }
 
 /// Number of days in the given month (1-indexed). Handles leap years.
-#[allow(clippy::manual_is_multiple_of)]
 fn days_in_month(year: u32, month: u32) -> u32 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
@@ -212,7 +211,7 @@ impl<M: Clone + 'static> From<DatePickerBuilder<M>> for WidgetNode<M> {
             let cell: WidgetNode<M> = if i as u32 >= offset && day <= dim {
                 let is_selected = b.selected_day == Some(day);
                 let cell_card = card::<M>()
-                    .key(format!("{}-d{}", id_str, day).as_str())
+                    .key(format!("{id_str}-d{day}").as_str())
                     .padding(4.0)
                     .variant(if is_selected {
                         CardVariant::Interactive
@@ -225,7 +224,7 @@ impl<M: Clone + 'static> From<DatePickerBuilder<M>> for WidgetNode<M> {
             } else {
                 // Empty filler cell so the grid stays aligned.
                 card::<M>()
-                    .key(format!("{}-e{}", id_str, i).as_str())
+                    .key(format!("{id_str}-e{i}").as_str())
                     .padding(4.0)
                     .variant(CardVariant::Plain)
                     .child(label::<M>(""))

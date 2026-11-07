@@ -109,7 +109,7 @@ fn render_tree_nodes<M: Clone + 'static>(
             row_builder = row_builder.child(label::<M>(" ".repeat(indent_px)));
         }
 
-        let node_key = format!("{}-n{}", id_prefix, i);
+        let node_key = format!("{id_prefix}-n{i}");
         let node_card = card::<M>()
             .key(node_key.as_str())
             .padding(4.0)
@@ -127,7 +127,7 @@ fn render_tree_nodes<M: Clone + 'static>(
             result.append(&mut render_tree_nodes::<M>(
                 &node.children,
                 selected,
-                &format!("{}-n{}", id_prefix, i),
+                &format!("{id_prefix}-n{i}"),
                 depth + 1,
             ));
         }

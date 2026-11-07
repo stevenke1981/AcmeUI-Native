@@ -92,7 +92,7 @@ fn render_item_list<M: Clone + 'static>(
     header: &str,
     count: usize,
 ) -> WidgetNode<M> {
-    let header = label::<M>(format!("{} ({})", header, count));
+    let header = label::<M>(format!("{header} ({count})"));
     let mut list_col = column::<M>().gap(2.0).child(header);
 
     for item in items {

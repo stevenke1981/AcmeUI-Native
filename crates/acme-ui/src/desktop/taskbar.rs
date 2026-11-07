@@ -96,7 +96,7 @@ impl<M: Clone + 'static> TaskbarBuilder<M> {
 
         // Window items
         for (i, item) in self.items.iter().enumerate() {
-            let btn_key = format!("taskbar_item_{}", i);
+            let btn_key = format!("taskbar_item_{i}");
             let btn = crate::button(btn_key.as_str(), &item.label);
             let btn = if item.active { btn.primary() } else { btn };
             row = row.child(btn);

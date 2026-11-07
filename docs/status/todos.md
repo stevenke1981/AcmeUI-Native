@@ -7,7 +7,7 @@
 - [x] Interactive mobile toggle, stepper and segmented control with Gallery demos and hit tests.
 - [ ] Wire a real AccessKit platform adapter (e.g. accesskit_winit) to `handle_request`.
 - [ ] Quiet-host CPU benchmark: the single uncontrolled run showed +12.5% median at scale 1.0.
-- [ ] Whole-crate `clippy -p acme-ui --all-targets -D warnings` has 35 pre-existing diagnostics in 22 files.
+- [x] Whole-crate `clippy -p acme-ui --all-targets -D warnings` baseline cleared (35 diagnostics, 22 files).
 
 ## ROADMAP 013 — TreeItem actions, item content walk, textinput split (2026-11-08)
 

@@ -105,10 +105,7 @@ impl<M: Clone + 'static> LineChartBuilder<M> {
 
         // Show Y-axis legend
         col = col.child(separator());
-        col = col.child(label_with_size::<M>(
-            format!("Range: 0 — {:.1}", max_v),
-            12.0,
-        ));
+        col = col.child(label_with_size::<M>(format!("Range: 0 — {max_v:.1}"), 12.0));
 
         col.build()
     }

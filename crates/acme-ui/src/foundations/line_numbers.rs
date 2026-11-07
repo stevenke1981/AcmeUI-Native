@@ -63,7 +63,7 @@ impl<M: Clone + 'static> From<LineNumbersBuilder<M>> for WidgetNode<M> {
             let line_num = b.start_line + i;
             let is_highlighted = b.highlighted_line == Some(line_num);
 
-            let line_str = format!("{:>4}", line_num);
+            let line_str = format!("{line_num:>4}");
 
             if is_highlighted {
                 // Highlighted line: wrap label in a Card with accent background
@@ -119,7 +119,7 @@ mod tests {
         // Each child should be a Label
         for (i, child) in container.children.iter().enumerate() {
             let WidgetNode::Label(lbl) = child else {
-                panic!("expected Label at position {}", i);
+                panic!("expected Label at position {i}");
             };
             let expected = format!("{:>4}", i + 1);
             assert_eq!(lbl.text, expected);

@@ -242,7 +242,7 @@ mod tests {
         ] {
             let node: WidgetNode<TestMsg> = progress(50.0).size(*size).build();
             let WidgetNode::Row(_) = &node else {
-                panic!("expected Row variant for size {:?}", size);
+                panic!("expected Row variant for size {size:?}");
             };
         }
     }
