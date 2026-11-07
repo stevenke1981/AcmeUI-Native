@@ -421,8 +421,9 @@ impl Application for Gallery {
                 self.last_scale_factor,
                 &mut self.ime_caret_window_rect,
             ),
-            PlatformEvent::ImePreedit { text, .. } => handle_ime_preedit(
+            PlatformEvent::ImePreedit { text, cursor, .. } => handle_ime_preedit(
                 &text,
+                cursor,
                 &mut self.text_input,
                 self.text_input_rect,
                 self.dark,

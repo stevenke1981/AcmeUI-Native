@@ -34,6 +34,10 @@ pub fn compute_ime_caret_rect(
     let style = field_text_style(&theme);
     let padding = theme.spacing.px2;
     let [cx, cy, cw, ch] = text_input.ime_caret_area(fonts, &style, last_scale_factor);
+    // A composition wider than the field scrolls its start (the anchor) left of
+    // the field; keep the candidate window on the visible content instead.
+    let content_w = (fw - 2.0 * padding).max(0.0);
+    let cx = cx.clamp(0.0, content_w);
     Some([fx + padding + cx, fy + padding + cy, cw, ch.max(1.0)])
 }
 
@@ -97,5 +101,48 @@ fn field_text_style(theme: &Theme) -> TextStyle {
         font_size,
         line_height: font_size * theme.typography.line_height,
         ..TextStyle::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const FIELD: [f32; 4] = [40.0, 10.0, 120.0, 36.0];
+
+    #[test]
+    fn wide_composition_keeps_the_candidate_anchor_inside_the_field() {
+        let mut fonts = FontSystem::new();
+        for scale in [1.0, 1.25, 1.5, 2.0] {
+            let mut state = TextInputState::new();
+            state.focused = true;
+            state.set_preedit("ㄓㄨˋㄧㄣ注音輸入法測試字串很長很長", None);
+            let rect = refresh_ime_caret_rect(&mut state, FIELD, false, &mut fonts, scale)
+                .expect("focused field has a caret rect");
+            assert!(
+                state.scroll_offset > 0.0,
+                "scale {scale}: composition must scroll"
+            );
+            let left = FIELD[0];
+            let right = FIELD[0] + FIELD[2];
+            assert!(
+                (left..=right).contains(&rect[0]),
+                "scale {scale}: anchor x {} outside field [{left}, {right}]",
+                rect[0]
+            );
+        }
+    }
+
+    #[test]
+    fn unscrolled_anchor_is_unchanged_by_the_clamp() {
+        let mut fonts = FontSystem::new();
+        let mut state = TextInputState::new();
+        state.focused = true;
+        state.set_preedit("ㄓ", None);
+        let theme = theme_for(false);
+        let style = field_text_style(&theme);
+        let raw = state.ime_caret_area(&mut fonts, &style, 1.0)[0];
+        let rect = compute_ime_caret_rect(&state, FIELD, false, &mut fonts, 1.0).unwrap();
+        assert_eq!(rect[0], FIELD[0] + theme.spacing.px2 + raw);
     }
 }
