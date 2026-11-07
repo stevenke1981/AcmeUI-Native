@@ -12,6 +12,7 @@ use acme_core::NodeId;
 use acme_layout::LayoutSnapshot;
 use acme_platform::{PlatformEvent, WindowId};
 use acme_widgets::WidgetNode;
+use acme_widgets::retained_binding::{RetainedBinding, SyntheticIds};
 
 /// Re-export AccessKit types used in the public API.
 pub use accesskit::{Node as AccNode, NodeId as AccNodeId};
@@ -84,16 +85,58 @@ impl AccessibilityAdapter {
     ///
     /// Walks `root` in DFS order (matching [`WidgetNode::to_layout`]), assigns
     /// sequential IDs, and stores the result as the current tree.
+    ///
+    /// NOTE: the IDs are a per-call counter starting at 1. They are not stable
+    /// across rebuilds and are not guaranteed to match retained layout IDs.
+    /// Use [`AccessibilityAdapter::update_with_binding`] with a
+    /// [`RetainedBinding`] to get IDs that stay stable across frames.
     pub fn update<M>(&mut self, root: &WidgetNode<M>, snapshot: &LayoutSnapshot)
     where
         M: Clone + 'static,
     {
-        // TODO: use retained NodeId when RuntimeTree is integrated (P0-002).
-        // Currently IDs are reassigned starting from 1 each frame, which means
-        // accessibility nodes are not stable across rebuilds.
         let mut next = 1u64;
         let mut nodes = Vec::new();
         let root_id = walk_node(root, snapshot, &mut next, None, &mut nodes);
+        self.store(root_id, nodes, snapshot);
+    }
+
+    /// Rebuild the tree like [`AccessibilityAdapter::update`], but take every
+    /// node's ID from `binding` instead of a per-call counter.
+    ///
+    /// `binding` must be bound to `root` with
+    /// [`acme_widgets::retained_binding::bind_retained`] for the same frame.
+    /// Each widget keeps its retained ID across frames, so the AccessKit ID and
+    /// the `snapshot` lookup both stay stable, and match a layout computed with
+    /// the same binding. Widgets the binding does not know take IDs from
+    /// [`SyntheticIds`]; those are unique within the frame but are only
+    /// guaranteed to match layout when layout allocates them in the same order.
+    ///
+    /// Tooltip and Popover nodes read the rectangle of their first child, as
+    /// their layout nodes are that child's.
+    pub fn update_with_binding<M>(
+        &mut self,
+        root: &WidgetNode<M>,
+        snapshot: &LayoutSnapshot,
+        binding: &RetainedBinding<'_>,
+    ) where
+        M: Clone + 'static,
+    {
+        let mut ids = IdSource::Bound {
+            binding,
+            synthetic: SyntheticIds::new(),
+        };
+        let mut nodes = Vec::new();
+        let (root_id, _) = walk(root, snapshot, &mut ids, None, &mut nodes);
+        self.store(root_id, nodes, snapshot);
+    }
+
+    /// Replace the current tree and the stored layout snapshot.
+    fn store(
+        &mut self,
+        root_id: AccessNodeId,
+        nodes: Vec<(AccessNodeId, AccessNode)>,
+        snapshot: &LayoutSnapshot,
+    ) {
         self.last_root = Some(root_id);
         self.tree = Some(AccessibilityTree {
             nodes,
@@ -125,7 +168,7 @@ impl AccessibilityAdapter {
     /// # Coordinate resolution
     ///
     /// `Click` and `Activate` resolve the target node's bounding‑box center
-    /// from the stored [`LayoutSnapshot`] (populated during [`update`]).  If
+    /// from the stored [`LayoutSnapshot`] (populated during [`update`](Self::update)).  If
     /// the snapshot is missing or the node is absent, coordinates fall back
     /// to `(0, 0)`.
     ///
@@ -235,8 +278,46 @@ where
     M: Clone + 'static,
 {
     let mut next_id: u64 = 1;
+    build_with_ids(
+        root,
+        snapshot,
+        &mut IdSource::Sequential(&mut next_id),
+        focus_id,
+        label_override,
+    )
+}
+
+/// Build a full [`TreeUpdate`] like [`build_tree_update`], but take the node
+/// IDs from `binding` (see [`AccessibilityAdapter::update_with_binding`]).
+///
+/// `binding` must be bound to `root`. Unbound widgets take IDs from
+/// [`SyntheticIds`].
+pub fn build_tree_update_with_binding<M>(
+    root: &WidgetNode<M>,
+    snapshot: &LayoutSnapshot,
+    binding: &RetainedBinding<'_>,
+    focus_id: Option<NodeId>,
+    label_override: Option<&str>,
+) -> TreeUpdate
+where
+    M: Clone + 'static,
+{
+    let mut ids = IdSource::Bound {
+        binding,
+        synthetic: SyntheticIds::new(),
+    };
+    build_with_ids(root, snapshot, &mut ids, focus_id, label_override)
+}
+
+fn build_with_ids<M: Clone + 'static>(
+    root: &WidgetNode<M>,
+    snapshot: &LayoutSnapshot,
+    ids: &mut IdSource<'_, '_>,
+    focus_id: Option<NodeId>,
+    label_override: Option<&str>,
+) -> TreeUpdate {
     let mut nodes: Vec<(AccessNodeId, AccessNode)> = Vec::new();
-    let root_id = walk_node(root, snapshot, &mut next_id, label_override, &mut nodes);
+    let (root_id, _) = walk(root, snapshot, ids, label_override, &mut nodes);
 
     let focus = match focus_id {
         Some(id) => AccessNodeId::from(id.get()),
@@ -250,7 +331,59 @@ where
     }
 }
 
+/// Where the IDs of one walk come from.
+///
+/// `Sequential` numbers nodes from a counter in DFS order, as the original
+/// `update` and `build_tree_update` did. `Bound` takes the retained ID of each
+/// widget from a [`RetainedBinding`] and uses [`SyntheticIds`] for widgets the
+/// binding does not contain.
+enum IdSource<'s, 'b> {
+    Sequential(&'s mut u64),
+    Bound {
+        binding: &'b RetainedBinding<'b>,
+        synthetic: SyntheticIds,
+    },
+}
+
+impl IdSource<'_, '_> {
+    /// The ID of `widget`. Called before the widget's children are visited.
+    fn assign<M>(&mut self, widget: &WidgetNode<M>) -> NodeId {
+        match self {
+            Self::Sequential(next) => {
+                let id = NodeId::new(**next);
+                **next += 1;
+                id
+            }
+            Self::Bound { binding, synthetic } => binding
+                .id_for(widget)
+                .unwrap_or_else(|| synthetic.allocate()),
+        }
+    }
+
+    /// The layout node whose rectangle `widget` reads.
+    ///
+    /// Layout makes Tooltip and Popover transparent: their layout node is the
+    /// first child's. A bound walk therefore reads that child's ID. A
+    /// sequential walk keeps the historical lookup of the node's own ID.
+    fn layout_lookup<M>(
+        &self,
+        widget: &WidgetNode<M>,
+        own: NodeId,
+        first_child: Option<NodeId>,
+    ) -> NodeId {
+        match (self, widget) {
+            (Self::Bound { .. }, WidgetNode::Tooltip(_) | WidgetNode::Popover(_)) => {
+                first_child.unwrap_or(own)
+            }
+            _ => own,
+        }
+    }
+}
+
 /// Recursively walk the widget tree, producing AccessKit nodes.
+///
+/// IDs are sequential, starting at `*next_id`; `*next_id` is advanced past
+/// the last ID assigned. Returns the root's AccessKit ID.
 pub fn walk_node<M: Clone + 'static>(
     node: &WidgetNode<M>,
     snapshot: &LayoutSnapshot,
@@ -258,9 +391,23 @@ pub fn walk_node<M: Clone + 'static>(
     label_override: Option<&str>,
     nodes: &mut Vec<(AccessNodeId, AccessNode)>,
 ) -> AccessNodeId {
-    let id = AccessNodeId::from(*next_id);
-    let layout_id = NodeId::new(*next_id);
-    *next_id += 1;
+    let mut ids = IdSource::Sequential(next_id);
+    walk(node, snapshot, &mut ids, label_override, nodes).0
+}
+
+/// Walk `node` and its descendants with the IDs supplied by `ids`.
+///
+/// Returns the AccessKit ID of `node` and the layout node whose rectangle it
+/// reads. The two differ only for a transparent wrapper in a bound walk.
+fn walk<M: Clone + 'static>(
+    node: &WidgetNode<M>,
+    snapshot: &LayoutSnapshot,
+    ids: &mut IdSource<'_, '_>,
+    label_override: Option<&str>,
+    nodes: &mut Vec<(AccessNodeId, AccessNode)>,
+) -> (AccessNodeId, NodeId) {
+    let own = ids.assign(node);
+    let id = AccessNodeId::from(own.get());
 
     let role = match node {
         WidgetNode::Row(_) | WidgetNode::Column(_) | WidgetNode::Stack(_) | WidgetNode::Card(_) => {
@@ -286,6 +433,19 @@ pub fn walk_node<M: Clone + 'static>(
     };
 
     let mut access_node = AccessNode::new(role);
+
+    // Process children first: a transparent wrapper reads its first child's
+    // layout node, which is only known once that child has been walked.
+    let child_results: Vec<(AccessNodeId, NodeId)> = node
+        .children()
+        .iter()
+        .map(|child| walk(child, snapshot, ids, label_override, nodes))
+        .collect();
+    let layout_id = ids.layout_lookup(
+        node,
+        own,
+        child_results.first().map(|&(_, child_layout)| child_layout),
+    );
 
     // Map the layout bounding box into an AccessKit rectangle.
     if let Some(rect) = snapshot.get(layout_id) {
@@ -316,18 +476,13 @@ pub fn walk_node<M: Clone + 'static>(
         access_node.add_action(Action::Click);
     }
 
-    // Process children.
-    let child_ids: Vec<AccessNodeId> = node
-        .children()
-        .iter()
-        .map(|child| walk_node(child, snapshot, next_id, label_override, nodes))
-        .collect();
+    let child_ids: Vec<AccessNodeId> = child_results.iter().map(|&(child, _)| child).collect();
     if !child_ids.is_empty() {
         access_node.set_children(child_ids);
     }
 
     nodes.push((id, access_node));
-    id
+    (id, layout_id)
 }
 
 /// Create a minimal initial [`TreeUpdate`] with a single root window node.
@@ -358,7 +513,11 @@ mod tests {
     use acme_core::{NodeId, RetainedTree, ViewNode};
     use acme_layout::LayoutEngine;
     use acme_layout::LayoutRect;
-    use acme_widgets::{WidgetNode, button, column, label, row, scroll_view, separator, stack};
+    use acme_widgets::retained_binding::bind_retained;
+    use acme_widgets::view_bridge::widget_to_views;
+    use acme_widgets::{
+        WidgetNode, button, column, label, row, scroll_view, separator, stack, tooltip,
+    };
 
     #[derive(Clone, Debug, PartialEq)]
     struct TestMsg;
@@ -1071,5 +1230,231 @@ mod tests {
         } else {
             panic!("both calls must produce PointerButton");
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Retained binding (update_with_binding / build_tree_update_with_binding)
+    // ------------------------------------------------------------------
+
+    fn reconcile_frame(tree: &mut RetainedTree, roots: &[WidgetNode<TestMsg>]) {
+        tree.reconcile_roots(&widget_to_views(roots))
+            .expect("reconciliation should succeed");
+    }
+
+    /// A row of buttons, each keyed and labelled with its key.
+    fn keyed_buttons(keys: &[&str]) -> WidgetNode<TestMsg> {
+        let mut r = row::<TestMsg>();
+        for key in keys {
+            r = r.child(button::<TestMsg>(*key, *key));
+        }
+        r.build()
+    }
+
+    fn find_button(tree: &AccessibilityTree, label: &str) -> (AccessNodeId, AccessNode) {
+        tree.nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::Button && n.label() == Some(label))
+            .cloned()
+            .unwrap_or_else(|| panic!("expected a button labelled {label}"))
+    }
+
+    #[test]
+    fn bound_update_uses_binding_ids_for_every_node() {
+        let mut tree = RetainedTree::new();
+        let roots = vec![keyed_buttons(&["a", "b"])];
+        reconcile_frame(&mut tree, &roots);
+        let binding = bind_retained(&roots, &tree);
+        assert_eq!(binding.mismatches(), 0);
+
+        let root_id = binding.id_for(&roots[0]).expect("root should be bound");
+        let [button_a, button_b] = roots[0].children() else {
+            panic!("expected two buttons");
+        };
+        let expected = [
+            root_id,
+            binding.id_for(button_a).expect("a should be bound"),
+            binding.id_for(button_b).expect("b should be bound"),
+        ];
+
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update_with_binding(&roots[0], &LayoutSnapshot::default(), &binding);
+        let t = adapter.tree_ref().expect("tree should exist after update");
+
+        assert_eq!(t.root, to_access_id(root_id));
+        assert_eq!(t.nodes.len(), expected.len());
+        for id in expected {
+            assert!(
+                t.nodes
+                    .iter()
+                    .any(|(node_id, _)| *node_id == to_access_id(id)),
+                "retained id {id:?} missing from accessibility tree"
+            );
+        }
+        assert_eq!(find_button(t, "a").0, to_access_id(expected[1]));
+        assert_eq!(find_button(t, "b").0, to_access_id(expected[2]));
+    }
+
+    #[test]
+    fn widget_keeps_accessibility_id_when_keyed_sibling_is_inserted_before_it() {
+        let mut tree = RetainedTree::new();
+        let mut ids_by_frame = Vec::new();
+        for keys in [&["a", "b"][..], &["new", "a", "b"][..]] {
+            let roots = vec![keyed_buttons(keys)];
+            reconcile_frame(&mut tree, &roots);
+            let binding = bind_retained(&roots, &tree);
+            let mut adapter = AccessibilityAdapter::new(1);
+            adapter.update_with_binding(&roots[0], &LayoutSnapshot::default(), &binding);
+            let t = adapter.tree_ref().expect("tree should exist");
+            ids_by_frame.push((find_button(t, "a").0, find_button(t, "b").0));
+        }
+
+        assert_eq!(ids_by_frame[0], ids_by_frame[1]);
+    }
+
+    #[test]
+    fn click_resolves_center_from_snapshot_keyed_by_retained_id() {
+        let mut tree = RetainedTree::new();
+        let roots = vec![keyed_buttons(&["a", "b"])];
+        reconcile_frame(&mut tree, &roots);
+        let binding = bind_retained(&roots, &tree);
+        let [button_a, button_b] = roots[0].children() else {
+            panic!("expected two buttons");
+        };
+        let id_a = binding.id_for(button_a).expect("a should be bound");
+        let id_b = binding.id_for(button_b).expect("b should be bound");
+
+        // The neighbour's ID carries a different rectangle; Click(b) must not
+        // read it.
+        let mut snapshot = LayoutSnapshot::default();
+        snapshot.insert(
+            id_a,
+            LayoutRect {
+                x: 0.0,
+                y: 0.0,
+                width: 10.0,
+                height: 10.0,
+            },
+        );
+        snapshot.insert(
+            id_b,
+            LayoutRect {
+                x: 100.0,
+                y: 200.0,
+                width: 50.0,
+                height: 30.0,
+            },
+        );
+
+        let mut adapter = AccessibilityAdapter::new(7);
+        adapter.update_with_binding(&roots[0], &snapshot, &binding);
+
+        let t = adapter.tree_ref().expect("tree should exist");
+        let (_, node_b) = find_button(t, "b");
+        assert_eq!(node_b.bounds(), Some(Rect::new(100.0, 200.0, 150.0, 230.0)));
+
+        let events = adapter.route_action(&AccessibilityAction::Click(id_b));
+        assert_eq!(events.len(), 2, "Click should produce two events");
+        match &events[0] {
+            PlatformEvent::FocusChanged { node_id, .. } => {
+                assert_eq!(*node_id, id_b.get(), "focus must use the retained ID");
+            }
+            other => panic!("expected FocusChanged, got {other:?}"),
+        }
+        match &events[1] {
+            PlatformEvent::PointerButton { x, y, .. } => {
+                assert!((*x - 125.0).abs() < 0.001, "expected center x=125, got {x}");
+                assert!((*y - 215.0).abs() < 0.001, "expected center y=215, got {y}");
+            }
+            other => panic!("expected PointerButton, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn widgets_missing_from_binding_take_synthetic_ids() {
+        let roots = vec![keyed_buttons(&["a", "b"])];
+        let other: Vec<WidgetNode<TestMsg>> = Vec::new();
+        let binding = bind_retained(&other, &RetainedTree::new());
+        assert!(binding.is_empty());
+
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update_with_binding(&roots[0], &LayoutSnapshot::default(), &binding);
+        let t = adapter.tree_ref().expect("tree should exist");
+
+        // Pre-order allocation: root, then a, then b.
+        let mut synthetic = SyntheticIds::new();
+        let expected: Vec<AccessNodeId> =
+            (0..3).map(|_| to_access_id(synthetic.allocate())).collect();
+        assert_eq!(t.root, expected[0]);
+        assert_eq!(t.nodes.len(), expected.len());
+        for (id, _) in &t.nodes {
+            assert!(expected.contains(id), "unexpected id {id:?}");
+        }
+    }
+
+    #[test]
+    fn tooltip_node_reads_its_child_rectangle_as_layout_does() {
+        let mut tree = RetainedTree::new();
+        let roots: Vec<WidgetNode<TestMsg>> = vec![
+            column::<TestMsg>()
+                .child(tooltip("tip", button::<TestMsg>("ok", "OK"), "help"))
+                .build(),
+        ];
+        reconcile_frame(&mut tree, &roots);
+        let binding = bind_retained(&roots, &tree);
+
+        let tip = &roots[0].children()[0];
+        let child = &tip.children()[0];
+        let id_tip = binding.id_for(tip).expect("tooltip should be bound");
+        let id_child = binding.id_for(child).expect("child should be bound");
+
+        let mut snapshot = LayoutSnapshot::default();
+        snapshot.insert(
+            id_child,
+            LayoutRect {
+                x: 10.0,
+                y: 20.0,
+                width: 30.0,
+                height: 40.0,
+            },
+        );
+
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update_with_binding(&roots[0], &snapshot, &binding);
+        let t = adapter.tree_ref().expect("tree should exist");
+
+        let (tooltip_id, tooltip_node) = t
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::Tooltip)
+            .expect("expected a tooltip node");
+        assert_eq!(*tooltip_id, to_access_id(id_tip));
+        assert_eq!(
+            tooltip_node.bounds(),
+            Some(Rect::new(10.0, 20.0, 40.0, 60.0)),
+            "tooltip reads the child's layout rectangle"
+        );
+    }
+
+    #[test]
+    fn free_bound_build_matches_focus_and_node_count() {
+        let mut tree = RetainedTree::new();
+        let roots = vec![keyed_buttons(&["a", "b"])];
+        reconcile_frame(&mut tree, &roots);
+        let binding = bind_retained(&roots, &tree);
+        let [_, button_b] = roots[0].children() else {
+            panic!("expected two buttons");
+        };
+        let id_b = binding.id_for(button_b).expect("b should be bound");
+
+        let update = build_tree_update_with_binding(
+            &roots[0],
+            &LayoutSnapshot::default(),
+            &binding,
+            Some(id_b),
+            None,
+        );
+
+        assert_eq!(update.nodes.len(), 3);
+        assert_eq!(update.focus, to_access_id(id_b));
     }
 }

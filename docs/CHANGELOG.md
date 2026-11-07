@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased - Retained IDs in the app path (ROADMAP 003, 2026-11-07)
+
+- `acme-widgets`: `retained_binding` (`bind_retained`, `RetainedBinding`,
+  `SyntheticIds`, `SYNTHETIC_ID_BASE`) and `WidgetNode::to_layout_with_binding`.
+  Layout node IDs come from the `RetainedTree` and survive reorder/insert/remove;
+  synthetic rows/cells use IDs from `1 << 48`. `to_layout_with_context` output is
+  byte-identical to before (single shared layout body).
+- `acme-accessibility`: `update_with_binding` / `build_tree_update_with_binding`
+  give AccessKit nodes the same stable IDs and read bounds from the bound layout.
+  `update` is unchanged.
+- Gallery: the retained tree is no longer a shadow. Sidebar category buttons had
+  duplicate empty keys, so every reconcile failed and the retained tree was never
+  populated; they are now keyed `category:{i}`. Frames bind retained IDs for
+  layout and accessibility and fall back to sequential IDs (logged once) on a
+  reconcile error or partial binding.
+- Evidence: 8 Gallery tests over every page (zero binding mismatches, identical
+  computed rects to the sequential path, stable IDs across frames and category
+  switches, accessibility bounds equal layout rects).
+
 ## Unreleased - SDK production hardening (batch-002, 2026-11-07)
 
 - Merge the CPU software renderer with GPU fallback (PR #6) and focus-navigation

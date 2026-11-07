@@ -181,7 +181,7 @@ pub fn build_sidebar(selected_category: usize) -> WidgetNode<GalleryMessage> {
     col = col.child(label_with_size("AcmeUI", 18.0));
     col = col.child(separator());
     for (i, cat) in CATEGORIES.iter().enumerate() {
-        let mut btn = button::<GalleryMessage>("", cat.name);
+        let mut btn = button::<GalleryMessage>(format!("category:{i}"), cat.name);
         if i == selected_category {
             btn = btn.primary();
         }

@@ -12,6 +12,7 @@ pub mod inputs;
 pub mod navigation;
 pub mod overlay;
 pub mod prelude;
+pub mod retained_binding;
 pub mod view_bridge;
 
 mod overlay_manager;
@@ -46,6 +47,7 @@ use acme_layout::{
     Edges, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow, TextMeasureSpec, TextWrapMode,
     WidgetLayoutContext,
 };
+use retained_binding::{RetainedBinding, SyntheticIds};
 
 // ============================================================================
 // RuntimeNode — compiled node with stable identity
@@ -443,37 +445,82 @@ impl<M> WidgetNode<M> {
     /// `id` is the root identity; descendants receive monotonically increasing
     /// IDs via a shared counter (DFS).
     ///
-    /// For [`Label`](crate::Label) nodes this produces a [`LayoutNode::text_leaf`]
+    /// For [`Label`] nodes this produces a [`LayoutNode::text_leaf`]
     /// with a [`TextMeasureSpec`] that consults the label's own fields and falls
     /// back to `context.body_font_size` / `context.body_line_height`.
     ///
-    /// For [`TextInput`](crate::TextInput) nodes the minimum height is derived
+    /// For [`TextInput`] nodes the minimum height is derived
     /// from `context.control_height`.
     pub fn to_layout_with_context(&self, id: NodeId, context: &WidgetLayoutContext) -> LayoutNode
     where
         M: Clone,
     {
-        let mut next = id.get();
-        self.to_layout_alloc_with_context(&mut next, context)
+        let mut ids = SequentialIds { next: id.get() };
+        self.to_layout_alloc_with_context(&mut ids, context)
     }
 
-    fn to_layout_alloc_with_context(
+    /// Convert to a layout tree whose node IDs come from a [`RetainedBinding`].
+    ///
+    /// The result has the same shape, styles, measure specs and child order as
+    /// [`to_layout_with_context`](Self::to_layout_with_context) with
+    /// `NodeId::new(1)`; only the IDs differ:
+    /// - a widget that the binding holds uses its retained ID;
+    /// - a widget the binding does not hold, and every node that has no widget
+    ///   (Tree rows, Table/DataGrid header, row and cell nodes), takes a
+    ///   [`SyntheticIds`] ID;
+    /// - [`Tooltip`] and [`Popover`]
+    ///   are layout-transparent, so their layout node is the child's and carries
+    ///   the child's ID.
+    ///
+    /// `binding` must be produced by [`retained_binding::bind_retained`] for a description that
+    /// contains `self`; widgets outside that description are treated as unbound.
+    pub fn to_layout_with_binding(
         &self,
-        next: &mut u64,
+        binding: &RetainedBinding<'_>,
         context: &WidgetLayoutContext,
     ) -> LayoutNode
     where
         M: Clone,
     {
-        let id = NodeId::new(*next);
-        *next += 1;
+        let mut ids = BoundIds {
+            binding,
+            synthetic: SyntheticIds::new(),
+        };
+        self.to_layout_alloc_with_context(&mut ids, context)
+    }
+
+    /// Child widget that a layout-transparent wrapper lays out in its place.
+    fn transparent_child(&self) -> Option<&WidgetNode<M>> {
+        match self {
+            Self::Tooltip(v) => Some(v.child.as_ref()),
+            Self::Popover(v) => Some(&v.children[0]),
+            _ => None,
+        }
+    }
+
+    /// Shared layout body. `ids` decides where every node ID comes from, so the
+    /// sequential and the bound layouts cannot drift apart.
+    fn to_layout_alloc_with_context<I: LayoutIdSource>(
+        &self,
+        ids: &mut I,
+        context: &WidgetLayoutContext,
+    ) -> LayoutNode
+    where
+        M: Clone,
+    {
+        // Tooltip/Popover take no ID of their own: the child is laid out in
+        // their place and keeps its identity.
+        if let Some(child) = self.transparent_child() {
+            return child.to_layout_alloc_with_context(ids, context);
+        }
+        let id = ids.widget_id(self);
         match self {
             Self::Row(v) => LayoutNode::container(
                 id,
                 v.layout(LayoutKind::Row),
                 v.children
                     .iter()
-                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
             Self::Column(v) => LayoutNode::container(
@@ -481,7 +528,7 @@ impl<M> WidgetNode<M> {
                 v.layout(LayoutKind::Column),
                 v.children
                     .iter()
-                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
             Self::Stack(v) => LayoutNode::container(
@@ -489,7 +536,7 @@ impl<M> WidgetNode<M> {
                 v.layout(LayoutKind::Stack),
                 v.children
                     .iter()
-                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
             Self::Card(v) => LayoutNode::container(
@@ -502,7 +549,7 @@ impl<M> WidgetNode<M> {
                 },
                 v.children
                     .iter()
-                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
             Self::ScrollView(v) => LayoutNode::container(
@@ -510,7 +557,7 @@ impl<M> WidgetNode<M> {
                 v.layout(),
                 v.children
                     .iter()
-                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
             Self::Label(l) => {
@@ -586,17 +633,8 @@ impl<M> WidgetNode<M> {
                 },
                 vec![],
             ),
-            // Tooltip/Popover: keep the wrapper's id for the outer node by
-            // allocating a fresh id for the inner content so both are unique.
-            Self::Tooltip(v) => {
-                let _ = id;
-                *next -= 1;
-                v.child.to_layout_alloc_with_context(next, context)
-            }
-            Self::Popover(v) => {
-                let _ = id;
-                *next -= 1;
-                v.children[0].to_layout_alloc_with_context(next, context)
+            Self::Tooltip(_) | Self::Popover(_) => {
+                unreachable!("layout-transparent wrappers are resolved before an ID is taken")
             }
             Self::Menu(_) => LayoutNode::leaf(
                 id,
@@ -625,8 +663,7 @@ impl<M> WidgetNode<M> {
                 let visible = v.visible_nodes();
                 let mut child_nodes = Vec::with_capacity(visible.len());
                 for node in &visible {
-                    let leaf_id = NodeId::new(*next);
-                    *next += 1;
+                    let leaf_id = ids.synthetic_id();
                     child_nodes.push(LayoutNode::leaf(
                         leaf_id,
                         LayoutStyle {
@@ -656,8 +693,7 @@ impl<M> WidgetNode<M> {
                         .columns
                         .iter()
                         .map(|col| {
-                            let nid = NodeId::new(*next);
-                            *next += 1;
+                            let nid = ids.synthetic_id();
                             LayoutNode::leaf(
                                 nid,
                                 LayoutStyle {
@@ -668,8 +704,7 @@ impl<M> WidgetNode<M> {
                             )
                         })
                         .collect();
-                    let header_id = NodeId::new(*next);
-                    *next += 1;
+                    let header_id = ids.synthetic_id();
                     child_nodes.push(LayoutNode::container(
                         header_id,
                         LayoutStyle::row(),
@@ -681,8 +716,7 @@ impl<M> WidgetNode<M> {
                         .cells
                         .iter()
                         .map(|_| {
-                            let nid = NodeId::new(*next);
-                            *next += 1;
+                            let nid = ids.synthetic_id();
                             LayoutNode::leaf(
                                 nid,
                                 LayoutStyle {
@@ -692,8 +726,7 @@ impl<M> WidgetNode<M> {
                             )
                         })
                         .collect();
-                    let row_id = NodeId::new(*next);
-                    *next += 1;
+                    let row_id = ids.synthetic_id();
                     child_nodes.push(LayoutNode::container(
                         row_id,
                         LayoutStyle::row(),
@@ -715,8 +748,7 @@ impl<M> WidgetNode<M> {
                     .columns
                     .iter()
                     .map(|col| {
-                        let nid = NodeId::new(*next);
-                        *next += 1;
+                        let nid = ids.synthetic_id();
                         LayoutNode::leaf(
                             nid,
                             LayoutStyle {
@@ -727,8 +759,7 @@ impl<M> WidgetNode<M> {
                         )
                     })
                     .collect();
-                let header_id = NodeId::new(*next);
-                *next += 1;
+                let header_id = ids.synthetic_id();
                 child_nodes.push(LayoutNode::container(
                     header_id,
                     LayoutStyle::row(),
@@ -739,8 +770,7 @@ impl<M> WidgetNode<M> {
                         .cells
                         .iter()
                         .map(|_| {
-                            let nid = NodeId::new(*next);
-                            *next += 1;
+                            let nid = ids.synthetic_id();
                             LayoutNode::leaf(
                                 nid,
                                 LayoutStyle {
@@ -750,8 +780,7 @@ impl<M> WidgetNode<M> {
                             )
                         })
                         .collect();
-                    let row_id = NodeId::new(*next);
-                    *next += 1;
+                    let row_id = ids.synthetic_id();
                     child_nodes.push(LayoutNode::container(
                         row_id,
                         LayoutStyle::row(),
@@ -772,7 +801,7 @@ impl<M> WidgetNode<M> {
                 v.layout_style(),
                 v.children
                     .iter()
-                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
             Self::Sidebar(v) => LayoutNode::container(
@@ -780,7 +809,7 @@ impl<M> WidgetNode<M> {
                 v.layout_style(),
                 v.children
                     .iter()
-                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
             Self::TabBar(v) => LayoutNode::container(
@@ -788,7 +817,7 @@ impl<M> WidgetNode<M> {
                 v.layout_style(),
                 v.children
                     .iter()
-                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
             Self::Breadcrumb(v) => LayoutNode::container(
@@ -796,7 +825,7 @@ impl<M> WidgetNode<M> {
                 v.layout_style(),
                 v.children
                     .iter()
-                    .map(|c| c.to_layout_alloc_with_context(next, context))
+                    .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
         }
@@ -835,6 +864,54 @@ fn finite(value: f32) -> f32 {
         value.max(0.0)
     } else {
         0.0
+    }
+}
+
+/// Where the node IDs of one layout pass come from.
+///
+/// [`SequentialIds`] numbers every node in DFS order (the public
+/// `to_layout_with_context` contract). [`BoundIds`] takes retained IDs for
+/// widgets and synthetic IDs for nodes without a widget.
+trait LayoutIdSource {
+    /// ID of the node that `widget` produces.
+    fn widget_id<M>(&mut self, widget: &WidgetNode<M>) -> NodeId;
+    /// ID of a node that has no widget of its own.
+    fn synthetic_id(&mut self) -> NodeId;
+}
+
+/// Sequential IDs: every node, widget-derived or not, takes the next number.
+struct SequentialIds {
+    next: u64,
+}
+
+impl LayoutIdSource for SequentialIds {
+    fn widget_id<M>(&mut self, _widget: &WidgetNode<M>) -> NodeId {
+        self.synthetic_id()
+    }
+
+    fn synthetic_id(&mut self) -> NodeId {
+        let id = NodeId::new(self.next);
+        self.next += 1;
+        id
+    }
+}
+
+/// Retained IDs for bound widgets, synthetic IDs for everything else.
+struct BoundIds<'b, 'a> {
+    binding: &'b RetainedBinding<'a>,
+    synthetic: SyntheticIds,
+}
+
+impl LayoutIdSource for BoundIds<'_, '_> {
+    fn widget_id<M>(&mut self, widget: &WidgetNode<M>) -> NodeId {
+        match self.binding.id_for(widget) {
+            Some(id) => id,
+            None => self.synthetic.allocate(),
+        }
+    }
+
+    fn synthetic_id(&mut self) -> NodeId {
+        self.synthetic.allocate()
     }
 }
 

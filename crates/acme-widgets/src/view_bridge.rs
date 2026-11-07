@@ -1,7 +1,7 @@
 //! Bridge from [`WidgetNode`] to [`ViewNode`] for the runtime shadow tree.
 //!
 //! This module converts the declarative widget tree into a flat `Vec<ViewNode>`
-//! forest that can be fed to [`RetainedTree::reconcile_roots`] for diagnostics.
+//! forest that can be fed to [`acme_core::RetainedTree::reconcile_roots`] for diagnostics.
 //! It is purely diagnostic (Phase 1) — no functional changes to layout,
 //! paint, hit-testing, or accessibility.
 
@@ -199,6 +199,36 @@ fn widget_to_view<M>(widget: &WidgetNode<M>, parent_path: &str, index: usize) ->
         WidgetNode::Breadcrumb(v) => {
             container_view(Some(&v.key), "breadcrumb", &v.children, parent_path, index)
         }
+    }
+}
+
+/// The widget children that [`widget_to_views`] converts into `ViewNode`
+/// children, in the same order. [`crate::retained_binding`] walks the widget
+/// tree with this function so its node pairing matches the retained tree by
+/// construction; a unit test keeps the two traversals in sync.
+pub(crate) fn view_child_widgets<M>(widget: &WidgetNode<M>) -> Vec<&WidgetNode<M>> {
+    match widget {
+        WidgetNode::Row(v) => v.children.iter().collect(),
+        WidgetNode::Column(v) => v.children.iter().collect(),
+        WidgetNode::Stack(v) => v.children.iter().collect(),
+        WidgetNode::Card(v) => v.children.iter().collect(),
+        WidgetNode::ScrollView(v) => v.children.iter().collect(),
+        WidgetNode::VirtualList(v) => v.children.iter().collect(),
+        WidgetNode::NavRail(v) => v.children.iter().collect(),
+        WidgetNode::Sidebar(v) => v.children.iter().collect(),
+        WidgetNode::TabBar(v) => v.children.iter().collect(),
+        WidgetNode::Breadcrumb(v) => v.children.iter().collect(),
+        WidgetNode::Table(v) => v.all_cells.iter().collect(),
+        WidgetNode::DataGrid(v) => v.all_cells.iter().collect(),
+        WidgetNode::Tree(v) => v.children.iter().map(|node| &node.content).collect(),
+        WidgetNode::Tooltip(v) => vec![v.child.as_ref()],
+        WidgetNode::Popover(v) => v.children.iter().collect(),
+        WidgetNode::Dialog(v) => vec![v.content.as_ref()],
+        WidgetNode::Label(_)
+        | WidgetNode::Button(_)
+        | WidgetNode::Separator(_)
+        | WidgetNode::TextInput(_)
+        | WidgetNode::Menu(_) => Vec::new(),
     }
 }
 
