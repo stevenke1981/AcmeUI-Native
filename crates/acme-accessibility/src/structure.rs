@@ -18,12 +18,12 @@
 
 use std::collections::HashMap;
 
-use accesskit::{Node as AccessNode, NodeId as AccessNodeId, Rect, Role};
+use accesskit::{Action, Node as AccessNode, NodeId as AccessNodeId, Rect, Role};
 use acme_core::{NodeId, WidgetKey};
 use acme_layout::LayoutRect;
 use acme_widgets::{TableSelectionMode, Tree, TreeNode, VisibleNode, WidgetNode};
 
-use super::{Ctx, IdSource, Lowering, Walked, non_empty};
+use super::{Ctx, IdSource, Lowering, Slot, Walked, non_empty, walk};
 
 /// Height of one tree row, as the layout lowers each visible row.
 const TREE_ROW_HEIGHT: f32 = 24.0;
@@ -138,7 +138,13 @@ pub(super) fn tree_row_layouts<M: Clone>(
 /// Creates one `TreeItem` node per visible row of `tree`, in visible order,
 /// and returns their IDs for the `Tree` node's children. `own` is the tree's
 /// layout ID, whose rectangle is the fallback frame for the rows.
-pub(super) fn tree_item_ids<M: Clone>(
+///
+/// A row whose content holds more than plain text (a button, a text input, a
+/// nested composite) has that content walked as the item's child. Layout
+/// numbers no node for row content, so the walk takes no layout ID for it
+/// ([`Lowering::Unlowered`]) and the layout-ID order is unchanged. The
+/// content root reads the row's rectangle, since it has none of its own.
+pub(super) fn tree_item_ids<M: Clone + 'static>(
     tree: &Tree<M>,
     own: Option<NodeId>,
     rows: &[Option<NodeId>],
@@ -157,8 +163,26 @@ pub(super) fn tree_item_ids<M: Clone>(
             let layout = rows.get(index).copied().flatten();
             let bounds = layout_rect(ctx, layout)
                 .or_else(|| frame.map(|frame| item_bounds(frame, item.depth, index, tree.indent)));
-            let node = tree_item_node(tree, item, ctx.label_override, position, bounds);
+            let mut node = tree_item_node(tree, item, ctx.label_override, position, bounds);
             let id = ids.structural_identity(layout);
+            if !is_plain_content(&item.content) {
+                let content = walk(
+                    &item.content,
+                    ctx,
+                    ids,
+                    nodes,
+                    Slot::Plain,
+                    Lowering::Unlowered,
+                );
+                if let Some(bounds) = bounds
+                    && let Some((_, root)) =
+                        nodes.iter_mut().rev().find(|(id, _)| *id == content.id)
+                    && root.bounds().is_none()
+                {
+                    root.set_bounds(bounds);
+                }
+                node.set_children(vec![content.id]);
+            }
             nodes.push((id, node));
             id
         })
@@ -219,7 +243,19 @@ fn tree_item_node<M>(
     }
     // Items are selectable, so an unselected item states `false` explicitly.
     node.set_selected(tree.selected.as_ref() == Some(&item.key));
-    if let Some(name) = non_empty(name_of(&item.content, label_override)) {
+    // Every row can be focused and clicked (selected); a row with children can
+    // also expand or collapse, whichever it is not now.
+    node.add_action(Action::Focus);
+    node.add_action(Action::Click);
+    if item.has_children {
+        node.add_action(if item.expanded {
+            Action::Collapse
+        } else {
+            Action::Expand
+        });
+    }
+    let name = name_of(&item.content, label_override).or_else(|| control_name(&item.content));
+    if let Some(name) = non_empty(name) {
         node.set_label(name);
     }
     if let Some(bounds) = bounds {
@@ -628,6 +664,27 @@ fn name_of<'a, M>(widget: &'a WidgetNode<M>, label_override: Option<&'a str>) ->
     first_label_text(widget).map(|text| label_override.unwrap_or(text))
 }
 
+/// Whether row content is only text in plain containers, which adds no node.
+fn is_plain_content<M>(widget: &WidgetNode<M>) -> bool {
+    match widget {
+        WidgetNode::Label(_) => true,
+        WidgetNode::Row(_) | WidgetNode::Column(_) | WidgetNode::Stack(_) | WidgetNode::Card(_) => {
+            widget.children().iter().all(is_plain_content)
+        }
+        _ => false,
+    }
+}
+
+/// The name of the first control in `widget`, for content without a label.
+fn control_name<M>(widget: &WidgetNode<M>) -> Option<&str> {
+    match widget {
+        WidgetNode::Button(button) => non_empty(Some(button.label.as_str())),
+        WidgetNode::TextInput(input) => non_empty(Some(super::text_input_name(input))),
+        _ => None,
+    }
+    .or_else(|| widget.children().iter().find_map(control_name))
+}
+
 fn first_label_text<M>(widget: &WidgetNode<M>) -> Option<&str> {
     if let WidgetNode::Label(label) = widget {
         return Some(label.text.as_str());
@@ -641,3 +698,5 @@ mod tests;
 mod tests_layout_ids;
 #[cfg(test)]
 mod tests_support;
+#[cfg(test)]
+mod tests_tree_actions;

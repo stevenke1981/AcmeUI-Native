@@ -53,6 +53,12 @@ pub enum AccessibilityAction {
     ScrollIntoView(NodeId),
     /// Generic "activate" – press a button, toggle a switch, etc.
     Activate(NodeId),
+    /// Expand a collapsed tree item. Additive (ROADMAP 013): routed as a
+    /// row selection followed by the `ArrowRight` key, as the keyboard does.
+    Expand(NodeId),
+    /// Collapse an expanded tree item. Additive (ROADMAP 013): routed as a
+    /// row selection followed by the `ArrowLeft` key, as the keyboard does.
+    Collapse(NodeId),
 }
 
 /// Bridges the accessibility tree with one window.
@@ -174,8 +180,16 @@ impl AccessibilityAdapter {
     /// Returns `(x, y)` in logical pixels, or `None` if the node is not
     /// present in the snapshot.
     fn resolve_node_center(&self, id: NodeId) -> Option<(f32, f32)> {
-        let rect = self.snapshot.as_ref()?.get(id)?;
-        Some((rect.x + rect.width * 0.5, rect.y + rect.height * 0.5))
+        if let Some(rect) = self.snapshot.as_ref().and_then(|s| s.get(id)) {
+            return Some((rect.x + rect.width * 0.5, rect.y + rect.height * 0.5));
+        }
+        // A node with a virtual ID (retained walk) has no snapshot entry but
+        // carries the bounds of its layout node.
+        let tree = self.tree.as_ref()?;
+        let target = to_access_id(id);
+        let (_, node) = tree.nodes.iter().find(|(node_id, _)| *node_id == target)?;
+        let b = node.bounds()?;
+        Some((((b.x0 + b.x1) * 0.5) as f32, ((b.y0 + b.y1) * 0.5) as f32))
     }
 
     /// Route an accessibility action into corresponding platform event(s).
@@ -231,6 +245,42 @@ impl AccessibilityAdapter {
                     window: WindowId(self.window_id),
                     text: val.clone(),
                 }]
+            }
+            AccessibilityAction::Expand(id) | AccessibilityAction::Collapse(id) => {
+                let key = if matches!(action, AccessibilityAction::Expand(_)) {
+                    acme_platform::PlatformKey::ArrowRight
+                } else {
+                    acme_platform::PlatformKey::ArrowLeft
+                };
+                let window = WindowId(self.window_id);
+                let (cx, cy) = self.resolve_node_center(*id).unwrap_or((0.0, 0.0));
+                let key_event = |pressed| PlatformEvent::Key {
+                    window,
+                    key,
+                    pressed,
+                    shift: false,
+                    ctrl: false,
+                    text: None,
+                };
+                // Select the row as a click does, then expand or collapse it
+                // with the key the keyboard uses for the selected row.
+                vec![
+                    PlatformEvent::FocusChanged {
+                        window,
+                        gained: true,
+                        node_id: id.get(),
+                    },
+                    PlatformEvent::PointerButton {
+                        window,
+                        pressed: true,
+                        x: cx,
+                        y: cy,
+                        button: 0,
+                        pointer: 0,
+                    },
+                    key_event(true),
+                    key_event(false),
+                ]
             }
             AccessibilityAction::ScrollIntoView(id) => {
                 vec![PlatformEvent::AccessibilityScrollIntoView {
