@@ -27,4 +27,4 @@ pub use dispatch::{
     handle_tab_key, handle_tree_arrow_key,
 };
 pub use hit::hit_test;
-pub use ime::compute_ime_caret_rect;
+pub use ime::{compute_ime_caret_rect, refresh_ime_caret_rect, scroll_text_input_to_caret};

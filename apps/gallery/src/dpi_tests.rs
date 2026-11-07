@@ -7,8 +7,8 @@
 //! logical contract. Physical pixels are covered by D2, and real IME sessions
 //! remain a manual check.
 //!
-//! Known gaps are kept as `#[ignore = "BUG: ..."]` tests that fail when run
-//! with `--ignored`, so the failing contract stays executable.
+//! The two field-geometry regressions below failed before the ROADMAP 005 fix
+//! wave and now run by default.
 
 use acme_layout::LayoutSnapshot;
 
@@ -280,12 +280,10 @@ fn ime_caret_left_and_top_edges_stay_inside_the_focused_text_input_at_every_scal
     }
 }
 
-/// BUG (measured): the TextInput overlay is drawn in the marker label's layout
-/// rect, which is one line tall (21 px). The caret starts at `padding` (8 px)
-/// inside the field and is one line tall, so its bottom edge sits 8 px below
-/// the field. Run with `--ignored` to reproduce.
+/// Regression: the TextInput overlay used to be drawn in a one-line (21 px)
+/// marker rect, so the caret's bottom edge sat 8 px below the field. The
+/// marker now reserves the theme control height.
 #[test]
-#[ignore = "BUG: TextInput field is one line tall (21 px) so the caret bottom edge is 8 px outside it"]
 fn ime_caret_bottom_edge_stays_inside_the_text_input_at_every_scale() {
     for scale in SCALES {
         for (step, (caret, field)) in type_mixed_text(scale).into_iter().enumerate() {
@@ -301,11 +299,10 @@ fn ime_caret_bottom_edge_stays_inside_the_text_input_at_every_scale() {
     }
 }
 
-/// BUG (to be confirmed by the run): `scroll_offset` is only read by the text
-/// input, never written, so once text is wider than the field the caret keeps
-/// moving right and the IME candidate rect leaves the field. Run with `--ignored`.
+/// Regression: `scroll_offset` used to be read but never written, so overflowing
+/// text pushed the caret and IME candidate rect out of the field.
+/// `scroll_caret_into_view` now keeps the caret inside.
 #[test]
-#[ignore = "BUG: IME caret leaves the field once text overflows it (scroll_offset never updated)"]
 fn ime_caret_stays_inside_the_field_when_text_overflows() {
     let long_text = "abcdefghij".repeat(30);
     for scale in SCALES {
@@ -325,6 +322,12 @@ fn ime_caret_stays_inside_the_field_when_text_overflows() {
             "caret x {} past field right edge {} at scale {scale}: caret {caret:?} field {field:?}",
             caret[0],
             field[0] + field[2]
+        );
+        assert!(
+            caret[0] >= field[0],
+            "caret x {} before field left edge {} at scale {scale}",
+            caret[0],
+            field[0]
         );
     }
 }

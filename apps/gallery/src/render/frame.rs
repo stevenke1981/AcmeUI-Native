@@ -10,6 +10,7 @@ use acme_textinput::{TextInputState, render_text_input};
 use acme_theme::Theme;
 use acme_widgets::{ButtonState, WidgetNode, button};
 
+use crate::events::scroll_text_input_to_caret;
 use crate::render::layout::GalleryNodeIds;
 use crate::render::{add_text, find_text_input_marker, quad_rect, render_content};
 use crate::types::{CATEGORIES, Density, GalleryMessage};
@@ -235,6 +236,9 @@ pub fn render_text_input_overlay(ctx: &mut RenderCtx) {
                 let y = ph.y - ctx.scroll;
                 let rect = [ph.x, y, ph.width, ph.height];
                 *ctx.text_input_rect = rect;
+                // Keep the caret inside the field before the text is drawn, so
+                // the glyphs and the IME caret rect use the same scroll offset.
+                scroll_text_input_to_caret(ctx.text_input, rect, ctx.theme, ctx.fonts, ctx.scale);
                 let focused = ctx.text_input.focused;
                 render_text_input(
                     ctx.scene,
@@ -285,7 +289,8 @@ pub fn build_layout_context(theme: &Theme, scale_factor: f32) -> WidgetLayoutCon
         body_font_size: theme.typography.body,
         body_line_height: theme.typography.body * theme.typography.line_height,
         label_font_size: theme.typography.label,
-        control_height: 40.0,
+        // Theme `lg` control height (40 px); also the TextInput field height.
+        control_height: theme.control_height(3),
         scale_factor,
     }
 }

@@ -20,7 +20,7 @@
 use acme_platform::PlatformKey;
 use acme_textinput::TextInputState;
 
-use crate::events::{ActivationCtx, compute_ime_caret_rect, handle_message, hit_test};
+use crate::events::{ActivationCtx, handle_message, hit_test, refresh_ime_caret_rect};
 use crate::focus::{FocusTarget, target_at};
 use crate::render::{point_in_rect, scrolled_hit_rect};
 use crate::types::*;
@@ -65,7 +65,7 @@ pub fn handle_pointer_pressed(
     };
     text_input.focused = in_text;
     *ime_caret_window_rect =
-        compute_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
+        refresh_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
     *pressed = hit_test(button_info, cursor, scroll, scroll_clip_rect);
     true
 }
@@ -137,7 +137,7 @@ pub fn handle_tab_key(
     if text_input.focused {
         text_input.focused = false;
         *ime_caret_window_rect =
-            compute_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
+            refresh_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
     }
     let count = button_info.len();
     if count > 0 {
@@ -240,7 +240,7 @@ pub fn handle_general_key(
     };
     if changed {
         *ime_caret_window_rect =
-            compute_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
+            refresh_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
     }
     changed
 }
@@ -259,7 +259,7 @@ pub fn handle_ime_preedit(
 ) -> bool {
     text_input.set_preedit(text, None);
     *ime_caret_window_rect =
-        compute_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
+        refresh_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
     true
 }
 
@@ -278,7 +278,7 @@ pub fn handle_ime_commit(
     acme_textinput::handle_text(text_input, text);
     *ime_text = text_input.text.clone();
     *ime_caret_window_rect =
-        compute_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
+        refresh_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
     true
 }
 

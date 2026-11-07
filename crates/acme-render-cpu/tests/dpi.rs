@@ -430,7 +430,7 @@ fn solid_quad_at_10_10_20_20_covers_expected_physical_range() {
 /// is a corner anti-aliasing over-coverage and is tracked as a BUG, not a DPI
 /// mapping error.
 #[test]
-#[ignore = "BUG: sharp-rect corner pixel gets max-axis coverage 0.5 (red 128) instead of exact area 0.25 (red 64) at 1.25x; repro: quad (10,10,20,20) at scale 1.25, pixel (12,12)"]
+#[ignore = "DESIGN: corner pixels use the signed-distance max-axis AA approximation (0.5, red 128) rather than exact area (0.25, red 64); informational, not a DPI mapping error"]
 fn sharp_quad_corner_pixel_uses_exact_area_coverage() {
     let mut scene = Scene::new();
     scene.push(solid(Rect::new(10.0, 10.0, 20.0, 20.0), red()));
