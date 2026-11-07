@@ -1,23 +1,20 @@
 //! Virtual accessibility nodes for structure that has no widget identity.
 //!
-//! Tree rows, table and grid rows, and column headers are not widgets: the
-//! layout lowers them to synthetic leaves, and [`WidgetNode::children`] does
-//! not return them. The accessibility walk creates their AccessKit nodes from
-//! the parent widget's data instead:
+//! Tree rows, table and grid rows, and column headers are not widgets. Layout
+//! lowers them to leaves and containers with IDs of their own, and
+//! [`WidgetNode::children`] does not return them. The walk takes those IDs in
+//! layout's order (see `super::IdSource`), so each virtual node reads the
+//! rectangle of its layout node:
 //!
-//! - a `Tree` gets one `TreeItem` child per visible row, in visible order;
-//! - a `Table` or `DataGrid` whose cells fill whole rows gets a header `Row`
-//!   of `ColumnHeader` nodes, then one `Row` per data row. Cells keep the
-//!   role their own widget gives them (see the walk in `lib.rs`).
+//! - a `Tree` gets one `TreeItem` per visible row, in visible order;
+//! - a `Table` or `DataGrid` gets a header `Row` of `ColumnHeader` nodes and
+//!   one `Row` per data row, grouped by each row's own cells. A grid whose
+//!   flattened cells do not match its rows, or that has no columns, keeps its
+//!   cells flat. Cells keep the role their own widget gives them.
 //!
-//! Virtual nodes take IDs from `IdSource::allocate_virtual`: a counter in a
-//! sequential walk, and [`VirtualIds`] in a retained walk. Both are
-//! deterministic for an unchanged description. The retained-walk range sits
-//! above layout's synthetic IDs, so a virtual node never reads the layout
-//! rectangle of another node.
-//!
-//! Rectangles of virtual nodes are computed from their parent's layout
-//! rectangle and the same constants layout lowering uses, not looked up by ID.
+//! Node IDs: in a sequential walk a virtual node's ID is its layout ID. In a
+//! retained walk it comes from [`VirtualIds`], above layout's synthetic IDs,
+//! so it never reads another node's rectangle.
 
 use std::collections::HashMap;
 
@@ -26,7 +23,7 @@ use acme_core::{NodeId, WidgetKey};
 use acme_layout::LayoutRect;
 use acme_widgets::{TableSelectionMode, Tree, TreeNode, VisibleNode, WidgetNode};
 
-use super::{IdSource, non_empty};
+use super::{Ctx, IdSource, Lowering, Walked, non_empty};
 
 /// Height of one tree row, as the layout lowers each visible row.
 const TREE_ROW_HEIGHT: f32 = 24.0;
@@ -37,17 +34,15 @@ const TREE_ROW_HEIGHT: f32 = 24.0;
 /// reach the layout, so they are not used here either.
 const GRID_ROW_HEIGHT: f32 = 24.0;
 
-/// First ID of the range that virtual nodes use in a retained walk.
+/// The first ID of the range that virtual nodes use: the absolute value 2^56.
 ///
-/// Layout gives its own synthetic leaves (tree rows, table rows and cells) IDs
-/// counting up from `SYNTHETIC_ID_BASE`, and the walk's snapshot is keyed by
-/// `NodeId`. A virtual node that reused one of those IDs would read the
-/// rectangle of a layout node it does not correspond to, and a click on it
-/// would land there. This base is 2^56 above `SYNTHETIC_ID_BASE`, far beyond
-/// any number of layout allocations, so the two ranges never meet.
+/// The walk's snapshot is keyed by `NodeId`. Layout numbers its synthetic
+/// leaves from `SYNTHETIC_ID_BASE` (2^48) upward, one per layout node, so they
+/// stay far below 2^56. A virtual node in this range never reads another
+/// node's rectangle.
 pub(crate) const VIRTUAL_ID_BASE: u64 = 1 << 56;
 
-/// Allocator for virtual nodes in a retained walk. See [`VIRTUAL_ID_BASE`].
+/// Allocator for virtual nodes. See [`VIRTUAL_ID_BASE`].
 #[derive(Debug)]
 pub(crate) struct VirtualIds {
     next: u64,
@@ -90,29 +85,14 @@ impl CellPlace {
     }
 }
 
-/// The place of cell `index` in a grid of `columns` columns and `cells` cells,
-/// when the cells fill whole rows. `None` means the flat layout applies.
-pub(crate) fn cell_place(columns: usize, cells: usize, index: usize) -> Option<CellPlace> {
-    data_rows(columns, cells)?;
-    Some(CellPlace {
-        data_row: index / columns,
-        column: index % columns,
-    })
-}
-
-/// Number of data rows when `cells` cells fill whole rows of `columns`
-/// columns. Zero columns never tile, so they always take the flat layout.
-///
-/// Limitation: a table or grid's `children()` is only its flat cell list, so
-/// a ragged table whose cell count divides evenly by its column count (two
-/// columns, one row of one cell and one row of three cells) is grouped as if
-/// it were rectangular. The stored rows are not consulted, and `children()`
-/// cannot show that the table is ragged.
-fn data_rows(columns: usize, cells: usize) -> Option<usize> {
-    if columns == 0 || cells % columns != 0 {
-        return None;
-    }
-    Some(cells / columns)
+/// The AccessKit rectangle of a layout rectangle.
+pub(super) fn rect_of(rect: LayoutRect) -> Rect {
+    Rect::new(
+        f64::from(rect.x),
+        f64::from(rect.y),
+        f64::from(rect.x + rect.width),
+        f64::from(rect.y + rect.height),
+    )
 }
 
 /// Clips the rectangle from (`left`, `top`) to (`right`, `bottom`) to `frame`.
@@ -131,34 +111,54 @@ fn clipped(frame: LayoutRect, left: f32, top: f32, right: f32, bottom: f32) -> R
     )
 }
 
+/// The snapshot rectangle of a layout node, if it has one.
+fn layout_rect(ctx: Ctx<'_>, layout: Option<NodeId>) -> Option<Rect> {
+    layout
+        .and_then(|id| ctx.snapshot.get(id).copied())
+        .map(rect_of)
+}
+
 // ============================================================================
 // Trees
 // ============================================================================
 
+/// The layout IDs of a tree's visible rows, one per row in visible order. The
+/// rows are lowered, and so take IDs, only when `lowered` is set.
+pub(super) fn tree_row_layouts<M: Clone>(
+    tree: &Tree<M>,
+    lowered: bool,
+    ids: &mut IdSource<'_, '_>,
+) -> Vec<Option<NodeId>> {
+    tree.visible_nodes()
+        .iter()
+        .map(|_| lowered.then(|| ids.structural()))
+        .collect()
+}
+
 /// Creates one `TreeItem` node per visible row of `tree`, in visible order,
-/// and returns their IDs for the `Tree` node's children.
+/// and returns their IDs for the `Tree` node's children. `own` is the tree's
+/// layout ID, whose rectangle is the fallback frame for the rows.
 pub(super) fn tree_item_ids<M: Clone>(
     tree: &Tree<M>,
-    tree_rect: Option<LayoutRect>,
-    label_override: Option<&str>,
+    own: Option<NodeId>,
+    rows: &[Option<NodeId>],
+    ctx: Ctx<'_>,
     ids: &mut IdSource<'_, '_>,
     nodes: &mut Vec<(AccessNodeId, AccessNode)>,
 ) -> Vec<AccessNodeId> {
+    let frame = own.and_then(|id| ctx.snapshot.get(id).copied());
     let visible = tree.visible_nodes();
     let positions = sibling_positions(tree, &visible);
     visible
         .iter()
         .enumerate()
-        .map(|(index, item)| {
-            let node = tree_item_node(
-                tree,
-                item,
-                index,
-                tree_rect,
-                label_override,
-                positions[index],
-            );
-            let id = ids.allocate_virtual();
+        .zip(positions)
+        .map(|((index, item), position)| {
+            let layout = rows.get(index).copied().flatten();
+            let bounds = layout_rect(ctx, layout)
+                .or_else(|| frame.map(|frame| item_bounds(frame, item.depth, index, tree.indent)));
+            let node = tree_item_node(tree, item, ctx.label_override, position, bounds);
+            let id = ids.structural_identity(layout);
             nodes.push((id, node));
             id
         })
@@ -205,10 +205,9 @@ fn record_parents<M>(
 fn tree_item_node<M>(
     tree: &Tree<M>,
     item: &VisibleNode<M>,
-    index: usize,
-    tree_rect: Option<LayoutRect>,
     label_override: Option<&str>,
     (position, size): (usize, usize),
+    bounds: Option<Rect>,
 ) -> AccessNode {
     let mut node = AccessNode::new(Role::TreeItem);
     node.set_level(item.depth + 1);
@@ -223,14 +222,14 @@ fn tree_item_node<M>(
     if let Some(name) = non_empty(name_of(&item.content, label_override)) {
         node.set_label(name);
     }
-    if let Some(rect) = tree_rect {
-        node.set_bounds(item_bounds(rect, item.depth, index, tree.indent));
+    if let Some(bounds) = bounds {
+        node.set_bounds(bounds);
     }
     node
 }
 
-/// Bounds of the row at `index` and `depth` inside a tree at `tree`, clipped
-/// to the tree's rectangle.
+/// Fallback bounds of the row at `index` and `depth` in a tree at `tree`,
+/// clipped to the tree. Used only when the layout has no rectangle for the row.
 fn item_bounds(tree: LayoutRect, depth: usize, index: usize, indent: f32) -> Rect {
     let inset = depth as f32 * indent;
     let left = tree.x + inset;
@@ -243,136 +242,313 @@ fn item_bounds(tree: LayoutRect, depth: usize, index: usize, indent: f32) -> Rec
 // Tables and grids
 // ============================================================================
 
-/// The columns, selection and selectable kinds of a table or grid.
-struct GridParts<'a, M> {
-    /// Each column's header and width, in column order.
-    columns: Vec<(&'a WidgetNode<M>, f32)>,
-    selected_row: Option<usize>,
-    rows_selectable: bool,
+/// The shape of a table or grid: its column count, the cell count of each
+/// row, and whether layout lowers a header row for it.
+struct Shape {
+    columns: usize,
+    rows: Vec<usize>,
+    header: bool,
 }
 
-fn grid_parts<M>(node: &WidgetNode<M>) -> Option<GridParts<'_, M>> {
+fn shape<M>(node: &WidgetNode<M>) -> Option<Shape> {
     match node {
-        WidgetNode::Table(table) => Some(GridParts {
-            columns: table
-                .columns
-                .iter()
-                .map(|column| (&column.header, column.width))
-                .collect(),
-            selected_row: table.selected_row,
-            rows_selectable: matches!(
-                table.selection_mode,
-                TableSelectionMode::Row | TableSelectionMode::MultiRow
-            ),
+        WidgetNode::Table(table) => Some(Shape {
+            columns: table.columns.len(),
+            rows: table.rows.iter().map(|row| row.cells.len()).collect(),
+            // Layout lowers a Table's header only when it has columns.
+            header: !table.columns.is_empty(),
         }),
-        WidgetNode::DataGrid(grid) => Some(GridParts {
-            columns: grid
-                .columns
-                .iter()
-                .map(|column| (&column.header, column.width))
-                .collect(),
-            selected_row: None,
-            rows_selectable: false,
+        WidgetNode::DataGrid(grid) => Some(Shape {
+            columns: grid.columns.len(),
+            rows: grid.rows.iter().map(|row| row.cells.len()).collect(),
+            header: true,
         }),
         _ => None,
     }
 }
 
-/// Whether the cells of a table or grid take a selection state, so that the
-/// unselected ones state `false`. A table selects cells only in `Cell` mode;
-/// a grid selects cells in any mode but `None`.
-pub(crate) fn cells_selectable<M>(node: &WidgetNode<M>) -> bool {
+/// Whether a grid's cells group into rows: it has columns, and its flattened
+/// children are exactly the cells of its rows. Otherwise the cells stay flat.
+pub(super) fn grouped<M>(node: &WidgetNode<M>) -> bool {
+    shape(node)
+        .is_some_and(|s| s.columns > 0 && s.rows.iter().sum::<usize>() == node.children().len())
+}
+
+/// The selection of a table or grid, as its mode and selected cell allow.
+struct Selection {
+    row: Option<usize>,
+    rows_selectable: bool,
+    cell: Option<(usize, usize)>,
+    cells_selectable: bool,
+}
+
+fn selection<M>(node: &WidgetNode<M>) -> Selection {
     match node {
-        WidgetNode::Table(table) => matches!(table.selection_mode, TableSelectionMode::Cell),
-        WidgetNode::DataGrid(grid) => !matches!(grid.selection_mode, TableSelectionMode::None),
-        _ => false,
+        WidgetNode::Table(table) => Selection {
+            row: table.selected_row,
+            rows_selectable: matches!(
+                table.selection_mode,
+                TableSelectionMode::Row | TableSelectionMode::MultiRow
+            ),
+            cell: table.selected_cell,
+            cells_selectable: matches!(table.selection_mode, TableSelectionMode::Cell),
+        },
+        WidgetNode::DataGrid(grid) => Selection {
+            row: None,
+            rows_selectable: false,
+            cell: grid.selected_cell,
+            cells_selectable: !matches!(grid.selection_mode, TableSelectionMode::None),
+        },
+        _ => Selection {
+            row: None,
+            rows_selectable: false,
+            cell: None,
+            cells_selectable: false,
+        },
     }
 }
 
-/// Groups the cells of a table or grid into rows.
-///
-/// The result is a header `Row` of `ColumnHeader` nodes followed by one `Row`
-/// per data row, and the IDs of those rows are returned for the grid's
-/// children. `table_rect` is the grid's layout rectangle; without it the rows
-/// and headers have no bounds. Returns `None`, and allocates nothing, when
-/// `node` is not a grid or its cells do not fill whole rows; the caller then
-/// keeps the flat cells.
+/// Each column's header widget and width, in column order.
+fn grid_columns<M>(node: &WidgetNode<M>) -> Vec<(&WidgetNode<M>, f32)> {
+    match node {
+        WidgetNode::Table(table) => table
+            .columns
+            .iter()
+            .map(|column| (&column.header, column.width))
+            .collect(),
+        WidgetNode::DataGrid(grid) => grid
+            .columns
+            .iter()
+            .map(|column| (&column.header, column.width))
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// The layout IDs of one grid line: the leaves of its cells (or of its column
+/// headers, for the header line), and its row container. `None` where layout
+/// does not lower the grid.
+pub(super) struct Line {
+    leaves: Vec<Option<NodeId>>,
+    row: Option<NodeId>,
+}
+
+/// The layout IDs of a table or grid, in the order layout lowering takes them:
+/// the header leaves and the header row, then each row's cell leaves and its
+/// row container.
+#[derive(Default)]
+pub(super) struct GridLayout {
+    header: Option<Line>,
+    rows: Vec<Line>,
+}
+
+/// Takes the layout IDs of a table or grid, in layout's order. Nothing is
+/// taken unless `lowered` is set.
+pub(super) fn plan_grid<M>(
+    node: &WidgetNode<M>,
+    lowered: bool,
+    ids: &mut IdSource<'_, '_>,
+) -> GridLayout {
+    let Some(shape) = shape(node) else {
+        return GridLayout::default();
+    };
+    let mut take = || lowered.then(|| ids.structural());
+    let header = shape.header.then(|| Line {
+        leaves: (0..shape.columns).map(|_| take()).collect(),
+        row: take(),
+    });
+    let rows = shape
+        .rows
+        .iter()
+        .map(|&cells| Line {
+            leaves: (0..cells).map(|_| take()).collect(),
+            row: take(),
+        })
+        .collect();
+    GridLayout { header, rows }
+}
+
+/// How layout lowers one flat child of a grid, and where that child sits.
+pub(super) struct CellSlot {
+    pub(super) lowering: Lowering,
+    pub(super) place: Option<CellPlace>,
+    pub(super) selected: Option<bool>,
+}
+
+/// How layout lowers each flat child (cell) of a grid, and where it sits. The
+/// cells are matched to layout's leaves through the grid's rows, which is only
+/// possible when the flat children are exactly those rows' cells; otherwise
+/// every cell is unlowered and flat.
+pub(super) fn cell_slots<M>(node: &WidgetNode<M>, layout: &GridLayout) -> Vec<CellSlot> {
+    let cells = node.children().len();
+    let positions: Vec<(usize, usize, Option<NodeId>)> = layout
+        .rows
+        .iter()
+        .enumerate()
+        .flat_map(|(data_row, line)| {
+            line.leaves
+                .iter()
+                .enumerate()
+                .map(move |(column, leaf)| (data_row, column, *leaf))
+        })
+        .collect();
+    let aligned = positions.len() == cells;
+    let is_grouped = grouped(node);
+    let selection = selection(node);
+    (0..cells)
+        .map(|index| {
+            if !aligned {
+                return CellSlot {
+                    lowering: Lowering::Unlowered,
+                    place: None,
+                    selected: None,
+                };
+            }
+            let (data_row, column, leaf) = positions[index];
+            // A flat grid has no row structure, so its cells state no place.
+            let place = is_grouped.then_some(CellPlace { data_row, column });
+            let selected = place.and_then(|place| {
+                if selection.cell == Some((place.data_row, place.column)) {
+                    Some(true)
+                } else if selection.cells_selectable {
+                    Some(false)
+                } else {
+                    None
+                }
+            });
+            CellSlot {
+                lowering: leaf.map_or(Lowering::Unlowered, Lowering::Cell),
+                place,
+                selected,
+            }
+        })
+        .collect()
+}
+
+/// Creates the header and data rows of a grouped grid as nodes, and returns
+/// their IDs for the grid's children. Returns `None` when the grid is flat, in
+/// which case nothing is created. `own` is the grid's layout ID; its rectangle
+/// is the fallback frame for the rows.
 pub(super) fn grid_row_ids<M: Clone>(
     node: &WidgetNode<M>,
-    cells: &[(AccessNodeId, NodeId)],
-    table_rect: Option<LayoutRect>,
-    label_override: Option<&str>,
+    layout: &GridLayout,
+    own: Option<NodeId>,
+    children: &[Walked],
+    ctx: Ctx<'_>,
     ids: &mut IdSource<'_, '_>,
     nodes: &mut Vec<(AccessNodeId, AccessNode)>,
 ) -> Option<Vec<AccessNodeId>> {
-    let parts = grid_parts(node)?;
-    let columns = parts.columns.len();
-    data_rows(columns, cells.len())?;
-
-    let spans = column_spans(&parts.columns);
-    let header_cells: Vec<AccessNodeId> = parts
-        .columns
-        .iter()
-        .zip(spans)
-        .enumerate()
-        .map(|(column, ((header, _), (start, end)))| {
-            let mut access = AccessNode::new(Role::ColumnHeader);
-            if let Some(name) = non_empty(name_of(header, label_override)) {
-                access.set_label(name);
-            }
-            access.set_column_index(column);
-            access.set_row_index(0);
-            if let Some(frame) = table_rect {
-                let (left, right) = (frame.x + start, frame.x + end);
-                access.set_bounds(clipped(
-                    frame,
-                    left,
-                    frame.y,
-                    right,
-                    frame.y + GRID_ROW_HEIGHT,
-                ));
-            }
-            let id = ids.allocate_virtual();
-            nodes.push((id, access));
-            id
-        })
-        .collect();
-
+    if !grouped(node) {
+        return None;
+    }
+    let header = layout.header.as_ref()?;
+    let frame = own.and_then(|id| ctx.snapshot.get(id).copied());
+    let header_children = column_header_ids(node, header, frame, ctx, ids, nodes);
+    let header_bounds = row_bounds(ctx, frame, header.row, 0);
     let mut row_ids = vec![push_row(
         ids,
         nodes,
+        header.row,
         0,
-        header_cells,
-        row_bounds(table_rect, 0),
+        header_children,
+        header_bounds,
         None,
     )];
-    for (data_row, row_cells) in cells.chunks(columns).enumerate() {
-        let children = row_cells.iter().map(|&(id, _)| id).collect();
-        let selected = if parts.selected_row == Some(data_row) {
+    let selection = selection(node);
+    row_ids.extend(data_row_ids(
+        layout, &selection, frame, children, ctx, ids, nodes,
+    ));
+    Some(row_ids)
+}
+
+/// Creates the column header nodes of a grouped grid, one per column in order,
+/// and returns their IDs.
+fn column_header_ids<M: Clone>(
+    node: &WidgetNode<M>,
+    header: &Line,
+    frame: Option<LayoutRect>,
+    ctx: Ctx<'_>,
+    ids: &mut IdSource<'_, '_>,
+    nodes: &mut Vec<(AccessNodeId, AccessNode)>,
+) -> Vec<AccessNodeId> {
+    let columns = grid_columns(node);
+    let spans = column_spans(columns.iter().map(|&(_, width)| width));
+    let mut header_ids = Vec::with_capacity(columns.len());
+    for (column, ((widget, _), (start, end))) in columns.iter().zip(spans).enumerate() {
+        let leaf = header.leaves.get(column).copied().flatten();
+        let mut access = AccessNode::new(Role::ColumnHeader);
+        if let Some(name) = non_empty(name_of(widget, ctx.label_override)) {
+            access.set_label(name);
+        }
+        access.set_column_index(column);
+        access.set_row_index(0);
+        let bounds = layout_rect(ctx, leaf).or_else(|| {
+            frame.map(|frame| {
+                clipped(
+                    frame,
+                    frame.x + start,
+                    frame.y,
+                    frame.x + end,
+                    frame.y + GRID_ROW_HEIGHT,
+                )
+            })
+        });
+        if let Some(bounds) = bounds {
+            access.set_bounds(bounds);
+        }
+        let id = ids.structural_identity(leaf);
+        nodes.push((id, access));
+        header_ids.push(id);
+    }
+    header_ids
+}
+
+/// Creates the data row nodes of a grouped grid, one per row of `layout`, each
+/// holding the walked cells of that row, and returns their IDs.
+fn data_row_ids(
+    layout: &GridLayout,
+    selection: &Selection,
+    frame: Option<LayoutRect>,
+    children: &[Walked],
+    ctx: Ctx<'_>,
+    ids: &mut IdSource<'_, '_>,
+    nodes: &mut Vec<(AccessNodeId, AccessNode)>,
+) -> Vec<AccessNodeId> {
+    let mut offset = 0;
+    let mut row_ids = Vec::with_capacity(layout.rows.len());
+    for (data_row, line) in layout.rows.iter().enumerate() {
+        let len = line.leaves.len();
+        let row_children = children[offset..offset + len]
+            .iter()
+            .map(|child| child.id)
+            .collect();
+        offset += len;
+        let selected = if selection.row == Some(data_row) {
             Some(true)
-        } else if parts.rows_selectable {
+        } else if selection.rows_selectable {
             Some(false)
         } else {
             None
         };
+        let bounds = row_bounds(ctx, frame, line.row, data_row + 1);
         row_ids.push(push_row(
             ids,
             nodes,
+            line.row,
             data_row + 1,
-            children,
-            row_bounds(table_rect, data_row + 1),
+            row_children,
+            bounds,
             selected,
         ));
     }
-    Some(row_ids)
+    row_ids
 }
 
 /// The horizontal extent of each column, as offsets from the table's left
 /// edge. Columns sit side by side in order.
-fn column_spans<M>(columns: &[(&WidgetNode<M>, f32)]) -> Vec<(f32, f32)> {
-    columns
-        .iter()
-        .scan(0.0_f32, |start, &(_, width)| {
+fn column_spans(widths: impl Iterator<Item = f32>) -> Vec<(f32, f32)> {
+    widths
+        .scan(0.0_f32, |start, width| {
             let from = *start;
             *start += width;
             Some((from, *start))
@@ -380,24 +556,33 @@ fn column_spans<M>(columns: &[(&WidgetNode<M>, f32)]) -> Vec<(f32, f32)> {
         .collect()
 }
 
-/// The rectangle of grid row `index` (`0` is the header row): the full table
-/// width, one row high, clipped to the table.
-fn row_bounds(table_rect: Option<LayoutRect>, index: usize) -> Option<Rect> {
-    let top = index as f32 * GRID_ROW_HEIGHT;
-    table_rect.map(|frame| {
-        clipped(
-            frame,
-            frame.x,
-            frame.y + top,
-            frame.x + frame.width,
-            frame.y + top + GRID_ROW_HEIGHT,
-        )
+/// The rectangle of grid row `index` (`0` is the header row). The layout's
+/// rectangle is used; without one, the table's width one row high at `index`,
+/// clipped to the table.
+fn row_bounds(
+    ctx: Ctx<'_>,
+    frame: Option<LayoutRect>,
+    layout: Option<NodeId>,
+    index: usize,
+) -> Option<Rect> {
+    layout_rect(ctx, layout).or_else(|| {
+        frame.map(|frame| {
+            let top = frame.y + index as f32 * GRID_ROW_HEIGHT;
+            clipped(
+                frame,
+                frame.x,
+                top,
+                frame.x + frame.width,
+                top + GRID_ROW_HEIGHT,
+            )
+        })
     })
 }
 
 fn push_row(
     ids: &mut IdSource<'_, '_>,
     nodes: &mut Vec<(AccessNodeId, AccessNode)>,
+    layout: Option<NodeId>,
     row_index: usize,
     children: Vec<AccessNodeId>,
     bounds: Option<Rect>,
@@ -412,22 +597,23 @@ fn push_row(
     if let Some(selected) = selected {
         access.set_selected(selected);
     }
-    let id = ids.allocate_virtual();
+    let id = ids.structural_identity(layout);
     nodes.push((id, access));
     id
 }
 
-/// Sets the row and column counts of a table or grid that has a row layout.
-/// The row count includes the header row. A flat grid states no counts.
+/// Sets the row and column counts of a grouped table or grid. The row count
+/// includes the header row. The column count is the wider of the column list
+/// and the widest row, so every cell's column index is below it. A flat grid
+/// states no counts.
 pub(super) fn set_grid_counts<M>(node: &WidgetNode<M>, access: &mut AccessNode) {
-    let columns = match node {
-        WidgetNode::Table(table) => table.columns.len(),
-        WidgetNode::DataGrid(grid) => grid.columns.len(),
-        _ => return,
-    };
-    if let Some(rows) = data_rows(columns, node.children().len()) {
-        access.set_row_count(rows + 1);
-        access.set_column_count(columns);
+    if !grouped(node) {
+        return;
+    }
+    if let Some(shape) = shape(node) {
+        let widest = shape.rows.iter().copied().max().unwrap_or(0);
+        access.set_row_count(shape.rows.len() + 1);
+        access.set_column_count(shape.columns.max(widest));
     }
 }
 
@@ -451,3 +637,7 @@ fn first_label_text<M>(widget: &WidgetNode<M>) -> Option<&str> {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_layout_ids;
+#[cfg(test)]
+mod tests_support;
