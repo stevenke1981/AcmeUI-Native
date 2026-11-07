@@ -10,6 +10,35 @@ targets = [
     "wasm32-unknown-unknown",
 ]
 
+# License policy for the dependency graph of the targets above (cargo-deny 0.20 schema).
+# Only license terms that are actually required by a crate are allowed. Where a crate
+# offers a permissive alternative in an OR expression (e.g. "MIT OR Apache-2.0 OR
+# LGPL-2.1-or-later", "Apache-2.0 OR GPL-2.0-only", "Unlicense OR MIT"), cargo-deny
+# accepts the permissive alternative, so copyleft alternatives are not listed here.
+# Workspace crates are MIT OR Apache-2.0 (see [workspace.package] in Cargo.toml).
+[licenses]
+allow = [
+    # Dual-license default for most crates (e.g. wgpu, winit, cosmic-text, taffy).
+    "MIT",
+    # Dual-license default and required by crates such as ab_glyph, winit, accesskit_winit.
+    "Apache-2.0",
+    # Required by unicode-ident (AND-combined with MIT OR Apache-2.0).
+    "Unicode-3.0",
+    # Required by tiny-skia, tiny-skia-path (BSD-3-Clause, single license).
+    "BSD-3-Clause",
+    # Required by arrayref (BSD-2-Clause, single license).
+    "BSD-2-Clause",
+    # Required by clipboard-win and error-code (BSL-1.0, single license).
+    "BSL-1.0",
+    # Required by foldhash and slotmap (Zlib, single license).
+    "Zlib",
+    # Required by libloading (ISC, single license).
+    "ISC",
+    # Required by hexf-parse (CC0-1.0, public-domain dedication, single license).
+    "CC0-1.0",
+]
+confidence-threshold = 0.8
+
 [bans]
 multiple-versions = "warn"
 wildcards = "allow"
@@ -20,3 +49,9 @@ unknown-git = "deny"
 required-git-spec = "rev"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 unused-allowed-source = "allow"
+
+# 變更歷史
+# | 版本 | 日期       | 內容                                                                 |
+# |------|------------|----------------------------------------------------------------------|
+# | v1.1 | 2026-11-07 | ROADMAP 007 P2: 新增 [licenses] allow（9 項，逐項必要性已驗證）與 confidence-threshold；說明見 docs/guides/LICENSES.md |
+# | v1.0 | 既有       | [graph] / [bans] / [sources] 原始設定                                 |
