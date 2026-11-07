@@ -8,7 +8,8 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 use accesskit::{
-    Action, Invalid, Node as AccessNode, NodeId as AccessNodeId, Rect, Role, Tree, TreeUpdate,
+    Action, ActionData, ActionRequest, Invalid, Node as AccessNode, NodeId as AccessNodeId, Rect,
+    Role, Tree, TreeUpdate,
 };
 use acme_core::NodeId;
 use acme_layout::LayoutSnapshot;
@@ -17,6 +18,8 @@ use acme_widgets::retained_binding::{RetainedBinding, SyntheticIds};
 use acme_widgets::{TextInput, WidgetNode};
 
 mod structure;
+#[cfg(test)]
+mod tests_requests;
 
 /// Re-export AccessKit types used in the public API.
 pub use accesskit::{Node as AccNode, NodeId as AccNodeId};
@@ -25,6 +28,16 @@ pub use accesskit::{Node as AccNode, NodeId as AccNodeId};
 #[inline]
 pub fn to_access_id(id: NodeId) -> AccessNodeId {
     AccessNodeId::from(id.get())
+}
+
+/// How far inside a tree row's trailing edge a press lands, in logical pixels.
+const TREE_ITEM_PRESS_INSET: f64 = 2.0;
+
+/// Converts an AccessKit [`AccessNodeId`] back to an AcmeUI [`NodeId`]: the
+/// exact inverse of [`to_access_id`], for layout IDs and virtual IDs alike.
+#[inline]
+pub fn from_access_id(id: AccessNodeId) -> NodeId {
+    NodeId::new(id.0)
 }
 
 /// A snapshot of the accessibility tree for one window.
@@ -59,6 +72,37 @@ pub enum AccessibilityAction {
     /// Collapse an expanded tree item. Additive (ROADMAP 013): routed as a
     /// row selection followed by the `ArrowLeft` key, as the keyboard does.
     Collapse(NodeId),
+}
+
+impl AccessibilityAction {
+    /// Converts an AccessKit [`ActionRequest`] (what a platform adapter or a
+    /// screen reader delivers) into an action. Pure, and never panics.
+    ///
+    /// | AccessKit action   | Result                                                   |
+    /// | ------------------ | -------------------------------------------------------- |
+    /// | `Focus`            | [`AccessibilityAction::Focus`]                           |
+    /// | `Click`            | [`AccessibilityAction::Click`] (AccessKit 0.21 has no separate default action) |
+    /// | `Expand`/`Collapse`| [`AccessibilityAction::Expand`] / [`AccessibilityAction::Collapse`] |
+    /// | `ScrollIntoView`   | [`AccessibilityAction::ScrollIntoView`]                  |
+    /// | `SetValue`         | [`AccessibilityAction::SetValue`], only with [`ActionData::Value`] |
+    ///
+    /// Any other action, or `SetValue` without a string value, is `None`. The
+    /// target is converted with [`from_access_id`].
+    pub fn from_request(request: &ActionRequest) -> Option<Self> {
+        let target = from_access_id(request.target);
+        match request.action {
+            Action::Focus => Some(Self::Focus(target)),
+            Action::Click => Some(Self::Click(target)),
+            Action::Expand => Some(Self::Expand(target)),
+            Action::Collapse => Some(Self::Collapse(target)),
+            Action::ScrollIntoView => Some(Self::ScrollIntoView(target)),
+            Action::SetValue => match &request.data {
+                Some(ActionData::Value(value)) => Some(Self::SetValue(target, value.to_string())),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
 }
 
 /// Bridges the accessibility tree with one window.
@@ -192,6 +236,44 @@ impl AccessibilityAdapter {
         Some((((b.x0 + b.x1) * 0.5) as f32, ((b.y0 + b.y1) * 0.5) as f32))
     }
 
+    /// Route an AccessKit [`ActionRequest`]: [`AccessibilityAction::from_request`]
+    /// followed by [`AccessibilityAdapter::route_action`]. An unsupported
+    /// request yields no events.
+    ///
+    /// # Wiring a platform adapter
+    ///
+    /// Implement `accesskit::ActionHandler::do_action` (for example behind
+    /// `accesskit_winit`) so that it forwards each request to the UI thread,
+    /// call `handle_request` there, and dispatch the returned events in order
+    /// through the normal event pipeline.
+    pub fn handle_request(&self, request: &ActionRequest) -> Vec<PlatformEvent> {
+        AccessibilityAction::from_request(request)
+            .map(|action| self.route_action(&action))
+            .unwrap_or_default()
+    }
+
+    /// The point a pointer press targets for `id`. A `TreeItem` is pressed at
+    /// its trailing edge, inside the row, so the press selects the row instead
+    /// of landing on its content. Row content (a checkbox, a disclosure arrow,
+    /// an icon, a button) sits at the leading edge or the centre, and the end
+    /// of a row is usually empty. Every other node is pressed at its centre.
+    fn press_point(&self, id: NodeId) -> (f32, f32) {
+        let tree_item_bounds = self.tree.as_ref().and_then(|tree| {
+            let target = to_access_id(id);
+            let (_, node) = tree.nodes.iter().find(|(node_id, _)| *node_id == target)?;
+            (node.role() == Role::TreeItem)
+                .then(|| node.bounds())
+                .flatten()
+        });
+        match tree_item_bounds {
+            Some(b) => {
+                let inset = TREE_ITEM_PRESS_INSET.min((b.x1 - b.x0) / 2.0);
+                ((b.x1 - inset) as f32, ((b.y0 + b.y1) * 0.5) as f32)
+            }
+            None => self.resolve_node_center(id).unwrap_or((0.0, 0.0)),
+        }
+    }
+
     /// Route an accessibility action into corresponding platform event(s).
     ///
     /// Returns zero, one, or more [`PlatformEvent`] values.  The caller should
@@ -221,7 +303,7 @@ impl AccessibilityAdapter {
                 node_id: id.get(),
             }],
             AccessibilityAction::Click(id) | AccessibilityAction::Activate(id) => {
-                let (cx, cy) = self.resolve_node_center(*id).unwrap_or((0.0, 0.0));
+                let (cx, cy) = self.press_point(*id);
                 vec![
                     // Emit FocusChanged first so the target widget receives
                     // keyboard focus before the click event.
@@ -253,7 +335,7 @@ impl AccessibilityAdapter {
                     acme_platform::PlatformKey::ArrowLeft
                 };
                 let window = WindowId(self.window_id);
-                let (cx, cy) = self.resolve_node_center(*id).unwrap_or((0.0, 0.0));
+                let (cx, cy) = self.press_point(*id);
                 let key_event = |pressed| PlatformEvent::Key {
                     window,
                     key,
