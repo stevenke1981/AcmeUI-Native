@@ -15,7 +15,7 @@
 //! R4 Quad edges: a pixel's quad coverage is the exact area of the pixel square
 //!    inside the quad (P2, ROADMAP 009). Sharp quads take the product of the x and y
 //!    overlaps, so a corner pixel is the product of two axis coverages. Rounded
-//!    corners are supersampled only near the arc. An edge pixel on a fractional
+//!    corners use the analytic circle integral. An edge pixel on a fractional
 //!    boundary is therefore partially painted by its exact area.
 //! R5 Byte mapping: a red quad over a transparent clear stores alpha
 //!    `round(255 * coverage)`. The final composite over black gives red byte

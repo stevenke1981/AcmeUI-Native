@@ -1,0 +1,55 @@
+[
+  {
+    "command": [
+      "cargo",
+      "fmt",
+      "-p",
+      "acme-render-cpu",
+      "--",
+      "--check"
+    ],
+    "exit": 0,
+    "log": "gate-1.txt",
+    "redacted_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "command": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "-p",
+      "acme-render-cpu",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit": 0,
+    "log": "gate-2.txt",
+    "redacted_log_sha256": "47057f23ff67eabaa29b9c6227d4a45de6ca0108f8beeb6673435d0db01bf0f9"
+  },
+  {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "-p",
+      "acme-render-cpu"
+    ],
+    "exit": 0,
+    "log": "gate-3.txt",
+    "redacted_log_sha256": "4eaf31adf938a14a587cc8ebbed9d636cd4ea551191862d844cbd6d1bff3105e"
+  },
+  {
+    "command": [
+      "cargo",
+      "check",
+      "--locked",
+      "--workspace",
+      "--all-targets"
+    ],
+    "exit": 0,
+    "log": "gate-4.txt",
+    "redacted_log_sha256": "952aa793cf209d652345e3e3519f12b2b93d53482d81d762dbeec08e574fe791"
+  }
+]

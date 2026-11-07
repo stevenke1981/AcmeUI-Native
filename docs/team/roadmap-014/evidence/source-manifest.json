@@ -1,0 +1,10 @@
+{
+  "base": "e0e44892997eda7c9ab42b18c303463c750cc602",
+  "files": {
+    "crates/acme-render-cpu/src/coverage.rs": "821438eef0e79ed28cd13b434a1780177a306815ddf8305d48d751add804bf7d",
+    "crates/acme-render-cpu/src/coverage/analytic_tests.rs": "117292040d25de8ae8830058c2ff2cf998aac0c8023f57fe2f9a53d7eb4488a0",
+    "crates/acme-render-cpu/src/lib.rs": "9ae91d84dfa8f52d4e7cab2b4d1d06c7d024b05e2b7db8cd4025b229cb62fe9e",
+    "crates/acme-render-cpu/tests/dpi.rs": "65ee9878aadfa96e39176e73fb3420708f36566235aad08d5b403996b3556258",
+    "crates/acme-render-cpu/tests/golden/rounded_bordered.ppm": "d33dc0789bc9161cd5afaca1b8a5fc8ce3a3a98c1bbdcefd3dc5251db5b3fbc1"
+  }
+}

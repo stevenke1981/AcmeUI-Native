@@ -1,0 +1,31 @@
+
+running 4 tests
+test coverage::analytic_tests::analytic_coverage_resolves_subpixel_discs_and_quarter_discs ... FAILED
+test coverage::analytic_tests::analytic_coverage_sums_to_exact_rounded_rect_area ... FAILED
+test coverage::analytic_tests::analytic_coverage_matches_fine_reference ... FAILED
+test coverage::analytic_tests::analytic_coverage_is_bounded_and_monotone ... ok
+
+failures:
+
+failures:
+    coverage::analytic_tests::analytic_coverage_matches_fine_reference
+    coverage::analytic_tests::analytic_coverage_resolves_subpixel_discs_and_quarter_discs
+    coverage::analytic_tests::analytic_coverage_sums_to_exact_rounded_rect_area
+
+test result: FAILED. 1 passed; 3 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.04s
+
+    Blocking waiting for file lock on package cache
+   Compiling acme-render-cpu v0.2.0 (.\crates\acme-render-cpu)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.13s
+     Running unittests src\lib.rs (target\debug\deps\acme_render_cpu-e7a1dd59dd9b4f57.exe)
+
+thread 'coverage::analytic_tests::analytic_coverage_resolves_subpixel_discs_and_quarter_discs' panicked at crates\acme-render-cpu\src\coverage\analytic_tests.rs:66:9:
+2/1: 0.8125 vs 0.7853981633974483
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'coverage::analytic_tests::analytic_coverage_sums_to_exact_rounded_rect_area' panicked at crates\acme-render-cpu\src\coverage\analytic_tests.rs:133:9:
+case 1, radius 0.007851523: area 20.812721833586693 vs 20.83805256818754
+
+thread 'coverage::analytic_tests::analytic_coverage_matches_fine_reference' panicked at crates\acme-render-cpu\src\coverage\analytic_tests.rs:90:9:
+case 0, scale 1, radius 1.5036659, pixel (4.5,11.5): 0.171875 vs 0.17765990953193977
+error: test failed, to rerun pass `-p acme-render-cpu --lib`

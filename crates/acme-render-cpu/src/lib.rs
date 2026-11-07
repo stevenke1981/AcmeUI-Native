@@ -590,7 +590,7 @@ mod tests {
         }));
         let c = render(&s, 8, 8);
         // Corner pixel (0, 0): the r = 3 arc clips a sliver of its far corner. The exact
-        // area is 0.029 (red 7). The 8x8 estimate resolves one sample of 64 (red 4).
+        // area is 0.029 (red 7), retained by the analytic circle integral.
         // The old signed-distance rule dropped it to 0 because its centre sits more
         // than half a pixel outside the arc.
         let corner_red = (c.pixels()[0] >> 16) & 255;
