@@ -1,12 +1,21 @@
 # Todos
 
+## ROADMAP 013 — TreeItem actions, item content walk, textinput split (2026-11-08)
+
+- [x] TreeItem Focus/Click on every row; Expand/Collapse on rows with children; additive `AccessibilityAction::Expand/Collapse` routed as row select + arrow key.
+- [x] Non-plain tree-item content walked as the item's child (unlowered; layout-ID order unchanged).
+- [x] `acme-textinput/src/lib.rs` (2829 lines) split into render/caret/input/boundary and four test files; public items unchanged.
+- [ ] App/winit bridge mapping of AccessKit `Action::Expand`/`Collapse` requests to the new variants.
+- [ ] Click/Expand on a TreeItem press the row centre; a control at the centre of rich content would take the press instead of the row.
+- [ ] Screen-reader confirmation of TreeItem actions — NOT_RUN (manual).
+
 ## ROADMAP 012 — wgpu split, atlas starvation, IME composition (2026-11-08)
 
 - [x] `acme-render-wgpu/src/lib.rs` split into modules (lib.rs 22 lines; public paths unchanged).
 - [x] Demand LRU: a glyph no longer drops when every page holds only fresh entries; starvation test un-ignored.
 - [x] Preedit scrolls into view; preedit glyphs are drawn (masked in password fields); Gallery forwards the preedit cursor and clamps the candidate anchor to the field.
 - [ ] Per-format allocators and mid-frame eviction of untouched pages — rejected for now (SPEC-B); revisit with measurements.
-- [ ] `acme-textinput/src/lib.rs` is ~2830 lines; split.
+- [x] `acme-textinput/src/lib.rs` split (ROADMAP 013).
 - [ ] Real Windows 注音 composition, candidate-window placement and physical DPI — NOT_RUN (manual).
 - [ ] Real GPU drawing — NOT_RUN.
 
@@ -24,7 +33,7 @@
 - [x] Virtual TreeItem / Row / ColumnHeader nodes with counts, indices, positions, selection, bounds.
 - [x] CPU quad exact-area coverage (analytic + 8x8 arc supersample); DESIGN test un-ignored.
 - [x] Cell bounds / layout-ID alignment — walk mirrors layout ID order (ROADMAP 010).
-- [ ] Widgets inside tree-item content are not walked (name only); TreeItem has no Focus/Click action.
+- [x] Tree-item content is walked and TreeItem has Focus/Click/Expand/Collapse (ROADMAP 013).
 - [ ] DataGrid merged-cell spans. (Ragged rows group correctly since ROADMAP 010.)
 - [ ] Area-based clip edges; analytic arc area (currently 8x8 sampled).
 - [x] Multi-page glyph atlas (ROADMAP 011).
