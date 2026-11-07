@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased - Packaging, licenses, migration (ROADMAP 007, 2026-11-07)
+
+- Added `LICENSE-MIT` and `LICENSE-APACHE` (the workspace already declared
+  `MIT OR Apache-2.0`) and `docs/guides/LICENSES.md`. `deny.toml` gains a
+  `[licenses]` allow list of the 9 licenses actually used; CI runs
+  `cargo deny check bans licenses sources`.
+- Internal dependencies use `[workspace.dependencies]` with `path` + `version`,
+  so every library crate packages; apps are `publish = false`. CI runs
+  `scripts/check_package.py` (per-crate `cargo package --no-verify`).
+- New `docs/guides/MIGRATION.md` (0.2.0 to the next release) and
+  `docs/guides/RELEASE.md` (checklist, publish order, version drift; proposes
+  0.3.0 — not applied).
+- Correction: the v0.2.0 entry below says `route_action` returns `Option`; the
+  code changed to `Vec` the next day (`229ca22`). Not listed before: `RenderBatch.clip`
+  changed from `Option<[u32; 4]>` to `Option<[f32; 4]>`, and `Application` gained
+  default methods `background_tick` / `background_poll_interval` (see MIGRATION.md).
+
 ## Unreleased - Benchmarks and atlas lifecycle (ROADMAP 006, 2026-11-07)
 
 - **Behaviour change (`acme-text` `GlyphAtlas`):** automatic eviction no longer
