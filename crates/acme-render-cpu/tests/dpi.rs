@@ -9,9 +9,9 @@
 //!    (`dimensions()`, `pixels().len() == width * height`). The crate never derives
 //!    the frame from the logical size, so any ceil or floor choice belongs to the
 //!    host. The platform host passes the OS physical inner size.
-//! R3 Pixel centres: pixel `(x, y)` is sampled at `(x + 0.5, y + 0.5)`. Clip rects
-//!    are half-open (`Rect::contains`), and a clipped draw paints a pixel only when
-//!    its centre lies inside the clip (`for_pixels`).
+//! R3 Pixel centres: image/glyph texels are sampled at `(x + 0.5, y + 0.5)`.
+//!    Clip coverage is the area of the unit pixel square intersecting the physical
+//!    clip, multiplied by the draw coverage (ROADMAP 015).
 //! R4 Quad edges: a pixel's quad coverage is the exact area of the pixel square
 //!    inside the quad (P2, ROADMAP 009). Sharp quads take the product of the x and y
 //!    overlaps, so a corner pixel is the product of two axis coverages. Rounded
@@ -285,41 +285,25 @@ fn one_logical_px_separator_keeps_physical_ink_at_every_scale() {
     }
 }
 
-/// Clip rect at logical `[1.375, 3.5)` on both axes. Both values are dyadic, so
-/// the physical edges are exact at every tested scale. A pixel is painted only if
-/// its centre is inside the physical clip (R3).
+/// The fractional physical clip contributes the product of axis overlap areas.
 #[test]
-fn fractional_clip_follows_pixel_centre_rule_at_every_scale() {
-    // (scale, painted columns, the same set applies to rows)
-    //
-    // Column x is painted iff 1.375s <= x + 0.5 < 3.5s.
-    // 1.00: [1.375, 3.5). Centres 1.5 and 2.5 are in. 3.5 is out (half-open).
-    // 1.25: [1.71875, 4.375). Centre 1.5 is out. 2.5 and 3.5 are in. 4.5 is out.
-    // 1.50: [2.0625, 5.25). Centre 1.5 is out. 2.5, 3.5, 4.5 are in. 5.5 is out.
-    // 1.75: [2.40625, 6.125). Centre 1.5 is out. 2.5 through 5.5 are in. 6.5 is out.
-    // 2.00: [2.75, 7.0). Centre 2.5 is out (below 2.75). 3.5 through 6.5 are in.
-    const CASES: &[(f32, &[u32])] = &[
-        (1.0, &[1, 2]),
-        (1.25, &[2, 3]),
-        (1.5, &[2, 3, 4]),
-        (1.75, &[2, 3, 4, 5]),
-        (2.0, &[3, 4, 5, 6]),
-    ];
-
-    for (scale, painted) in CASES {
-        let n = physical(8, *scale);
+fn fractional_clip_uses_pixel_area_at_every_scale() {
+    for scale in SCALES {
+        let n = physical(8, scale);
         let mut scene = Scene::new();
         scene.push(DrawCommand::PushClip(Rect::new(1.375, 1.375, 2.125, 2.125)));
-        // Full-frame quad, so each painted pixel has full coverage.
         scene.push(solid(Rect::new(-1.0, -1.0, 10.0, 10.0), red()));
         scene.push(DrawCommand::PopClip);
-        let cpu = render(&scene, n, n, *scale);
-
+        let cpu = render(&scene, n, n, scale);
         for y in 0..n {
             for x in 0..n {
-                let inside = painted.contains(&x) && painted.contains(&y);
-                let expected = if inside { RED_PIXEL } else { 0 };
-                assert_eq!(at(&cpu, x, y), expected, "clip {scale}x ({x},{y})");
+                let coverage = box_coverage(x, 1.375 * scale, 3.5 * scale)
+                    * box_coverage(y, 1.375 * scale, 3.5 * scale);
+                assert_eq!(
+                    at(&cpu, x, y),
+                    red_at_coverage(coverage),
+                    "clip {scale}x ({x},{y})"
+                );
             }
         }
     }

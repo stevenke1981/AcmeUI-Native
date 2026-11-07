@@ -665,7 +665,12 @@ fn golden_scenes_match_committed_fixtures() {
                 "{} exceeds the {MAX_FIXTURE_EDGE}px fixture limit",
                 case.name
             );
-            check_case(case, &render_case(case), bless).err()
+            let actual = render_case(case);
+            if let Some(dir) = std::env::var_os("ACME_CLIP_CAPTURE") {
+                let path = PathBuf::from(dir).join(format!("golden-{}.ppm", case.name));
+                write_file(&path, &actual.encode_ppm()).expect("write requested audit capture");
+            }
+            check_case(case, &actual, bless).err()
         })
         .collect();
     assert!(

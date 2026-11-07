@@ -120,7 +120,7 @@ fn minimized_frame_accepts_draws_without_pixels() {
 }
 
 #[test]
-fn fractional_clip_preserves_pixel_center_sampling() {
+fn fractional_clip_preserves_pixel_area() {
     let mut cpu = CpuRenderer::new(4, 4, 1.0).unwrap();
     let mut scene = Scene::new();
     scene.push(DrawCommand::PushClip(Rect::new(1.6, 1.6, 1.0, 1.0)));
@@ -128,7 +128,10 @@ fn fractional_clip_preserves_pixel_center_sampling() {
     scene.push(DrawCommand::PopClip);
     cpu.render_scene(&scene).unwrap();
     let mut expected = vec![0; 16];
-    expected[10] = 0x00ff0000;
+    expected[5] = 0x0029_0000;
+    expected[6] = 0x003d_0000;
+    expected[9] = 0x003d_0000;
+    expected[10] = 0x005c_0000;
     assert_eq!(cpu.pixels(), expected);
 }
 
