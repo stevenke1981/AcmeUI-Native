@@ -18,3 +18,9 @@ acme-render-wgpu = { path = "../../crates/acme-render-wgpu" }
 acme-text = { path = "../../crates/acme-text" }
 acme-theme = { path = "../../crates/acme-theme" }
 acme-ui = { path = "../../crates/acme-ui" }
+
+[dev-dependencies]
+# Path-only: the migration snippet tests (tests/migration_snippets.rs) call these crates directly.
+acme-accessibility = { path = "../../crates/acme-accessibility" }
+acme-textinput = { path = "../../crates/acme-textinput" }
+acme-widgets = { path = "../../crates/acme-widgets" }
