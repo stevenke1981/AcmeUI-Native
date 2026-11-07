@@ -4,9 +4,9 @@
 
 - [x] Virtual TreeItem / Row / ColumnHeader nodes with counts, indices, positions, selection, bounds.
 - [x] CPU quad exact-area coverage (analytic + 8x8 arc supersample); DESIGN test un-ignored.
-- [ ] Cell bounds: sequential-path cell IDs can read a different layout leaf; retained-path cells have no layout entry (pre-existing). Needs layout/a11y ID alignment.
+- [x] Cell bounds / layout-ID alignment — walk mirrors layout ID order (ROADMAP 010).
 - [ ] Widgets inside tree-item content are not walked (name only); TreeItem has no Focus/Click action.
-- [ ] DataGrid merged-cell spans; ragged Table rows that divide evenly are grouped as rectangular.
+- [ ] DataGrid merged-cell spans. (Ragged rows group correctly since ROADMAP 010.)
 - [ ] Area-based clip edges; analytic arc area (currently 8x8 sampled).
 - [ ] Multi-page glyph atlas (cross-crate Scene contract) — not started.
 - [ ] Screen-reader confirmation of TreeItem/Row/ColumnHeader — NOT_RUN (manual).

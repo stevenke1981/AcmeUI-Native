@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased - Accessibility walk mirrors layout IDs (ROADMAP 010, 2026-11-07)
+
+- `acme-accessibility`: the sequential and bound walks consume IDs in exactly
+  layout's order (tree rows, table header leaves and header row, cell leaves,
+  row containers), so TreeItem, ColumnHeader, Row and cell nodes read their own
+  layout rects, and widgets after a Tree/Table/DataGrid no longer read another
+  node's rect. Sequential-path IDs equal layout IDs for lowered nodes; nodes
+  layout does not lower (cell content, Dialog content, VirtualList children,
+  Tooltip/Popover wrappers) take virtual IDs >= 2^56 and have no rect. Ragged
+  rows group by their own cells; `column_count` covers the widest row; grids
+  whose rows changed after `build()` keep the flat fallback.
+
 ## Unreleased - Structural accessibility and exact-area CPU coverage (ROADMAP 009, 2026-11-07)
 
 - `acme-accessibility`: `Tree` exposes one virtual `TreeItem` per visible item
