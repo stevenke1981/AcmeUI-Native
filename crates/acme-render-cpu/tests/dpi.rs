@@ -12,12 +12,11 @@
 //! R3 Pixel centres: pixel `(x, y)` is sampled at `(x + 0.5, y + 0.5)`. Clip rects
 //!    are half-open (`Rect::contains`), and a clipped draw paints a pixel only when
 //!    its centre lies inside the clip (`for_pixels`).
-//! R4 Quad edges: a pixel's quad coverage is `clamp(0.5 - d, 0, 1)`, where `d` is the
-//!    signed distance from the pixel centre to the edge (`inside_rounded`, radius 0).
-//!    Along an axis-aligned edge this equals the exact area fraction of the pixel,
-//!    so an edge pixel on a fractional boundary is partially painted. At a corner the
-//!    formula takes the larger of the two axis distances, which is not the product
-//!    of the two axis coverages (see the ignored corner test).
+//! R4 Quad edges: a pixel's quad coverage is the exact area of the pixel square
+//!    inside the quad (P2, ROADMAP 009). Sharp quads take the product of the x and y
+//!    overlaps, so a corner pixel is the product of two axis coverages. Rounded
+//!    corners are supersampled only near the arc. An edge pixel on a fractional
+//!    boundary is therefore partially painted by its exact area.
 //! R5 Byte mapping: a red quad over a transparent clear stores alpha
 //!    `round(255 * coverage)`. The final composite over black gives red byte
 //!    `round(255 * coverage)`. Full coverage is `0x00ff0000`.
@@ -400,8 +399,8 @@ fn solid_quad_at_10_10_20_20_covers_expected_physical_range() {
         };
 
         // Edge rows and columns and the interior are checked. Corner pixels, where
-        // both axes are partial, are skipped because they depend on R4's
-        // corner behaviour (see the ignored corner test).
+        // both axes are partial, are skipped here; their exact-area value is pinned
+        // by `sharp_quad_corner_pixel_uses_exact_area_coverage` below.
         for y in 0..n {
             for x in 0..n {
                 let (cx, cy) = (axis(x), axis(y));
@@ -425,12 +424,9 @@ fn solid_quad_at_10_10_20_20_covers_expected_physical_range() {
 }
 
 /// Sharp rect whose corner pixel centre sits exactly on the corner. Exact area
-/// coverage is 0.5 x 0.5 = 0.25, so the expected red byte is 64. R4 takes the
-/// larger of the axis distances at a corner, which gives 0.5 (red byte 128). This
-/// is a corner anti-aliasing over-coverage and is tracked as a BUG, not a DPI
-/// mapping error.
+/// coverage is 0.5 x 0.5 = 0.25, so the expected red byte is 64. This pins the
+/// P2 exact-area model; it was an ignored DESIGN test before ROADMAP 009.
 #[test]
-#[ignore = "DESIGN: corner pixels use the signed-distance max-axis AA approximation (0.5, red 128) rather than exact area (0.25, red 64); informational, not a DPI mapping error"]
 fn sharp_quad_corner_pixel_uses_exact_area_coverage() {
     let mut scene = Scene::new();
     scene.push(solid(Rect::new(10.0, 10.0, 20.0, 20.0), red()));
