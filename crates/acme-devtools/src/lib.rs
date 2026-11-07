@@ -494,10 +494,12 @@ mod tests {
     fn frame_metrics_fps_rolling_average() {
         let mut m = FrameMetrics::new();
 
-        // Record 3 frames with a tiny delay each.
+        // Record 3 frames with a real delay each: a single `spin_loop` can
+        // finish within one `Instant` tick (100 ns on Windows), giving a zero
+        // duration and fps 0.0, which made this test flaky.
         for _ in 0..3 {
             m.begin_frame();
-            std::hint::spin_loop();
+            std::thread::sleep(std::time::Duration::from_millis(1));
             m.end_frame();
         }
 
