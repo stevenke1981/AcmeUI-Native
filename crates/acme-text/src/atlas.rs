@@ -105,9 +105,11 @@ pub struct GlyphAtlas {
 /// Page geometry and page budget of a [`GlyphAtlas`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct GlyphAtlasConfig {
-    /// Width of one page in pixels.
+    /// Width of one page in pixels. Clamped to `1..=DEFAULT_PAGE_EDGE` (2048),
+    /// the largest page edge the built-in renderers accept.
     pub page_width: u32,
-    /// Height of one page in pixels.
+    /// Height of one page in pixels. Clamped to `1..=DEFAULT_PAGE_EDGE` (2048),
+    /// the largest page edge the built-in renderers accept.
     pub page_height: u32,
     /// Maximum number of pages the atlas may open.
     pub max_pages: u32,
@@ -143,8 +145,10 @@ const STALE_AGE_FRAMES: u64 = 60;
 
 impl GlyphAtlas {
     /// A single-page atlas of `width × height` pixels (legacy behavior:
-    /// eviction clears the whole page). See [`with_config`](Self::with_config)
-    /// for a multi-page atlas.
+    /// eviction clears the whole page). Each edge is clamped to
+    /// `1..=DEFAULT_PAGE_EDGE` (2048), so a larger request yields a 2048-edge
+    /// page. For more capacity use [`with_config`](Self::with_config) with
+    /// more pages.
     pub fn new(width: u32, height: u32) -> Self {
         Self::with_config(GlyphAtlasConfig {
             page_width: width,
@@ -153,13 +157,18 @@ impl GlyphAtlas {
         })
     }
 
-    /// An atlas with the given page geometry and page budget. Dimensions are
-    /// clamped to at least 1 and `max_pages` to `1..=MAX_PAGES_CAP`.
+    /// An atlas with the given page geometry and page budget. Each page edge is
+    /// clamped to `1..=DEFAULT_PAGE_EDGE` (2048) and `max_pages` to
+    /// `1..=MAX_PAGES_CAP`.
     pub fn with_config(config: GlyphAtlasConfig) -> Self {
         Self {
             max_pages: config.max_pages.clamp(1, GlyphAtlasConfig::MAX_PAGES_CAP),
-            width: config.page_width.max(1),
-            height: config.page_height.max(1),
+            width: config
+                .page_width
+                .clamp(1, GlyphAtlasConfig::DEFAULT_PAGE_EDGE),
+            height: config
+                .page_height
+                .clamp(1, GlyphAtlasConfig::DEFAULT_PAGE_EDGE),
             generation: 0,
             next_id: 1,
             frame: 0,

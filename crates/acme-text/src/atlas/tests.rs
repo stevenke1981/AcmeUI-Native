@@ -317,7 +317,7 @@ fn clear_is_immediate_keeps_pages_open_and_is_not_counted_as_eviction() {
 }
 
 #[test]
-fn new_keeps_single_page_packing_and_failure_behavior() {
+fn new_single_page_packing_matches_legacy_sequence_and_rejects_when_full() {
     let mut atlas = GlyphAtlas::new(10, 10);
     let mut uploads = Vec::new();
 
@@ -379,4 +379,124 @@ fn with_config_clamps_page_budget_and_dimensions() {
         max_pages: 99,
     });
     assert_eq!(big.max_pages(), GlyphAtlasConfig::MAX_PAGES_CAP);
+}
+
+#[test]
+fn page_edges_are_capped_at_the_renderer_page_edge() {
+    let mut atlas = GlyphAtlas::new(4096, 4096);
+    assert_eq!(atlas.dimensions(), (2048, 2048));
+    let wide = GlyphAtlas::with_config(GlyphAtlasConfig {
+        page_width: 4096,
+        page_height: 1,
+        max_pages: 2,
+    });
+    assert_eq!(wide.dimensions(), (2048, 1));
+
+    let mut uploads = Vec::new();
+    assert!(
+        put(&mut atlas, 1, 2049, 1, &mut uploads).is_none(),
+        "a glyph wider than the capped page is rejected"
+    );
+    let full = put(&mut atlas, 2, 2048, 2048, &mut uploads).unwrap();
+    assert_eq!((full.page, full.x, full.y), (0, 0, 0));
+    assert!(
+        uploads
+            .iter()
+            .all(|upload| upload.width <= 2048 && upload.height <= 2048)
+    );
+}
+
+#[test]
+fn failed_too_tall_placement_does_not_advance_the_row_cursor() {
+    // The old code wrapped the cursor before the height check failed, so a
+    // later small glyph landed on the wrapped row. The pure placement keeps the
+    // remaining space of the current row usable.
+    let mut atlas = GlyphAtlas::new(10, 10);
+    let mut uploads = Vec::new();
+    put(&mut atlas, 1, 2, 2, &mut uploads).unwrap(); // (0,0); cursor x = 3, row 2
+    assert!(
+        put(&mut atlas, 2, 8, 9, &mut uploads).is_none(),
+        "8 does not fit beside the first glyph, and the wrapped row would overflow"
+    );
+
+    let small = put(&mut atlas, 3, 2, 1, &mut uploads).unwrap();
+
+    assert_eq!(
+        (small.x, small.y),
+        (3, 0),
+        "the remaining space of the current row is still used"
+    );
+}
+
+#[test]
+fn begin_frame_does_not_evict_when_only_some_pages_are_under_pressure() {
+    // Page 0 is 90% full and its entry is stale; page 1 is nearly empty.
+    // Pressure needs every open page to be full, so nothing is evicted.
+    let mut atlas = paged(10, 10, 2);
+    let mut uploads = Vec::new();
+    put(&mut atlas, 1, 10, 9, &mut uploads).unwrap(); // page 0: 9 of 10 rows used
+    put(&mut atlas, 2, 1, 1, &mut uploads).unwrap(); // page 0 has no room; page 1 opens
+    assert_eq!(page_of(&atlas, 2), Some(1));
+
+    age(&mut atlas, 61);
+
+    assert_eq!(
+        atlas.generation(),
+        0,
+        "pressure needs every open page to be full"
+    );
+    assert!(has(&atlas, 1));
+}
+
+#[test]
+fn settled_eviction_request_does_not_evict_again_later() {
+    let mut atlas = paged(5, 3, 1);
+    let mut uploads = Vec::new();
+    put(&mut atlas, 1, 2, 2, &mut uploads).unwrap();
+    put(&mut atlas, 2, 2, 2, &mut uploads).unwrap();
+    assert!(
+        put(&mut atlas, 3, 5, 3, &mut uploads).is_none(),
+        "overflow while in use sets the deferred request"
+    );
+    age(&mut atlas, 61);
+    assert_eq!(
+        atlas.generation(),
+        1,
+        "the stale page is evicted for the pending request"
+    );
+
+    put(&mut atlas, 4, 2, 2, &mut uploads).unwrap(); // fresh at frame 61
+    age(&mut atlas, 61); // frame 122: entry 4 is stale, but no request is pending
+
+    assert_eq!(
+        atlas.generation(),
+        1,
+        "a settled request must not evict again"
+    );
+    assert!(has(&atlas, 4));
+}
+
+#[test]
+fn insert_refreshes_page_recency_so_an_older_page_is_the_victim() {
+    // Page 0 was touched at frame 3. Page 1 was only inserted into, at frame 5,
+    // and never touched again. Page 0 is the least recently used page.
+    let mut atlas = paged(5, 3, 2);
+    let mut uploads = Vec::new();
+    put(&mut atlas, 1, 2, 2, &mut uploads).unwrap();
+    put(&mut atlas, 2, 2, 2, &mut uploads).unwrap();
+    put(&mut atlas, 3, 2, 2, &mut uploads).unwrap(); // opens page 1 at frame 0
+    age(&mut atlas, 3);
+    atlas.touch(&key(1));
+    age(&mut atlas, 2);
+    assert_eq!(put(&mut atlas, 4, 2, 2, &mut uploads).unwrap().page, 1);
+    age(&mut atlas, 56); // frame 61: entries 2 (page 0) and 3 (page 1) are stale
+
+    let fresh = put(&mut atlas, 9, 2, 2, &mut uploads).unwrap();
+
+    assert_eq!(
+        fresh.page, 0,
+        "page 0 was used at frame 3, page 1 at frame 5"
+    );
+    assert!(has(&atlas, 3) && has(&atlas, 4), "page 1 survives");
+    assert!(!has(&atlas, 1) && !has(&atlas, 2));
 }
