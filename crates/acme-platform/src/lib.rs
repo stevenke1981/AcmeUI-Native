@@ -2,7 +2,10 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![allow(clippy::items_after_test_module)]
 
+mod backend;
 mod clipboard;
+pub use backend::RenderBackendPreference;
+use backend::{CPU_FEATURE_REQUIRED, RendererPlan, plan_renderer};
 pub use clipboard::Clipboard;
 
 #[cfg(feature = "cpu-renderer")]
@@ -172,7 +175,7 @@ pub trait Application: 'static {
     }
     /// Returns the configurations for all windows that should be created on startup.
     ///
-    /// By default, returns a single window from [`window_config()`].
+    /// By default, returns a single window from [`Application::window_config`].
     /// Override this method to create multiple windows with different titles and sizes.
     ///
     /// # Example
@@ -235,18 +238,51 @@ pub trait Application: 'static {
 pub enum PlatformError {
     #[error("event loop error: {0}")]
     EventLoop(String),
+    /// No window could be created or initialised; `reasons` holds one entry per failure.
+    #[error("no window could be created: {}", .reasons.join("; "))]
+    NoWindows { reasons: Vec<String> },
+    /// The event loop stopped because a renderer failed and could not recover.
+    #[error("unrecoverable renderer failure: {0}")]
+    Renderer(String),
 }
 
 /// Runs an application until its final window closes.
+///
+/// Returns `Ok(())` when the last window closes normally. Returns
+/// [`PlatformError::NoWindows`] when no window could be initialised, and
+/// [`PlatformError::Renderer`] when the loop stopped on an unrecoverable
+/// renderer failure.
 pub fn run<A: Application>(app: A) -> Result<(), PlatformError> {
     let event_loop =
         EventLoop::new().map_err(|error| PlatformError::EventLoop(error.to_string()))?;
     event_loop.set_control_flow(ControlFlow::Wait);
     let mut runtime = Runtime::new(app);
-    event_loop
-        .run_app(&mut runtime)
-        .map_err(|error| PlatformError::EventLoop(error.to_string()))?;
-    Ok(())
+    let loop_result = event_loop.run_app(&mut runtime);
+    finish_run(
+        runtime.fatal.take(),
+        loop_result.err().map(|error| error.to_string()),
+    )
+}
+
+/// Store `error` as the loop's fatal error unless an earlier one is already recorded.
+/// The first failure is kept because later ones are usually consequences of it.
+fn record_fatal(slot: &mut Option<PlatformError>, error: PlatformError) {
+    if slot.is_none() {
+        *slot = Some(error);
+    }
+}
+
+/// Map the recorded fatal error and the event-loop outcome onto the result of
+/// [`run`]. A recorded fatal error is the root cause, so it wins over a loop error.
+fn finish_run(
+    fatal: Option<PlatformError>,
+    loop_error: Option<String>,
+) -> Result<(), PlatformError> {
+    match (fatal, loop_error) {
+        (Some(error), _) => Err(error),
+        (None, Some(error)) => Err(PlatformError::EventLoop(error)),
+        (None, None) => Ok(()),
+    }
 }
 
 fn notify_gpu_recovered(app: &mut dyn Application, window: WindowId) {
@@ -299,17 +335,25 @@ impl WindowRenderer {
         }
     }
 
-    fn render_scene(&mut self, scene: &Scene) -> SurfaceAction {
+    /// Render one frame. The second value carries the root cause when the
+    /// action is [`SurfaceAction::Exit`], so `run()` can report it.
+    fn render_scene(&mut self, scene: &Scene) -> (SurfaceAction, Option<String>) {
         match self {
-            Self::Gpu(renderer) => renderer.render_scene(scene),
+            Self::Gpu(renderer) => (renderer.render_scene(scene), None),
             #[cfg(feature = "cpu-renderer")]
-            Self::Failed => SurfaceAction::Exit,
+            Self::Failed => (
+                SurfaceAction::Exit,
+                Some("renderer is in the failed state after an earlier error".into()),
+            ),
             #[cfg(feature = "cpu-renderer")]
             Self::Cpu(renderer) => match renderer.present(scene) {
-                Ok(()) => SurfaceAction::Rendered,
+                Ok(()) => (SurfaceAction::Rendered, None),
                 Err(error) => {
                     tracing::error!(%error, "CPU renderer present failed");
-                    SurfaceAction::Exit
+                    (
+                        SurfaceAction::Exit,
+                        Some(format!("CPU renderer present failed: {error}")),
+                    )
                 }
             },
         }
@@ -322,33 +366,54 @@ fn initialize_renderer(
     height: u32,
     scale: f32,
 ) -> Result<WindowRenderer, String> {
-    let cpu_requested =
-        std::env::var("ACME_RENDER_BACKEND").is_ok_and(|value| value.eq_ignore_ascii_case("cpu"));
-    if cpu_requested {
-        #[cfg(feature = "cpu-renderer")]
-        {
+    let preference = RenderBackendPreference::from_env();
+    match plan_renderer(preference, cfg!(feature = "cpu-renderer")) {
+        RendererPlan::CpuOnly => {
             tracing::info!("Using forced CPU software renderer");
-            return CpuWindowRenderer::new(window, width, height, scale).map(WindowRenderer::Cpu);
+            create_cpu_renderer(window, width, height, scale)
         }
-        #[cfg(not(feature = "cpu-renderer"))]
+        RendererPlan::CpuUnavailable => Err(CPU_FEATURE_REQUIRED.into()),
+        RendererPlan::GpuOnly => create_gpu_renderer(window, width, height, scale),
+        RendererPlan::GpuThenCpu => match create_gpu_renderer(window.clone(), width, height, scale)
         {
-            return Err("CPU backend requires the acme-platform/cpu-renderer feature".into());
-        }
-    }
-    match pollster::block_on(Renderer::new(window.clone(), width, height, scale)) {
-        Ok(renderer) => Ok(WindowRenderer::Gpu(Box::new(renderer))),
-        Err(error) => {
-            #[cfg(feature = "cpu-renderer")]
-            {
+            Ok(renderer) => Ok(renderer),
+            Err(error) => {
                 tracing::warn!(%error, "GPU initialization failed; falling back to CPU");
-                CpuWindowRenderer::new(window, width, height, scale).map(WindowRenderer::Cpu)
+                create_cpu_renderer(window, width, height, scale)
             }
-            #[cfg(not(feature = "cpu-renderer"))]
-            {
-                Err(error.to_string())
-            }
-        }
+        },
     }
+}
+
+fn create_gpu_renderer(
+    window: Arc<Window>,
+    width: u32,
+    height: u32,
+    scale: f32,
+) -> Result<WindowRenderer, String> {
+    pollster::block_on(Renderer::new(window, width, height, scale))
+        .map(|renderer| WindowRenderer::Gpu(Box::new(renderer)))
+        .map_err(|error| error.to_string())
+}
+
+#[cfg(feature = "cpu-renderer")]
+fn create_cpu_renderer(
+    window: Arc<Window>,
+    width: u32,
+    height: u32,
+    scale: f32,
+) -> Result<WindowRenderer, String> {
+    CpuWindowRenderer::new(window, width, height, scale).map(WindowRenderer::Cpu)
+}
+
+#[cfg(not(feature = "cpu-renderer"))]
+fn create_cpu_renderer(
+    _window: Arc<Window>,
+    _width: u32,
+    _height: u32,
+    _scale: f32,
+) -> Result<WindowRenderer, String> {
+    Err(CPU_FEATURE_REQUIRED.into())
 }
 
 struct WindowState {
@@ -368,6 +433,8 @@ struct Runtime<A> {
     windows: HashMap<WinitWindowId, WindowState>,
     next_window_id: u64,
     next_background_poll: Option<std::time::Instant>,
+    /// First unrecoverable error that stopped the loop; read back by [`run`].
+    fatal: Option<PlatformError>,
 }
 
 impl<A> Runtime<A> {
@@ -377,6 +444,7 @@ impl<A> Runtime<A> {
             windows: HashMap::new(),
             next_window_id: 0,
             next_background_poll: None,
+            fatal: None,
         }
     }
 }
@@ -410,6 +478,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
         }
         let configs = self.app.windows();
         let minimum_size = self.app.minimum_window_size();
+        let mut failures = Vec::new();
         for config in configs {
             let mut attrs = Window::default_attributes()
                 .with_title(&config.title)
@@ -418,11 +487,14 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             if let Some((width, height)) = minimum_size {
                 attrs = attrs.with_min_inner_size(LogicalSize::new(width, height));
             }
-            let Ok(window) = event_loop.create_window(attrs) else {
-                tracing::error!("failed to create window: {}", config.title);
-                continue;
+            let window = match event_loop.create_window(attrs) {
+                Ok(window) => Arc::new(window),
+                Err(error) => {
+                    tracing::error!(%error, "failed to create window: {}", config.title);
+                    failures.push(format!("window '{}': {error}", config.title));
+                    continue;
+                }
             };
-            let window = Arc::new(window);
             window.set_ime_allowed(true);
             let size = window.inner_size();
             let scale = window.scale_factor() as f32;
@@ -453,11 +525,19 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                         "renderer initialization failed for window: {}",
                         config.title,
                     );
+                    failures.push(format!("renderer for window '{}': {error}", config.title));
                 }
             }
         }
         if self.windows.is_empty() {
-            tracing::error!("no windows could be created");
+            if failures.is_empty() {
+                failures.push("Application::windows() returned no window configurations".into());
+            }
+            tracing::error!(reasons = ?failures, "no windows could be created");
+            record_fatal(
+                &mut self.fatal,
+                PlatformError::NoWindows { reasons: failures },
+            );
             event_loop.exit();
         }
     }
@@ -468,7 +548,12 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
         id: WinitWindowId,
         event: WindowEvent,
     ) {
-        let Runtime { app, windows, .. } = self;
+        let Runtime {
+            app,
+            windows,
+            fatal,
+            ..
+        } = self;
 
         match event {
             WindowEvent::CloseRequested => {
@@ -535,7 +620,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                 // Not currently mapped; available for future use.
             }
             WindowEvent::RedrawRequested => {
-                handle_redraw(app, windows, id, event_loop);
+                handle_redraw(app, windows, id, event_loop, fatal);
             }
             _ => {}
         }
@@ -783,6 +868,101 @@ mod tests {
         let app = CaretApp;
         let resolved = resolve_ime_cursor_area(app.ime_cursor_area(WindowId(0)), (1.0, 2.0));
         assert_eq!(resolved, [10.0, 20.0, 3.0, 24.0]);
+    }
+
+    #[test]
+    fn clean_shutdown_without_fatal_error_is_ok() {
+        assert!(finish_run(None, None).is_ok());
+    }
+
+    #[test]
+    fn recorded_fatal_error_is_returned_by_run_outcome() {
+        let mut slot = None;
+        record_fatal(&mut slot, PlatformError::Renderer("device gone".into()));
+        match finish_run(slot, None) {
+            Err(PlatformError::Renderer(message)) => assert_eq!(message, "device gone"),
+            other => panic!("expected Renderer error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn fatal_error_wins_over_event_loop_error() {
+        let fatal = Some(PlatformError::Renderer("root cause".into()));
+        match finish_run(fatal, Some("loop broke".into())) {
+            Err(PlatformError::Renderer(message)) => assert_eq!(message, "root cause"),
+            other => panic!("expected Renderer error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn event_loop_error_is_reported_without_fatal_error() {
+        match finish_run(None, Some("loop broke".into())) {
+            Err(PlatformError::EventLoop(message)) => assert_eq!(message, "loop broke"),
+            other => panic!("expected EventLoop error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn exit_error_message_includes_root_cause_when_known() {
+        assert_eq!(
+            exit_error_message(WindowId(2), Some("CPU renderer present failed: boom")),
+            "renderer requested exit for window 2: CPU renderer present failed: boom"
+        );
+        assert_eq!(
+            exit_error_message(WindowId(2), None),
+            "renderer requested exit for window 2"
+        );
+    }
+
+    #[test]
+    fn first_fatal_error_wins() {
+        let mut slot = None;
+        record_fatal(&mut slot, PlatformError::Renderer("first".into()));
+        record_fatal(&mut slot, PlatformError::Renderer("second".into()));
+        assert!(matches!(slot, Some(PlatformError::Renderer(ref m)) if m == "first"));
+    }
+
+    #[test]
+    fn no_windows_error_lists_every_failure_reason() {
+        let error = PlatformError::NoWindows {
+            reasons: vec![
+                "window 'A': os refused".into(),
+                "renderer for window 'B': no adapter".into(),
+            ],
+        };
+        let text = error.to_string();
+        assert!(text.contains("no window could be created"), "{text}");
+        assert!(text.contains("window 'A': os refused"), "{text}");
+        assert!(
+            text.contains("renderer for window 'B': no adapter"),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn no_windows_error_is_returned_as_run_outcome() {
+        let mut slot = None;
+        record_fatal(
+            &mut slot,
+            PlatformError::NoWindows {
+                reasons: vec!["no configs".into()],
+            },
+        );
+        match finish_run(slot, None) {
+            Err(PlatformError::NoWindows { reasons }) => {
+                assert_eq!(reasons, vec!["no configs".to_string()]);
+            }
+            other => panic!("expected NoWindows error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn renderer_error_display_names_the_failure() {
+        let text = PlatformError::Renderer("GPU device recovery failed (x)".into()).to_string();
+        assert_eq!(
+            text,
+            "unrecoverable renderer failure: GPU device recovery failed (x)"
+        );
     }
 }
 
@@ -1148,6 +1328,7 @@ fn handle_redraw(
     windows: &mut HashMap<WinitWindowId, WindowState>,
     id: WinitWindowId,
     event_loop: &ActiveEventLoop,
+    fatal: &mut Option<PlatformError>,
 ) {
     let Some(state) = windows.get_mut(&id) else {
         return;
@@ -1164,61 +1345,125 @@ fn handle_redraw(
         logical_height: size.height as f32 / scale,
         scale_factor: scale,
     });
-    match state.renderer.render_scene(&scene) {
+    let (action, cause) = state.renderer.render_scene(&scene);
+    match action {
         SurfaceAction::Reconfigure => state.window.request_redraw(),
-        SurfaceAction::Exit => event_loop.exit(),
+        SurfaceAction::Exit => {
+            let error = PlatformError::Renderer(exit_error_message(win_id, cause.as_deref()));
+            stop_on_fatal(fatal, event_loop, error);
+        }
         SurfaceAction::DeviceLost => {
             tracing::warn!("GPU device lost, attempting recovery...");
-            let recovery = match &mut state.renderer {
-                WindowRenderer::Gpu(renderer) => {
-                    renderer.on_device_lost().map_err(|e| e.to_string())
-                }
-                #[cfg(feature = "cpu-renderer")]
-                WindowRenderer::Failed => Err("renderer already failed".into()),
-                #[cfg(feature = "cpu-renderer")]
-                WindowRenderer::Cpu(_) => Ok(()),
-            };
-            match recovery {
-                Ok(()) => {
-                    // GPU resources were rebuilt, so application-owned glyph caches
-                    // must be invalidated before the next frame.
-                    notify_gpu_recovered(app, win_id);
-                    state.dirty = true;
-                    state.window.request_redraw();
-                    return;
-                }
-                Err(error) => {
-                    tracing::error!(%error, "GPU device recovery failed");
-                    #[cfg(feature = "cpu-renderer")]
-                    {
-                        // Release the old GPU surface before acquiring a native
-                        // software surface for the same window.
-                        let old = std::mem::replace(&mut state.renderer, WindowRenderer::Failed);
-                        drop(old);
-                        match CpuWindowRenderer::new(
-                            state.window.clone(),
-                            size.width,
-                            size.height,
-                            scale,
-                        ) {
-                            Ok(cpu) => {
-                                tracing::warn!("Switched from failed GPU recovery to CPU renderer");
-                                state.renderer = WindowRenderer::Cpu(cpu);
-                                notify_gpu_recovered(app, win_id);
-                                state.dirty = true;
-                                state.window.request_redraw();
-                                return;
-                            }
-                            Err(cpu_error) => {
-                                tracing::error!(%cpu_error, "CPU fallback also failed")
-                            }
-                        }
-                    }
-                    event_loop.exit();
-                }
+            let recovered = handle_device_lost(
+                app,
+                state,
+                event_loop,
+                fatal,
+                size.width,
+                size.height,
+                scale,
+            );
+            if recovered {
+                // Keep the window dirty so the redraw already requested repaints it.
+                return;
             }
         }
         _ => {}
     }
     state.dirty = false;
+}
+
+/// Message for [`PlatformError::Renderer`] when a window's renderer requests exit.
+fn exit_error_message(window: WindowId, cause: Option<&str>) -> String {
+    match cause {
+        Some(cause) => format!("renderer requested exit for window {}: {cause}", window.0),
+        None => format!("renderer requested exit for window {}", window.0),
+    }
+}
+
+/// Record `error` as the loop's fatal error and ask winit to stop.
+fn stop_on_fatal(
+    fatal: &mut Option<PlatformError>,
+    event_loop: &ActiveEventLoop,
+    error: PlatformError,
+) {
+    record_fatal(fatal, error);
+    event_loop.exit();
+}
+
+/// Recover from a lost GPU device: rebuild GPU resources, or fall back to the CPU
+/// renderer. Stops the loop with [`PlatformError::Renderer`] when both fail.
+/// Returns `true` when the window has a working renderer again.
+fn handle_device_lost(
+    app: &mut dyn Application,
+    state: &mut WindowState,
+    event_loop: &ActiveEventLoop,
+    fatal: &mut Option<PlatformError>,
+    width: u32,
+    height: u32,
+    scale: f32,
+) -> bool {
+    let win_id = state.id;
+    let recovery = match &mut state.renderer {
+        WindowRenderer::Gpu(renderer) => renderer.on_device_lost().map_err(|e| e.to_string()),
+        #[cfg(feature = "cpu-renderer")]
+        WindowRenderer::Failed => Err("renderer already failed".into()),
+        #[cfg(feature = "cpu-renderer")]
+        WindowRenderer::Cpu(_) => Ok(()),
+    };
+    let gpu_error = match recovery {
+        Ok(()) => {
+            // GPU resources were rebuilt, so application-owned glyph caches
+            // must be invalidated before the next frame.
+            notify_gpu_recovered(app, win_id);
+            state.dirty = true;
+            state.window.request_redraw();
+            return true;
+        }
+        Err(error) => error,
+    };
+    tracing::error!(error = %gpu_error, "GPU device recovery failed");
+    match switch_to_cpu_after_device_loss(state, width, height, scale) {
+        Ok(()) => {
+            tracing::warn!("Switched from failed GPU recovery to CPU renderer");
+            notify_gpu_recovered(app, win_id);
+            state.dirty = true;
+            state.window.request_redraw();
+            true
+        }
+        Err(cpu_error) => {
+            tracing::error!(error = %cpu_error, "CPU fallback also failed");
+            let error = PlatformError::Renderer(format!(
+                "GPU device recovery failed ({gpu_error}); CPU fallback failed ({cpu_error})"
+            ));
+            stop_on_fatal(fatal, event_loop, error);
+            false
+        }
+    }
+}
+
+/// Replace the current renderer with a CPU software renderer for the same window.
+/// The old GPU surface is released first so the native software surface can be acquired.
+#[cfg(feature = "cpu-renderer")]
+fn switch_to_cpu_after_device_loss(
+    state: &mut WindowState,
+    width: u32,
+    height: u32,
+    scale: f32,
+) -> Result<(), String> {
+    let old = std::mem::replace(&mut state.renderer, WindowRenderer::Failed);
+    drop(old);
+    let cpu = CpuWindowRenderer::new(state.window.clone(), width, height, scale)?;
+    state.renderer = WindowRenderer::Cpu(cpu);
+    Ok(())
+}
+
+#[cfg(not(feature = "cpu-renderer"))]
+fn switch_to_cpu_after_device_loss(
+    _state: &mut WindowState,
+    _width: u32,
+    _height: u32,
+    _scale: f32,
+) -> Result<(), String> {
+    Err(CPU_FEATURE_REQUIRED.into())
 }
