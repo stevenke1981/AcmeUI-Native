@@ -359,10 +359,13 @@ struct RasterizedGlyph {
 
 /// CPU-side shelf allocator bookkeeping for a renderer-owned texture.
 ///
-/// Provides LRU-style eviction: call [`begin_frame`](Self::begin_frame) each
-/// frame, then [`evict_stale`](Self::evict_stale) (or rely on the automatic
-/// eviction in [`insert`](Self::insert)) when the atlas is near capacity to
-/// drop glyphs not accessed within `max_age` frames.
+/// Provides LRU-style eviction: call [`begin_frame`](Self::begin_frame) once
+/// per frame. Automatic eviction of glyphs idle for more than 60 frames runs
+/// in `begin_frame` (after an overflow, or above 75% fill), or during
+/// preparation only while no glyph has been used in the current frame, so
+/// glyphs handed out earlier in a frame are never overwritten. A glyph that
+/// does not fit mid-frame is dropped for that frame (counted in
+/// `atlas_full_glyphs`). [`evict_stale`](Self::evict_stale) evicts manually.
 ///
 /// **Note:** Because the shelf allocator cannot reclaim fragmented space, any
 /// eviction invalidates *all* atlas entries — surviving glyphs are re-uploaded
@@ -379,8 +382,14 @@ pub struct GlyphAtlas {
     next_id: u64,
     /// Monotonic frame counter for LRU tracking.
     frame: u64,
+    /// A glyph did not fit during a frame whose glyphs were already in use;
+    /// eviction is deferred to the next [`begin_frame`](Self::begin_frame).
+    needs_space: bool,
     entries: HashMap<CacheKey, AtlasEntry>,
 }
+
+/// Entries idle for more than this many frames may be evicted (≈1 s at 60 fps).
+const STALE_AGE_FRAMES: u64 = 60;
 
 impl GlyphAtlas {
     pub fn new(width: u32, height: u32) -> Self {
@@ -393,6 +402,7 @@ impl GlyphAtlas {
             generation: 0,
             next_id: 1,
             frame: 0,
+            needs_space: false,
             entries: HashMap::new(),
         }
     }
@@ -418,12 +428,31 @@ impl GlyphAtlas {
         self.cursor_x = 0;
         self.cursor_y = 0;
         self.row_height = 0;
+        self.needs_space = false;
         self.generation = self.generation.wrapping_add(1);
     }
 
     /// Advance the frame counter. Call once per frame before rendering.
+    ///
+    /// This is where eviction normally happens: when a glyph did not fit in
+    /// the previous frame, or more than three quarters of the atlas is used,
+    /// and some entries have been idle for more than 60 frames, the atlas is
+    /// cleared (generation bumped). Evicting here, rather than in the middle of
+    /// a frame, keeps every [`PreparedText`] already produced in the frame valid.
     pub fn begin_frame(&mut self) {
         self.frame = self.frame.wrapping_add(1);
+        let used_rows = u64::from(self.cursor_y) + u64::from(self.row_height);
+        let pressure = used_rows * 4 >= u64::from(self.height) * 3;
+        if (self.needs_space || pressure) && self.stale_count(STALE_AGE_FRAMES) > 0 {
+            self.clear();
+        }
+    }
+
+    /// `true` when an entry was placed or used during the current frame.
+    fn in_use_this_frame(&self) -> bool {
+        self.entries
+            .values()
+            .any(|entry| entry.last_used == self.frame)
     }
 
     /// Mark an entry as recently used (updates its LRU timestamp).
@@ -478,10 +507,16 @@ impl GlyphAtlas {
             self.row_height = 0;
         }
         if self.cursor_y + height > self.height {
-            // Atlas full — try to evict stale entries (60 frames ≈ 1s at 60fps).
-            // `evict_stale` clears all entries and resets the allocator if any
-            // stale entries were evicted, so we can retry the insert from (0,0).
-            if self.evict_stale(60) > 0 {
+            // Clearing now would invalidate glyphs already handed out this
+            // frame (their atlas rectangles would be overwritten), so defer.
+            if self.in_use_this_frame() {
+                self.needs_space = true;
+                return None;
+            }
+            // Nothing from this frame is in the atlas yet: evicting stale
+            // entries is safe. `evict_stale` clears everything and resets the
+            // allocator, so the insert is retried from (0,0).
+            if self.evict_stale(STALE_AGE_FRAMES) > 0 {
                 // Allocator was reset; re-check row-wrapping.
                 if self.cursor_x + width > self.width {
                     self.cursor_x = 0;
@@ -763,13 +798,13 @@ mod tests {
             atlas.begin_frame();
         }
 
-        let stale_before = atlas.stale_count(60);
+        // A glyph did not fit, so the frame boundary evicted the stale entries.
         assert!(
-            stale_before > 0,
-            "expected stale entries in a full atlas after 61 frames, got {stale_before}"
+            atlas.generation() > 0,
+            "begin_frame must evict once entries are stale after an overflow"
         );
 
-        // Insert a new glyph — should trigger auto-eviction (stale entries exist).
+        // The glyph that did not fit is now placed.
         let new_layout = fonts.shape("!", &TextStyle::default(), TextConstraints::default(), 1.0);
         let after = fonts.prepare(&new_layout, &mut atlas);
         assert!(
@@ -812,5 +847,48 @@ mod tests {
         // After one frame advance, entries should NOT be stale (they were touched).
         atlas.begin_frame();
         assert_eq!(atlas.stale_count(1), 0, "touched entries must not be stale");
+    }
+
+    #[test]
+    fn begin_frame_pressure_check_does_not_overflow_on_tall_atlas() {
+        let mut atlas = GlyphAtlas::new(1, u32::MAX);
+        atlas.begin_frame();
+        assert_eq!(atlas.generation(), 0);
+    }
+
+    #[test]
+    fn clear_resets_deferred_eviction_request() {
+        let mut fonts = FontSystem::new();
+        let mut atlas = GlyphAtlas::new(64, 64);
+        let style = TextStyle {
+            font_size: 24.0,
+            line_height: 30.0,
+            ..TextStyle::default()
+        };
+        let overflow = fonts.shape(
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            &style,
+            TextConstraints::default(),
+            1.0,
+        );
+        fonts.prepare(&overflow, &mut atlas);
+        assert!(
+            fonts.diagnostics().atlas_full_glyphs > 0,
+            "precondition: overflow"
+        );
+        atlas.clear();
+        let generation = atlas.generation();
+
+        let one = fonts.shape("A", &style, TextConstraints::default(), 1.0);
+        fonts.prepare(&one, &mut atlas);
+        for _ in 0..70 {
+            atlas.begin_frame();
+        }
+        assert_eq!(
+            atlas.generation(),
+            generation,
+            "a nearly empty atlas must not be evicted by a request made before clear()"
+        );
+        assert_eq!(atlas.len(), 1);
     }
 }
