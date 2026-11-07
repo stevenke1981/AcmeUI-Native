@@ -202,7 +202,8 @@ fn center_of(
     index: usize,
 ) -> (f32, f32) {
     let r = snapshot.get(layout.children[index].id).copied().unwrap();
-    (r.x + r.width * 0.5, r.y + r.height * 0.5)
+    // ROADMAP 014: a tree row is pressed at its trailing edge, not its centre.
+    (r.x + r.width - 2.0, r.y + r.height * 0.5)
 }
 
 fn item_id(adapter: &AccessibilityAdapter, index: usize) -> NodeId {
@@ -230,7 +231,7 @@ fn click_on_a_tree_item_selects_its_row_on_both_paths() {
         match &events[1] {
             PlatformEvent::PointerButton { x, y, pressed, .. } => {
                 assert!(*pressed);
-                assert_eq!((*x, *y), (cx, cy), "press at the row's centre");
+                assert_eq!((*x, *y), (cx, cy), "press at the row's trailing edge");
             }
             other => panic!("expected a pointer press, got {other:?}"),
         }

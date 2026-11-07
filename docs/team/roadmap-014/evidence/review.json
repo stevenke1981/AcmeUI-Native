@@ -1,0 +1,11 @@
+{
+  "reviewer": "independent code-reviewer agent /root/review_b",
+  "result": "APPROVE",
+  "scope": [
+    "crates/acme-render-cpu/src/coverage.rs",
+    "crates/acme-render-cpu/src/coverage/analytic_tests.rs",
+    "docs/team/roadmap-014/evidence/mutation_check.py"
+  ],
+  "findings": [],
+  "notes": "Initial review followed by scoped checks of the added mutation script and corrected numerical block. Reviewer did not rerun tests."
+}

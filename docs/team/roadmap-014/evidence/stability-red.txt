@@ -1,0 +1,19 @@
+
+running 1 test
+test coverage::analytic_tests::analytic_coverage_large_radii_do_not_cancel_area ... FAILED
+
+failures:
+
+failures:
+    coverage::analytic_tests::analytic_coverage_large_radii_do_not_cancel_area
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.02s
+
+   Compiling acme-render-cpu v0.2.0 (.\crates\acme-render-cpu)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.68s
+     Running unittests src\lib.rs (target\debug\deps\acme_render_cpu-e7a1dd59dd9b4f57.exe)
+
+thread 'coverage::analytic_tests::analytic_coverage_large_radii_do_not_cancel_area' panicked at crates\acme-render-cpu\src\coverage\analytic_tests.rs:124:9:
+radius 10000000: 0.9455280900001526 vs 0.9293212890625
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: test failed, to rerun pass `-p acme-render-cpu --lib`

@@ -6,15 +6,12 @@
 //! four corner squares, where the arc removes area. Per corner, a pixel is one of
 //! three cases: wholly inside the arc (nothing removed), wholly outside it (the
 //! removed area is exactly `pixel ∩ corner square`), or crossed by the arc. Only
-//! crossed pixels are supersampled.
+//! crossed pixels use the analytic integral of the circle boundary.
 
 use crate::Bounds;
 
-/// Samples per axis for pixels that the arc crosses.
-const SUBSAMPLES: usize = 8;
-/// Half the diagonal of a unit pixel square. A pixel whose centre is further than
-/// this from an arc lies wholly on one side of it.
-const BOX_REACH: f32 = std::f32::consts::FRAC_1_SQRT_2;
+#[cfg(test)]
+mod analytic_tests;
 
 /// Area of the unit pixel square centred at `center` that lies within `[lo, hi)`.
 fn overlap(lo: f32, hi: f32, center: f32) -> f32 {
@@ -26,103 +23,72 @@ fn sharp_coverage(bounds: Bounds, cx: f32, cy: f32) -> f32 {
     overlap(bounds.left, bounds.right, cx) * overlap(bounds.top, bounds.bottom, cy)
 }
 
-/// Whether two rectangles share a region of positive area.
-fn overlaps(a: Bounds, b: Bounds) -> bool {
-    a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
-}
-
-/// A corner square of a rounded rectangle, with the centre of its arc.
-#[derive(Clone, Copy)]
-struct Corner {
-    square: Bounds,
-    arc_x: f32,
-    arc_y: f32,
-}
-
-fn corners(bounds: Bounds, radius: f32) -> [Corner; 4] {
-    let (l, t, r, b) = (bounds.left, bounds.top, bounds.right, bounds.bottom);
-    let corner = |square: Bounds, arc_x: f32, arc_y: f32| Corner {
-        square,
-        arc_x,
-        arc_y,
-    };
-    let square = |left, top, right, bottom| Bounds {
-        left,
-        top,
-        right,
-        bottom,
-    };
-    [
-        corner(square(l, t, l + radius, t + radius), l + radius, t + radius),
-        corner(square(r - radius, t, r, t + radius), r - radius, t + radius),
-        corner(square(l, b - radius, l + radius, b), l + radius, b - radius),
-        corner(square(r - radius, b - radius, r, b), r - radius, b - radius),
-    ]
-}
-
-/// Whether point `(x, y)` lies inside the rounded rectangle. The nearest point of the
-/// core rectangle, shrunk by `radius`, must be within `radius` of the point.
-fn inside_rounded(bounds: Bounds, radius: f32, x: f32, y: f32) -> bool {
-    if x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom {
-        return false;
+/// Area of `[x0, x1] × [y0, y1]` inside the radius-`r` disc, in its
+/// positive quadrant. The caller clips this box to `[0, r]²` first.
+fn disc_rectangle_area(x0: f64, y0: f64, x1: f64, y1: f64, r: f64) -> f64 {
+    let area = (x1 - x0) * (y1 - y0);
+    let r2 = r * r;
+    if x1 * x1 + y1 * y1 <= r2 {
+        return area;
     }
-    // `max`/`min` rather than `clamp`: rounding can make the core bounds cross
-    // when the radius equals half the side, and `clamp` panics in that case.
-    let nearest_x = x.max(bounds.left + radius).min(bounds.right - radius);
-    let nearest_y = y.max(bounds.top + radius).min(bounds.bottom - radius);
-    let (dx, dy) = (x - nearest_x, y - nearest_y);
-    dx * dx + dy * dy <= radius * radius
-}
-
-/// Coverage by a fixed `SUBSAMPLES x SUBSAMPLES` grid over the pixel square.
-fn supersampled_coverage(bounds: Bounds, radius: f32, cx: f32, cy: f32) -> f32 {
-    let step = 1.0 / SUBSAMPLES as f32;
-    let mut hits = 0usize;
-    for row in 0..SUBSAMPLES {
-        let y = cy - 0.5 + (row as f32 + 0.5) * step;
-        for column in 0..SUBSAMPLES {
-            let x = cx - 0.5 + (column as f32 + 0.5) * step;
-            hits += usize::from(inside_rounded(bounds, radius, x, y));
-        }
+    if x0 * x0 + y0 * y0 >= r2 {
+        return 0.0;
     }
-    hits as f32 / (SUBSAMPLES * SUBSAMPLES) as f32
+    // Before `full_end` the disc covers the whole box height; after `end`
+    // it covers none. Between them, integrate sqrt(r² - x²) - y0.
+    let full_end = ((r - y1) * (r + y1)).max(0.0).sqrt().clamp(x0, x1);
+    let end = ((r - y0) * (r + y0)).max(0.0).sqrt().clamp(full_end, x1);
+    let start_y = ((r - full_end) * (r + full_end)).max(0.0).sqrt();
+    let end_y = ((r - end) * (r + end)).max(0.0).sqrt();
+    let width = end - full_end;
+    let chord = width.hypot(start_y - end_y);
+    let angle = 2.0 * (chord / (2.0 * r)).clamp(0.0, 1.0).asin();
+    // The integral is the trapezoid under the chord plus its circular segment.
+    // Local heights avoid subtracting O(r²) antiderivatives for a unit pixel.
+    // A short Taylor series also keeps angle - sin(angle) stable for thin caps.
+    let segment = if angle < 0.1 {
+        let a2 = angle * angle;
+        angle * a2 * (1.0 / 6.0 - a2 * (1.0 / 120.0 - a2 * (1.0 / 5040.0 - a2 / 362880.0)))
+    } else {
+        angle - angle.sin()
+    };
+    let covered = (full_end - x0) * (y1 - y0)
+        + width * ((start_y - y0) + (end_y - y0)) * 0.5
+        + 0.5 * r2 * segment;
+    covered.clamp(0.0, area)
 }
 
-/// Sampled coverage, clamped to the bounding-rectangle coverage `base`. The clamp
-/// keeps a coarse grid from overshooting the exact area, so a larger radius can never
-/// report more coverage than a smaller one.
-fn bounded_sample(bounds: Bounds, radius: f32, cx: f32, cy: f32, base: f32) -> f32 {
-    supersampled_coverage(bounds, radius, cx, cy).min(base)
-}
-
-/// Coverage of a rounded rectangle whose bounding rectangle has coverage `base`.
-/// The four corner squares are disjoint, so their removed areas can be summed.
+/// Subtract the area outside each disc within its disjoint corner square.
+/// Reflecting each corner into the positive quadrant lets all four share the
+/// same integral. Clip the pixel to each square *before* integrating: one pixel
+/// can cross several corners when the whole rounded rectangle is sub-pixel.
 fn rounded_coverage(bounds: Bounds, radius: f32, cx: f32, cy: f32, base: f32) -> f32 {
-    let pixel = Bounds {
-        left: cx - 0.5,
-        top: cy - 0.5,
-        right: cx + 0.5,
-        bottom: cy + 0.5,
-    };
+    let (left, top, right, bottom, radius, cx, cy) = (
+        f64::from(bounds.left),
+        f64::from(bounds.top),
+        f64::from(bounds.right),
+        f64::from(bounds.bottom),
+        f64::from(radius),
+        f64::from(cx),
+        f64::from(cy),
+    );
     let mut removed = 0.0;
-    for corner in corners(bounds, radius) {
-        if !overlaps(pixel, corner.square) {
+    for (arc_x, arc_y, sx, sy) in [
+        (left + radius, top + radius, -1.0, -1.0),
+        (right - radius, top + radius, 1.0, -1.0),
+        (left + radius, bottom - radius, -1.0, 1.0),
+        (right - radius, bottom - radius, 1.0, 1.0),
+    ] {
+        let x0 = ((cx - arc_x) * sx - 0.5).max(0.0);
+        let x1 = ((cx - arc_x) * sx + 0.5).min(radius);
+        let y0 = ((cy - arc_y) * sy - 0.5).max(0.0);
+        let y1 = ((cy - arc_y) * sy + 0.5).min(radius);
+        if x0 >= x1 || y0 >= y1 {
             continue;
         }
-        let distance = (cx - corner.arc_x).hypot(cy - corner.arc_y);
-        if distance + BOX_REACH <= radius {
-            // Wholly inside the arc: this corner removes nothing.
-            continue;
-        }
-        if distance - BOX_REACH >= radius {
-            // Wholly outside the arc: the whole overlap with the square is removed.
-            removed += sharp_coverage(corner.square, cx, cy);
-            continue;
-        }
-        // The arc crosses this pixel.
-        return bounded_sample(bounds, radius, cx, cy, base);
+        removed += (x1 - x0) * (y1 - y0) - disc_rectangle_area(x0, y0, x1, y1, radius);
     }
-    (base - removed).max(0.0)
+    (f64::from(base) - removed).clamp(0.0, f64::from(base)) as f32
 }
 
 /// Exact-area coverage of a quad with the given corner radius, at the pixel whose
@@ -156,6 +122,16 @@ mod tests {
             right,
             bottom,
         }
+    }
+
+    fn inside_rounded(bounds: Bounds, radius: f32, x: f32, y: f32) -> bool {
+        if x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom {
+            return false;
+        }
+        let nearest_x = x.max(bounds.left + radius).min(bounds.right - radius);
+        let nearest_y = y.max(bounds.top + radius).min(bounds.bottom - radius);
+        let (dx, dy) = (x - nearest_x, y - nearest_y);
+        dx * dx + dy * dy <= radius * radius
     }
 
     /// Reference coverage on a fine 64 x 64 grid.
@@ -222,7 +198,7 @@ mod tests {
     }
 
     #[test]
-    fn interior_pixels_skip_sampling_and_are_fully_covered() {
+    fn interior_pixels_are_fully_covered() {
         // Well inside the core of a rounded rect: exact 1.0, no arc test needed.
         let b = bounds(0.0, 0.0, 20.0, 20.0);
         assert_eq!(quad_coverage(b, 4.0, 10.5, 10.5), 1.0);

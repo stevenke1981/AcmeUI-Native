@@ -1,0 +1,56 @@
+{
+  "source_sha": "e0e44892997eda7c9ab42b18c303463c750cc602",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "acme-render-cpu",
+        "--",
+        "--check"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "started_at": "2026-11-07T19:26:54.639608+00:00",
+      "finished_at": "2026-11-07T19:26:54.848130+00:00",
+      "log": "sdk-01.log",
+      "redacted_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-render-cpu"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "started_at": "2026-11-07T19:26:54.848488+00:00",
+      "finished_at": "2026-11-07T19:26:58.779198+00:00",
+      "log": "sdk-02.log",
+      "redacted_log_sha256": "4eaf31adf938a14a587cc8ebbed9d636cd4ea551191862d844cbd6d1bff3105e"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "acme-render-cpu",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "PASS",
+      "exit_code": 0,
+      "started_at": "2026-11-07T19:26:58.785848+00:00",
+      "finished_at": "2026-11-07T19:26:59.509035+00:00",
+      "log": "sdk-03.log",
+      "redacted_log_sha256": "18868bdd2eb667a8afba2df5a8a435d960ec27fd5a803a6fe6ac4264a15755dd"
+    }
+  ]
+}
