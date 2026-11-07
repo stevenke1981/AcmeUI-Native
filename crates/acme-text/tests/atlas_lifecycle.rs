@@ -644,12 +644,21 @@ fn overflow_mid_frame_defers_eviction_to_next_frame() {
 fn bug_glyph_dropped_while_atlas_holds_only_recent_entries() {
     let mut fonts = FontSystem::new();
     let mut atlas = GlyphAtlas::new(64, 64);
-    let fill = fonts.shape("ABCDEFGHIJKLMN", &style(), TextConstraints::default(), 1.0);
+    // Glyph sizes depend on the platform's fallback font, so fill the atlas
+    // with more glyphs than any font fits instead of assuming an exact count.
+    // 'O' is deliberately absent so it is never already resident.
+    let fill = fonts.shape(
+        "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+        &style(),
+        TextConstraints::default(),
+        1.0,
+    );
     let filled = fonts.prepare(&fill, &mut atlas);
-    assert_eq!(
+    assert!(
+        !filled.glyphs.is_empty() && fonts.diagnostics().atlas_full_glyphs > 0,
+        "precondition: this frame's glyphs fill the 64x64 atlas (placed={}, full={})",
         filled.glyphs.len(),
-        14,
-        "precondition: 14 glyphs fill the 64x64 atlas"
+        fonts.diagnostics().atlas_full_glyphs
     );
 
     atlas.begin_frame();
