@@ -5,6 +5,11 @@
 mod clipboard;
 pub use clipboard::Clipboard;
 
+#[cfg(feature = "cpu-renderer")]
+mod cpu_window;
+#[cfg(feature = "cpu-renderer")]
+use cpu_window::CpuWindowRenderer;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
@@ -270,10 +275,86 @@ fn apply_ime_cursor_area(
     );
 }
 
+// Renderer dispatch is private: Application always emits the same backend-neutral Scene.
+enum WindowRenderer {
+    Gpu(Box<Renderer>),
+    #[cfg(feature = "cpu-renderer")]
+    Failed,
+    #[cfg(feature = "cpu-renderer")]
+    Cpu(CpuWindowRenderer),
+}
+
+impl WindowRenderer {
+    fn resize(&mut self, width: u32, height: u32, scale: f32) {
+        match self {
+            Self::Gpu(renderer) => renderer.resize(width, height, scale),
+            #[cfg(feature = "cpu-renderer")]
+            Self::Failed => {}
+            #[cfg(feature = "cpu-renderer")]
+            Self::Cpu(renderer) => {
+                if let Err(error) = renderer.resize(width, height, scale) {
+                    tracing::error!(%error, "CPU renderer resize failed");
+                }
+            }
+        }
+    }
+
+    fn render_scene(&mut self, scene: &Scene) -> SurfaceAction {
+        match self {
+            Self::Gpu(renderer) => renderer.render_scene(scene),
+            #[cfg(feature = "cpu-renderer")]
+            Self::Failed => SurfaceAction::Exit,
+            #[cfg(feature = "cpu-renderer")]
+            Self::Cpu(renderer) => match renderer.present(scene) {
+                Ok(()) => SurfaceAction::Rendered,
+                Err(error) => {
+                    tracing::error!(%error, "CPU renderer present failed");
+                    SurfaceAction::Exit
+                }
+            },
+        }
+    }
+}
+
+fn initialize_renderer(
+    window: Arc<Window>,
+    width: u32,
+    height: u32,
+    scale: f32,
+) -> Result<WindowRenderer, String> {
+    let cpu_requested =
+        std::env::var("ACME_RENDER_BACKEND").is_ok_and(|value| value.eq_ignore_ascii_case("cpu"));
+    if cpu_requested {
+        #[cfg(feature = "cpu-renderer")]
+        {
+            tracing::info!("Using forced CPU software renderer");
+            return CpuWindowRenderer::new(window, width, height, scale).map(WindowRenderer::Cpu);
+        }
+        #[cfg(not(feature = "cpu-renderer"))]
+        {
+            return Err("CPU backend requires the acme-platform/cpu-renderer feature".into());
+        }
+    }
+    match pollster::block_on(Renderer::new(window.clone(), width, height, scale)) {
+        Ok(renderer) => Ok(WindowRenderer::Gpu(Box::new(renderer))),
+        Err(error) => {
+            #[cfg(feature = "cpu-renderer")]
+            {
+                tracing::warn!(%error, "GPU initialization failed; falling back to CPU");
+                CpuWindowRenderer::new(window, width, height, scale).map(WindowRenderer::Cpu)
+            }
+            #[cfg(not(feature = "cpu-renderer"))]
+            {
+                Err(error.to_string())
+            }
+        }
+    }
+}
+
 struct WindowState {
     id: WindowId,
     window: Arc<Window>,
-    renderer: Renderer,
+    renderer: WindowRenderer,
     cursor: (f32, f32),
     shift: bool,
     ctrl: bool,
@@ -345,12 +426,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             window.set_ime_allowed(true);
             let size = window.inner_size();
             let scale = window.scale_factor() as f32;
-            match pollster::block_on(Renderer::new(
-                window.clone(),
-                size.width,
-                size.height,
-                scale,
-            )) {
+            match initialize_renderer(window.clone(), size.width, size.height, scale) {
                 Ok(renderer) => {
                     let winit_id = window.id();
                     let win_id = WindowId(self.next_window_id);
@@ -1093,16 +1169,51 @@ fn handle_redraw(
         SurfaceAction::Exit => event_loop.exit(),
         SurfaceAction::DeviceLost => {
             tracing::warn!("GPU device lost, attempting recovery...");
-            match state.renderer.on_device_lost() {
+            let recovery = match &mut state.renderer {
+                WindowRenderer::Gpu(renderer) => {
+                    renderer.on_device_lost().map_err(|e| e.to_string())
+                }
+                #[cfg(feature = "cpu-renderer")]
+                WindowRenderer::Failed => Err("renderer already failed".into()),
+                #[cfg(feature = "cpu-renderer")]
+                WindowRenderer::Cpu(_) => Ok(()),
+            };
+            match recovery {
                 Ok(()) => {
-                    // The renderer rebuilt EMPTY GPU atlases; the app owns the
-                    // CPU atlas and must invalidate it so glyphs re-upload.
+                    // GPU resources were rebuilt, so application-owned glyph caches
+                    // must be invalidated before the next frame.
                     notify_gpu_recovered(app, win_id);
                     state.dirty = true;
                     state.window.request_redraw();
+                    return;
                 }
-                Err(e) => {
-                    tracing::error!("device recovery failed: {e}");
+                Err(error) => {
+                    tracing::error!(%error, "GPU device recovery failed");
+                    #[cfg(feature = "cpu-renderer")]
+                    {
+                        // Release the old GPU surface before acquiring a native
+                        // software surface for the same window.
+                        let old = std::mem::replace(&mut state.renderer, WindowRenderer::Failed);
+                        drop(old);
+                        match CpuWindowRenderer::new(
+                            state.window.clone(),
+                            size.width,
+                            size.height,
+                            scale,
+                        ) {
+                            Ok(cpu) => {
+                                tracing::warn!("Switched from failed GPU recovery to CPU renderer");
+                                state.renderer = WindowRenderer::Cpu(cpu);
+                                notify_gpu_recovered(app, win_id);
+                                state.dirty = true;
+                                state.window.request_redraw();
+                                return;
+                            }
+                            Err(cpu_error) => {
+                                tracing::error!(%cpu_error, "CPU fallback also failed")
+                            }
+                        }
+                    }
                     event_loop.exit();
                 }
             }

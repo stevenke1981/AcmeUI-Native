@@ -90,6 +90,35 @@ theme and interaction remains tracked separately.*
 
 ---
 
+## CPU Software Renderer
+
+AcmeUI now includes a headless software rasterizer (`acme-render-cpu`) and a
+native-window presenter using `softbuffer`. The existing `wgpu` renderer remains
+the default; if GPU initialization or recovery fails, the platform runtime
+attempts to switch to CPU rendering.
+
+Force software rendering on Windows:
+
+```powershell
+$env:ACME_RENDER_BACKEND = "cpu"
+cargo run -p acme-gallery
+Remove-Item Env:ACME_RENDER_BACKEND
+```
+
+Or on macOS/Linux:
+
+```bash
+ACME_RENDER_BACKEND=cpu cargo run -p acme-gallery
+```
+
+Run CPU-only rendering tests with `cargo test -p acme-render-cpu`.
+CPU rasterization supports ordered quads, rounded borders, images, clipping,
+pre-rasterized glyphs and opacity layers. It has different performance and
+anti-aliasing characteristics from wgpu. Real-device visual validation remains
+required; see [CPU Renderer plan](docs/plans/P1-cpu-renderer.md).
+
+---
+
 ## Quick Start
 
 ### Prerequisites

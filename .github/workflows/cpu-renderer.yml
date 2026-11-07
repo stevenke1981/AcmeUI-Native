@@ -1,0 +1,46 @@
+name: CPU renderer evidence
+on:
+  pull_request:
+  push:
+    branches: [master]
+permissions:
+  contents: read
+concurrency:
+  group: cpu-evidence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  headless:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88.0
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Verification runner self-tests
+        run: python -m unittest discover -s scripts/tests -p test_verify_sdk.py -v
+      - name: Locked CPU checks with machine-readable evidence
+        run: python scripts/verify_sdk.py --profile cpu --output target/cpu-evidence/checks
+      - name: GPU-only platform still compiles
+        run: cargo check --locked -p acme-platform --no-default-features
+      - name: Render a headless CPU snapshot
+        run: cargo run --locked -p acme-render-cpu --example cpu_snapshot -- target/cpu-evidence/frame.ppm
+      - name: Capture exact tested source
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p target/cpu-evidence
+          git rev-parse HEAD > target/cpu-evidence/tested-sha.txt
+          rustc --version --verbose > target/cpu-evidence/toolchain.txt
+          git archive --format=zip HEAD -o target/cpu-evidence/source.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cpu-evidence-${{ github.run_id }}
+          path: target/cpu-evidence/
+          retention-days: 14
+          if-no-files-found: error

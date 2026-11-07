@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
 	"crates/acme-core", "crates/acme-platform", "crates/acme-render-wgpu",
-	"crates/acme-layout", "crates/acme-text", "crates/acme-accessibility",
+	"crates/acme-layout", "crates/acme-text", "crates/acme-render-cpu", "crates/acme-accessibility",
 	"crates/acme-theme", "crates/acme-animation", "crates/acme-style", "crates/acme-widgets", "crates/acme-textinput", "crates/acme-devtools", "crates/acme-ui",
 	"apps/gallery", "apps/acme-gallery", "apps/playground", "apps/benchmark"
 ]
@@ -21,6 +21,7 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 winit = "0.30"
 wgpu = "29"
+softbuffer = "=0.4.8"
 pollster = "0.4"
 bytemuck = { version = "1", features = ["derive"] }
 taffy = "0.9"
