@@ -1,0 +1,4 @@
+# Golden pixel fixtures and other binary assets must never be newline-converted.
+*.ppm binary
+*.png binary
+*.webp binary
