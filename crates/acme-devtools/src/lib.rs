@@ -139,7 +139,7 @@ impl FrameMetrics {
     pub fn summary(&self) -> String {
         let frame_time = self
             .frame_duration
-            .map_or_else(|| "—".into(), |d| format!("{:?}", d));
+            .map_or_else(|| "—".into(), |d| format!("{d:?}"));
         format!(
             "Frame: {} quads, {} clipped, {} text runs, {} glyphs, {} uploads \
              | Layout: {} nodes \
