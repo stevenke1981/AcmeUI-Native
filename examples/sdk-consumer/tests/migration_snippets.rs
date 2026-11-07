@@ -123,6 +123,30 @@ fn m03_glyph_atlas_begin_frame_snippet_drops_nothing_in_a_roomy_atlas() {
     assert_eq!(dropped, 0, "a short line must fit a 2048x2048 atlas");
 }
 
+/// ROADMAP 011 opt-in: `new` keeps one page; `with_config` (or `Default`) opens
+/// up to `max_pages` pages of `page_width` x `page_height`.
+#[test]
+fn m03_with_config_snippet_opts_into_multiple_pages() {
+    use acme_text::GlyphAtlasConfig;
+
+    let mut atlas = GlyphAtlas::with_config(GlyphAtlasConfig {
+        page_width: 2048,
+        page_height: 2048,
+        max_pages: 4,
+    });
+    let mut fonts = FontSystem::new();
+    let style = TextStyle::default();
+    let layout = fonts.shape("Hello", &style, TextConstraints::default(), 1.0);
+
+    atlas.begin_frame();
+    let prepared = fonts.prepare(&layout, &mut atlas);
+
+    assert_eq!(atlas.max_pages(), 4);
+    assert_eq!(atlas.dimensions(), (2048, 2048), "dimensions are per page");
+    assert_eq!(atlas.page_count(), 1, "a short line fits the first page");
+    assert!(prepared.glyphs.iter().all(|glyph| glyph.atlas_page == 0));
+}
+
 // ---------------------------------------------------------------------------
 // M4. apps/benchmark CLI: no library API, no test here.
 // ---------------------------------------------------------------------------

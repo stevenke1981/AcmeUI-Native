@@ -164,7 +164,7 @@ impl Gallery {
             button_info: Vec::new(),
             last_mobile_press: None,
             fonts: FontSystem::new(),
-            atlas: GlyphAtlas::new(2048, 2048),
+            atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
             retained: RetainedLayoutState::new(),
             #[cfg(test)]

@@ -87,7 +87,7 @@ impl Playground {
             click_count: 0,
             danger_mode: false,
             fonts: FontSystem::new(),
-            atlas: GlyphAtlas::new(2048, 2048),
+            atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
             retained: RetainedTree::new(),
             retained_error_logged: false,

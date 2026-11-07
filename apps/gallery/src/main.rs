@@ -211,7 +211,7 @@ impl Gallery {
             vlist_viewport_rect: [0.0; 4],
             scroll_clip_rect: [0.0; 4],
             fonts: FontSystem::new(),
-            atlas: GlyphAtlas::new(2048, 2048),
+            atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
             clipboard: Clipboard::new().ok(),
             accessibility: AccessibilityAdapter::new(0),
