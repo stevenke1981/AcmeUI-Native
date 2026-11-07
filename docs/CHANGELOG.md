@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased - Benchmarks and atlas lifecycle (ROADMAP 006, 2026-11-07)
+
+- **Behaviour change (`acme-text` `GlyphAtlas`):** automatic eviction no longer
+  clears the atlas in the middle of a frame once any glyph was used in it; that
+  overwrote texels of glyphs already handed out, so glyphs in one
+  `PreparedText` could overlap. A glyph that does not fit mid-frame is now
+  dropped for that frame (`atlas_full_glyphs`), and `begin_frame` evicts
+  entries idle for more than 60 frames after an overflow or above 75 % fill.
+  `atlas_generation` therefore bumps at frame start, possibly earlier than
+  before. `clear()` also resets a pending eviction request.
+- `apps/benchmark` is headless (no window, no GPU device): warm-up plus sampled
+  min/median/p95/mean, `--quick`, `--json PATH` (schema v1 with git SHA, rustc,
+  OS/arch, profile, CPU), retained-tree and CPU-render cases. The `--window`
+  path was removed. Methodology: `docs/guides/BENCHMARKS.md`; no FPS targets or
+  CI thresholds.
+- New atlas lifecycle tests (`crates/acme-text/tests/atlas_lifecycle.rs`):
+  600-frame Latin/CJK/emoji rotation on a 256x256 atlas, explicit clear,
+  hot-set accounting, deferred-eviction regression. Known limitation (ignored
+  test): a glyph is dropped while every entry was used within 60 frames.
+
 ## Unreleased - Retained IDs in remaining apps (2026-11-07)
 
 - V2 Showcase and Playground frame layouts now consume retained identities,

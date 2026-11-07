@@ -7,6 +7,7 @@
 - [x] `run()` reports `NoWindows` / `Renderer` failures instead of `Ok(())`.
 - [x] Deterministic CPU golden pixel tests.
 - [x] ROADMAP 006 bounded atlas-lifecycle follow-up: reject invalid CPU scenes before changing glyph caches; add dual-format cache/painter-order regressions (docs/team/cpu-atlas-atomic/REPORT.md). Gallery/GPU baselines and measured performance remain open.
+- [x] ROADMAP 006: headless benchmark runner with statistics/JSON and methodology (docs/guides/BENCHMARKS.md); atlas lifecycle tests and deferred mid-frame eviction fix (docs/team/roadmap-006/REPORT.md). Gallery/GPU screenshot goldens and GPU timing remain NOT_RUN.
 - [x] Crate metadata, external consumer example + CI job, SDK guide.
 - [x] acme-ui test warnings removed.
 - [ ] Native runtime check of fatal paths (no-window, forced CPU failure) — NOT_RUN.

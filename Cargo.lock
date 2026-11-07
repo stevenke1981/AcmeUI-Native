@@ -134,14 +134,11 @@ version = "0.2.0"
 dependencies = [
  "acme-core",
  "acme-layout",
- "acme-platform",
+ "acme-render-cpu",
  "acme-render-wgpu",
  "acme-text",
- "acme-theme",
  "acme-widgets",
  "anyhow",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
