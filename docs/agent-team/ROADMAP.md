@@ -11,6 +11,7 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 | 005 | Rust Core + Accessibility | Windows Traditional Chinese IME and DPI acceptance | Actual 注音 sessions at 100/125/150/200 percent scaling |
 | 006 | Rendering + Verification | Pixel baselines, atlas lifecycle, measured CPU/GPU performance | Reproducible images and benchmark methodology; no invented FPS targets |
 | 007 | Architecture + Lead | SDK examples, versioning, packaging, migration guidance | External consumer build, release build, compatibility and license review |
+| 008 | Lead + UI/UX + Accessibility | Follow-ups: Gallery hover/press drift, AccessKit validation and cell roles, compiled migration snippets, benchmark CI smoke | Headless RED/GREEN tests, consumer test, CI artifact; screen-reader checks stay manual |
 
 ## Existing work to preserve
 

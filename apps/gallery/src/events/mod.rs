@@ -26,5 +26,5 @@ pub use dispatch::{
     handle_pointer_moved, handle_pointer_pressed, handle_pointer_released, handle_scroll_event,
     handle_tab_key, handle_tree_arrow_key,
 };
-pub use hit::hit_test;
+pub use hit::{hit_test, same_hit_list};
 pub use ime::{compute_ime_caret_rect, refresh_ime_caret_rect, scroll_text_input_to_caret};

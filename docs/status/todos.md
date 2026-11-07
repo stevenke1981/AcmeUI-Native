@@ -1,5 +1,16 @@
 # Todos
 
+## ROADMAP 008 — interaction and accessibility follow-ups (2026-11-07)
+
+- [x] Gallery hovered/pressed indices no longer drift after a page switch (headless tests).
+- [x] TextInput `validation_message` → AccessKit invalid + description.
+- [x] Table/DataGrid cells → `Role::Cell` (label/container content).
+- [ ] Tree item roles: needs `Tree` to expose per-item widgets and layout IDs first.
+- [ ] Table `Row` nodes and column headers; TextInput `description` field not exposed.
+- [x] MIGRATION.md snippets compiled by the sdk-consumer tests.
+- [x] Headless benchmark smoke run in CI (no thresholds).
+- [ ] Screen-reader confirmation of the new roles — NOT_RUN (manual).
+
 ## Audit reconciliation — bounded hardening (2026-11-07)
 
 - [x] Re-verify accessibility findings: retained-bound IDs and Gallery wiring were already fixed by merged PR #8/#9; preserve the sequential compatibility APIs.
@@ -28,7 +39,7 @@
 - [x] ROADMAP 004: keyboard focus keyed by stable identity; core control semantics (docs/team/roadmap-004/REPORT.md).
 - [x] ROADMAP 005 (automated part): DPI matrix and IME geometry tests; 3 IME bugs and 2 TextInput field bugs fixed (docs/team/roadmap-005/REPORT.md).
 - [ ] ROADMAP 005 (manual): 注音 sessions at 100/125/150/200 % — human sign-off still required.
-- [ ] Follow-ups: hovered/pressed indices drift after page switch; TextInput validation_message as AccessKit error text; Table/DataGrid cell and Tree item roles; preedit wider than the field does not scroll; CPU sharp-corner coverage (ignored test).
+- [ ] Follow-ups (hover/press drift, validation text, Table/DataGrid cells done in ROADMAP 008; Tree item roles open): preedit wider than the field does not scroll; CPU sharp-corner coverage (ignored test).
 
 ## Retained-tree invalidation (bounded local patch)
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased - Interaction and accessibility follow-ups (ROADMAP 008, 2026-11-07)
+
+- `acme-accessibility`: a `TextInput` with `validation_message` is now
+  `Invalid::True` and exposes the message as its AccessKit description
+  (the `invalid` flag alone still marks it invalid, without description).
+  Table and DataGrid cells get `Role::Cell` when their content is a label or
+  container; controls inside cells keep their own role and actions. Tree items
+  are unchanged: `Tree` exposes no per-item widget yet (see ROADMAP 008 report).
+- Gallery: a pointer press no longer survives a page switch or a hit-list
+  change, so a release cannot activate a different widget; hover is
+  re-resolved from the pointer each frame.
+- `examples/sdk-consumer/tests/migration_snippets.rs` compiles the MIGRATION.md
+  after-form snippets (11 tests, M4/M10 have no library API). Fixed the M5
+  snippet (undefined `snapshot`) and the M2 parsing table (`from_env_value`
+  returns `Err`; only `from_env` warns and falls back to `Auto`).
+- CI `CPU renderer evidence`: release `acme-benchmark --quick` smoke run,
+  `benchmark.json` stored in the artifact. No thresholds.
+
 ## Unreleased - Packaging, licenses, migration (ROADMAP 007, 2026-11-07)
 
 - Added `LICENSE-MIT` and `LICENSE-APACHE` (the workspace already declared

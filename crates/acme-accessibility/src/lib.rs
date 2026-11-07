@@ -273,10 +273,13 @@ impl AccessibilityAdapter {
 /// | `TabBar`                | `TabList`; each tab child is `Tab`, with `selected` |
 /// | `NavRail`               | `Navigation`; the selected item is `selected`   |
 /// | `Dialog`                | `Dialog`, `modal` when `modal`                  |
+/// | `Table` / `DataGrid`    | `Table` / `Grid`; each cell child is `Cell` when its content is a `Label` or container |
 ///
 /// A disabled `Button` has no `Click` action. A `TextInput` never exposes a
-/// password's value. Tables and trees keep their generic roles (not yet
-/// mapped to row, cell or tree-item roles).
+/// password's value. A `TextInput` with a `validation_message` is `invalid`,
+/// and the message is its description. Table rows and tree items have no
+/// retained node, so they have no `Row` or `TreeItem` role; a tree's items
+/// are not exposed at all.
 ///
 /// # Parameters
 ///
@@ -406,6 +409,9 @@ enum Slot<'a> {
     Tab { label: &'a str, selected: bool },
     /// An item of a NavRail: named by the item's own label.
     NavItem { label: &'a str, selected: bool },
+    /// A cell child of a Table or DataGrid. Text and plain containers take
+    /// `Role::Cell`; controls keep their own role (see [`walk`]).
+    Cell,
 }
 
 /// The slot of child `index` within `parent`.
@@ -422,6 +428,8 @@ fn child_slot<M>(parent: &WidgetNode<M>, index: usize) -> Slot<'_> {
             label: &tab.label,
             selected: index == bar.selected,
         }),
+        // Table and DataGrid children are their cells, in row-major order.
+        WidgetNode::Table(_) | WidgetNode::DataGrid(_) => Slot::Cell,
         WidgetNode::NavRail(rail) => {
             rail.items
                 .get(index)
@@ -492,9 +500,13 @@ fn walk<M: Clone + 'static>(
     let own = ids.assign(node);
     let id = AccessNodeId::from(own.get());
 
-    let role = match slot {
-        Slot::Tab { .. } => Role::Tab,
-        Slot::Plain | Slot::NavItem { .. } => widget_role(node),
+    let role = match (slot, widget_role(node)) {
+        (Slot::Tab { .. }, _) => Role::Tab,
+        // A cell's text or plain container is the cell itself. A control or a
+        // nested composite keeps its own role: AccessKit has no wrapper node
+        // to hold it, and `Cell` would hide its activation semantics.
+        (Slot::Cell, Role::Label | Role::Group) => Role::Cell,
+        (_, own) => own,
     };
 
     let mut access_node = AccessNode::new(role);
@@ -598,6 +610,7 @@ fn apply_widget_state<M>(access_node: &mut AccessNode, node: &WidgetNode<M>, slo
         // A nav item is button-like: omit the flag rather than announce "not selected".
         Slot::NavItem { selected: true, .. } => access_node.set_selected(true),
         Slot::Plain
+        | Slot::Cell
         | Slot::NavItem {
             selected: false, ..
         } => {}
@@ -618,8 +631,14 @@ fn apply_text_input_state<M>(access_node: &mut AccessNode, input: &TextInput<M>)
     if input.readonly {
         access_node.set_read_only();
     }
-    if input.invalid {
+    // A validation message implies an invalid value. AccessKit 0.21 has an
+    // ErrorMessage relation, but it needs a separate node holding the text;
+    // the message is exposed as the description instead, which adds no node.
+    if input.invalid || input.validation_message.is_some() {
         access_node.set_invalid(Invalid::True);
+    }
+    if let Some(message) = non_empty(input.validation_message.as_deref()) {
+        access_node.set_description(message);
     }
     access_node.add_action(Action::Focus);
     // Only an editable field accepts a value from assistive technology.
@@ -659,8 +678,9 @@ mod tests {
     use acme_widgets::retained_binding::bind_retained;
     use acme_widgets::view_bridge::widget_to_views;
     use acme_widgets::{
-        TabItem, WidgetNode, button, column, dialog, label, nav_item, nav_rail, row, scroll_view,
-        separator, stack, tab_bar, text_input, tooltip,
+        DataGridColumn, DataGridRow, TabItem, TableColumn, TableRow, WidgetNode, button, column,
+        datagrid, dialog, label, nav_item, nav_rail, row, scroll_view, separator, stack, tab_bar,
+        table, text_input, tooltip,
     };
 
     #[derive(Clone, Debug, PartialEq)]
@@ -2079,5 +2099,129 @@ mod tests {
             .expect("expected the disabled button");
         assert!(off.is_disabled());
         assert!(!off.supports_action(Action::Click));
+    }
+
+    // --- TextInput validation message ----------------------------------
+
+    #[test]
+    fn validation_message_marks_input_invalid_and_is_its_description() {
+        let node = input_node(
+            text_input::<TestMsg>("email")
+                .label("Email")
+                .validation("Enter a valid email address"),
+        );
+        assert_eq!(node.invalid(), Some(Invalid::True));
+        assert_eq!(node.description(), Some("Enter a valid email address"));
+    }
+
+    #[test]
+    fn input_without_validation_message_has_no_description_or_invalid_state() {
+        let node = input_node(text_input::<TestMsg>("email").label("Email"));
+        assert_eq!(node.invalid(), None);
+        assert_eq!(node.description(), None);
+    }
+
+    #[test]
+    fn invalid_flag_alone_marks_input_invalid_without_a_description() {
+        let node = input_node(text_input::<TestMsg>("email").label("Email").invalid(true));
+        assert_eq!(node.invalid(), Some(Invalid::True));
+        assert_eq!(node.description(), None);
+    }
+
+    #[test]
+    fn validation_message_reaches_the_retained_binding_path() {
+        let mut tree = RetainedTree::new();
+        let roots = vec![
+            column::<TestMsg>()
+                .child(
+                    text_input::<TestMsg>("email")
+                        .label("Email")
+                        .validation("Required"),
+                )
+                .build(),
+        ];
+        reconcile_frame(&mut tree, &roots);
+        let binding = bind_retained(&roots, &tree);
+
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update_with_binding(&roots[0], &LayoutSnapshot::default(), &binding);
+        let nodes = &adapter.tree_ref().expect("tree should exist").nodes;
+
+        let input = only_node_with_role(nodes, Role::TextInput);
+        assert_eq!(input.invalid(), Some(Invalid::True));
+        assert_eq!(input.description(), Some("Required"));
+    }
+
+    // --- Table and DataGrid cells --------------------------------------
+
+    fn two_by_one_table() -> WidgetNode<TestMsg> {
+        table::<TestMsg>("people")
+            .column(TableColumn::new("name", label::<TestMsg>("Name"), 120.0))
+            .column(TableColumn::new("age", label::<TestMsg>("Age"), 80.0))
+            .add_row(TableRow::new(vec![
+                label::<TestMsg>("Ada"),
+                label::<TestMsg>("36"),
+            ]))
+            .build()
+    }
+
+    fn one_by_one_grid() -> WidgetNode<TestMsg> {
+        datagrid::<TestMsg>("grid")
+            .column(DataGridColumn::new("name", label::<TestMsg>("Name"), 120.0))
+            .add_row(DataGridRow::new(vec![label::<TestMsg>("Ada")]))
+            .build()
+    }
+
+    #[test]
+    fn table_cells_have_cell_role_and_are_the_table_children() {
+        let nodes = nodes_of(&two_by_one_table());
+        let table_node = only_node_with_role(&nodes, Role::Table);
+        assert_eq!(table_node.children().len(), 2);
+        for child in table_node.children() {
+            assert_eq!(node_with_id(&nodes, *child).role(), Role::Cell);
+        }
+        let names: Vec<&str> = nodes_with_role(&nodes, Role::Cell)
+            .iter()
+            .map(|cell| cell.label().unwrap_or(""))
+            .collect();
+        assert_eq!(names, ["Ada", "36"]);
+    }
+
+    #[test]
+    fn data_grid_cells_have_cell_role() {
+        let nodes = nodes_of(&one_by_one_grid());
+        let cell = only_node_with_role(&nodes, Role::Cell);
+        assert_eq!(cell.label(), Some("Ada"));
+        only_node_with_role(&nodes, Role::Grid);
+    }
+
+    #[test]
+    fn table_cells_have_cell_role_on_the_retained_path() {
+        let mut tree = RetainedTree::new();
+        let roots = vec![two_by_one_table()];
+        reconcile_frame(&mut tree, &roots);
+        let binding = bind_retained(&roots, &tree);
+
+        let mut adapter = AccessibilityAdapter::new(1);
+        adapter.update_with_binding(&roots[0], &LayoutSnapshot::default(), &binding);
+        let nodes = &adapter.tree_ref().expect("tree should exist").nodes;
+
+        assert_eq!(nodes_with_role(nodes, Role::Cell).len(), 2);
+    }
+
+    #[test]
+    fn button_in_a_table_cell_keeps_its_button_role_and_click() {
+        let tree = table::<TestMsg>("actions")
+            .column(TableColumn::new("act", label::<TestMsg>("Act"), 80.0))
+            .add_row(TableRow::new(vec![
+                button::<TestMsg>("delete", "Delete").on_click(TestMsg),
+            ]))
+            .build();
+        let nodes = nodes_of(&tree);
+
+        assert!(nodes_with_role(&nodes, Role::Cell).is_empty());
+        let delete = only_node_with_role(&nodes, Role::Button);
+        assert_eq!(delete.label(), Some("Delete"));
+        assert!(delete.supports_action(Action::Click));
     }
 }

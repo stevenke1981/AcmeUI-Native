@@ -25,7 +25,8 @@ Verification status labels:
 
 - **Verified**: the source was read at the line shown, or a command produced the result.
 - **Not verified**: the statement was not checked in this review. It must be checked before a release claim.
-- **Not compiled**: a code snippet was taken from the source, but it was not built in this review.
+- **Compiled**: the snippet is built and run by `examples/sdk-consumer/tests/migration_snippets.rs` (CI job `sdk-consumer`).
+- **Not compiled**: a code snippet was taken from the source, but it is not built (old API or fragments).
 
 ## 2. Summary of changes
 
@@ -56,7 +57,7 @@ Verification status labels:
 
 **Before** (`05ac86e`, `crates/acme-platform/src/lib.rs` lines 212-227). Verified.
 
-```rust
+```rust,ignore
 pub enum PlatformError {
     #[error("event loop error: {0}")]
     EventLoop(String),
@@ -72,9 +73,9 @@ pub enum PlatformError {
 - If a renderer error and an event loop error both occur, the renderer error is returned (`finish_run`, `crates/acme-platform/src/lib.rs` line 277).
 - When the last window closes normally, `run()` still returns `Ok(())`.
 
-**Code that compiled at 0.2.0 and fails now.** Not compiled.
+**Before (0.2.0 code, fails to compile now).** Not compiled.
 
-```rust
+```rust,ignore
 fn describe(error: acme_platform::PlatformError) -> String {
     match error {
         acme_platform::PlatformError::EventLoop(message) => message,
@@ -82,7 +83,7 @@ fn describe(error: acme_platform::PlatformError) -> String {
 }
 ```
 
-**Required action.** Add the new arms or a wildcard arm. Example (adapted from `docs/guides/SDK_GUIDE.md` section 4; identifiers verified; not compiled):
+**Required action.** Add the new arms or a wildcard arm. Example (adapted from `docs/guides/SDK_GUIDE.md` section 4; compiled by `m01_*` in `migration_snippets.rs`):
 
 ```rust
 match acme_platform::run(app) {
@@ -123,7 +124,7 @@ Parsing rules (from `from_env_value`, `backend.rs` lines 40-63, and its unit tes
 |-------|--------|
 | unset, empty, or only spaces | `Auto` |
 | `auto`, `gpu`, `cpu` | the matching variant. Case does not matter. Surrounding spaces are removed. |
-| any other text | `tracing::warn!` is logged. The result is `Auto`. |
+| any other text | `from_env_value` returns `Err(message)`. `from_env` logs it with `tracing::warn!` and uses `Auto`. |
 
 A value such as `" cpu"` with a leading space now forces the CPU renderer. The CHANGELOG batch-002 entry
 says that an earlier state ignored such a value. Your baseline `0.2.0` had no such variable, so this is a new rule
@@ -136,7 +137,7 @@ Plan mapping (`plan_renderer`, `backend.rs` lines 106-119):
 | `auto`, `gpu` | GPU, then CPU if GPU setup fails | GPU only |
 | `cpu` | CPU only | window creation fails with the CPU feature error |
 
-**Code.** Verified identifiers. Not compiled.
+**Code.** Compiled by `m02_*` in `migration_snippets.rs`.
 
 ```rust
 use acme_platform::RenderBackendPreference;
@@ -158,7 +159,7 @@ If you build with `default-features = false`, `cpu` does not work.
 **Why.** The old code cleared the atlas during a frame. That overwrote glyphs that a `PreparedText` in the same frame
 already used. The old code is at `47f7f46^`, `crates/acme-text/src/lib.rs` lines 479-485:
 
-```rust
+```rust,ignore
 if self.cursor_y + height > self.height {
     // Atlas full — try to evict stale entries (60 frames ≈ 1s at 60fps).
     if self.evict_stale(60) > 0 {
@@ -181,7 +182,7 @@ if self.cursor_y + height > self.height {
 **Who is affected.** Any code that draws text with `GlyphAtlas` and `FontSystem::prepare`.
 
 **Before and after code.** The Gallery calls `begin_frame()` once per frame before it prepares text
-(`apps/gallery/src/main.rs` line 466; atlas created with `GlyphAtlas::new(2048, 2048)` at line 205). Adapted; not compiled.
+(`apps/gallery/src/main.rs` line 466; atlas created with `GlyphAtlas::new(2048, 2048)` at line 205). Adapted; compiled by `m03_*` in `migration_snippets.rs`.
 
 ```rust
 // Once per frame, before any text is prepared for that frame.
@@ -260,15 +261,18 @@ and `build_tree_update` (line 288).
 - Check `binding.mismatches() == 0` before you use the binding. Otherwise use the sequential functions for that frame.
 - Synthetic IDs (`>= SYNTHETIC_ID_BASE`) are used for rows and cells that have no widget. They are not stable across shape changes.
 
-**Pattern used by the Playground** (`apps/playground/src/main.rs` lines 248-262). Adapted; not compiled.
+**Pattern.** The Playground applies the same rules (`apps/playground/src/main.rs` lines 248-262), but it assigns IDs with its own helper `assign_retained_ids`. The snippet below is adapted. `viewport: (f32, f32)` and `scale_factor: f32` come from the window. It needs a function that returns `Result`.
 
 ```rust
+use acme_widgets::retained_binding::bind_retained;
+use acme_widgets::view_bridge::widget_to_views;
+
 let views = widget_to_views(std::slice::from_ref(description));
 if tree.reconcile_roots(&views).is_ok() {
     let binding = bind_retained(std::slice::from_ref(description), &tree);
     if binding.mismatches() == 0 {
         let root = description.to_layout_with_binding(&binding, &layout_context);
-        // ... compute the layout snapshot from `root` ...
+        let snapshot = layout_engine.compute_with_text(&root, viewport, &mut fonts, scale_factor)?;
         accessibility.update_with_binding(description, &snapshot, &binding);
     }
 }
@@ -289,7 +293,7 @@ The Gallery follows the same rule (`apps/gallery/src/main.rs` lines 474-478 and 
 | TabBar tab | generic role. No tab role. | role `Tab`. `selected` set (`false` when not selected). | lines 405, 496, 597 |
 | NavRail selected item | no `selected` state | `selected` set on the selected item | lines 599-600 |
 | TextInput, password | role `TextInput`. No password role. | role `PasswordInput`. No value property. | lines 455, 609-613 |
-| TextInput, disabled, read-only, invalid | not mapped | disabled, read-only and invalid states are set | lines 611-629 |
+| TextInput, disabled, read-only, invalid | not mapped | disabled, read-only and invalid states are set; `validation_message` sets invalid and becomes the description (ROADMAP 008) | lines 611-629 |
 | TextInput, `SetValue` action | not mapped | added only when the field is not disabled and not read-only | lines 625-628 |
 | Dialog, modal | role `Dialog`. No modal state. | `modal` state when the dialog is modal | lines 451, 589-591 |
 
@@ -298,7 +302,7 @@ Other facts:
 - `AccessibilityAdapter::clear_widget_focus()` was added (`lib.rs` line 239). It makes the next `TreeUpdate` report the root as focused.
 - `AccessibilityAdapter::focus_widget(NodeId)` (line 232) has the same signature as before.
 - `AccessibilityAdapter::route_action` returns `Vec<PlatformEvent>` (line 185). See M13.
-- Tables and trees keep generic roles. They are not mapped to row, cell or tree-item roles (`lib.rs` documentation around line 280).
+- Table and DataGrid cells with label or container content are `Cell` (ROADMAP 008); controls in cells keep their own role. Rows and tree items have no retained node, so there is no `Row` or `TreeItem` role.
 
 **Required action.** Update tests that check for `Button` roles with `Click` on disabled buttons, or for `TextInput` roles on password fields.
 Do not read the value of a password field from the tree. It is not present.
@@ -324,9 +328,9 @@ Source file: `crates/acme-textinput/src/lib.rs`.
 | `scroll_caret_into_view(...)` | not present | new free function. The caller decides when to call it. | line 1185 |
 | `commit_preedit()` | takes the preedit text and clears it | same. No change. | line 592 |
 
-Signature of the new function (`lib.rs` lines 1185-1191):
+Signature of the new function (`lib.rs` lines 1185-1191). This is a signature listing, not a complete item, so it uses the `text` fence:
 
-```rust
+```text
 pub fn scroll_caret_into_view(
     state: &mut TextInputState,
     fonts: &mut FontSystem,
@@ -336,7 +340,7 @@ pub fn scroll_caret_into_view(
 )
 ```
 
-Not compiled. Example:
+Compiled by `m08_*` in `migration_snippets.rs`. Example:
 
 ```rust
 acme_textinput::scroll_caret_into_view(&mut state, &mut fonts, &style, scale, content_width);
@@ -435,7 +439,7 @@ Work through these steps in order.
 
 ## 5. Not verified and limits
 
-- No test, benchmark or GUI was run for this guide. Code snippets are **not compiled**.
+- After-form snippets are compiled and run by `examples/sdk-consumer/tests/migration_snippets.rs` (ROADMAP 008). No benchmark or GUI was run for this guide.
 - Native windows, GPU device loss, Traditional Chinese IME (注音), DPI scaling at 125/150/200 %, and screen readers are **not validated**.
   See [`MANUAL_VALIDATION.md`](MANUAL_VALIDATION.md). Do not claim these work after the upgrade.
 - The meaning of `RenderBatch.clip` (logical or physical pixels) is not verified (M11).
