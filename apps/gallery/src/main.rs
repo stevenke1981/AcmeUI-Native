@@ -47,13 +47,14 @@ mod rt_shadow;
 mod types;
 
 use acme_accessibility::AccessibilityAdapter;
-use acme_core::{Color, NodeId, RetainedTree, Scene};
-use acme_layout::LayoutEngine;
+use acme_core::{Color, NodeId, Scene};
+use acme_layout::{LayoutEngine, LayoutNode, WidgetLayoutContext};
 use acme_platform::{
     Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
 };
 use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::TextInputState;
+use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::{WidgetNode, column, row, scroll_view};
 
 use crate::events::{
@@ -67,6 +68,22 @@ use crate::render::{
     render_page_content, render_sidebar, render_text_input_overlay, render_toolbar,
 };
 use crate::types::*;
+
+/// Layout root for one frame: retained IDs when a binding exists, otherwise the
+/// sequential IDs of the pre-retained pipeline.
+fn layout_root(
+    description: &WidgetNode<GalleryMessage>,
+    binding: Option<&RetainedBinding<'_>>,
+    context: &WidgetLayoutContext,
+) -> LayoutNode {
+    match binding {
+        Some(binding) => description.to_layout_with_binding(binding, context),
+        None => description.to_layout_with_context(NodeId::new(1), context),
+    }
+}
+
+#[cfg(test)]
+mod retained_ids_tests;
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -133,8 +150,8 @@ struct Gallery {
     clipboard: Option<Clipboard>,
     accessibility: AccessibilityAdapter,
 
-    // RuntimeTree shadow (Phase 1 diagnostics)
-    shadow_tree: RetainedTree,
+    // Retained tree: stable NodeIds for layout and accessibility (ROADMAP 003)
+    retained: rt_shadow::RetainedStep,
 
     // Screenshot mode
     #[allow(dead_code)]
@@ -179,7 +196,7 @@ impl Gallery {
             layout: LayoutEngine::new(),
             clipboard: Clipboard::new().ok(),
             accessibility: AccessibilityAdapter::new(0),
-            shadow_tree: RetainedTree::new(),
+            retained: rt_shadow::RetainedStep::new(),
             screenshot_config: None,
         }
     }
@@ -440,12 +457,18 @@ impl Application for Gallery {
         // ── Layer 1: Build widget tree ──
         let description = self.description();
 
-        // ── Phase 1: RuntimeTree shadow reconcile (diagnostics only) ──
-        let _shadow = rt_shadow::run_shadow_reconcile(&mut self.shadow_tree, &description);
-        #[cfg(debug_assertions)]
-        if _shadow.error.is_some() {
-            tracing::warn!("RT shadow encountered an error (see above)");
-        }
+        // ── Layer 1: Reconcile into the retained tree and bind stable IDs ──
+        let reconciled = self.retained.reconcile(&description).is_ok();
+        let binding = if reconciled {
+            let binding = bind_retained(std::slice::from_ref(&description), self.retained.tree());
+            // A partial binding would give layout and accessibility different
+            // synthetic IDs, so keep both on sequential IDs for this frame.
+            self.retained
+                .accept_binding(binding.mismatches())
+                .then_some(binding)
+        } else {
+            None
+        };
 
         // ── Layer 1: Build Theme ──
         let theme = build_theme(self.dark);
@@ -454,7 +477,7 @@ impl Application for Gallery {
         let layout_context = build_layout_context(&theme, context.scale_factor);
 
         // ── Layer 2: Convert to layout tree with context ──
-        let mut root = description.to_layout_with_context(NodeId::new(1), &layout_context);
+        let mut root = layout_root(&description, binding.as_ref(), &layout_context);
 
         // ── Layer 2: Apply sizes, gaps, scroll flags ──
         apply_gallery_styles(&mut root, width, height);
@@ -471,7 +494,13 @@ impl Application for Gallery {
             .expect("finite Gallery viewport");
 
         // ── Layer 3: Accessibility ──
-        self.accessibility.update(&description, &snapshot);
+        match &binding {
+            Some(binding) => {
+                self.accessibility
+                    .update_with_binding(&description, &snapshot, binding)
+            }
+            None => self.accessibility.update(&description, &snapshot),
+        }
 
         // ── Layer 3: Extract structural IDs ──
         let ids = extract_gallery_ids(&root);

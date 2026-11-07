@@ -1,8 +1,11 @@
-//! RuntimeTree shadow reconcile runner (Phase 1 — diagnostics only).
+//! Retained-tree step of the Gallery frame pipeline (ROADMAP 003).
 //!
-//! This module converts the Gallery's declarative widget tree into `ViewNode`s
-//! and feeds them to a `RetainedTree` shadow. No functional changes to layout,
-//! paint, hit-testing, or accessibility — purely for diagnostic data collection.
+//! Every frame the declarative widget tree is converted into `ViewNode`s and
+//! reconciled into the Gallery's `RetainedTree`. On success the frame binds the
+//! description to the retained node IDs (`acme_widgets::retained_binding`), so
+//! layout, hit regions and accessibility share one stable `NodeId` per widget
+//! across frames. On a reconcile error the frame falls back to the sequential
+//! layout IDs; the error is logged once until a later reconcile succeeds.
 
 use acme_core::{ReconcileReport, RetainedTree};
 use acme_widgets::WidgetNode;
@@ -10,66 +13,94 @@ use acme_widgets::view_bridge::widget_to_views;
 
 use crate::types::GalleryMessage;
 
-/// Run the shadow reconcile cycle for one frame.
-///
-/// Converts `description` to a `ViewNode` forest, reconciles against the
-/// `shadow_tree`, and logs mount/reuse/remove counts.
-///
-/// # Returns
-/// A short diagnostics string suitable for tracing.
-pub fn run_shadow_reconcile(
-    shadow_tree: &mut RetainedTree,
-    description: &WidgetNode<GalleryMessage>,
-) -> ShadowReport {
-    let views = widget_to_views(std::slice::from_ref(description));
-    match shadow_tree.reconcile_roots(&views) {
-        Ok(report) => {
-            let summary = ShadowReport::from_report(&report);
-            tracing::trace!(
-                "RT shadow: {} mounted, {} reused, {} removed, {} total nodes",
-                summary.mounted,
-                summary.reused,
-                summary.removed,
-                summary.total,
-            );
-            summary
+/// Owns the retained tree and the "error already logged" latch.
+#[derive(Default)]
+pub struct RetainedStep {
+    tree: RetainedTree,
+    error_logged: bool,
+    mismatch_logged: bool,
+}
+
+impl RetainedStep {
+    pub fn new() -> Self {
+        Self {
+            tree: RetainedTree::new(),
+            error_logged: false,
+            mismatch_logged: false,
         }
-        Err(err) => {
-            tracing::warn!("RT shadow reconcile error: {err:?}");
-            ShadowReport {
-                mounted: 0,
-                reused: 0,
-                removed: 0,
-                total: shadow_tree.roots().len(),
-                error: Some(format!("{err:?}")),
+    }
+
+    /// The retained tree, reconciled from the most recent successful frame.
+    pub fn tree(&self) -> &RetainedTree {
+        &self.tree
+    }
+
+    /// Decide whether a binding with `mismatches` structural disagreements may
+    /// drive the frame. Returns `false` (and logs once per run of failing
+    /// frames) when the binding is partial.
+    pub fn accept_binding(&mut self, mismatches: usize) -> bool {
+        if mismatches == 0 {
+            self.mismatch_logged = false;
+            return true;
+        }
+        if !self.mismatch_logged {
+            tracing::warn!(
+                "retained binding has {mismatches} mismatches, using sequential layout IDs"
+            );
+            self.mismatch_logged = true;
+        }
+        false
+    }
+
+    /// Reconcile `description` into the retained tree.
+    ///
+    /// Returns the counts on success. On failure, returns the error text and
+    /// logs it only the first time in a run of failing frames.
+    pub fn reconcile(
+        &mut self,
+        description: &WidgetNode<GalleryMessage>,
+    ) -> Result<ReconcileCounts, String> {
+        let views = widget_to_views(std::slice::from_ref(description));
+        match self.tree.reconcile_roots(&views) {
+            Ok(report) => {
+                self.error_logged = false;
+                let counts = ReconcileCounts::from_report(&report);
+                tracing::trace!(
+                    "retained tree: {} mounted, {} reused, {} removed",
+                    counts.mounted,
+                    counts.reused,
+                    counts.removed,
+                );
+                Ok(counts)
+            }
+            Err(error) => {
+                let message = format!("{error:?}");
+                if !self.error_logged {
+                    tracing::warn!(
+                        "retained reconcile failed, using sequential layout IDs: {message}"
+                    );
+                    self.error_logged = true;
+                }
+                Err(message)
             }
         }
     }
 }
 
-/// Summary of a single shadow reconcile cycle.
-#[derive(Clone, Debug, Default)]
-pub struct ShadowReport {
-    /// Number of nodes newly mounted this frame.
+/// Mount/reuse/remove counts of one reconcile.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ReconcileCounts {
     pub mounted: usize,
-    /// Number of nodes reused from a previous frame.
     pub reused: usize,
-    /// Number of nodes removed this frame.
     pub removed: usize,
-    /// Total nodes currently in the shadow tree.
-    pub total: usize,
-    /// Error message if reconciliation failed.
-    pub error: Option<String>,
 }
 
-impl ShadowReport {
-    fn from_report(r: &ReconcileReport) -> Self {
+impl ReconcileCounts {
+    fn from_report(report: &ReconcileReport) -> Self {
         Self {
-            mounted: r.mounted.len(),
-            reused: r.reused.len(),
-            removed: r.removed.len(),
-            total: 0, // filled by caller
-            error: None,
+            mounted: report.mounted.len(),
+            reused: report.reused.len(),
+            removed: report.removed.len(),
         }
     }
 }
