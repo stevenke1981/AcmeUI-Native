@@ -219,24 +219,28 @@ fn victim_is_the_stale_page_with_the_oldest_last_use_not_the_lowest_index() {
 fn begin_frame_evicts_at_most_one_page_and_bumps_generation_once_per_call() {
     let mut atlas = paged(5, 3, 2);
     let mut uploads = Vec::new();
-    for id in 1..=3 {
+    for id in 1..=4 {
         put(&mut atlas, id, 2, 2, &mut uploads).unwrap();
     }
+    age(&mut atlas, 60);
+    assert_eq!(atlas.generation(), 0, "no entry is stale at age 60");
+    atlas.touch(&key(3));
     assert!(
         put(&mut atlas, 9, 5, 3, &mut uploads).is_none(),
         "precondition: overflow in use sets the deferred eviction request"
     );
-    age(&mut atlas, 60);
-    assert_eq!(atlas.generation(), 0, "no entry is stale at age 60");
 
     atlas.begin_frame(); // frame 61: both pages are stale, page 0 has the tie-break
     assert_eq!(atlas.generation(), 1);
     assert!(!has(&atlas, 1) && !has(&atlas, 2), "page 0 is the victim");
-    assert!(has(&atlas, 3), "page 1 survives this call");
+    assert!(
+        has(&atlas, 3) && has(&atlas, 4),
+        "page 1 survives this call"
+    );
 
-    atlas.begin_frame(); // frame 62: the remaining stale page goes
-    assert_eq!(atlas.generation(), 2);
-    assert!(!has(&atlas, 3));
+    atlas.begin_frame(); // frame 62: one eviction settled the pending demand
+    assert_eq!(atlas.generation(), 1);
+    assert!(has(&atlas, 3) && has(&atlas, 4));
 }
 
 #[test]
@@ -499,4 +503,169 @@ fn insert_refreshes_page_recency_so_an_older_page_is_the_victim() {
     );
     assert!(has(&atlas, 3) && has(&atlas, 4), "page 1 survives");
     assert!(!has(&atlas, 1) && !has(&atlas, 2));
+}
+
+#[test]
+fn demand_evicts_the_least_recent_page_even_when_every_entry_is_fresh() {
+    let mut atlas = paged(5, 3, 2);
+    let mut uploads = Vec::new();
+    for id in 1..=4 {
+        put(&mut atlas, id, 2, 2, &mut uploads).unwrap();
+    }
+    atlas.begin_frame();
+    atlas.touch(&key(1));
+    atlas.begin_frame();
+    assert_eq!(atlas.stale_count(STALE), 0);
+    assert_eq!(atlas.page_evictions(), 0);
+
+    let inserted = put(&mut atlas, 5, 2, 2, &mut uploads)
+        .expect("recent entries on an unused page must not starve a new frame");
+
+    assert_eq!((inserted.page, inserted.x, inserted.y), (1, 0, 0));
+    assert!(has(&atlas, 1) && has(&atlas, 2));
+    assert!(!has(&atlas, 3) && !has(&atlas, 4));
+    assert_eq!(atlas.page_count(), 2);
+    assert_eq!(atlas.generation(), 1);
+    assert_eq!(atlas.page_evictions(), 1);
+    assert_eq!(uploads.len(), 5);
+    assert_eq!(uploads.last().unwrap().page, 1);
+}
+
+#[test]
+fn deferred_demand_evicts_one_fresh_page_at_the_next_boundary() {
+    let mut atlas = paged(5, 3, 2);
+    let mut uploads = Vec::new();
+    for id in 1..=3 {
+        put(&mut atlas, id, 2, 2, &mut uploads).unwrap();
+    }
+    assert!(put(&mut atlas, 9, 5, 3, &mut uploads).is_none());
+    assert_eq!(atlas.len(), 3);
+    assert_eq!(atlas.generation(), 0, "current-frame entries stay valid");
+    assert_eq!(uploads.len(), 3, "a rejected insert emits no upload");
+
+    atlas.begin_frame();
+
+    assert_eq!(atlas.generation(), 1);
+    assert_eq!(atlas.page_evictions(), 1);
+    assert!(!has(&atlas, 1) && !has(&atlas, 2));
+    assert!(has(&atlas, 3), "only the lowest-index LRU page is evicted");
+    let retry = put(&mut atlas, 9, 5, 3, &mut uploads).unwrap();
+    assert_eq!((retry.page, retry.x, retry.y), (0, 0, 0));
+    atlas.begin_frame();
+    assert_eq!(atlas.page_evictions(), 1, "the demand has been satisfied");
+}
+
+#[test]
+fn background_pressure_without_demand_keeps_fresh_pages_resident() {
+    let mut atlas = paged(3, 3, 1);
+    let mut uploads = Vec::new();
+    put(&mut atlas, 1, 3, 3, &mut uploads).unwrap();
+
+    age(&mut atlas, STALE);
+
+    assert!(has(&atlas, 1));
+    assert_eq!(atlas.page_evictions(), 0);
+    assert_eq!(atlas.generation(), 0);
+    assert_eq!(uploads.len(), 1);
+}
+
+#[test]
+fn satisfied_demand_does_not_evict_a_fresh_page_while_another_page_has_stale_entries() {
+    let mut atlas = paged(5, 3, 3);
+    let mut uploads = Vec::new();
+    for id in 1..=6 {
+        put(&mut atlas, id, 2, 2, &mut uploads).unwrap();
+    }
+    age(&mut atlas, 2);
+    atlas.touch(&key(3));
+    atlas.touch(&key(4));
+    age(&mut atlas, 58);
+    atlas.touch(&key(5)); // page 2 is recent but entry 6 becomes stale next frame
+    assert!(put(&mut atlas, 9, 5, 3, &mut uploads).is_none());
+
+    atlas.begin_frame();
+    assert_eq!(atlas.page_evictions(), 1);
+    assert_eq!(put(&mut atlas, 9, 5, 3, &mut uploads).unwrap().page, 0);
+    atlas.begin_frame();
+
+    assert_eq!(
+        atlas.page_evictions(),
+        1,
+        "the demand was already satisfied"
+    );
+    assert_eq!(atlas.generation(), 1);
+    assert!(has(&atlas, 3) && has(&atlas, 4), "fresh page 1 survives");
+    assert!(has(&atlas, 5) && has(&atlas, 6), "no background pressure");
+}
+
+#[test]
+fn lru_demand_filters_on_occupancy_without_a_stale_age_requirement() {
+    let mut atlas = paged(5, 3, 2);
+    let mut uploads = Vec::new();
+    for id in 1..=3 {
+        put(&mut atlas, id, 2, 2, &mut uploads).unwrap();
+    }
+    atlas.drop_page(0); // Open but empty, with the oldest page-index tie-break.
+    assert_eq!(atlas.lru_page(STALE), None, "no stale entry exists");
+    assert_eq!(
+        atlas.lru_page(0),
+        Some(1),
+        "demand selects the occupied page independently of entry age"
+    );
+    assert_eq!(atlas.page_evictions(), 0, "selection does not evict");
+    assert_eq!(atlas.generation(), 0);
+    atlas.drop_page(1);
+    assert_eq!(atlas.lru_page(0), None, "empty pages are never victims");
+    assert_eq!(atlas.lru_page(STALE), None);
+}
+
+#[test]
+fn empty_pages_are_not_lru_victims_when_occupied_entries_are_from_an_earlier_frame() {
+    let mut atlas = paged(5, 3, 2);
+    let mut uploads = Vec::new();
+    for id in 1..=3 {
+        put(&mut atlas, id, 2, 2, &mut uploads).unwrap();
+    }
+    atlas.drop_page(0);
+    atlas.begin_frame();
+    assert_eq!(atlas.lru_page(0), Some(1));
+    atlas.drop_page(1);
+    assert_eq!(atlas.lru_page(0), None);
+}
+
+#[test]
+fn evict_stale_without_a_victim_keeps_the_deferred_request() {
+    let mut atlas = paged(5, 3, 1);
+    let mut uploads = Vec::new();
+    for id in 1..=2 {
+        put(&mut atlas, id, 2, 2, &mut uploads).unwrap();
+    }
+    assert!(put(&mut atlas, 3, 5, 3, &mut uploads).is_none());
+    assert!(atlas.needs_space);
+
+    assert_eq!(atlas.evict_stale(STALE), 0);
+
+    assert!(atlas.needs_space, "the unmet demand remains pending");
+    assert_eq!(atlas.page_evictions(), 0);
+    assert_eq!(atlas.generation(), 0);
+    atlas.begin_frame();
+    assert_eq!(atlas.page_evictions(), 1);
+    assert!(!atlas.needs_space);
+}
+
+#[test]
+fn evict_stale_returns_entries_and_counts_evicted_pages_separately() {
+    let mut atlas = paged(5, 3, 2);
+    let mut uploads = Vec::new();
+    for id in 1..=3 {
+        put(&mut atlas, id, 2, 2, &mut uploads).unwrap();
+    }
+    age(&mut atlas, STALE + 1);
+    assert_eq!(atlas.page_evictions(), 0, "no background pressure");
+
+    assert_eq!(atlas.evict_stale(STALE), 3, "three stale entries");
+
+    assert_eq!(atlas.page_evictions(), 2, "two emptied pages");
+    assert_eq!(atlas.generation(), 1, "one explicit eviction call");
+    assert!(atlas.is_empty());
 }
