@@ -40,6 +40,7 @@
 
 // Module declarations
 mod events;
+mod focus;
 mod helpers;
 mod pages;
 mod render;
@@ -54,7 +55,7 @@ use acme_platform::{
 };
 use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::TextInputState;
-use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
+use acme_widgets::retained_binding::{RetainedBinding, bind_retained, is_synthetic};
 use acme_widgets::{WidgetNode, column, row, scroll_view};
 
 use crate::events::{
@@ -62,6 +63,7 @@ use crate::events::{
     handle_ime_commit, handle_ime_preedit, handle_pointer_moved, handle_pointer_pressed,
     handle_pointer_released, handle_scroll_event, handle_tab_key, handle_tree_arrow_key,
 };
+use crate::focus::{FocusTarget, resolve_focus};
 use crate::render::{
     RenderCtx, apply_gallery_styles, build_layout_context, build_theme, collect_data_widget_hits,
     collect_hit_regions, compute_scroll_state, compute_toolbar_labels, extract_gallery_ids,
@@ -82,6 +84,10 @@ fn layout_root(
     }
 }
 
+#[cfg(test)]
+mod dpi_tests;
+#[cfg(test)]
+mod focus_tests;
 #[cfg(test)]
 mod retained_ids_tests;
 
@@ -110,7 +116,10 @@ struct Gallery {
     cursor: (f32, f32),
     hovered: Option<usize>,
     pressed: Option<usize>,
+    /// Index of the focused hit region in `button_info` (valid for the last frame).
     focused: usize,
+    /// Stable identity of the focused region; `focused` is re-resolved from it.
+    focused_target: Option<FocusTarget>,
     scroll: f32,
     max_scroll: f32,
     button_info: Vec<HitRegion>,
@@ -170,6 +179,7 @@ impl Gallery {
             hovered: None,
             pressed: None,
             focused: 0,
+            focused_target: None,
             scroll: 0.0,
             max_scroll: 0.0,
             button_info: Vec::new(),
@@ -322,6 +332,7 @@ impl Application for Gallery {
                 ..
             } => handle_tab_key(
                 &mut self.focused,
+                &mut self.focused_target,
                 &mut self.text_input,
                 self.text_input_rect,
                 self.dark,
@@ -523,6 +534,30 @@ impl Application for Gallery {
             &mut self.vlist_viewport_rect,
         );
         self.button_info = button_info;
+
+        // ── Layer 3: Keyboard focus follows its target across rebuilds ──
+        let (focused, focused_target) =
+            resolve_focus(&self.button_info, self.focused_target, self.focused);
+        self.focused = focused;
+        self.focused_target = focused_target;
+        // Synthetic regions (tree/table rows) have no accessibility node, so
+        // clear the adapter focus instead of leaving it on the previous widget.
+        // Only report a node the accessibility tree actually contains; on the
+        // sequential fallback path tree/table rows have IDs that it lacks, and
+        // AccessKit panics on a focus ID outside its node list.
+        let tree_has = |node: NodeId| {
+            self.accessibility.tree_ref().is_some_and(|tree| {
+                let id = acme_accessibility::to_access_id(node);
+                tree.nodes.iter().any(|(existing, _)| *existing == id)
+            })
+        };
+        match focused_target
+            .map(|target| target.node)
+            .filter(|node| !is_synthetic(*node) && tree_has(*node))
+        {
+            Some(node) => self.accessibility.focus_widget(node),
+            None => self.accessibility.clear_widget_focus(),
+        }
 
         // ── Layer 3: Scroll metrics ──
         let (max_scroll, clamped_scroll, scroll_clip) =

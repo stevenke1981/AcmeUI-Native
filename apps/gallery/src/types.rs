@@ -1,5 +1,6 @@
 //! Shared types and constants for the Gallery application.
 
+use acme_core::NodeId;
 use acme_theme::ThemeMode;
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -151,8 +152,15 @@ pub enum GalleryMessage {
 ///
 /// `scrolled` is true for targets inside the page `ScrollView`. Their layout
 /// rects are in content space; hit tests subtract `Gallery::scroll` from `y`.
+///
+/// `node` is the layout node of the hit target. Synthetic tree/table rows carry
+/// their per-frame synthetic ID. Several regions may share one node (a tree row
+/// has a chevron region and a label region), so `node` alone does not identify
+/// a region; see `focus::resolve_focus`.
+#[derive(Clone, Copy, Debug)]
 pub struct HitRegion {
     pub rect: [f32; 4],
     pub message: GalleryMessage,
     pub scrolled: bool,
+    pub node: NodeId,
 }
