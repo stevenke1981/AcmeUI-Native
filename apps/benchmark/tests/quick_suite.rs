@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 
 /// Benchmark names the quick suite must emit. Keep in sync with `src/cases`.
-const EXPECTED_NAMES: [&str; 13] = [
+const EXPECTED_NAMES: [&str; 14] = [
     "layout/100_nodes",
     "layout/500_nodes",
     "layout/1000_nodes",
@@ -19,6 +19,7 @@ const EXPECTED_NAMES: [&str; 13] = [
     "frame_build/1200_quads_100_clipped_50_text",
     "widget_tree/build_50_rows",
     "text/shape_prepare_4_strings",
+    "text/atlas_pressure_multipage",
     "render_cpu/2000_quads_scale_1.0",
     "render_cpu/2000_quads_scale_2.0",
 ];

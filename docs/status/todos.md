@@ -1,5 +1,14 @@
 # Todos
 
+## ROADMAP 011 — multi-page glyph atlas (2026-11-07)
+
+- [x] Contract (page fields, constants, `GlyphAtlasConfig`), page-granular LRU allocator, CPU pages, wgpu lazy page textures, apps on `GlyphAtlas::default()`.
+- [x] wgpu upload dedup key includes page and format.
+- [ ] Real GPU multi-page drawing, device-loss recovery with live pages, GPU memory/timing — NOT_RUN (no GPU; fallback adapter segfaults on this host).
+- [ ] Starvation when every page holds only fresh entries still drops glyphs (known limitation, `atlas_lifecycle.rs` ignored test).
+- [ ] Per-format allocators (both formats share one (page, x, y) namespace); mid-frame eviction of untouched pages.
+- [ ] `acme-render-wgpu/src/lib.rs` is ~1800 lines; split.
+
 ## ROADMAP 009 — structural accessibility and exact-area CPU coverage (2026-11-07)
 
 - [x] Virtual TreeItem / Row / ColumnHeader nodes with counts, indices, positions, selection, bounds.
@@ -8,7 +17,7 @@
 - [ ] Widgets inside tree-item content are not walked (name only); TreeItem has no Focus/Click action.
 - [ ] DataGrid merged-cell spans. (Ragged rows group correctly since ROADMAP 010.)
 - [ ] Area-based clip edges; analytic arc area (currently 8x8 sampled).
-- [ ] Multi-page glyph atlas (cross-crate Scene contract) — not started.
+- [x] Multi-page glyph atlas (ROADMAP 011).
 - [ ] Screen-reader confirmation of TreeItem/Row/ColumnHeader — NOT_RUN (manual).
 
 ## ROADMAP 008 — interaction and accessibility follow-ups (2026-11-07)

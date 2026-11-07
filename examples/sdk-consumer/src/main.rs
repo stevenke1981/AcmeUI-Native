@@ -17,7 +17,6 @@ use acme_ui::prelude::*;
 
 const WINDOW_WIDTH: f64 = 640.0;
 const WINDOW_HEIGHT: f64 = 420.0;
-const ATLAS_SIZE: u32 = 2048;
 const CONTROL_HEIGHT: f32 = 36.0;
 const CARD_RADIUS: f32 = 8.0;
 const BUTTON_RADIUS: f32 = 6.0;
@@ -41,7 +40,7 @@ impl ConsumerApp {
     pub fn new() -> Self {
         Self {
             fonts: FontSystem::new(),
-            atlas: GlyphAtlas::new(ATLAS_SIZE, ATLAS_SIZE),
+            atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
             theme: Theme::light(),
         }

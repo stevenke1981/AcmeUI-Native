@@ -1,6 +1,7 @@
 //! GPU surface lifecycle and the small batched rectangle renderer used by AcmeUI.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+mod atlas_pages;
 pub mod batch;
 pub mod golden;
 pub use batch::scene_from_frame;
@@ -10,9 +11,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::{any::Any, sync::Arc};
 
 use acme_core::{
-    DrawCommand, GlyphFormat as SceneGlyphFormat, ImageKey, ImagePrimitive, Rgba8Image, Scene,
+    ATLAS_MAX_PAGES, ATLAS_PAGE_EDGE, DrawCommand, GlyphFormat as SceneGlyphFormat, ImageKey,
+    ImagePrimitive, Rgba8Image, Scene,
 };
-use acme_text::{AtlasFormat, PreparedText};
+use acme_text::PreparedText;
+use atlas_pages::{AtlasPages, UploadKey, UploadReject, check_upload, page_runs, upload_key};
 use bytemuck::{Pod, Zeroable};
 use thiserror::Error;
 
@@ -228,6 +231,36 @@ struct ImageResource {
 
 type ImageResourceKey = (ImageKey, u64);
 
+/// Quad draw covering `count` instances starting at `start`.
+struct QuadBatchDesc {
+    clip: Option<[f32; 4]>,
+    start: u32,
+    count: u32,
+}
+
+/// Glyph draw: one atlas page, one format, contiguous instances.
+struct GlyphBatchDesc {
+    format: SceneGlyphFormat,
+    page: u32,
+    clip: Option<[f32; 4]>,
+    start: u32,
+    count: u32,
+}
+
+/// Image draw for one resident RGBA8 resource.
+struct ImageBatchDesc {
+    key: ImageResourceKey,
+    clip: Option<[f32; 4]>,
+    start: u32,
+    count: u32,
+}
+
+enum DrawBatchDesc {
+    Quad(QuadBatchDesc),
+    Glyph(GlyphBatchDesc),
+    Image(ImageBatchDesc),
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ImageUploadLayout {
     bytes_per_row: u32,
@@ -238,10 +271,6 @@ enum ImageUploadError {
     ExceedsMaxDimension { width: u32, height: u32, max: u32 },
     RowPitchOverflow,
 }
-
-// Desktop applications with CJK-heavy settings/history pages need enough
-// resident glyph space to avoid invalidating toolbar text within one frame.
-const ATLAS_SIZE: u32 = 4096;
 
 /// Initial per-buffer instance capacity (1024 instances approx 64 KiB each).
 const INITIAL_QUAD_CAPACITY: u64 = 1024;
@@ -256,10 +285,8 @@ pub struct Renderer {
     config: wgpu::SurfaceConfiguration,
     pipeline: wgpu::RenderPipeline,
     text_pipeline: wgpu::RenderPipeline,
-    alpha_atlas: wgpu::Texture,
-    rgba_atlas: wgpu::Texture,
-    alpha_bind_group: wgpu::BindGroup,
-    rgba_bind_group: wgpu::BindGroup,
+    /// Lazily created glyph atlas pages, one texture per (format, page).
+    atlas_pages: AtlasPages,
     texture_layout: wgpu::BindGroupLayout,
     image_sampler: wgpu::Sampler,
     live_images: HashMap<ImageResourceKey, Rgba8Image>,
@@ -316,16 +343,8 @@ impl Renderer {
             .ok_or(RenderError::Adapter)?;
         config.present_mode = wgpu::PresentMode::Fifo;
         surface.configure(&device, &config);
-        let (
-            pipeline,
-            text_pipeline,
-            alpha_atlas,
-            rgba_atlas,
-            alpha_bind_group,
-            rgba_bind_group,
-            texture_layout,
-            image_sampler,
-        ) = build_render_resources(&device, &config);
+        let (pipeline, text_pipeline, texture_layout, image_sampler) =
+            build_render_resources(&device, &config);
         let quad_cap = INITIAL_QUAD_CAPACITY * std::mem::size_of::<Instance>() as u64;
         let glyph_cap = INITIAL_GLYPH_CAPACITY * std::mem::size_of::<GlyphInstance>() as u64;
         let mk_buf = |device: &wgpu::Device, size: u64, label: &str| {
@@ -352,10 +371,7 @@ impl Renderer {
             config,
             pipeline,
             text_pipeline,
-            alpha_atlas,
-            rgba_atlas,
-            alpha_bind_group,
-            rgba_bind_group,
+            atlas_pages: AtlasPages::default(),
             texture_layout,
             image_sampler,
             live_images: HashMap::new(),
@@ -532,7 +548,7 @@ impl Renderer {
         self.stats.bytes_uploaded += self.sync_scene_images();
 
         // ---- atlas upload from scene ----
-        let mut uploaded_regions: HashSet<(u32, u32, u32, u32)> = HashSet::new();
+        let mut uploaded_regions: HashSet<UploadKey> = HashSet::new();
         let mut atlas_total = 0u64;
         let mut atlas_skipped = 0u64;
         let mut atlas_bytes = 0u64;
@@ -556,29 +572,6 @@ impl Renderer {
         let config_h = self.config.height;
 
         // ---- extract instances per batch ----
-        struct QuadBatchDesc {
-            clip: Option<[f32; 4]>,
-            start: u32,
-            count: u32,
-        }
-        struct GlyphBatchDesc {
-            format: AtlasFormat,
-            clip: Option<[f32; 4]>,
-            start: u32,
-            count: u32,
-        }
-        struct ImageBatchDesc {
-            key: ImageResourceKey,
-            clip: Option<[f32; 4]>,
-            start: u32,
-            count: u32,
-        }
-        enum DrawBatchDesc {
-            Quad(QuadBatchDesc),
-            Glyph(GlyphBatchDesc),
-            Image(ImageBatchDesc),
-        }
-
         let mut all_quads: Vec<Instance> = Vec::new();
         let mut all_glyphs: Vec<GlyphInstance> = Vec::new();
         let mut draw_batches: Vec<DrawBatchDesc> = Vec::new();
@@ -605,52 +598,28 @@ impl Renderer {
                     }
                 }
                 batch::BatchPipeline::TextAlpha => {
-                    let start = all_glyphs.len() as u32;
-                    for cmd_idx in cmd_range {
-                        if let DrawCommand::Text(prim) = &scene.commands()[cmd_idx] {
-                            let glyphs = text_primitive_glyphs(
-                                prim,
-                                SceneGlyphFormat::Alpha8,
-                                scale,
-                                config_w,
-                                config_h,
-                            );
-                            all_glyphs.extend(glyphs);
-                        }
-                    }
-                    let count = all_glyphs.len() as u32 - start;
-                    if count > 0 {
-                        draw_batches.push(DrawBatchDesc::Glyph(GlyphBatchDesc {
-                            format: AtlasFormat::Alpha8,
-                            clip: batch.clip,
-                            start,
-                            count,
-                        }));
-                    }
+                    let format = SceneGlyphFormat::Alpha8;
+                    let glyphs =
+                        collect_text_glyphs(scene, cmd_range, format, scale, config_w, config_h);
+                    push_text_batch(
+                        glyphs,
+                        format,
+                        batch.clip,
+                        &mut all_glyphs,
+                        &mut draw_batches,
+                    );
                 }
                 batch::BatchPipeline::TextRgba => {
-                    let start = all_glyphs.len() as u32;
-                    for cmd_idx in cmd_range {
-                        if let DrawCommand::Text(prim) = &scene.commands()[cmd_idx] {
-                            let glyphs = text_primitive_glyphs(
-                                prim,
-                                SceneGlyphFormat::Rgba8,
-                                scale,
-                                config_w,
-                                config_h,
-                            );
-                            all_glyphs.extend(glyphs);
-                        }
-                    }
-                    let count = all_glyphs.len() as u32 - start;
-                    if count > 0 {
-                        draw_batches.push(DrawBatchDesc::Glyph(GlyphBatchDesc {
-                            format: AtlasFormat::Rgba8,
-                            clip: batch.clip,
-                            start,
-                            count,
-                        }));
-                    }
+                    let format = SceneGlyphFormat::Rgba8;
+                    let glyphs =
+                        collect_text_glyphs(scene, cmd_range, format, scale, config_w, config_h);
+                    push_text_batch(
+                        glyphs,
+                        format,
+                        batch.clip,
+                        &mut all_glyphs,
+                        &mut draw_batches,
+                    );
                 }
                 batch::BatchPipeline::Image => {
                     for cmd_idx in cmd_range {
@@ -698,6 +667,9 @@ impl Renderer {
             );
             self.stats.bytes_uploaded += needed_glyph_bytes;
         }
+
+        // Every page a glyph draw binds must exist before the pass starts.
+        self.ensure_glyph_pages(&draw_batches);
 
         // ---- render pass ----
         let view = output
@@ -763,15 +735,11 @@ impl Renderer {
                         draw_count += 1;
                     }
                     DrawBatchDesc::Glyph(batch) => {
+                        let Some(page) = self.atlas_pages.get(batch.format, batch.page) else {
+                            continue;
+                        };
                         pass.set_pipeline(&self.text_pipeline);
-                        pass.set_bind_group(
-                            0,
-                            match batch.format {
-                                AtlasFormat::Alpha8 => &self.alpha_bind_group,
-                                AtlasFormat::Rgba8 => &self.rgba_bind_group,
-                            },
-                            &[],
-                        );
+                        pass.set_bind_group(0, &page.bind_group, &[]);
                         pass.set_vertex_buffer(0, self.glyph_buffers[buf_idx].slice(..));
                         pass.draw(0..6, batch.start..batch.start + batch.count);
                         draw_count += 1;
@@ -902,22 +870,13 @@ impl Renderer {
 
         self.surface.configure(&self.device, &self.config);
 
-        let (
-            pipeline,
-            text_pipeline,
-            alpha_atlas,
-            rgba_atlas,
-            alpha_bind_group,
-            rgba_bind_group,
-            texture_layout,
-            image_sampler,
-        ) = build_render_resources(&self.device, &self.config);
+        let (pipeline, text_pipeline, texture_layout, image_sampler) =
+            build_render_resources(&self.device, &self.config);
         self.pipeline = pipeline;
         self.text_pipeline = text_pipeline;
-        self.alpha_atlas = alpha_atlas;
-        self.rgba_atlas = rgba_atlas;
-        self.alpha_bind_group = alpha_bind_group;
-        self.rgba_bind_group = rgba_bind_group;
+        // Pages are recreated lazily on next use; the app restores their
+        // content by calling `GlyphAtlas::clear()` after recovery.
+        self.atlas_pages = AtlasPages::default();
         self.texture_layout = texture_layout;
         self.image_sampler = image_sampler;
 
@@ -979,134 +938,79 @@ impl Renderer {
         self.status = SurfaceStatus::Recovering;
     }
 
-    #[allow(dead_code)]
-    fn upload_atlas(
-        &self,
-        prepared: &PreparedText,
-        uploaded: &mut HashSet<(u32, u32, u32, u32)>,
-    ) -> (u64, u64, u64) {
-        let mut total = 0u64;
-        let mut skipped = 0u64;
-        let mut atlas_bytes = 0u64;
-        for upload in &prepared.uploads {
-            if upload.width == 0
-                || upload.height == 0
-                || upload.x.saturating_add(upload.width) > ATLAS_SIZE
-                || upload.y.saturating_add(upload.height) > ATLAS_SIZE
-            {
-                continue;
+    /// Ensures every (format, page) pair used by `draws` has its texture and bind group.
+    fn ensure_glyph_pages(&mut self, draws: &[DrawBatchDesc]) {
+        for draw in draws {
+            if let DrawBatchDesc::Glyph(run) = draw {
+                self.atlas_pages.ensure(
+                    &self.device,
+                    &self.texture_layout,
+                    &self.image_sampler,
+                    run.format,
+                    run.page,
+                );
             }
-            let bytes_per_pixel = match upload.format {
-                AtlasFormat::Alpha8 => 1,
-                AtlasFormat::Rgba8 => 4,
-            };
-            let expected = upload.width as usize * upload.height as usize * bytes_per_pixel;
-            if upload.pixels.len() != expected {
-                tracing::warn!("rejected malformed glyph atlas upload");
-                continue;
-            }
-            total += 1;
-            if !uploaded.insert((upload.x, upload.y, upload.width, upload.height)) {
-                skipped += 1;
-                continue;
-            }
-            self.queue.write_texture(
-                wgpu::TexelCopyTextureInfo {
-                    texture: match upload.format {
-                        AtlasFormat::Alpha8 => &self.alpha_atlas,
-                        AtlasFormat::Rgba8 => &self.rgba_atlas,
-                    },
-                    mip_level: 0,
-                    origin: wgpu::Origin3d {
-                        x: upload.x,
-                        y: upload.y,
-                        z: 0,
-                    },
-                    aspect: wgpu::TextureAspect::All,
-                },
-                &upload.pixels,
-                wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(upload.width * bytes_per_pixel as u32),
-                    rows_per_image: Some(upload.height),
-                },
-                wgpu::Extent3d {
-                    width: upload.width,
-                    height: upload.height,
-                    depth_or_array_layers: 1,
-                },
-            );
-            atlas_bytes += upload.width as u64 * upload.height as u64 * bytes_per_pixel as u64;
         }
-        (total, skipped, atlas_bytes)
     }
 
-    /// Upload atlas regions from a [`Scene`]'s text primitives, deduplicating
-    /// via `uploaded` regions set.  Returns (total_count, skipped_count, bytes_uploaded).
+    /// Upload atlas regions from a [`Scene`]'s text primitives into their pages,
+    /// deduplicating by [`UploadKey`] within the frame.
+    /// Returns (total_count, skipped_count, bytes_uploaded).
     fn upload_scene_atlas(
-        &self,
+        &mut self,
         scene: &Scene,
-        uploaded: &mut HashSet<(u32, u32, u32, u32)>,
+        uploaded: &mut HashSet<UploadKey>,
     ) -> (u64, u64, u64) {
         let mut total = 0u64;
         let mut skipped = 0u64;
         let mut atlas_bytes = 0u64;
         for cmd in scene.commands() {
-            if let DrawCommand::Text(prim) = cmd {
-                for upload in &prim.uploads {
-                    let x = upload.origin[0];
-                    let y = upload.origin[1];
-                    let w = upload.size[0];
-                    let h = upload.size[1];
-                    if w == 0
-                        || h == 0
-                        || x.saturating_add(w) > ATLAS_SIZE
-                        || y.saturating_add(h) > ATLAS_SIZE
-                    {
+            let DrawCommand::Text(prim) = cmd else {
+                continue;
+            };
+            for upload in &prim.uploads {
+                let key = match validate_scene_upload(upload) {
+                    Ok(key) => key,
+                    Err(reject) => {
+                        tracing::warn!(page = upload.page, ?reject, "rejected glyph atlas upload");
                         continue;
                     }
-                    let bytes_per_pixel = match upload.format {
-                        SceneGlyphFormat::Alpha8 => 1,
-                        SceneGlyphFormat::Rgba8 => 4,
-                    };
-                    let expected = w as usize * h as usize * bytes_per_pixel;
-                    if upload.pixels.len() != expected {
-                        tracing::warn!("rejected malformed glyph atlas upload");
-                        continue;
-                    }
-                    total += 1;
-                    if !uploaded.insert((x, y, w, h)) {
-                        skipped += 1;
-                        continue;
-                    }
-                    let atlas_format = match upload.format {
-                        SceneGlyphFormat::Alpha8 => AtlasFormat::Alpha8,
-                        SceneGlyphFormat::Rgba8 => AtlasFormat::Rgba8,
-                    };
-                    self.queue.write_texture(
-                        wgpu::TexelCopyTextureInfo {
-                            texture: match atlas_format {
-                                AtlasFormat::Alpha8 => &self.alpha_atlas,
-                                AtlasFormat::Rgba8 => &self.rgba_atlas,
-                            },
-                            mip_level: 0,
-                            origin: wgpu::Origin3d { x, y, z: 0 },
-                            aspect: wgpu::TextureAspect::All,
-                        },
-                        &upload.pixels,
-                        wgpu::TexelCopyBufferLayout {
-                            offset: 0,
-                            bytes_per_row: Some(w * bytes_per_pixel as u32),
-                            rows_per_image: Some(h),
-                        },
-                        wgpu::Extent3d {
-                            width: w,
-                            height: h,
-                            depth_or_array_layers: 1,
-                        },
-                    );
-                    atlas_bytes += w as u64 * h as u64 * bytes_per_pixel as u64;
+                };
+                total += 1;
+                if !uploaded.insert(key) {
+                    skipped += 1;
+                    continue;
                 }
+                let bytes_per_pixel = scene_bytes_per_pixel(upload.format) as u32;
+                let [x, y] = upload.origin;
+                let [width, height] = upload.size;
+                let page = self.atlas_pages.ensure(
+                    &self.device,
+                    &self.texture_layout,
+                    &self.image_sampler,
+                    upload.format,
+                    upload.page,
+                );
+                self.queue.write_texture(
+                    wgpu::TexelCopyTextureInfo {
+                        texture: &page.texture,
+                        mip_level: 0,
+                        origin: wgpu::Origin3d { x, y, z: 0 },
+                        aspect: wgpu::TextureAspect::All,
+                    },
+                    &upload.pixels,
+                    wgpu::TexelCopyBufferLayout {
+                        offset: 0,
+                        bytes_per_row: Some(width * bytes_per_pixel),
+                        rows_per_image: Some(height),
+                    },
+                    wgpu::Extent3d {
+                        width,
+                        height,
+                        depth_or_array_layers: 1,
+                    },
+                );
+                atlas_bytes += width as u64 * height as u64 * bytes_per_pixel as u64;
             }
         }
         (total, skipped, atlas_bytes)
@@ -1227,18 +1131,15 @@ fn write_rgba8_texture(
     );
 }
 
-/// Shared helper: creates pipelines, atlas textures, and bind groups from a device + config.
-/// Used by both `Renderer::new()` and `Renderer::on_device_lost()`.
+/// Shared helper: creates pipelines, the glyph atlas bind group layout, and the
+/// image sampler from a device + config. Glyph atlas pages are created lazily by
+/// [`AtlasPages`]. Used by both `Renderer::new()` and `Renderer::on_device_lost()`.
 fn build_render_resources(
     device: &wgpu::Device,
     config: &wgpu::SurfaceConfiguration,
 ) -> (
     wgpu::RenderPipeline,
     wgpu::RenderPipeline,
-    wgpu::Texture,
-    wgpu::Texture,
-    wgpu::BindGroup,
-    wgpu::BindGroup,
     wgpu::BindGroupLayout,
     wgpu::Sampler,
 ) {
@@ -1328,69 +1229,13 @@ fn build_render_resources(
         multiview_mask: None,
         cache: None,
     });
-    let alpha_atlas = create_atlas(device, wgpu::TextureFormat::R8Unorm, "alpha");
-    let rgba_atlas = create_atlas(device, wgpu::TextureFormat::Rgba8UnormSrgb, "rgba");
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
         label: Some("acme linear image sampler"),
         mag_filter: wgpu::FilterMode::Linear,
         min_filter: wgpu::FilterMode::Linear,
         ..Default::default()
     });
-    let alpha_bind_group =
-        create_atlas_bind_group(device, &texture_layout, &alpha_atlas, &sampler, "alpha");
-    let rgba_bind_group =
-        create_atlas_bind_group(device, &texture_layout, &rgba_atlas, &sampler, "rgba");
-    (
-        pipeline,
-        text_pipeline,
-        alpha_atlas,
-        rgba_atlas,
-        alpha_bind_group,
-        rgba_bind_group,
-        texture_layout,
-        sampler,
-    )
-}
-
-fn create_atlas(device: &wgpu::Device, format: wgpu::TextureFormat, name: &str) -> wgpu::Texture {
-    device.create_texture(&wgpu::TextureDescriptor {
-        label: Some(name),
-        size: wgpu::Extent3d {
-            width: ATLAS_SIZE,
-            height: ATLAS_SIZE,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-        view_formats: &[],
-    })
-}
-
-fn create_atlas_bind_group(
-    device: &wgpu::Device,
-    layout: &wgpu::BindGroupLayout,
-    texture: &wgpu::Texture,
-    sampler: &wgpu::Sampler,
-    name: &str,
-) -> wgpu::BindGroup {
-    let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-    device.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some(name),
-        layout,
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(&view),
-            },
-            wgpu::BindGroupEntry {
-                binding: 1,
-                resource: wgpu::BindingResource::Sampler(sampler),
-            },
-        ],
-    })
+    (pipeline, text_pipeline, texture_layout, sampler)
 }
 
 fn scissor(rect: [f32; 4], scale: f32, width: u32, height: u32) -> Option<[u32; 4]> {
@@ -1478,50 +1323,121 @@ fn image_primitive_to_instance(
     }
 }
 
-/// Extract [`GlyphInstance`]s from a [`TextPrimitive`] for the given format.
-/// Applies origin offset and scale in the same way as the original
-/// `glyph_instances` helper.
+/// Extracts `(atlas_page, GlyphInstance)` pairs from a [`TextPrimitive`] for
+/// `format`, in glyph order. Applies origin offset and scale in the same way as
+/// the original `glyph_instances` helper.
+///
+/// Glyphs whose `atlas_page` is `>= ATLAS_MAX_PAGES` are skipped rather than
+/// clamped: clamping would sample another page's texels. UVs are normalized by
+/// [`ATLAS_PAGE_EDGE`].
 fn text_primitive_glyphs(
     prim: &acme_core::TextPrimitive,
     format: SceneGlyphFormat,
     scale: f32,
     width: u32,
     height: u32,
-) -> Vec<GlyphInstance> {
+) -> Vec<(u32, GlyphInstance)> {
     let color = normalize_color([prim.color.r, prim.color.g, prim.color.b, prim.color.a]);
-    let atlas_fmt = match format {
-        SceneGlyphFormat::Alpha8 => AtlasFormat::Alpha8,
-        SceneGlyphFormat::Rgba8 => AtlasFormat::Rgba8,
-    };
+    let edge = ATLAS_PAGE_EDGE as f32;
+    let is_rgba = format == SceneGlyphFormat::Rgba8;
     prim.glyphs
         .iter()
-        .filter(|glyph| glyph.format == format)
-        .map(|glyph| GlyphInstance {
-            rect: [
-                glyph.x + prim.origin.x.get() * scale,
-                glyph.y + prim.origin.y.get() * scale,
-                glyph.width,
-                glyph.height,
-            ],
-            uv: [
-                glyph.atlas_x as f32 / ATLAS_SIZE as f32,
-                glyph.atlas_y as f32 / ATLAS_SIZE as f32,
-                glyph.width / ATLAS_SIZE as f32,
-                glyph.height / ATLAS_SIZE as f32,
-            ],
-            color,
-            viewport_mode: [
-                width as f32,
-                height as f32,
-                if atlas_fmt == AtlasFormat::Rgba8 {
-                    1.0
-                } else {
-                    0.0
-                },
-                0.0,
-            ],
+        .filter(|glyph| glyph.format == format && glyph.atlas_page < ATLAS_MAX_PAGES)
+        .map(|glyph| {
+            let instance = GlyphInstance {
+                rect: [
+                    glyph.x + prim.origin.x.get() * scale,
+                    glyph.y + prim.origin.y.get() * scale,
+                    glyph.width,
+                    glyph.height,
+                ],
+                uv: [
+                    glyph.atlas_x as f32 / edge,
+                    glyph.atlas_y as f32 / edge,
+                    glyph.width / edge,
+                    glyph.height / edge,
+                ],
+                color,
+                viewport_mode: [
+                    width as f32,
+                    height as f32,
+                    if is_rgba { 1.0 } else { 0.0 },
+                    0.0,
+                ],
+            };
+            (glyph.atlas_page, instance)
         })
         .collect()
+}
+
+/// Collects the glyphs of every text command in `range` for `format`, in
+/// painter order.
+fn collect_text_glyphs(
+    scene: &Scene,
+    range: std::ops::Range<usize>,
+    format: SceneGlyphFormat,
+    scale: f32,
+    width: u32,
+    height: u32,
+) -> Vec<(u32, GlyphInstance)> {
+    range
+        .filter_map(|index| match &scene.commands()[index] {
+            DrawCommand::Text(prim) => {
+                Some(text_primitive_glyphs(prim, format, scale, width, height))
+            }
+            _ => None,
+        })
+        .flatten()
+        .collect()
+}
+
+/// Appends one text batch's glyphs to `instances` and records one draw per
+/// maximal same-page run. Instances stay contiguous and in painter order.
+fn push_text_batch(
+    glyphs: Vec<(u32, GlyphInstance)>,
+    format: SceneGlyphFormat,
+    clip: Option<[f32; 4]>,
+    instances: &mut Vec<GlyphInstance>,
+    draws: &mut Vec<DrawBatchDesc>,
+) {
+    let base = instances.len();
+    let runs = page_runs(glyphs.iter().map(|(page, _)| *page));
+    instances.extend(glyphs.into_iter().map(|(_, glyph)| glyph));
+    draws.extend(runs.into_iter().map(|run| {
+        DrawBatchDesc::Glyph(GlyphBatchDesc {
+            format,
+            page: run.page,
+            clip,
+            start: (base + run.start) as u32,
+            count: run.len as u32,
+        })
+    }));
+}
+
+/// Bytes per texel for a scene glyph format.
+fn scene_bytes_per_pixel(format: SceneGlyphFormat) -> usize {
+    match format {
+        SceneGlyphFormat::Alpha8 => 1,
+        SceneGlyphFormat::Rgba8 => 4,
+    }
+}
+
+/// Validates one scene atlas upload and returns its dedup key. The key includes
+/// page and format, so the same rectangle on another page is a distinct region.
+fn validate_scene_upload(upload: &acme_core::AtlasUpload) -> Result<UploadKey, UploadReject> {
+    check_upload(
+        upload.page,
+        upload.origin,
+        upload.size,
+        scene_bytes_per_pixel(upload.format),
+        upload.pixels.len(),
+    )?;
+    Ok(upload_key(
+        upload.page,
+        upload.format,
+        upload.origin,
+        upload.size,
+    ))
 }
 
 #[cfg(test)]
@@ -1747,5 +1663,147 @@ mod tests {
             normalize_color([f32::NAN, -1.0, 2.0, 0.5]),
             [0.0, 0.0, 1.0, 0.5]
         );
+    }
+
+    fn scene_glyph(page: u32, x: f32) -> acme_core::GlyphDraw {
+        acme_core::GlyphDraw {
+            x,
+            y: 0.0,
+            width: 4.0,
+            height: 4.0,
+            atlas_x: 8,
+            atlas_y: 16,
+            atlas_page: page,
+            format: SceneGlyphFormat::Alpha8,
+        }
+    }
+
+    /// Alpha text primitive whose glyph `i` sits on `pages[i]` at x = `i`.
+    fn text_with_pages(pages: &[u32]) -> acme_core::TextPrimitive {
+        acme_core::TextPrimitive {
+            origin: acme_core::Point::new(0.0, 0.0),
+            color: acme_core::Color::rgba(1.0, 1.0, 1.0, 1.0),
+            glyphs: pages
+                .iter()
+                .enumerate()
+                .map(|(index, &page)| scene_glyph(page, index as f32))
+                .collect(),
+            uploads: Vec::new(),
+        }
+    }
+
+    fn scene_upload(
+        page: u32,
+        format: SceneGlyphFormat,
+        origin: [u32; 2],
+    ) -> acme_core::AtlasUpload {
+        let bpp = scene_bytes_per_pixel(format);
+        acme_core::AtlasUpload {
+            page,
+            origin,
+            size: [2, 2],
+            format,
+            pixels: vec![0; 4 * bpp],
+        }
+    }
+
+    #[test]
+    fn text_glyphs_carry_their_atlas_page() {
+        let prim = text_with_pages(&[0, 0, 1, 1, 0]);
+        let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, 1.0, 800, 600);
+        let pages: Vec<u32> = glyphs.iter().map(|(page, _)| *page).collect();
+        assert_eq!(pages, vec![0, 0, 1, 1, 0]);
+    }
+
+    #[test]
+    fn text_glyph_uv_is_normalized_by_page_edge() {
+        let mut prim = text_with_pages(&[0]);
+        prim.glyphs[0].atlas_x = 1024;
+        prim.glyphs[0].atlas_y = 512;
+        let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, 1.0, 800, 600);
+        let uv = glyphs[0].1.uv;
+        let edge = ATLAS_PAGE_EDGE as f32;
+        assert_eq!(uv, [1024.0 / edge, 512.0 / edge, 4.0 / edge, 4.0 / edge]);
+    }
+
+    #[test]
+    fn text_glyph_with_out_of_range_page_is_skipped() {
+        let prim = text_with_pages(&[0, ATLAS_MAX_PAGES, 1, u32::MAX]);
+        let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, 1.0, 800, 600);
+        let pages: Vec<u32> = glyphs.iter().map(|(page, _)| *page).collect();
+        assert_eq!(pages, vec![0, 1]);
+        let xs: Vec<f32> = glyphs.iter().map(|(_, glyph)| glyph.rect[0]).collect();
+        assert_eq!(xs, vec![0.0, 2.0]);
+    }
+
+    #[test]
+    fn text_batch_splits_into_per_page_runs_in_painter_order() {
+        let prim = text_with_pages(&[0, 0, 1, 1, 0]);
+        let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, 1.0, 800, 600);
+        let mut instances = Vec::new();
+        let mut draws = Vec::new();
+        push_text_batch(
+            glyphs,
+            SceneGlyphFormat::Alpha8,
+            None,
+            &mut instances,
+            &mut draws,
+        );
+
+        let runs: Vec<(u32, u32, u32)> = draws
+            .iter()
+            .filter_map(|draw| match draw {
+                DrawBatchDesc::Glyph(run) => Some((run.page, run.start, run.count)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(runs, vec![(0, 0, 2), (1, 2, 2), (0, 4, 1)]);
+        assert_eq!(draws.len(), 3, "one draw per page run");
+        let xs: Vec<f32> = instances.iter().map(|glyph| glyph.rect[0]).collect();
+        assert_eq!(xs, vec![0.0, 1.0, 2.0, 3.0, 4.0], "painter order kept");
+    }
+
+    #[test]
+    fn text_batch_with_no_glyphs_emits_no_draws() {
+        let mut instances = Vec::new();
+        let mut draws = Vec::new();
+        push_text_batch(
+            Vec::new(),
+            SceneGlyphFormat::Rgba8,
+            None,
+            &mut instances,
+            &mut draws,
+        );
+        assert!(instances.is_empty());
+        assert!(draws.is_empty());
+    }
+
+    #[test]
+    fn scene_upload_key_distinguishes_page_and_format_for_the_same_rect() {
+        let uploads = [
+            scene_upload(0, SceneGlyphFormat::Alpha8, [2, 3]),
+            scene_upload(1, SceneGlyphFormat::Alpha8, [2, 3]),
+            scene_upload(0, SceneGlyphFormat::Rgba8, [2, 3]),
+        ];
+        let keys: HashSet<_> = uploads
+            .iter()
+            .map(|upload| validate_scene_upload(upload).expect("valid upload"))
+            .collect();
+        assert_eq!(
+            keys.len(),
+            3,
+            "same x,y,w,h on other page/format is distinct"
+        );
+    }
+
+    #[test]
+    fn scene_upload_validation_rejects_out_of_range_page() {
+        let upload = scene_upload(ATLAS_MAX_PAGES, SceneGlyphFormat::Alpha8, [0, 0]);
+        assert_eq!(
+            validate_scene_upload(&upload),
+            Err(UploadReject::PageOutOfRange)
+        );
+        let last = scene_upload(ATLAS_MAX_PAGES - 1, SceneGlyphFormat::Alpha8, [0, 0]);
+        assert!(validate_scene_upload(&last).is_ok());
     }
 }

@@ -1,12 +1,17 @@
 //! Text shaping and renderer-neutral glyph atlas preparation for AcmeUI.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
-use std::collections::{HashMap, HashSet};
+mod atlas;
+
+use std::collections::HashSet;
 
 use cosmic_text::{
     Attrs, Buffer, CacheKey, Family, FontSystem as CosmicFontSystem, Metrics, Shaping, SwashCache,
     SwashContent, Wrap,
 };
+
+use atlas::RasterizedGlyph;
+pub use atlas::{AtlasFormat, AtlasUpload, GlyphAtlas, GlyphAtlasConfig};
 
 /// A renderer-neutral text style expressed in logical pixels.
 #[derive(Clone, Debug, PartialEq)]
@@ -207,8 +212,7 @@ impl FontSystem {
         let mut glyphs = Vec::with_capacity(layout.raster_glyphs.len());
         let mut uploads = Vec::new();
         for glyph in &layout.raster_glyphs {
-            let entry = if let Some(entry) = atlas.entries.get(&glyph.cache_key).copied() {
-                atlas.touch(&glyph.cache_key);
+            let entry = if let Some(entry) = atlas.lookup(&glyph.cache_key) {
                 Some(entry)
             } else {
                 let image = self
@@ -248,18 +252,22 @@ impl FontSystem {
                     height: entry.height,
                     atlas_x: entry.x,
                     atlas_y: entry.y,
+                    atlas_page: entry.page,
                     format: entry.format,
                 });
             } else if self
                 .rasterizer
                 .get_image(&mut self.inner, glyph.cache_key)
-                .is_some()
+                .as_ref()
+                .is_some_and(|image| image.placement.width > 0 && image.placement.height > 0)
             {
+                // Only a glyph with a bitmap can be refused for lack of atlas
+                // space; whitespace has none.
                 self.diagnostics.atlas_full_glyphs += 1;
             }
         }
         PreparedText {
-            atlas_generation: atlas.generation,
+            atlas_generation: atlas.generation(),
             glyphs,
             uploads,
         }
@@ -299,22 +307,6 @@ pub struct TextMeasurement {
     pub baseline: f32,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum AtlasFormat {
-    Alpha8,
-    Rgba8,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AtlasUpload {
-    pub x: u32,
-    pub y: u32,
-    pub width: u32,
-    pub height: u32,
-    pub format: AtlasFormat,
-    pub pixels: Vec<u8>,
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PreparedGlyph {
     pub atlas_id: u64,
@@ -324,6 +316,8 @@ pub struct PreparedGlyph {
     pub height: u32,
     pub atlas_x: u32,
     pub atlas_y: u32,
+    /// Atlas page holding the glyph.
+    pub atlas_page: u32,
     pub format: AtlasFormat,
 }
 
@@ -332,228 +326,6 @@ pub struct PreparedText {
     pub atlas_generation: u64,
     pub glyphs: Vec<PreparedGlyph>,
     pub uploads: Vec<AtlasUpload>,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct AtlasEntry {
-    id: u64,
-    x: u32,
-    y: u32,
-    width: u32,
-    height: u32,
-    left: i32,
-    top: i32,
-    format: AtlasFormat,
-    /// Frame index of last access — used for LRU-style eviction.
-    last_used: u64,
-}
-
-struct RasterizedGlyph {
-    width: u32,
-    height: u32,
-    left: i32,
-    top: i32,
-    format: AtlasFormat,
-    pixels: Vec<u8>,
-}
-
-/// CPU-side shelf allocator bookkeeping for a renderer-owned texture.
-///
-/// Provides LRU-style eviction: call [`begin_frame`](Self::begin_frame) once
-/// per frame. Automatic eviction of glyphs idle for more than 60 frames runs
-/// in `begin_frame` (after an overflow, or above 75% fill), or during
-/// preparation only while no glyph has been used in the current frame, so
-/// glyphs handed out earlier in a frame are never overwritten. A glyph that
-/// does not fit mid-frame is dropped for that frame (counted in
-/// `atlas_full_glyphs`). [`evict_stale`](Self::evict_stale) evicts manually.
-///
-/// **Note:** Because the shelf allocator cannot reclaim fragmented space, any
-/// eviction invalidates *all* atlas entries — surviving glyphs are re-uploaded
-/// on subsequent frames. Call [`begin_frame`](Self::begin_frame) once per
-/// frame and [`touch`](Self::touch) on cache hits to keep the LRU timestamps
-/// accurate.
-pub struct GlyphAtlas {
-    width: u32,
-    height: u32,
-    cursor_x: u32,
-    cursor_y: u32,
-    row_height: u32,
-    generation: u64,
-    next_id: u64,
-    /// Monotonic frame counter for LRU tracking.
-    frame: u64,
-    /// A glyph did not fit during a frame whose glyphs were already in use;
-    /// eviction is deferred to the next [`begin_frame`](Self::begin_frame).
-    needs_space: bool,
-    entries: HashMap<CacheKey, AtlasEntry>,
-}
-
-/// Entries idle for more than this many frames may be evicted (≈1 s at 60 fps).
-const STALE_AGE_FRAMES: u64 = 60;
-
-impl GlyphAtlas {
-    pub fn new(width: u32, height: u32) -> Self {
-        Self {
-            width: width.max(1),
-            height: height.max(1),
-            cursor_x: 0,
-            cursor_y: 0,
-            row_height: 0,
-            generation: 0,
-            next_id: 1,
-            frame: 0,
-            needs_space: false,
-            entries: HashMap::new(),
-        }
-    }
-
-    pub fn dimensions(&self) -> (u32, u32) {
-        (self.width, self.height)
-    }
-
-    pub fn generation(&self) -> u64 {
-        self.generation
-    }
-
-    pub fn len(&self) -> usize {
-        self.entries.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
-    }
-
-    pub fn clear(&mut self) {
-        self.entries.clear();
-        self.cursor_x = 0;
-        self.cursor_y = 0;
-        self.row_height = 0;
-        self.needs_space = false;
-        self.generation = self.generation.wrapping_add(1);
-    }
-
-    /// Advance the frame counter. Call once per frame before rendering.
-    ///
-    /// This is where eviction normally happens: when a glyph did not fit in
-    /// the previous frame, or more than three quarters of the atlas is used,
-    /// and some entries have been idle for more than 60 frames, the atlas is
-    /// cleared (generation bumped). Evicting here, rather than in the middle of
-    /// a frame, keeps every [`PreparedText`] already produced in the frame valid.
-    pub fn begin_frame(&mut self) {
-        self.frame = self.frame.wrapping_add(1);
-        let used_rows = u64::from(self.cursor_y) + u64::from(self.row_height);
-        let pressure = used_rows * 4 >= u64::from(self.height) * 3;
-        if (self.needs_space || pressure) && self.stale_count(STALE_AGE_FRAMES) > 0 {
-            self.clear();
-        }
-    }
-
-    /// `true` when an entry was placed or used during the current frame.
-    fn in_use_this_frame(&self) -> bool {
-        self.entries
-            .values()
-            .any(|entry| entry.last_used == self.frame)
-    }
-
-    /// Mark an entry as recently used (updates its LRU timestamp).
-    pub fn touch(&mut self, key: &CacheKey) {
-        if let Some(entry) = self.entries.get_mut(key) {
-            entry.last_used = self.frame;
-        }
-    }
-
-    /// Number of entries not accessed within `max_age` frames.
-    pub fn stale_count(&self, max_age: u64) -> usize {
-        self.entries
-            .values()
-            .filter(|e| self.frame.saturating_sub(e.last_used) > max_age)
-            .count()
-    }
-
-    /// Evict entries not accessed within `max_age` frames.
-    ///
-    /// Because the shelf allocator cannot reclaim fragmented space, the entire
-    /// atlas is cleared when any entries are evicted — surviving glyphs will be
-    /// re-uploaded on subsequent frames. Returns the number of evicted entries.
-    /// The generation is bumped so the renderer can detect the invalidation.
-    pub fn evict_stale(&mut self, max_age: u64) -> usize {
-        let stale = self.stale_count(max_age);
-        if stale > 0 {
-            self.clear();
-        }
-        stale
-    }
-
-    fn insert(
-        &mut self,
-        key: CacheKey,
-        glyph: RasterizedGlyph,
-        uploads: &mut Vec<AtlasUpload>,
-    ) -> Option<AtlasEntry> {
-        let RasterizedGlyph {
-            width,
-            height,
-            left,
-            top,
-            format,
-            pixels,
-        } = glyph;
-        if width > self.width || height > self.height {
-            return None;
-        }
-        if self.cursor_x + width > self.width {
-            self.cursor_x = 0;
-            self.cursor_y = self.cursor_y.saturating_add(self.row_height + 1);
-            self.row_height = 0;
-        }
-        if self.cursor_y + height > self.height {
-            // Clearing now would invalidate glyphs already handed out this
-            // frame (their atlas rectangles would be overwritten), so defer.
-            if self.in_use_this_frame() {
-                self.needs_space = true;
-                return None;
-            }
-            // Nothing from this frame is in the atlas yet: evicting stale
-            // entries is safe. `evict_stale` clears everything and resets the
-            // allocator, so the insert is retried from (0,0).
-            if self.evict_stale(STALE_AGE_FRAMES) > 0 {
-                // Allocator was reset; re-check row-wrapping.
-                if self.cursor_x + width > self.width {
-                    self.cursor_x = 0;
-                    self.cursor_y = 0;
-                }
-                if self.cursor_y + height > self.height {
-                    return None; // Glyph still doesn't fit (shouldn't happen after clear)
-                }
-            } else {
-                return None; // No stale entries to evict
-            }
-        }
-        let entry = AtlasEntry {
-            id: self.next_id,
-            x: self.cursor_x,
-            y: self.cursor_y,
-            width,
-            height,
-            left,
-            top,
-            format,
-            last_used: self.frame,
-        };
-        self.next_id = self.next_id.wrapping_add(1);
-        self.cursor_x += width + 1;
-        self.row_height = self.row_height.max(height);
-        self.entries.insert(key, entry);
-        uploads.push(AtlasUpload {
-            x: entry.x,
-            y: entry.y,
-            width,
-            height,
-            format,
-            pixels,
-        });
-        Some(entry)
-    }
 }
 
 fn finite_positive(value: f32, fallback: f32) -> f32 {
@@ -716,6 +488,28 @@ mod tests {
                 .iter()
                 .zip(&two.raster_glyphs)
                 .any(|(a, b)| a.cache_key != b.cache_key)
+        );
+    }
+
+    #[test]
+    fn whitespace_is_not_counted_as_an_atlas_full_glyph() {
+        let mut fonts = FontSystem::new();
+        let layout = fonts.shape(
+            "a b c",
+            &TextStyle::default(),
+            TextConstraints::default(),
+            1.0,
+        );
+        let mut atlas = GlyphAtlas::new(512, 512);
+        let prepared = fonts.prepare(&layout, &mut atlas);
+        if prepared.glyphs.is_empty() {
+            eprintln!("SKIP: no usable host font");
+            return;
+        }
+        assert_eq!(
+            fonts.diagnostics().atlas_full_glyphs,
+            0,
+            "a space has no bitmap, so it is never dropped for lack of atlas space"
         );
     }
 

@@ -45,6 +45,7 @@ unless the case says otherwise.
 | `frame_build/1200_quads_100_clipped_50_text` | Building a `Frame` with 1000 solid quads, 200 rounded quads with borders, 100 clipped quads, and 50 empty text runs. | Includes the `Vec` allocations for the frame. |
 | `widget_tree/build_50_rows` | Building a 50-row column of rows, each with a label and a button. | Widget-builder cost. |
 | `text/shape_prepare_4_strings` | `FontSystem::shape` + `prepare` for four mixed Latin, CJK and symbol strings into one persistent 2048x2048 `GlyphAtlas`. | Depends on the system fonts. See limitations. |
+| `text/atlas_pressure_multipage` | 144-frame text rotation into a 256x256 atlas with a 4-page budget (timed); the same workload is replayed untimed with a 1-page budget for counters. | `meta`: pages, page evictions, generation, drawn and refused glyphs for both budgets. Depends on the system fonts. |
 | `render_cpu/2000_quads_scale_1.0` | `CpuRenderer::render_scene` on a 1100x760 framebuffer with 2000 quads (a third rounded with a border). | Software rasterizer, no GPU. |
 | `render_cpu/2000_quads_scale_2.0` | Same scene at scale factor 2.0. The logical extent is halved, so the framebuffer is covered at the same physical size. | |
 
@@ -189,5 +190,6 @@ suite is to compare medians on the same machine, as described above.
 
 | Version | Date | Change |
 |---------|------|--------|
+| 3 | 2026-11-07 | `text/atlas_pressure_multipage` case (ROADMAP 011). Windows host, `--quick`: median 14.20 ms; 1 page: 2 evictions, 986 drawn; 4 pages: 3 pages open, 0 evictions, 1584 drawn (all non-space glyphs). |
 | 2 | 2026-11-07 | Headless runner. Window path removed. Warm-up and sampled statistics, JSON schema v1, environment record, retained-tree and CPU-render cases added. |
 | 1 | — | Single-run `tracing` output inside a window. |

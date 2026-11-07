@@ -37,7 +37,7 @@ pub fn add_text(
             acme_text::AtlasFormat::Rgba8 => GlyphFormat::Rgba8,
         };
         uploads.push(AtlasUpload {
-            page: 0,
+            page: region.page,
             origin: [region.x, region.y],
             size: [region.width, region.height],
             format: pfmt,
@@ -56,6 +56,7 @@ pub fn add_text(
             height: glyph.height as f32,
             atlas_x: glyph.atlas_x,
             atlas_y: glyph.atlas_y,
+            atlas_page: glyph.atlas_page,
             format: gfmt,
         });
     }

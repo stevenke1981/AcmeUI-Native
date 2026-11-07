@@ -14,6 +14,7 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 | 008 | Lead + UI/UX + Accessibility | Follow-ups: Gallery hover/press drift, AccessKit validation and cell roles, compiled migration snippets, benchmark CI smoke | Headless RED/GREEN tests, consumer test, CI artifact; screen-reader checks stay manual |
 | 009 | Lead + Accessibility + Rendering | Virtual TreeItem/Row/ColumnHeader AccessKit nodes; exact-area CPU quad coverage | RED/GREEN tests incl. real-layout bounds, re-blessed golden with delta, A/B benchmark; screen-reader checks stay manual |
 | 010 | Lead + Accessibility | Accessibility walk mirrors layout ID consumption (cells, rows, tree items, trailing widgets); ragged rows | Real-layout bound tests on sequential/bound/unbound paths, mutation RED, Gallery bounds test |
+| 011 | Lead + Architecture + Rendering + Text | Multi-page glyph atlas: page contract, page-granular LRU eviction, CPU/wgpu per-page atlases, apps on default atlas | Spec, RED/GREEN + mutation tests, randomized eviction simulation, CPU e2e vs single-page reference, benchmark counters; GPU drawing NOT_RUN |
 
 ## Existing work to preserve
 

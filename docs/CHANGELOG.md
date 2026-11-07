@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased - Multi-page glyph atlas (ROADMAP 011, 2026-11-07)
+
+- `acme-core`: `ATLAS_PAGE_EDGE` (2048) and `ATLAS_MAX_PAGES` (8);
+  `GlyphDraw::atlas_page`; `GlyphFormat` derives `Hash`. **Breaking** for
+  `GlyphDraw` struct literals (MIGRATION M14).
+- `acme-text`: `GlyphAtlasConfig`, `GlyphAtlas::with_config` and `Default`
+  (2048² × 4 pages), `page_count`, `max_pages`, `page_evictions`;
+  `AtlasUpload::page` and `PreparedGlyph::atlas_page` (**breaking** for
+  literals). A full page opens the next; `begin_frame` evicts at most one
+  least-recently-used stale page instead of clearing everything. Mid-frame
+  eviction stays deferred. `GlyphAtlas::new` stays single-page; page edges are
+  clamped to 2048; placement no longer moves the cursor after a failed glyph.
+  Whitespace is no longer counted in `atlas_full_glyphs`.
+- `acme-render-cpu`: per-page, lazily allocated atlases for pages `< 8`;
+  whole-scene preflight unchanged; goldens unchanged.
+- `acme-render-wgpu`: lazy 2048² page textures per format replace the two eager
+  4096² atlases; uploads deduplicated by (page, format, rect) — the old key
+  ignored page and format; text batches split per page in painter order.
+  Real GPU drawing and device loss are NOT_RUN.
+- Apps and the SDK consumer use `GlyphAtlas::default()`; new end-to-end test
+  (`acme-textinput/tests/multipage_e2e.rs`) and benchmark case
+  `text/atlas_pressure_multipage`.
+
 ## Unreleased - Accessibility walk mirrors layout IDs (ROADMAP 010, 2026-11-07)
 
 - `acme-accessibility`: the sequential and bound walks consume IDs in exactly

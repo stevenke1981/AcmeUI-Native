@@ -261,6 +261,7 @@ dependencies = [
  "acme-core",
  "acme-layout",
  "acme-platform",
+ "acme-render-cpu",
  "acme-text",
  "acme-theme",
  "acme-widgets",
