@@ -10,6 +10,6 @@ categories = ["gui"]
 description = "GPUI-inspired Styled trait + Tailwind CSS-like utility methods for AcmeUI Native"
 
 [dependencies]
-acme-core = { path = "../acme-core" }
-acme-theme = { path = "../acme-theme" }
-acme-layout = { path = "../acme-layout" }
+acme-core.workspace = true
+acme-theme.workspace = true
+acme-layout.workspace = true

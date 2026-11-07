@@ -3,14 +3,15 @@ name = "acme-ui-gallery"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish = false
 
 [dependencies]
-acme-ui = { path = "../../crates/acme-ui", features = ["full"] }
-acme-core = { path = "../../crates/acme-core" }
-acme-layout = { path = "../../crates/acme-layout" }
-acme-theme = { path = "../../crates/acme-theme" }
-acme-widgets = { path = "../../crates/acme-widgets" }
-acme-text = { path = "../../crates/acme-text" }
-acme-textinput = { path = "../../crates/acme-textinput" }
-acme-render-wgpu = { path = "../../crates/acme-render-wgpu" }
-acme-platform = { path = "../../crates/acme-platform" }
+acme-ui = { workspace = true, features = ["full"] }
+acme-core.workspace = true
+acme-layout.workspace = true
+acme-theme.workspace = true
+acme-widgets.workspace = true
+acme-text.workspace = true
+acme-textinput.workspace = true
+acme-render-wgpu.workspace = true
+acme-platform.workspace = true
