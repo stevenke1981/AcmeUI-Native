@@ -1,6 +1,6 @@
 use acme_core::{
-    AtlasUpload, Color, DrawCommand, GlyphDraw, GlyphFormat, LayerParams, Point, QuadPrimitive,
-    Rect, Scene, TextPrimitive,
+    ATLAS_MAX_PAGES, AtlasUpload, Color, DrawCommand, GlyphDraw, GlyphFormat, LayerParams, Point,
+    QuadPrimitive, Rect, Scene, TextPrimitive,
 };
 use acme_render_cpu::{CpuRenderError, CpuRenderer};
 
@@ -274,7 +274,7 @@ fn bad_atlas_uploads() -> Vec<AtlasUpload> {
     let mut bad = Vec::new();
     for valid in atlas_pair_uploads(255, [255, 255, 255, 255]) {
         bad.push(AtlasUpload {
-            page: 1,
+            page: ATLAS_MAX_PAGES,
             ..valid.clone()
         });
         bad.push(AtlasUpload {

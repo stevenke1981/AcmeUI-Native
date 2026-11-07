@@ -3,14 +3,15 @@
 //! The internal framebuffer uses straight 0xAARRGGBB for correct layer compositing.
 
 use acme_core::{
-    AtlasUpload, Color, DrawCommand, GlyphFormat, ImagePrimitive, QuadPrimitive, Rect, Scene,
-    TextPrimitive,
+    ATLAS_MAX_PAGES, ATLAS_PAGE_EDGE, AtlasUpload, Color, DrawCommand, GlyphFormat, ImagePrimitive,
+    QuadPrimitive, Rect, Scene, TextPrimitive,
 };
 
 mod coverage;
 use coverage::quad_coverage;
 
-const ATLAS: usize = 2048;
+const PAGE_EDGE: usize = ATLAS_PAGE_EDGE as usize;
+const PAGE_COUNT: usize = ATLAS_MAX_PAGES as usize;
 const MAX_PIXELS: usize = 32_000_000;
 const MAX_LAYERS: usize = 16;
 const MAX_LAYER_PIXELS: usize = 48_000_000;
@@ -31,7 +32,7 @@ impl std::fmt::Display for CpuRenderError {
             Self::InvalidScene(reason) => write!(f, "invalid scene: {reason}"),
             Self::InvalidGlyphUpload => write!(
                 f,
-                "invalid glyph upload (only atlas page zero is supported)"
+                "atlas page out of range, region outside page, or payload size mismatch"
             ),
         }
     }
@@ -197,17 +198,28 @@ fn draw_image(
     });
 }
 
-#[derive(Default)]
+fn bytes_per_pixel(format: GlyphFormat) -> usize {
+    match format {
+        GlyphFormat::Alpha8 => 1,
+        GlyphFormat::Rgba8 => 4,
+    }
+}
+
+/// Per-page glyph texels. A page buffer is allocated on its first upload, so unused
+/// pages cost nothing; each allocated buffer is `PAGE_EDGE`² texels of one format.
 struct GlyphAtlases {
-    alpha: Option<Vec<u8>>,
-    rgba: Option<Vec<u8>>,
+    alpha: Vec<Option<Vec<u8>>>,
+    rgba: Vec<Option<Vec<u8>>>,
 }
 impl GlyphAtlases {
+    fn new() -> Self {
+        Self {
+            alpha: vec![None; PAGE_COUNT],
+            rgba: vec![None; PAGE_COUNT],
+        }
+    }
     fn validate_upload(u: &AtlasUpload) -> Result<(), CpuRenderError> {
-        let bpp: usize = match u.format {
-            GlyphFormat::Alpha8 => 1,
-            GlyphFormat::Rgba8 => 4,
-        };
+        let bpp = bytes_per_pixel(u.format);
         let (x, y, w, h) = (
             u.origin[0] as usize,
             u.origin[1] as usize,
@@ -215,9 +227,9 @@ impl GlyphAtlases {
             u.size[1] as usize,
         );
         let len = w.checked_mul(h).and_then(|v| v.checked_mul(bpp));
-        if u.page != 0
-            || x.checked_add(w).is_none_or(|v| v > ATLAS)
-            || y.checked_add(h).is_none_or(|v| v > ATLAS)
+        if u.page >= ATLAS_MAX_PAGES
+            || x.checked_add(w).is_none_or(|v| v > PAGE_EDGE)
+            || y.checked_add(h).is_none_or(|v| v > PAGE_EDGE)
             || len != Some(u.pixels.len())
         {
             return Err(CpuRenderError::InvalidGlyphUpload);
@@ -227,43 +239,57 @@ impl GlyphAtlases {
     fn upload(&mut self, u: &AtlasUpload) {
         // The scene preflight checks all uploads before any persistent state changes.
         debug_assert!(Self::validate_upload(u).is_ok());
-        let bpp = match u.format {
-            GlyphFormat::Alpha8 => 1,
-            GlyphFormat::Rgba8 => 4,
-        };
+        let bpp = bytes_per_pixel(u.format);
         let (x, y, w, h) = (
             u.origin[0] as usize,
             u.origin[1] as usize,
             u.size[0] as usize,
             u.size[1] as usize,
         );
-        let atlas = match u.format {
-            GlyphFormat::Alpha8 => self.alpha.get_or_insert_with(|| vec![0; ATLAS * ATLAS]),
-            GlyphFormat::Rgba8 => self.rgba.get_or_insert_with(|| vec![0; ATLAS * ATLAS * 4]),
+        let Ok(page) = usize::try_from(u.page) else {
+            return;
         };
+        let slots = match u.format {
+            GlyphFormat::Alpha8 => &mut self.alpha,
+            GlyphFormat::Rgba8 => &mut self.rgba,
+        };
+        let Some(slot) = slots.get_mut(page) else {
+            return;
+        };
+        let atlas = slot.get_or_insert_with(|| vec![0; PAGE_EDGE * PAGE_EDGE * bpp]);
         for row in 0..h {
-            let start = ((y + row) * ATLAS + x) * bpp;
+            let start = ((y + row) * PAGE_EDGE + x) * bpp;
             let src = row * w * bpp;
             atlas[start..start + w * bpp].copy_from_slice(&u.pixels[src..src + w * bpp]);
         }
     }
-    fn sample(&self, format: GlyphFormat, x: usize, y: usize) -> u32 {
-        if x >= ATLAS || y >= ATLAS {
+    /// Returns the packed texel, or 0 when the coordinate or page is outside the store
+    /// or the page has never been uploaded.
+    fn sample(&self, format: GlyphFormat, page: u32, x: usize, y: usize) -> u32 {
+        if x >= PAGE_EDGE || y >= PAGE_EDGE {
             return 0;
         }
-        let offset = y * ATLAS + x;
+        let slots = match format {
+            GlyphFormat::Alpha8 => &self.alpha,
+            GlyphFormat::Rgba8 => &self.rgba,
+        };
+        let Some(atlas) = usize::try_from(page)
+            .ok()
+            .and_then(|p| slots.get(p))
+            .and_then(Option::as_ref)
+        else {
+            return 0;
+        };
+        let offset = y * PAGE_EDGE + x;
         match format {
-            GlyphFormat::Alpha8 => self
-                .alpha
-                .as_ref()
-                .map_or(0, |a| (a[offset] as u32) << 24 | 0x00ff_ffff),
-            GlyphFormat::Rgba8 => self.rgba.as_ref().map_or(0, |a| {
+            GlyphFormat::Alpha8 => (u32::from(atlas[offset]) << 24) | 0x00ff_ffff,
+            GlyphFormat::Rgba8 => {
                 let i = offset * 4;
-                ((a[i + 3] as u32) << 24)
-                    | ((a[i] as u32) << 16)
-                    | ((a[i + 1] as u32) << 8)
-                    | (a[i + 2] as u32)
-            }),
+                (u32::from(atlas[i + 3]) << 24)
+                    | (u32::from(atlas[i]) << 16)
+                    | (u32::from(atlas[i + 1]) << 8)
+                    | u32::from(atlas[i + 2])
+            }
         }
     }
 }
@@ -298,7 +324,7 @@ fn draw_text(
             let Some(gy) = (glyph.atlas_y as usize).checked_add((y - rect.top) as usize) else {
                 return;
             };
-            let mask = atlases.sample(glyph.format, gx, gy);
+            let mask = atlases.sample(glyph.format, glyph.atlas_page, gx, gy);
             let src = match glyph.format {
                 GlyphFormat::Alpha8 => {
                     ((mask >> 24) * (tint >> 24 & 255) / 255) << 24 | (tint & 0x00ff_ffff)
@@ -338,7 +364,7 @@ impl CpuRenderer {
             scale_factor: 1.0,
             framebuffer: Vec::new(),
             output: Vec::new(),
-            atlases: GlyphAtlases::default(),
+            atlases: GlyphAtlases::new(),
         };
         renderer.resize(width, height, scale_factor)?;
         Ok(renderer)
@@ -657,7 +683,7 @@ mod tests {
         ));
         assert!(matches!(
             GlyphAtlases::validate_upload(&AtlasUpload {
-                page: 1,
+                page: ATLAS_MAX_PAGES,
                 origin: [0, 0],
                 size: [1, 1],
                 format: GlyphFormat::Alpha8,
