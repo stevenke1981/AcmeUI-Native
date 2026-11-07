@@ -1,13 +1,23 @@
 # Todos
 
+## ROADMAP 012 — wgpu split, atlas starvation, IME composition (2026-11-08)
+
+- [x] `acme-render-wgpu/src/lib.rs` split into modules (lib.rs 22 lines; public paths unchanged).
+- [x] Demand LRU: a glyph no longer drops when every page holds only fresh entries; starvation test un-ignored.
+- [x] Preedit scrolls into view; preedit glyphs are drawn (masked in password fields); Gallery forwards the preedit cursor and clamps the candidate anchor to the field.
+- [ ] Per-format allocators and mid-frame eviction of untouched pages — rejected for now (SPEC-B); revisit with measurements.
+- [ ] `acme-textinput/src/lib.rs` is ~2830 lines; split.
+- [ ] Real Windows 注音 composition, candidate-window placement and physical DPI — NOT_RUN (manual).
+- [ ] Real GPU drawing — NOT_RUN.
+
 ## ROADMAP 011 — multi-page glyph atlas (2026-11-07)
 
 - [x] Contract (page fields, constants, `GlyphAtlasConfig`), page-granular LRU allocator, CPU pages, wgpu lazy page textures, apps on `GlyphAtlas::default()`.
 - [x] wgpu upload dedup key includes page and format.
 - [ ] Real GPU multi-page drawing, device-loss recovery with live pages, GPU memory/timing — NOT_RUN (no GPU; fallback adapter segfaults on this host).
-- [ ] Starvation when every page holds only fresh entries still drops glyphs (known limitation, `atlas_lifecycle.rs` ignored test).
+- [x] Starvation when every page holds only fresh entries — fixed in ROADMAP 012.
 - [ ] Per-format allocators (both formats share one (page, x, y) namespace); mid-frame eviction of untouched pages.
-- [ ] `acme-render-wgpu/src/lib.rs` is ~1800 lines; split.
+- [x] `acme-render-wgpu/src/lib.rs` split (ROADMAP 012).
 
 ## ROADMAP 009 — structural accessibility and exact-area CPU coverage (2026-11-07)
 
@@ -59,7 +69,7 @@
 - [x] ROADMAP 004: keyboard focus keyed by stable identity; core control semantics (docs/team/roadmap-004/REPORT.md).
 - [x] ROADMAP 005 (automated part): DPI matrix and IME geometry tests; 3 IME bugs and 2 TextInput field bugs fixed (docs/team/roadmap-005/REPORT.md).
 - [ ] ROADMAP 005 (manual): 注音 sessions at 100/125/150/200 % — human sign-off still required.
-- [ ] Follow-ups (hover/press drift, validation text, Table/DataGrid cells done in ROADMAP 008; Tree item roles open): preedit wider than the field does not scroll; CPU sharp-corner coverage (ignored test).
+- [ ] Follow-ups (hover/press drift, validation text, Table/DataGrid cells done in ROADMAP 008; Tree item roles open): preedit scroll fixed in ROADMAP 012; CPU sharp-corner coverage (ignored test).
 
 ## Retained-tree invalidation (bounded local patch)
 
