@@ -228,6 +228,8 @@ pub struct GlyphDraw {
     pub atlas_x: u32,
     /// Atlas y offset in pixels.
     pub atlas_y: u32,
+    /// Atlas page index (`0..ATLAS_MAX_PAGES`).
+    pub atlas_page: u32,
     /// Glyph pixel format.
     pub format: GlyphFormat,
 }
@@ -252,10 +254,17 @@ pub struct LayerParams {
 // AtlasUpload with RGBA support
 // ---------------------------------------------------------------------------
 
+/// Largest atlas page edge, in pixels, accepted by the built-in renderers.
+pub const ATLAS_PAGE_EDGE: u32 = 2048;
+
+/// Number of atlas pages accepted by the built-in renderers; a page index
+/// must be below this value.
+pub const ATLAS_MAX_PAGES: u32 = 8;
+
 /// Pixel data for an atlas page region.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AtlasUpload {
-    /// Atlas page index.
+    /// Atlas page index (`0..ATLAS_MAX_PAGES`).
     pub page: u32,
     /// Pixel origin (x, y) within the atlas page.
     pub origin: [u32; 2],
@@ -566,6 +575,7 @@ mod tests {
                 height: 12.0,
                 atlas_x: 0,
                 atlas_y: 0,
+                atlas_page: 0,
                 format: GlyphFormat::Alpha8,
             }],
             uploads: vec![],

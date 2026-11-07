@@ -17,3 +17,6 @@ acme-theme.workspace = true
 acme-widgets.workspace = true
 acme-platform.workspace = true
 unicode-segmentation.workspace = true
+
+[dev-dependencies]
+acme-render-cpu.workspace = true

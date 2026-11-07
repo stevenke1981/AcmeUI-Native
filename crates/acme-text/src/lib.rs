@@ -248,6 +248,7 @@ impl FontSystem {
                     height: entry.height,
                     atlas_x: entry.x,
                     atlas_y: entry.y,
+                    atlas_page: entry.page,
                     format: entry.format,
                 });
             } else if self
@@ -307,6 +308,8 @@ pub enum AtlasFormat {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AtlasUpload {
+    /// Atlas page the region belongs to.
+    pub page: u32,
     pub x: u32,
     pub y: u32,
     pub width: u32,
@@ -324,6 +327,8 @@ pub struct PreparedGlyph {
     pub height: u32,
     pub atlas_x: u32,
     pub atlas_y: u32,
+    /// Atlas page holding the glyph.
+    pub atlas_page: u32,
     pub format: AtlasFormat,
 }
 
@@ -337,6 +342,7 @@ pub struct PreparedText {
 #[derive(Clone, Copy, Debug)]
 struct AtlasEntry {
     id: u64,
+    page: u32,
     x: u32,
     y: u32,
     width: u32,
@@ -385,15 +391,69 @@ pub struct GlyphAtlas {
     /// A glyph did not fit during a frame whose glyphs were already in use;
     /// eviction is deferred to the next [`begin_frame`](Self::begin_frame).
     needs_space: bool,
+    /// Upper bound on open pages (1 = legacy single-page behavior).
+    max_pages: u32,
     entries: HashMap<CacheKey, AtlasEntry>,
+}
+
+/// Page geometry and page budget of a [`GlyphAtlas`].
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct GlyphAtlasConfig {
+    /// Width of one page in pixels.
+    pub page_width: u32,
+    /// Height of one page in pixels.
+    pub page_height: u32,
+    /// Maximum number of pages the atlas may open.
+    pub max_pages: u32,
+}
+
+impl GlyphAtlasConfig {
+    /// Largest accepted `max_pages`; equals `acme_core::ATLAS_MAX_PAGES`.
+    pub const MAX_PAGES_CAP: u32 = 8;
+    /// Default page edge; equals `acme_core::ATLAS_PAGE_EDGE`.
+    pub const DEFAULT_PAGE_EDGE: u32 = 2048;
+    /// Default page budget (4 × 2048² holds as many texels as one 4096² page).
+    pub const DEFAULT_MAX_PAGES: u32 = 4;
+}
+
+impl Default for GlyphAtlasConfig {
+    fn default() -> Self {
+        Self {
+            page_width: Self::DEFAULT_PAGE_EDGE,
+            page_height: Self::DEFAULT_PAGE_EDGE,
+            max_pages: Self::DEFAULT_MAX_PAGES,
+        }
+    }
+}
+
+impl Default for GlyphAtlas {
+    fn default() -> Self {
+        Self::with_config(GlyphAtlasConfig::default())
+    }
 }
 
 /// Entries idle for more than this many frames may be evicted (≈1 s at 60 fps).
 const STALE_AGE_FRAMES: u64 = 60;
 
 impl GlyphAtlas {
+    /// A single-page atlas of `width × height` pixels (legacy behavior:
+    /// eviction clears the whole page). See [`with_config`](Self::with_config)
+    /// for a multi-page atlas.
     pub fn new(width: u32, height: u32) -> Self {
+        Self::with_config(GlyphAtlasConfig {
+            page_width: width,
+            page_height: height,
+            max_pages: 1,
+        })
+    }
+
+    /// An atlas with the given page geometry and page budget. Dimensions are
+    /// clamped to at least 1 and `max_pages` to `1..=MAX_PAGES_CAP`.
+    pub fn with_config(config: GlyphAtlasConfig) -> Self {
+        let width = config.page_width;
+        let height = config.page_height;
         Self {
+            max_pages: config.max_pages.clamp(1, GlyphAtlasConfig::MAX_PAGES_CAP),
             width: width.max(1),
             height: height.max(1),
             cursor_x: 0,
@@ -407,8 +467,24 @@ impl GlyphAtlas {
         }
     }
 
+    /// Size of one page in pixels.
     pub fn dimensions(&self) -> (u32, u32) {
         (self.width, self.height)
+    }
+
+    /// Number of open pages.
+    pub fn page_count(&self) -> usize {
+        1
+    }
+
+    /// Maximum number of pages this atlas may open.
+    pub fn max_pages(&self) -> u32 {
+        self.max_pages
+    }
+
+    /// Cumulative number of page evictions (explicit `clear` not counted).
+    pub fn page_evictions(&self) -> u64 {
+        0
     }
 
     pub fn generation(&self) -> u64 {
@@ -531,6 +607,7 @@ impl GlyphAtlas {
         }
         let entry = AtlasEntry {
             id: self.next_id,
+            page: 0,
             x: self.cursor_x,
             y: self.cursor_y,
             width,
@@ -545,6 +622,7 @@ impl GlyphAtlas {
         self.row_height = self.row_height.max(height);
         self.entries.insert(key, entry);
         uploads.push(AtlasUpload {
+            page: entry.page,
             x: entry.x,
             y: entry.y,
             width,

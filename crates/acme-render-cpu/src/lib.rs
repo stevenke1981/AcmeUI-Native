@@ -608,6 +608,7 @@ mod tests {
                 height: 1.0,
                 atlas_x: 5,
                 atlas_y: 6,
+                atlas_page: 0,
                 format: GlyphFormat::Alpha8,
             }],
             uploads: vec![AtlasUpload {

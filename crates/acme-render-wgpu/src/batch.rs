@@ -334,7 +334,7 @@ pub fn scene_from_frame(frame: &Frame) -> Scene {
         // Atlas upload regions from the prepared text.
         for region in &prepared.uploads {
             uploads.push(AtlasUpload {
-                page: 0, // single-page atlas in current implementation
+                page: region.page,
                 origin: [region.x, region.y],
                 size: [region.width, region.height],
                 format: to_glyph_format(region.format),
@@ -351,6 +351,7 @@ pub fn scene_from_frame(frame: &Frame) -> Scene {
                 height: glyph.height as f32,
                 atlas_x: glyph.atlas_x,
                 atlas_y: glyph.atlas_y,
+                atlas_page: glyph.atlas_page,
                 format: to_glyph_format(glyph.format),
             });
         }
@@ -401,6 +402,7 @@ mod tests {
                 height: 10.0,
                 atlas_x: 0,
                 atlas_y: 0,
+                atlas_page: 0,
                 format,
             }],
             uploads: vec![AtlasUpload {
@@ -573,6 +575,7 @@ mod tests {
                     height: 10.0,
                     atlas_x: 0,
                     atlas_y: 0,
+                    atlas_page: 0,
                     format: GlyphFormat::Alpha8,
                 },
                 acme_core::GlyphDraw {
@@ -582,6 +585,7 @@ mod tests {
                     height: 10.0,
                     atlas_x: 0,
                     atlas_y: 0,
+                    atlas_page: 0,
                     format: GlyphFormat::Rgba8,
                 },
             ],

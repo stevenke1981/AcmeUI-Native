@@ -23,6 +23,7 @@ fn glyph() -> GlyphDraw {
         height: 1.0,
         atlas_x: 0,
         atlas_y: 0,
+        atlas_page: 0,
         format: GlyphFormat::Alpha8,
     }
 }

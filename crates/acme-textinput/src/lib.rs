@@ -850,7 +850,7 @@ fn prepare_text_glyphs(
             acme_text::AtlasFormat::Rgba8 => GlyphFormat::Rgba8,
         };
         uploads.push(SceneAtlasUpload {
-            page: 0,
+            page: region.page,
             origin: [region.x, region.y],
             size: [region.width, region.height],
             format: pfmt,
@@ -869,6 +869,7 @@ fn prepare_text_glyphs(
             height: glyph.height as f32,
             atlas_x: glyph.atlas_x,
             atlas_y: glyph.atlas_y,
+            atlas_page: glyph.atlas_page,
             format: gfmt,
         });
     }
