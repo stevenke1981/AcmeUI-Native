@@ -1,7 +1,7 @@
 //! Bridge from [`WidgetNode`] to [`ViewNode`] for the runtime shadow tree.
 //!
 //! This module converts the declarative widget tree into a flat `Vec<ViewNode>`
-//! forest that can be fed to [`RetainedTree::reconcile_roots`] for diagnostics.
+//! forest that can be fed to [`acme_core::RetainedTree::reconcile_roots`] for diagnostics.
 //! It is purely diagnostic (Phase 1) — no functional changes to layout,
 //! paint, hit-testing, or accessibility.
 
