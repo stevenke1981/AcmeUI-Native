@@ -113,10 +113,24 @@ fn for_pixels(
     clip: Option<Bounds>,
     mut paint: impl FnMut(usize, f32, f32),
 ) {
-    let left = bounds.left.floor().max(0.0) as u32;
-    let top = bounds.top.floor().max(0.0) as u32;
-    let right = bounds.right.ceil().max(0.0).min(width as f32) as u32;
-    let bottom = bounds.bottom.ceil().max(0.0).min(height as f32) as u32;
+    // Minimized surfaces and malformed geometry must not enter the raster loops.
+    if width == 0 || height == 0 {
+        return;
+    }
+    if ![bounds.left, bounds.top, bounds.right, bounds.bottom]
+        .iter()
+        .all(|value| value.is_finite())
+    {
+        return;
+    }
+    let visible = clip.map_or(bounds, |region| bounds.intersect(region));
+    let left = visible.left.floor().max(0.0).min(width as f32) as u32;
+    let top = visible.top.floor().max(0.0).min(height as f32) as u32;
+    let right = visible.right.ceil().max(0.0).min(width as f32) as u32;
+    let bottom = visible.bottom.ceil().max(0.0).min(height as f32) as u32;
+    if left >= right || top >= bottom {
+        return;
+    }
     for y in top..bottom {
         for x in left..right {
             let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);
@@ -273,8 +287,14 @@ fn draw_text(
             if !rect.contains(x, y) {
                 return;
             }
-            let gx = glyph.atlas_x as usize + (x - rect.left) as usize;
-            let gy = glyph.atlas_y as usize + (y - rect.top) as usize;
+            // Float-to-integer casts saturate. A far-offscreen glyph can therefore
+            // yield usize::MAX; adding an atlas origin must not panic or wrap.
+            let Some(gx) = (glyph.atlas_x as usize).checked_add((x - rect.left) as usize) else {
+                return;
+            };
+            let Some(gy) = (glyph.atlas_y as usize).checked_add((y - rect.top) as usize) else {
+                return;
+            };
             let mask = atlases.sample(glyph.format, gx, gy);
             let src = match glyph.format {
                 GlyphFormat::Alpha8 => {

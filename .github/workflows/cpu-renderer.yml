@@ -19,16 +19,14 @@ jobs:
           toolchain: 1.88.0
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - name: CPU pixel and regression tests without a display
-        shell: bash
-        run: |
-          set -o pipefail
-          mkdir -p target/cpu-evidence
-          cargo test --locked -p acme-render-cpu 2>&1 | tee target/cpu-evidence/tests.log
-      - name: CPU crate formatting
-        run: cargo fmt -p acme-render-cpu -- --check
-      - name: CPU crate Clippy
-        run: cargo clippy --locked -p acme-render-cpu --all-targets --no-deps -- -D warnings
+      - name: Verification runner self-tests
+        run: python -m unittest discover -s scripts/tests -p test_verify_sdk.py -v
+      - name: Locked CPU checks with machine-readable evidence
+        run: python scripts/verify_sdk.py --profile cpu --output target/cpu-evidence/checks
+      - name: GPU-only platform still compiles
+        run: cargo check --locked -p acme-platform --no-default-features
+      - name: Render a headless CPU snapshot
+        run: cargo run --locked -p acme-render-cpu --example cpu_snapshot -- target/cpu-evidence/frame.ppm
       - name: Capture exact tested source
         if: always()
         shell: bash

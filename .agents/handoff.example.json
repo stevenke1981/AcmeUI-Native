@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "task_id": "CPU-002",
+  "owner": "rendering",
+  "execution_mode": "single-agent-role-passes",
+  "base_sha": "REPLACE_WITH_REAL_BASE_SHA",
+  "head_sha": "REPLACE_WITH_REAL_HEAD_SHA",
+  "state": "NOT_RUN",
+  "changed_files": [],
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-render-cpu"
+      ],
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "log": null,
+      "reason": "Example only; no command has been executed."
+    }
+  ],
+  "review": {
+    "independent": false,
+    "status": "NOT_RUN"
+  },
+  "manual_validation": [
+    {
+      "scenario": "Windows CPU Gallery at 125/150/200 percent DPI",
+      "status": "NOT_RUN"
+    }
+  ],
+  "risks": [],
+  "next_action": "Replace placeholders with real task and evidence data before submission."
+}
