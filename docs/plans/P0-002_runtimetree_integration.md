@@ -4,7 +4,7 @@
 |---|---|
 | ID | P0-002 |
 | Title | RuntimeTree Integration — stable NodeId via RetainedTree |
-| Status | Planned (design complete) |
+| Status | Phase 1 done; Phase 2 (stable ID source) done in ROADMAP 003 (2026-11-07); Phases 3-4 open |
 | Owner | runtime / gallery |
 | Risk | T2 Controlled |
 | Depends on | none |

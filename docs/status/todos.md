@@ -9,7 +9,8 @@
 - [x] Crate metadata, external consumer example + CI job, SDK guide.
 - [x] acme-ui test warnings removed.
 - [ ] Native runtime check of fatal paths (no-window, forced CPU failure) — NOT_RUN.
-- [ ] Next batch (ROADMAP 003): verify retained-tree integration in the real app path.
+- [x] ROADMAP 003: Gallery layout and accessibility use retained NodeIds (see docs/team/roadmap-003/REPORT.md).
+- [ ] ROADMAP 004: keyboard focus keyed by stable NodeId; most-used controls and semantics.
 
 ## Retained-tree invalidation (bounded local patch)
 
@@ -22,7 +23,7 @@
 - [x] Run full Windows GNU workspace check/build/tests, all features, formatting
   and changed-file Clippy validation with existing Rust 1.94.1.
 - [ ] Run pinned Rust 1.88 and cross-platform CI gates.
-- [ ] Gallery visual validation remains pending; the retained tree is currently shadow-only.
+- [ ] Gallery visual validation remains pending. The retained tree drives layout/accessibility IDs since ROADMAP 003.
 
 Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-invalidation.md).
 
