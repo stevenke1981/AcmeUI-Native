@@ -109,15 +109,15 @@ impl<M: Clone + 'static> From<TextFieldBuilder<M>> for WidgetNode<M> {
 
         if let Some(label) = b.label {
             let suffix = if b.required { " *" } else { "" };
-            col = col.child(crate::label(format!("{}{}", label, suffix)));
+            col = col.child(crate::label(format!("{label}{suffix}")));
         }
 
         let placeholder = b.placeholder.unwrap_or_default();
-        let input = crate::label(format!("[ {} ]", placeholder));
+        let input = crate::label(format!("[ {placeholder} ]"));
         col = col.child(input);
 
         if let Some(err) = b.error {
-            col = col.child(crate::label(format!("⚠ {}", err)));
+            col = col.child(crate::label(format!("⚠ {err}")));
         } else if let Some(helper) = b.helper_text {
             col = col.child(crate::label(helper));
         }
@@ -171,5 +171,11 @@ mod tests {
     fn text_field_default_variant_outlined() {
         let b = text_field::<Msg>();
         assert_eq!(b.variant, TextFieldVariant::Outlined);
+    }
+
+    #[test]
+    fn text_field_on_change_stores_message() {
+        let b = text_field::<Msg>().on_change(Msg::Changed);
+        assert_eq!(b.on_change, Some(Msg::Changed));
     }
 }

@@ -3,6 +3,11 @@ name = "acme-text"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Text shaping and renderer-neutral glyph atlas preparation for AcmeUI Native"
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["acmeui", "text", "cosmic-text"]
+categories = ["text-processing"]
 
 [dependencies]
 cosmic-text.workspace = true

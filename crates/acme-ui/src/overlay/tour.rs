@@ -174,4 +174,11 @@ mod tests {
         };
         assert!(!c.children.is_empty());
     }
+
+    #[test]
+    fn tour_on_next_and_on_prev_store_messages() {
+        let b = tour::<Msg>().on_next(Msg::Next).on_prev(Msg::Prev);
+        assert_eq!(b.on_next, Some(Msg::Next));
+        assert_eq!(b.on_prev, Some(Msg::Prev));
+    }
 }

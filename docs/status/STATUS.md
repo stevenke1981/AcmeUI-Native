@@ -33,7 +33,7 @@
 | Component | Notes |
 |-----------|-------|
 | Glyph atlas eviction/aging | Fixed 2048² shelf; full → drop glyphs until `clear()` |
-| Screenshot golden pipeline | `ScreenshotConfig` scaffolded; no capture/diff CI |
+| Screenshot golden pipeline | CPU-renderer text-free pixel goldens run in CI (`acme-render-cpu/tests/golden.rs`); Gallery/text screenshot capture still not in CI |
 | Full end-to-end GPU recovery on Windows | Callbacks + pure tests wired; interactive device-loss still manual — [docs/guides/MANUAL_VALIDATION.md](docs/guides/MANUAL_VALIDATION.md#a-gpu-device-loss-recovery) |
 
 ## Automated Only (manual still pending)

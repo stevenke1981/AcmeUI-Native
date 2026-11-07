@@ -3,6 +3,11 @@ name = "acme-devtools"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Developer tooling for AcmeUI Native: frame metrics, widget-tree dumps, layout inspection and renderer diagnostics"
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["acmeui", "gui", "devtools"]
+categories = ["development-tools"]
 
 [dependencies]
 tracing.workspace = true

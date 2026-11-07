@@ -138,6 +138,7 @@ pub fn dispatch_event(
 #[derive(Default)]
 pub struct FocusManager {
     focused: Option<NodeId>,
+    // Unique eligible IDs, cached when the focus order changes.
     order: Vec<NodeId>,
     eligible: HashSet<NodeId>,
     captures: HashMap<PointerId, NodeId>,
@@ -149,13 +150,18 @@ impl FocusManager {
     pub fn focused(&self) -> Option<NodeId> {
         self.focused
     }
+    /// Replace the tab order with each eligible node's first eligible occurrence.
+    ///
+    /// Duplicate IDs appear only once. An ineligible duplicate does not revoke an
+    /// eligible occurrence; callers should still provide one entry per live node.
+    /// Pointer capture is independent of keyboard eligibility. Call `remove_node`
+    /// when unmounting a node to release its captures as well as its focus.
     pub fn set_order(&mut self, items: impl IntoIterator<Item = (NodeId, bool)>) {
         self.order.clear();
         self.eligible.clear();
         for (id, ok) in items {
-            self.order.push(id);
-            if ok {
-                self.eligible.insert(id);
+            if ok && self.eligible.insert(id) {
+                self.order.push(id);
             }
         }
         if self.focused.is_some_and(|id| !self.eligible.contains(&id)) {
@@ -173,28 +179,23 @@ impl FocusManager {
     pub fn clear_focus(&mut self) {
         self.focused = None
     }
+    /// Move through the cached tab order without allocating a temporary list.
     pub fn focus_next(&mut self, reverse: bool) -> Option<NodeId> {
-        let eligible: Vec<_> = self
-            .order
-            .iter()
-            .copied()
-            .filter(|id| self.eligible.contains(id))
-            .collect();
-        if eligible.is_empty() {
+        if self.order.is_empty() {
             self.focused = None;
             return None;
         }
         let i = self
             .focused
-            .and_then(|f| eligible.iter().position(|x| *x == f));
+            .and_then(|f| self.order.iter().position(|x| *x == f));
         let next = match (i, reverse) {
-            (Some(0), true) => eligible.len() - 1,
+            (Some(0), true) => self.order.len() - 1,
             (Some(i), true) => i - 1,
-            (Some(i), false) => (i + 1) % eligible.len(),
-            (None, true) => eligible.len() - 1,
+            (Some(i), false) => (i + 1) % self.order.len(),
+            (None, true) => self.order.len() - 1,
             (None, false) => 0,
         };
-        self.focused = Some(eligible[next]);
+        self.focused = Some(self.order[next]);
         self.focused
     }
     pub fn capture_pointer(&mut self, p: PointerId, id: NodeId) {

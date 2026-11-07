@@ -3,6 +3,11 @@ name = "acme-layout"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Framework-owned flexbox layout facade over Taffy for AcmeUI Native"
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["acmeui", "gui", "layout"]
+categories = ["gui"]
 
 [dependencies]
 taffy.workspace = true

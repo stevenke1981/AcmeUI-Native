@@ -3,6 +3,11 @@ name = "acme-render-wgpu"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "GPU surface lifecycle and batched rectangle and text renderer for AcmeUI Native on wgpu"
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["acmeui", "wgpu", "gpu"]
+categories = ["rendering"]
 
 [dependencies]
 wgpu.workspace = true

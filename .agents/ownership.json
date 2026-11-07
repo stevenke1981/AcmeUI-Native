@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "roles": {
+    "lead": {
+      "instructions": ".agents/roles/lead.md",
+      "default_paths": [
+        ".agents/",
+        "docs/agent-team/"
+      ]
+    },
+    "architecture": {
+      "instructions": ".agents/roles/architecture.md",
+      "default_paths": [
+        "docs/architecture/",
+        "docs/adr/"
+      ]
+    },
+    "rust-core": {
+      "instructions": ".agents/roles/rust-core.md",
+      "default_paths": [
+        "crates/acme-core/",
+        "crates/acme-layout/",
+        "crates/acme-text/",
+        "crates/acme-textinput/"
+      ]
+    },
+    "rendering": {
+      "instructions": ".agents/roles/rendering.md",
+      "default_paths": [
+        "crates/acme-render-cpu/",
+        "crates/acme-render-wgpu/"
+      ]
+    },
+    "ui-ux": {
+      "instructions": ".agents/roles/ui-ux.md",
+      "default_paths": [
+        "crates/acme-ui/",
+        "crates/acme-widgets/",
+        "crates/acme-theme/",
+        "crates/acme-style/",
+        "apps/acme-gallery/"
+      ]
+    },
+    "accessibility": {
+      "instructions": ".agents/roles/accessibility.md",
+      "default_paths": [
+        "crates/acme-accessibility/",
+        "docs/guides/"
+      ]
+    },
+    "verification": {
+      "instructions": ".agents/roles/verification.md",
+      "default_paths": [
+        "scripts/",
+        ".github/workflows/",
+        "docs/reports/",
+        "docs/status/"
+      ]
+    }
+  },
+  "shared_files": {
+    "AGENTS.md": "lead",
+    "Cargo.toml": "lead",
+    "Cargo.lock": "lead",
+    "crates/acme-core/src/scene.rs": "architecture",
+    "crates/acme-platform/src/lib.rs": "lead",
+    "crates/acme-platform/src/cpu_window.rs": "rendering",
+    "apps/gallery/src/main.rs": "lead"
+  },
+  "policy": "An exact-file task lease overrides a default scope. Shared files require serialized integration; role names are not GitHub user accounts."
+}

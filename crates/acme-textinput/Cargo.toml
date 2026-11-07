@@ -3,6 +3,11 @@ name = "acme-textinput"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Text input state for AcmeUI Native: cursor, selection, clipboard, IME preedit and commit, undo and redo"
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["acmeui", "text-input", "ime"]
+categories = ["gui"]
 
 [dependencies]
 acme-core = { path = "../acme-core" }

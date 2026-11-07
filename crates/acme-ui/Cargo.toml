@@ -3,6 +3,11 @@ name = "acme-ui"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "High-level component library for AcmeUI Native with optional foundations, inputs, layout, overlay and feature families"
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["acmeui", "gui", "components"]
+categories = ["gui"]
 
 [features]
 default = ["foundations", "inputs", "layout", "overlay"]

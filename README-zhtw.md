@@ -64,6 +64,33 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 
 ---
 
+## CPU 軟體渲染後端
+
+專案新增 `acme-render-cpu` 無 GPU 的像素渲染器，並使用 `softbuffer`
+將結果顯示在原生桌面視窗。原本的 `wgpu` GPU 渲染仍為預設；
+GPU 初始化或裝置復原失敗時，會嘗試切換到 CPU。
+
+Windows 強制使用 CPU：
+
+```powershell
+$env:ACME_RENDER_BACKEND = "cpu"
+cargo run -p acme-gallery
+Remove-Item Env:ACME_RENDER_BACKEND
+```
+
+macOS／Linux：
+
+```bash
+ACME_RENDER_BACKEND=cpu cargo run -p acme-gallery
+```
+
+CPU 純測試：`cargo test -p acme-render-cpu`。
+支援繪製矩形、圓角、邊框、圖片、裁剪、字形與透明圖層。
+效能及抗鋸齒效果不保證與 GPU 完全相同，仍須實機視覺驗證。
+參閱 [CPU 渲染實作與驗收計畫](docs/plans/P1-cpu-renderer.md)。
+
+---
+
 ## 快速開始
 
 ### 前置需求

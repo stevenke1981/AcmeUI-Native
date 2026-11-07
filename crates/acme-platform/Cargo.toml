@@ -3,6 +3,15 @@ name = "acme-platform"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "Windows-first winit runtime with the Application trait and GPU/CPU renderer selection for AcmeUI Native"
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["acmeui", "gui", "winit"]
+categories = ["gui"]
+
+[features]
+default = ["cpu-renderer"]
+cpu-renderer = ["dep:acme-render-cpu", "dep:softbuffer"]
 
 [dependencies]
 winit.workspace = true
@@ -12,3 +21,5 @@ tracing.workspace = true
 arboard.workspace = true
 acme-core = { path = "../acme-core" }
 acme-render-wgpu = { path = "../acme-render-wgpu" }
+acme-render-cpu = { path = "../acme-render-cpu", optional = true }
+softbuffer = { workspace = true, optional = true }
