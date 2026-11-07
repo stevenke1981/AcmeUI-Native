@@ -45,6 +45,7 @@ Verification status labels:
 | M11 | `RenderBatch.clip` type changed from `Option<[u32; 4]>` to `Option<[f32; 4]>`. Not in CHANGELOG. | `acme-render-wgpu` | Breaking for field users | Change the type in your code. |
 | M12 | `Application::background_tick` and `background_poll_interval` were added as default methods. Not in CHANGELOG. | `acme-platform` | Additive | None for implementers that keep the defaults. |
 | M13 | CHANGELOG `v0.2.0` says `route_action` returns `Option<PlatformEvent>`. The code returns `Vec<PlatformEvent>`. | documentation | Documentation error | Use `Vec`. |
+| M14 | Multi-page glyph atlas: new fields `GlyphDraw::atlas_page`, `acme_text::AtlasUpload::page`, `PreparedGlyph::atlas_page`; new `GlyphAtlasConfig`, `GlyphAtlas::with_config`/`Default`; page edge capped at 2048. | `acme-core`, `acme-text`, renderers | Breaking for struct literals, behaviour | Add the page fields; prefer `GlyphAtlas::default()`. |
 
 ## 3. Details
 
@@ -196,7 +197,7 @@ let dropped = fonts.diagnostics().atlas_full_glyphs;
 **Required action.**
 
 1. Call `begin_frame()` exactly once for each frame. Call it before `prepare`.
-2. Read `atlas_full_glyphs` after `prepare`. If the value stays above zero, use a larger atlas with `GlyphAtlas::new(width, height)`.
+2. Read `atlas_full_glyphs` after `prepare`. If the value stays above zero, give the atlas more pages with `GlyphAtlas::with_config` (M14). Pages larger than 2048 × 2048 are not accepted.
 3. Do not assume that `atlas_generation` stays the same during a frame.
 
 **Known limitation.** The test `bug_glyph_dropped_while_atlas_holds_only_recent_entries` is `#[ignore]`d
@@ -422,6 +423,42 @@ Commit `229ca22` made the change, and it is an ancestor of `05ac86e`. Verified w
 
 **Required action.** Use `Vec<PlatformEvent>`. Do not treat the change as a migration step from `0.2.0`. The CHANGELOG entry needs a correction (Lead).
 
+### M14. Multi-page glyph atlas (breaking for struct literals, behaviour)
+
+ROADMAP 011. Details: `docs/team/roadmap-011/SPEC.md`.
+
+**Breaking changes.** Struct-literal constructors must add the new field:
+
+- `acme_core::GlyphDraw { .., atlas_page: 0 }`
+- `acme_text::AtlasUpload { page: 0, .. }`
+- `acme_text::PreparedGlyph { .., atlas_page: 0 }`
+
+Code that converts `PreparedText` into a `TextPrimitive` must copy the page:
+`AtlasUpload.page = region.page` and `GlyphDraw.atlas_page = glyph.atlas_page`. Without this,
+glyphs on page 1 and above are drawn from page 0.
+
+**Additive.** `acme_core::{ATLAS_PAGE_EDGE, ATLAS_MAX_PAGES}` (2048, 8); `GlyphFormat` derives `Hash`;
+`acme_text::GlyphAtlasConfig { page_width, page_height, max_pages }` (default 2048 × 2048 × 4);
+`GlyphAtlas::with_config`, `GlyphAtlas::default()`, `page_count`, `max_pages`, `page_evictions`.
+
+**Behaviour.**
+
+- `GlyphAtlas::new(w, h)` is still a single page. Eviction still clears that page. Placement is
+  identical on success. After a failed placement the cursor no longer moves, so a later smaller
+  glyph can fit in the current row.
+- With more than one page, a full page opens the next one. `begin_frame` evicts at most one
+  least-recently-used page that holds stale entries; other pages keep their glyphs. The
+  generation increases once per eviction.
+- Page edges are clamped to 2048. Both built-in renderers reject uploads outside a 2048 × 2048
+  page and pages ≥ 8. The wgpu renderer previously accepted a 4096 × 4096 atlas; use more pages instead.
+- Renderers allocate pages lazily. The worst case is 8 pages × (4 MiB alpha + 16 MiB RGBA) = 160 MiB
+  per renderer; the default 4 pages bound it at 80 MiB.
+- The CPU error text for `InvalidGlyphUpload` changed to
+  "atlas page out of range, region outside page, or payload size mismatch".
+
+**Required action.** Add the page fields to struct literals and conversions. Use
+`GlyphAtlas::default()` unless you need a single page.
+
 ## 4. Consumer checklist
 
 Work through these steps in order.
@@ -435,7 +472,8 @@ Work through these steps in order.
 7. If you use `RenderBatch.clip`, change the type to `f32` (M11).
 8. If you use text input, check Escape and read-only undo behaviour (M8).
 9. If you read `Node.dirty`, check invalidation after child changes (M9).
-10. Run your tests with `--locked`.
+10. If you build `GlyphDraw`, `AtlasUpload` or `PreparedGlyph` values, add the page fields (M14).
+11. Run your tests with `--locked`.
 
 ## 5. Not verified and limits
 
@@ -459,3 +497,4 @@ Work through these steps in order.
 | 版本 | 日期 | 內容 | 影響範圍 |
 |------|------|------|----------|
 | draft 1 | 2026-11-07 | First draft from ROADMAP 007 P3. Covers all Unreleased CHANGELOG sections and three items found by source comparison that the CHANGELOG does not cover (M11 to M13). | `docs/guides/MIGRATION.md` |
+| draft 2 | 2026-11-07 | M14 multi-page glyph atlas (ROADMAP 011); M3 advice now points to `with_config`. | `docs/guides/MIGRATION.md` |
