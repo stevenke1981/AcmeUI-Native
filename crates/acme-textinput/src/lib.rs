@@ -1044,7 +1044,9 @@ pub fn render_text_input(
     }
     // 6. IME preedit underline with composition cursor
     if !state.preedit.is_empty() {
-        let preedit_x = byte_offset_to_x_inner(&display, state.cursor, fonts, &style, scale);
+        // Same display-space offset as ime_caret_area (differs only for passwords).
+        let preedit_x =
+            byte_offset_to_x_inner(&display, state.display_cursor(), fonts, &style, scale);
         let preedit_layout = fonts.shape(&state.preedit, &style, TextConstraints::default(), scale);
         let preedit_w = preedit_layout.width;
         if preedit_w > 0.0 {
@@ -1178,6 +1180,11 @@ pub fn byte_offset_to_x(
 /// in logical pixels (field width minus horizontal padding). A negative or
 /// non-finite `content_width` is treated as `0`.
 ///
+/// While an IME preedit is active, the focus point is the composition cursor
+/// (the preedit cursor end, or the preedit end when unset), and the scroll
+/// range includes the whole preedit width. Without a preedit both extras are
+/// zero, so the result is the committed-caret rule.
+///
 /// After the call, the content-local caret x (`ime_caret_area(..)[0]`, which is
 /// `caret_x - scroll_offset`) lies in `[0, content_width]`. The scroll stays in
 /// `[0, text_width - content_width]`, so it shrinks when text is removed and
@@ -1196,8 +1203,10 @@ pub fn scroll_caret_into_view(
         0.0
     };
     let display = state.display_text();
-    let caret_x = byte_offset_to_x(&display, state.display_cursor(), fonts, style, scale);
-    let text_width = byte_offset_to_x(&display, display.len(), fonts, style, scale);
+    let (preedit_cursor_x, preedit_w) = preedit_extent(state, fonts, style, scale);
+    let caret_x =
+        byte_offset_to_x(&display, state.display_cursor(), fonts, style, scale) + preedit_cursor_x;
+    let text_width = byte_offset_to_x(&display, display.len(), fonts, style, scale) + preedit_w;
     // Reserve the caret's own width so a caret at the end of the text is drawn
     // inside the content area (render_text_input skips one at the right edge).
     let visible = (content_width - CARET_WIDTH).max(0.0);
@@ -1215,6 +1224,26 @@ pub fn scroll_caret_into_view(
         scroll = caret_x - visible;
     }
     state.scroll_offset = scroll.clamp(0.0, max_scroll);
+}
+
+/// Preedit geometry for scrolling, as `(cursor_x, width)` in logical pixels.
+/// `cursor_x` is the composition cursor measured from the committed caret and
+/// `width` is the whole preedit. Both are `0.0` when no preedit is active.
+fn preedit_extent(
+    state: &TextInputState,
+    fonts: &mut FontSystem,
+    style: &TextStyle,
+    scale: f32,
+) -> (f32, f32) {
+    if state.preedit.is_empty() {
+        return (0.0, 0.0);
+    }
+    let cursor_end = state
+        .preedit_cursor
+        .map_or(state.preedit.len(), |(_, end)| end);
+    let cursor_x = byte_offset_to_x_inner(&state.preedit, cursor_end, fonts, style, scale);
+    let width = byte_offset_to_x_inner(&state.preedit, state.preedit.len(), fonts, style, scale);
+    (cursor_x, width)
 }
 
 // ---------------------------------------------------------------------------
