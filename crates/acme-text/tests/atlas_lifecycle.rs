@@ -644,8 +644,10 @@ fn overflow_mid_frame_defers_eviction_to_next_frame() {
 fn bug_glyph_dropped_while_atlas_holds_only_recent_entries() {
     let mut fonts = FontSystem::new();
     let mut atlas = GlyphAtlas::new(64, 64);
-    // Glyph sizes depend on the platform's fallback font, so fill the atlas
-    // with more glyphs than any font fits instead of assuming an exact count.
+    // Glyph sizes depend on the platform's fallback font, so overfill the
+    // atlas and require that it reported full instead of assuming an exact
+    // capacity. This removes the fixed-count assumption; the font-independent
+    // allocator guarantee lives in the synthetic tests in `src/atlas/tests.rs`.
     // 'O' is deliberately absent so it is never already resident.
     let fill = fonts.shape(
         "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
