@@ -6,10 +6,13 @@
 - [x] Explicit renderer backend policy with unit tests (`RenderBackendPreference`).
 - [x] `run()` reports `NoWindows` / `Renderer` failures instead of `Ok(())`.
 - [x] Deterministic CPU golden pixel tests.
+- [x] ROADMAP 006 bounded atlas-lifecycle follow-up: reject invalid CPU scenes before changing glyph caches; add dual-format cache/painter-order regressions (docs/team/cpu-atlas-atomic/REPORT.md). Gallery/GPU baselines and measured performance remain open.
 - [x] Crate metadata, external consumer example + CI job, SDK guide.
 - [x] acme-ui test warnings removed.
 - [ ] Native runtime check of fatal paths (no-window, forced CPU failure) — NOT_RUN.
 - [x] ROADMAP 003: Gallery layout and accessibility use retained NodeIds (see docs/team/roadmap-003/REPORT.md).
+- [x] ROADMAP 003 follow-up: V2 Showcase and Playground frame layouts use retained IDs; fix Showcase duplicate keys and Playground stale-index panic (docs/team/retained-apps/REPORT.md).
+- [ ] Retained-app follow-up: native visual/physical-DPI checks for V2 Showcase and Playground; headless frame tests do not establish manual acceptance.
 - [x] ROADMAP 004: keyboard focus keyed by stable identity; core control semantics (docs/team/roadmap-004/REPORT.md).
 - [x] ROADMAP 005 (automated part): DPI matrix and IME geometry tests; 3 IME bugs and 2 TextInput field bugs fixed (docs/team/roadmap-005/REPORT.md).
 - [ ] ROADMAP 005 (manual): 注音 sessions at 100/125/150/200 % — human sign-off still required.

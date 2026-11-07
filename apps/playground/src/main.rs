@@ -4,7 +4,7 @@
 //! navigation, CJK/emoji rendering, and real-time state display.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
-use acme_core::NodeId;
+use acme_core::{NodeId, RetainedTree};
 use acme_layout::{Edges, LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
 use acme_platform::{
     Application, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
@@ -12,9 +12,14 @@ use acme_platform::{
 use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun, scene_from_frame};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
 use acme_theme::{Theme, ThemeColor};
+use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
+use acme_widgets::view_bridge::widget_to_views;
 use acme_widgets::{
     ButtonState, ButtonVariant, WidgetNode, button, card, column, label, row, separator,
 };
+
+#[cfg(test)]
+mod retained_tests;
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -62,6 +67,10 @@ struct Playground {
     fonts: FontSystem,
     atlas: GlyphAtlas,
     layout: LayoutEngine,
+    retained: RetainedTree,
+    retained_error_logged: bool,
+    #[cfg(test)]
+    last_frame_layout: Option<([NodeId; 8], acme_layout::LayoutSnapshot)>,
 }
 
 impl Playground {
@@ -80,6 +89,10 @@ impl Playground {
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::new(2048, 2048),
             layout: LayoutEngine::new(),
+            retained: RetainedTree::new(),
+            retained_error_logged: false,
+            #[cfg(test)]
+            last_frame_layout: None,
         }
     }
 
@@ -228,6 +241,37 @@ impl Playground {
             .build()
     }
 
+    /// Keep the Playground's legacy layout styles and measurement behavior,
+    /// replacing only IDs when the complete description binds successfully.
+    fn layout_root(&mut self, description: &WidgetNode<PlaygroundMessage>) -> LayoutNode {
+        let mut root = description.to_layout(NodeId::new(1));
+        let views = widget_to_views(std::slice::from_ref(description));
+        if let Err(error) = self.retained.reconcile_roots(&views) {
+            if !self.retained_error_logged {
+                tracing::warn!(
+                    "Playground retained reconcile failed, using sequential layout IDs: {error:?}"
+                );
+                self.retained_error_logged = true;
+            }
+            return root;
+        }
+
+        let binding = bind_retained(std::slice::from_ref(description), &self.retained);
+        if binding.mismatches() == 0 && assign_retained_ids(description, &binding, &mut root) {
+            self.retained_error_logged = false;
+            return root;
+        }
+        if !self.retained_error_logged {
+            tracing::warn!(
+                "Playground retained binding/layout mismatch, using sequential layout IDs"
+            );
+            self.retained_error_logged = true;
+        }
+        // Assignment can discover a mismatch after visiting earlier siblings.
+        // Rebuild so a failed frame never mixes retained and sequential IDs.
+        description.to_layout(NodeId::new(1))
+    }
+
     // -----------------------------------------------------------------------
     // Hit testing
     // -----------------------------------------------------------------------
@@ -289,11 +333,167 @@ impl Playground {
     }
 }
 
+/// Reassign IDs only for the one-to-one widgets used by `build_tree`.
+/// Unsupported widgets or an incomplete layout shape use the sequential path.
+fn assign_retained_ids(
+    widget: &WidgetNode<PlaygroundMessage>,
+    binding: &RetainedBinding<'_>,
+    layout: &mut LayoutNode,
+) -> bool {
+    let children = match widget {
+        WidgetNode::Row(container) | WidgetNode::Column(container) => &container.children[..],
+        WidgetNode::Card(card) => &card.children[..],
+        WidgetNode::Button(_) | WidgetNode::Label(_) | WidgetNode::Separator(_) => &[],
+        _ => return false,
+    };
+    let Some(id) = binding.id_for(widget) else {
+        return false;
+    };
+    if children.len() != layout.children.len() {
+        return false;
+    }
+    layout.id = id;
+    children
+        .iter()
+        .zip(&mut layout.children)
+        .all(|(child, layout)| assign_retained_ids(child, binding, layout))
+}
+
+/// Apply the existing frame style values to the actual `build_tree` structure.
+fn apply_playground_styles(root: &mut LayoutNode, width: f32, height: f32) {
+    // Root column: fill the window.
+    root.style = LayoutStyle {
+        kind: LayoutKind::Column,
+        width: Length::px(width),
+        height: Length::px(height),
+        padding: Edges::all(20.0),
+        gap: 12.0,
+        ..LayoutStyle::default()
+    };
+
+    let body_width = (width - 40.0).max(200.0);
+    let header_height = 44.0;
+
+    // children[0]: Toolbar row
+    root.children[0].style = LayoutStyle {
+        kind: LayoutKind::Row,
+        width: Length::px(body_width),
+        height: Length::px(header_height),
+        gap: 12.0,
+        ..LayoutStyle::default()
+    };
+    // Toolbar's first child: Theme button
+    root.children[0].children[0].style = LayoutStyle {
+        width: Length::px(170.0),
+        height: Length::px(header_height),
+        ..LayoutStyle::default()
+    };
+
+    // children[1]: Title
+    root.children[1].style.width = Length::px(body_width);
+    // children[2]: Subtitle
+    root.children[2].style.width = Length::px(body_width);
+    // children[3]: Separator
+    root.children[3].style = LayoutStyle {
+        width: Length::px(body_width),
+        height: Length::px(1.0),
+        ..LayoutStyle::default()
+    };
+
+    // children[4]: Scrollable content column
+    root.children[4].style = LayoutStyle {
+        kind: LayoutKind::Column,
+        width: Length::px(body_width),
+        flex_grow: 1.0,
+        overflow: Overflow::Scroll,
+        gap: 12.0,
+        ..LayoutStyle::default()
+    };
+
+    // Style scroll-area children.
+    let content = &mut root.children[4];
+
+    // Section headers (children 0, 2, 4, 6)
+    for &i in &[0usize, 2, 4, 6] {
+        if i < content.children.len() {
+            content.children[i].style.width = Length::px(body_width);
+        }
+    }
+
+    // Button row 1 (child 1): btn-row.
+    if content.children.len() > 1 {
+        content.children[1].style = LayoutStyle {
+            kind: LayoutKind::Row,
+            width: Length::px(body_width),
+            height: Length::px(header_height),
+            gap: 8.0,
+            ..LayoutStyle::default()
+        };
+        for btn in &mut content.children[1].children {
+            btn.style = LayoutStyle {
+                width: Length::px(120.0),
+                height: Length::px(header_height),
+                ..LayoutStyle::default()
+            };
+        }
+    }
+
+    // Button row 2 (child 3): demo-row.
+    if content.children.len() > 3 {
+        content.children[3].style = LayoutStyle {
+            kind: LayoutKind::Row,
+            width: Length::px(body_width),
+            height: Length::px(header_height),
+            gap: 8.0,
+            ..LayoutStyle::default()
+        };
+        for btn in &mut content.children[3].children {
+            btn.style = LayoutStyle {
+                width: Length::px(140.0),
+                height: Length::px(header_height),
+                ..LayoutStyle::default()
+            };
+        }
+    }
+
+    // Card (child 5)
+    if content.children.len() > 5 {
+        content.children[5].style = LayoutStyle {
+            kind: LayoutKind::Column,
+            width: Length::px(body_width),
+            padding: Edges::all(16.0),
+            gap: 8.0,
+            ..LayoutStyle::default()
+        };
+    }
+
+    // CJK/Emoji labels (children 7-11)
+    for &i in &[7usize, 8, 9, 10, 11] {
+        if i < content.children.len() {
+            content.children[i].style.width = Length::px(body_width);
+        }
+    }
+
+    // Separator (child 12)
+    if content.children.len() > 12 {
+        content.children[12].style = LayoutStyle {
+            width: Length::px(body_width),
+            height: Length::px(1.0),
+            ..LayoutStyle::default()
+        };
+    }
+
+    // State footer (child 13)
+    if content.children.len() > 13 {
+        content.children[13].style.width = Length::px(body_width);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Pre-computed node IDs for the Playground's widget tree
 // ---------------------------------------------------------------------------
 
-/// Structural node IDs matching `WidgetNode::to_layout(NodeId::new(1))`.
+/// IDs read from the styled frame layout, retained or sequential.
 struct PlaygroundNodeIds {
     /// Toolbar row
     toolbar: NodeId,
@@ -326,7 +526,7 @@ struct PlaygroundNodeIds {
 /// Extract structural IDs from the layout root.
 ///
 /// Root layout structure from `build_tree()`:
-///   Column root (1)
+///   Column root (sequential IDs shown; retained IDs may differ)
 ///     ├── Row("toolbar") (2)
 ///     │   ├── Button("theme") (3)   ← button index 0
 ///     │   └── Label(status) (4)
@@ -374,30 +574,30 @@ fn extract_playground_ids(root: &LayoutNode) -> PlaygroundNodeIds {
             content_col.children[1].children[1].id, // 12
             content_col.children[1].children[2].id, // 13
             content_col.children[1].children[3].id, // 14
-            content_col.children[5].children[0].id, // 17
-            content_col.children[5].children[1].id, // 18
-            content_col.children[5].children[2].id, // 19
+            content_col.children[3].children[0].id, // 17
+            content_col.children[3].children[1].id, // 18
+            content_col.children[3].children[2].id, // 19
         ],
-        card: content_col.children[8].id, // 21
+        card: content_col.children[5].id, // 21
         card_children: [
-            content_col.children[8].children[0].id, // 22
-            content_col.children[8].children[1].id, // 23
-            content_col.children[8].children[2].id, // 24
+            content_col.children[5].children[0].id, // 22
+            content_col.children[5].children[1].id, // 23
+            content_col.children[5].children[2].id, // 24
         ],
-        sep2: content_col.children[16].id,   // 31
-        footer: content_col.children[17].id, // 32
+        sep2: content_col.children[12].id,   // 31
+        footer: content_col.children[13].id, // 32
         section_headers: [
-            content_col.children[0].id,  // 9
-            content_col.children[4].id,  // 15
-            content_col.children[7].id,  // 20
-            content_col.children[10].id, // 25
+            content_col.children[0].id, // 9
+            content_col.children[2].id, // 15
+            content_col.children[4].id, // 20
+            content_col.children[6].id, // 25
         ],
         cjk_labels: [
-            content_col.children[11].id, // 26
-            content_col.children[12].id, // 27
-            content_col.children[13].id, // 28
-            content_col.children[14].id, // 29
-            content_col.children[15].id, // 30
+            content_col.children[7].id,  // 26
+            content_col.children[8].id,  // 27
+            content_col.children[9].id,  // 28
+            content_col.children[10].id, // 29
+            content_col.children[11].id, // 30
         ],
     }
 }
@@ -481,134 +681,10 @@ impl Application for Playground {
         let colors = theme.colors;
 
         // ── 1. Build and style the layout tree ──
-        let mut root = self.build_tree().to_layout(NodeId::new(1));
+        let description = self.build_tree();
+        let mut root = self.layout_root(&description);
 
-        // Root column — fill the window
-        root.style = LayoutStyle {
-            kind: LayoutKind::Column,
-            width: Length::px(width),
-            height: Length::px(height),
-            padding: Edges::all(20.0),
-            gap: 12.0,
-            ..LayoutStyle::default()
-        };
-
-        let body_width = (width - 40.0).max(200.0);
-        let header_height = 44.0;
-
-        // children[0]: Toolbar row
-        root.children[0].style = LayoutStyle {
-            kind: LayoutKind::Row,
-            width: Length::px(body_width),
-            height: Length::px(header_height),
-            gap: 12.0,
-            ..LayoutStyle::default()
-        };
-        // Toolbar's first child: Theme button
-        root.children[0].children[0].style = LayoutStyle {
-            width: Length::px(170.0),
-            height: Length::px(header_height),
-            ..LayoutStyle::default()
-        };
-
-        // children[1]: Title
-        root.children[1].style.width = Length::px(body_width);
-        // children[2]: Subtitle
-        root.children[2].style.width = Length::px(body_width);
-        // children[3]: Separator
-        root.children[3].style = LayoutStyle {
-            width: Length::px(body_width),
-            height: Length::px(1.0),
-            ..LayoutStyle::default()
-        };
-
-        // children[4]: Scrollable content column
-        root.children[4].style = LayoutStyle {
-            kind: LayoutKind::Column,
-            width: Length::px(body_width),
-            flex_grow: 1.0,
-            overflow: Overflow::Scroll,
-            gap: 12.0,
-            ..LayoutStyle::default()
-        };
-
-        // ── Style scroll-area children ──
-        let content = &mut root.children[4];
-
-        // Section headers (children 0, 4, 7, 10)
-        for &i in &[0usize, 4, 7, 10] {
-            if i < content.children.len() {
-                content.children[i].style.width = Length::px(body_width);
-            }
-        }
-
-        // Button row 1 (child 1) — btn-row
-        if content.children.len() > 1 {
-            content.children[1].style = LayoutStyle {
-                kind: LayoutKind::Row,
-                width: Length::px(body_width),
-                height: Length::px(header_height),
-                gap: 8.0,
-                ..LayoutStyle::default()
-            };
-            for btn in &mut content.children[1].children {
-                btn.style = LayoutStyle {
-                    width: Length::px(120.0),
-                    height: Length::px(header_height),
-                    ..LayoutStyle::default()
-                };
-            }
-        }
-
-        // Button row 2 (child 5) — demo-row
-        if content.children.len() > 5 {
-            content.children[5].style = LayoutStyle {
-                kind: LayoutKind::Row,
-                width: Length::px(body_width),
-                height: Length::px(header_height),
-                gap: 8.0,
-                ..LayoutStyle::default()
-            };
-            for btn in &mut content.children[5].children {
-                btn.style = LayoutStyle {
-                    width: Length::px(140.0),
-                    height: Length::px(header_height),
-                    ..LayoutStyle::default()
-                };
-            }
-        }
-
-        // Card (child 8)
-        if content.children.len() > 8 {
-            content.children[8].style = LayoutStyle {
-                kind: LayoutKind::Column,
-                width: Length::px(body_width),
-                padding: Edges::all(16.0),
-                gap: 8.0,
-                ..LayoutStyle::default()
-            };
-        }
-
-        // CJK/Emoji labels (children 11–14)
-        for &i in &[11usize, 12, 13, 14, 15] {
-            if i < content.children.len() {
-                content.children[i].style.width = Length::px(body_width);
-            }
-        }
-
-        // Separator (child 16)
-        if content.children.len() > 16 {
-            content.children[16].style = LayoutStyle {
-                width: Length::px(body_width),
-                height: Length::px(1.0),
-                ..LayoutStyle::default()
-            };
-        }
-
-        // State footer (child 17)
-        if content.children.len() > 17 {
-            content.children[17].style.width = Length::px(body_width);
-        }
+        apply_playground_styles(&mut root, width, height);
 
         // ── 2. Compute layout ──
         let snapshot = self
@@ -616,6 +692,10 @@ impl Application for Playground {
             .compute(&root, (width, height))
             .expect("finite Playground viewport");
         let ids = extract_playground_ids(&root);
+        #[cfg(test)]
+        {
+            self.last_frame_layout = Some((ids.button_ids, snapshot.clone()));
+        }
 
         // ── 3. Extract button hit-test rects ──
         for (index, btn_id) in ids.button_ids.into_iter().enumerate() {
