@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased - Retained IDs in remaining apps (2026-11-07)
+
+- V2 Showcase and Playground frame layouts now consume retained identities,
+  with complete sequential fallback when reconciliation or binding fails.
+- Showcase sidebar keys are unique and category pages have separate identities.
+- Playground preserves its legacy layout styles/measurement and fixes obsolete
+  child indices that made its real frame panic on a leaf node.
+- Added real-builder/frame, stable-ID, layout/hit parity and fallback regressions.
+  Native visual, physical-DPI, IME and screen-reader acceptance remains separate.
+
 ## Unreleased - Focus, semantics, DPI/IME automation (ROADMAP 004-005, 2026-11-07)
 
 - Gallery keyboard focus is keyed by stable identity (retained node + message).
