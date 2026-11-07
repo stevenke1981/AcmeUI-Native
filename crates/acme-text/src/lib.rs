@@ -344,7 +344,7 @@ struct AtlasEntry {
     left: i32,
     top: i32,
     format: AtlasFormat,
-    /// Frame index of last access — used for LRU-style eviction.
+    /// Frame index of last access — used for stale-entry detection.
     last_used: u64,
 }
 
@@ -359,19 +359,20 @@ struct RasterizedGlyph {
 
 /// CPU-side shelf allocator bookkeeping for a renderer-owned texture.
 ///
-/// Provides LRU-style eviction: call [`begin_frame`](Self::begin_frame) once
-/// per frame. Automatic eviction of glyphs idle for more than 60 frames runs
-/// in `begin_frame` (after an overflow, or above 75% fill), or during
-/// preparation only while no glyph has been used in the current frame, so
-/// glyphs handed out earlier in a frame are never overwritten. A glyph that
-/// does not fit mid-frame is dropped for that frame (counted in
-/// `atlas_full_glyphs`). [`evict_stale`](Self::evict_stale) evicts manually.
+/// Tracks idle entries by frame, but reclaims space with a **full-atlas clear**,
+/// not per-glyph LRU eviction. Call [`begin_frame`](Self::begin_frame) once per
+/// frame before preparing text. Automatic eviction of entries idle for more
+/// than 60 frames runs at frame start after an overflow or above 75% fill, or
+/// during preparation only before any glyph has been used in that frame.
 ///
-/// **Note:** Because the shelf allocator cannot reclaim fragmented space, any
-/// eviction invalidates *all* atlas entries — surviving glyphs are re-uploaded
-/// on subsequent frames. Call [`begin_frame`](Self::begin_frame) once per
-/// frame and [`touch`](Self::touch) on cache hits to keep the LRU timestamps
-/// accurate.
+/// Cache hits and new allocations pin the atlas until the next frame boundary:
+/// explicit [`evict_stale`](Self::evict_stale) requests are also deferred while
+/// issued glyphs may reference its texels. An overflowing glyph is omitted for
+/// that frame (`atlas_full_glyphs`) instead of overwriting earlier glyphs.
+///
+/// A clear bumps the generation; all surviving glyphs must be prepared again.
+/// [`clear`](Self::clear) is an explicit invalidation for recovery, not a safe
+/// mid-frame eviction operation.
 pub struct GlyphAtlas {
     width: u32,
     height: u32,
@@ -380,11 +381,13 @@ pub struct GlyphAtlas {
     row_height: u32,
     generation: u64,
     next_id: u64,
-    /// Monotonic frame counter for LRU tracking.
+    /// Monotonic frame counter for aging.
     frame: u64,
     /// A glyph did not fit during a frame whose glyphs were already in use;
     /// eviction is deferred to the next [`begin_frame`](Self::begin_frame).
     needs_space: bool,
+    /// Strictest manual age threshold requested while this frame was in use.
+    deferred_max_age: Option<u64>,
     entries: HashMap<CacheKey, AtlasEntry>,
 }
 
@@ -403,6 +406,7 @@ impl GlyphAtlas {
             next_id: 1,
             frame: 0,
             needs_space: false,
+            deferred_max_age: None,
             entries: HashMap::new(),
         }
     }
@@ -423,16 +427,25 @@ impl GlyphAtlas {
         self.entries.is_empty()
     }
 
+    /// Invalidate all entries and advance the generation.
+    ///
+    /// Discard any previously prepared text before reusing the atlas after an
+    /// explicit clear. For ordinary aging, prefer [`evict_stale`](Self::evict_stale),
+    /// which preserves glyphs already issued in the current frame.
     pub fn clear(&mut self) {
         self.entries.clear();
         self.cursor_x = 0;
         self.cursor_y = 0;
         self.row_height = 0;
         self.needs_space = false;
+        self.deferred_max_age = None;
         self.generation = self.generation.wrapping_add(1);
     }
 
-    /// Advance the frame counter. Call once per frame before rendering.
+    /// Advance the frame counter and apply pending eviction requests.
+    ///
+    /// Call once before preparing a new frame, after the previous frame's
+    /// prepared glyphs no longer need the atlas contents.
     ///
     /// This is where eviction normally happens: when a glyph did not fit in
     /// the previous frame, or more than three quarters of the atlas is used,
@@ -441,6 +454,9 @@ impl GlyphAtlas {
     /// a frame, keeps every [`PreparedText`] already produced in the frame valid.
     pub fn begin_frame(&mut self) {
         self.frame = self.frame.wrapping_add(1);
+        if let Some(max_age) = self.deferred_max_age.take() {
+            self.evict_stale(max_age);
+        }
         let used_rows = u64::from(self.cursor_y) + u64::from(self.row_height);
         let pressure = used_rows * 4 >= u64::from(self.height) * 3;
         if (self.needs_space || pressure) && self.stale_count(STALE_AGE_FRAMES) > 0 {
@@ -455,7 +471,7 @@ impl GlyphAtlas {
             .any(|entry| entry.last_used == self.frame)
     }
 
-    /// Mark an entry as recently used (updates its LRU timestamp).
+    /// Mark an entry as recently used, pinning its texels for this frame.
     pub fn touch(&mut self, key: &CacheKey) {
         if let Some(entry) = self.entries.get_mut(key) {
             entry.last_used = self.frame;
@@ -470,17 +486,27 @@ impl GlyphAtlas {
             .count()
     }
 
-    /// Evict entries not accessed within `max_age` frames.
+    /// Request eviction of entries not accessed within `max_age` frames.
     ///
-    /// Because the shelf allocator cannot reclaim fragmented space, the entire
-    /// atlas is cleared when any entries are evicted — surviving glyphs will be
-    /// re-uploaded on subsequent frames. Returns the number of evicted entries.
-    /// The generation is bumped so the renderer can detect the invalidation.
+    /// Returns the stale count when a full clear occurs immediately, or zero if
+    /// none are stale or the clear is deferred. The clear also removes non-stale
+    /// entries because the shelf allocator cannot reclaim individual rectangles.
+    /// If glyphs have been used this frame, queue eviction for the next
+    /// [`begin_frame`](Self::begin_frame) instead of invalidating their texels.
+    /// A full clear bumps the generation and requires re-preparing all glyphs.
     pub fn evict_stale(&mut self, max_age: u64) -> usize {
         let stale = self.stale_count(max_age);
-        if stale > 0 {
-            self.clear();
+        if stale == 0 {
+            return 0;
         }
+        if self.in_use_this_frame() {
+            self.deferred_max_age = Some(
+                self.deferred_max_age
+                    .map_or(max_age, |age| age.min(max_age)),
+            );
+            return 0;
+        }
+        self.clear();
         stale
     }
 
@@ -576,6 +602,122 @@ fn map_wrap(wrap: TextWrap) -> Wrap {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Synthetic keys and pixels keep allocator regressions independent of host fonts.
+    fn test_key(glyph: u16) -> CacheKey {
+        CacheKey::new(
+            Default::default(),
+            glyph,
+            16.0,
+            (0.0, 0.0),
+            cosmic_text::CacheKeyFlags::empty(),
+        )
+        .0
+    }
+
+    fn test_glyph() -> RasterizedGlyph {
+        RasterizedGlyph {
+            width: 2,
+            height: 2,
+            left: 0,
+            top: 0,
+            format: AtlasFormat::Alpha8,
+            pixels: vec![255; 4],
+        }
+    }
+
+    #[test]
+    fn overflow_preserves_current_frame_glyphs_until_begin_frame() {
+        let mut atlas = GlyphAtlas::new(5, 3);
+        let mut uploads = Vec::new();
+        atlas
+            .insert(test_key(1), test_glyph(), &mut uploads)
+            .unwrap();
+        for _ in 0..61 {
+            atlas.begin_frame();
+        }
+        let live = atlas
+            .insert(test_key(2), test_glyph(), &mut uploads)
+            .unwrap();
+        let generation = atlas.generation();
+        assert!(
+            atlas
+                .insert(test_key(3), test_glyph(), &mut uploads)
+                .is_none(),
+            "overflow must not overwrite glyphs already issued this frame"
+        );
+        assert_eq!(atlas.generation(), generation);
+        assert_eq!(atlas.entries[&test_key(2)].id, live.id);
+        assert_eq!(
+            uploads.len(),
+            2,
+            "overflow must not emit an overlapping upload"
+        );
+        atlas.begin_frame();
+        assert!(
+            atlas.is_empty(),
+            "pending eviction runs at the frame boundary"
+        );
+        assert_eq!(atlas.generation(), generation + 1);
+        assert!(
+            atlas
+                .insert(test_key(3), test_glyph(), &mut uploads)
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn manual_eviction_preserves_current_frame_cache_hits() {
+        let mut atlas = GlyphAtlas::new(5, 3);
+        let mut uploads = Vec::new();
+        atlas
+            .insert(test_key(1), test_glyph(), &mut uploads)
+            .unwrap();
+        atlas
+            .insert(test_key(2), test_glyph(), &mut uploads)
+            .unwrap();
+        for _ in 0..61 {
+            atlas.begin_frame();
+        }
+        atlas.touch(&test_key(2));
+        let generation = atlas.generation();
+        assert_eq!(
+            atlas.evict_stale(60),
+            0,
+            "a current-frame cache hit pins the atlas"
+        );
+        assert_eq!(atlas.generation(), generation);
+        assert_eq!(atlas.len(), 2);
+        atlas.begin_frame();
+        assert!(atlas.is_empty());
+        assert_eq!(atlas.generation(), generation + 1);
+    }
+
+    #[test]
+    fn clear_cancels_deferred_manual_eviction() {
+        let mut atlas = GlyphAtlas::new(5, 3);
+        let mut uploads = Vec::new();
+        atlas
+            .insert(test_key(1), test_glyph(), &mut uploads)
+            .unwrap();
+        atlas.begin_frame();
+        atlas
+            .insert(test_key(2), test_glyph(), &mut uploads)
+            .unwrap();
+        assert_eq!(atlas.evict_stale(0), 0, "manual eviction must be deferred");
+        atlas.clear();
+        let generation = atlas.generation();
+        atlas
+            .insert(test_key(3), test_glyph(), &mut uploads)
+            .unwrap();
+        atlas.begin_frame();
+        assert_eq!(
+            atlas.generation(),
+            generation,
+            "a request made before clear must not evict newly prepared text"
+        );
+        assert_eq!(atlas.len(), 1);
+    }
 
     #[test]
     fn empty_text_is_safe() {

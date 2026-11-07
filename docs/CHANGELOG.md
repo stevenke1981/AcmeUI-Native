@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased - Atlas frame safety and audit reconciliation (2026-11-07)
+
+- Extend merged PR #12's frame pinning to explicit `evict_stale` requests:
+  a manual clear now waits for `begin_frame` once any glyph has been allocated
+  or touched this frame. PR #12's automatic overflow/pressure eviction is
+  preserved.
+  `evict_stale` returns zero when deferred; overflowing glyphs may be omitted
+  until the next frame. Explicit `clear` still immediately invalidates prepared
+  text for recovery. This remains full-clear aging, not per-glyph LRU eviction.
+- Added font-independent allocator regressions and multi-frame retained
+  accessibility identity/focus/bounds coverage. Retained binding already existed;
+  the legacy sequential accessibility APIs retain their compatibility behavior.
+- Reconciled STATUS/todos, Rust 1.88 MSRV and the English/Traditional Chinese
+  source inventory (199 category modules, not 199 fully interactive widgets).
+
 ## Unreleased - Benchmarks and atlas lifecycle (ROADMAP 006, 2026-11-07)
 
 - **Behaviour change (`acme-text` `GlyphAtlas`):** automatic eviction no longer

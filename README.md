@@ -22,9 +22,9 @@ It combines:
 - **CJK + emoji text** — cosmic-text shaping with glyph atlas
 - **Traditional Chinese IME** — preedit/commit, caret geometry, candidate window support
 - **Semantic design tokens** — light/dark/high-contrast themes
-- **AccessKit accessibility** — screen reader support
+- **AccessKit accessibility** — retained-ID tree bridge; manual screen-reader acceptance pending
 - **Animation engine** — tween/ease/bounce/yoyo/loop
-- **165 high-level components** — via `acme-ui` (shadcn/ui + Material UI + Ant Design inspired)
+- **199 component source modules** — via `acme-ui` (shadcn/ui + Material UI + Ant Design inspired)
 
 ### Default Template (acme-ui 0.2.0)
 
@@ -59,9 +59,9 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 
 | Layer | Crate | Role |
 |-------|-------|------|
-| UI Components | `acme-ui` | 165 high-level widgets (Slider, Switch, DatePicker, Toast, Dock, Masonry, FileUpload, VideoPlayer, Heatmap, MobileCard …) |
+| UI Components | `acme-ui` | 199 component source modules (Slider, Switch, DatePicker, Toast, Dock, Masonry, FileUpload, VideoPlayer, Heatmap, MobileCard …) |
 | Widget Primitives | `acme-widgets` | WidgetNode enum, builder DSL, overlay manager, visual states |
-| Text Editing | `acme-textinput` | Cursor, selection, clipboard, IME preedit/commit, undo/redo (✓ 100 tests) |
+| Text Editing | `acme-textinput` | Cursor, selection, clipboard, IME preedit/commit, undo/redo |
 | Layout | `acme-layout` | Taffy-based flexbox layout engine |
 | Text | `acme-text` | cosmic-text shaping, glyph atlas, CJK + emoji fallback |
 | Theme | `acme-theme` | Semantic color tokens V1 + V2, light/dark/high-contrast |
@@ -77,7 +77,7 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 | App | Package | Purpose |
 |-----|---------|---------|
 | `apps/gallery` | `acme-gallery` | Primary demo — 8-category navigation, live data/nav demos (Tree, Table, DataGrid, VirtualList), screenshot mode |
-| `apps/acme-gallery` | `acme-ui-gallery` | V2 component showcase — 165 high-level `acme-ui` components |
+| `apps/acme-gallery` | `acme-ui-gallery` | V2 showcase for the `acme-ui` component library |
 | `apps/playground` | `playground` | Minimal dev sandbox for quick experiments |
 | `apps/benchmark` | `benchmark` | Headless layout/reconciliation/frame-build benchmarks |
 
@@ -262,9 +262,9 @@ component demonstrations.
 | Area | Status |
 |------|--------|
 | Core framework | ✅ **Stable** — tree, layout, render, text, theme, animation, accessibility, widgets |
-| Text input + IME | ✅ **Stable** — 100 tests, caret geometry, Traditional Chinese preedit/commit |
+| Text input + IME | ✅ **Stable** — Caret geometry and preedit/commit automation; manual 注音 acceptance pending |
 | Data components | 🧪 **Experimental** — Tree, Table, DataGrid, VirtualList with live Gallery demos |
-| UI component library | 🧪 **Experimental** — 165 components (acme-ui), showcased in acme-ui-gallery |
+| UI component library | 🧪 **Experimental** — 199 source modules (acme-ui); implementation depth varies |
 | GPU device-loss recovery | 🧪 **Wired** — pure-test state machine + `on_gpu_recovered` hook; **manual validation pending** |
 | Traditional Chinese 注音 IME | 🧪 **Architecture done** — **manual validation pending** |
 | Screenshot golden tests | 📋 **Scaffolded** — not yet in CI |
@@ -289,7 +289,7 @@ AcmeUI-Native/
 │   ├── acme-animation/     # Tween engine
 │   ├── acme-style/         # Styling abstraction layer
 │   ├── acme-widgets/       # WidgetNode enum + builder DSL
-│   ├── acme-ui/            # 165 high-level components
+│   ├── acme-ui/            # 199 component source modules
 │   ├── acme-accessibility/ # AccessKit bridge
 │   └── acme-devtools/      # Inspector, metrics, debugger
 ├── apps/
@@ -385,23 +385,24 @@ The `apps/gallery` (primary demo) has been fully converted from a 2593-line mono
 
 ### UI Component Library (acme-ui)
 
-| Module | Count | Maturity | Feature Gate | Default |
-|--------|-------|----------|-------------|---------|
-| `foundations/` | 42 | S1 | `foundations` | ✅ |
-| `inputs/` | 29 | S2 | `inputs` | ✅ |
-| `layout/` | 15 | S1 | `layout` | ✅ |
-| `overlay/` | 10 | S1 | `overlay` | ✅ |
-| `desktop/` | 13 | S1 | `desktop` | — |
-| `charts/` | 20 | S0 (experimental) | `charts` | — |
-| `mobile/` | 20 | S1 (experimental) | `mobile` | — |
-| `browser/` | 16 | S0 (experimental) | `browser` | — |
-| **Total** | **165 component files** | — | 8 feature gates | 4 default |
+| Module | Source modules | Feature Gate | Default |
+|--------|----------------|--------------|---------|
+| `foundations/` | 53 | `foundations` | ✅ |
+| `inputs/` | 38 | `inputs` | ✅ |
+| `layout/` | 24 | `layout` | ✅ |
+| `overlay/` | 15 | `overlay` | ✅ |
+| `desktop/` | 13 | `desktop` | — |
+| `charts/` | 20 | `charts` | — |
+| `mobile/` | 20 | `mobile` | — |
+| `browser/` | 16 | `browser` | — |
+| **Total** | **199** | 8 feature families | 4 default |
 
-> Component maturity levels: **S0** Scaffold, **S1** Visual, **S2** Interactive, **S3** Accessible, **S4** Production.  
-> Interactive features (pointer, keyboard, message dispatch) are listed per module.  
-> Accessibility (S3+), visual regression goldens, and benchmarks (S4) are not yet implemented for any component.
+Counted as category `*.rs` files excluding `mod.rs`, not distinct interactive
+widgets. This includes experimental implementations and placeholders; the count
+does not establish accessibility, Gallery coverage, visual validation, or
+production readiness. See [STATUS](docs/status/STATUS.md) for scope and pending checks.
 
-Each component follows the **builder pattern**: `Component::new() → .option(value) → .on_event(message) → .build() → WidgetNode<M>`.
+Builder-based components use the **builder pattern**: `Component::new() → .option(value) → .on_event(message) → .build() → WidgetNode<M>`.
 
 ---
 
