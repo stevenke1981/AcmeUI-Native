@@ -23,6 +23,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Verification runner self-tests
         run: python -m unittest discover -s scripts/tests -p test_verify_sdk.py -v
+      - name: Discard evidence restored from the build cache
+        # rust-cache restores target/, which can contain a previous run's
+        # evidence; verify_sdk.py deliberately refuses to overwrite it.
+        shell: bash
+        run: rm -rf target/cpu-evidence
       - name: Locked CPU checks with machine-readable evidence
         run: python scripts/verify_sdk.py --profile cpu --output target/cpu-evidence/checks
       - name: GPU-only platform still compiles
