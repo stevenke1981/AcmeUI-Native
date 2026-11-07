@@ -16,6 +16,7 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 | 010 | Lead + Accessibility | Accessibility walk mirrors layout ID consumption (cells, rows, tree items, trailing widgets); ragged rows | Real-layout bound tests on sequential/bound/unbound paths, mutation RED, Gallery bounds test |
 | 011 | Lead + Architecture + Rendering + Text | Multi-page glyph atlas: page contract, page-granular LRU eviction, CPU/wgpu per-page atlases, apps on default atlas | Spec, RED/GREEN + mutation tests, randomized eviction simulation, CPU e2e vs single-page reference, benchmark counters; GPU drawing NOT_RUN |
 | 012 | Lead + Rendering + Text + Accessibility | wgpu crate-root split, demand-LRU atlas starvation fix, IME preedit scroll and drawing | API page/declaration diff vs HEAD, RED/GREEN tests, cross-agent reviews (Sigma and Codex); IME/GPU manual checks NOT_RUN |
+| 013 | Lead + Accessibility + Text | TreeItem Focus/Click/Expand/Collapse actions and walked item content; acme-textinput lib.rs split | RED/GREEN + mutation tests (p5), test-list and rustdoc item diff vs master, cross reviews (lead and Codex); screen reader NOT_RUN |
 
 ## Existing work to preserve
 
