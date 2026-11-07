@@ -214,7 +214,7 @@ struct GlyphAtlases {
     rgba: Option<Vec<u8>>,
 }
 impl GlyphAtlases {
-    fn upload(&mut self, u: &AtlasUpload) -> Result<(), CpuRenderError> {
+    fn validate_upload(u: &AtlasUpload) -> Result<(), CpuRenderError> {
         let bpp: usize = match u.format {
             GlyphFormat::Alpha8 => 1,
             GlyphFormat::Rgba8 => 4,
@@ -233,6 +233,21 @@ impl GlyphAtlases {
         {
             return Err(CpuRenderError::InvalidGlyphUpload);
         }
+        Ok(())
+    }
+    fn upload(&mut self, u: &AtlasUpload) {
+        // The scene preflight checks all uploads before any persistent state changes.
+        debug_assert!(Self::validate_upload(u).is_ok());
+        let bpp = match u.format {
+            GlyphFormat::Alpha8 => 1,
+            GlyphFormat::Rgba8 => 4,
+        };
+        let (x, y, w, h) = (
+            u.origin[0] as usize,
+            u.origin[1] as usize,
+            u.size[0] as usize,
+            u.size[1] as usize,
+        );
         let atlas = match u.format {
             GlyphFormat::Alpha8 => self.alpha.get_or_insert_with(|| vec![0; ATLAS * ATLAS]),
             GlyphFormat::Rgba8 => self.rgba.get_or_insert_with(|| vec![0; ATLAS * ATLAS * 4]),
@@ -242,7 +257,6 @@ impl GlyphAtlases {
             let src = row * w * bpp;
             atlas[start..start + w * bpp].copy_from_slice(&u.pixels[src..src + w * bpp]);
         }
-        Ok(())
     }
     fn sample(&self, format: GlyphFormat, x: usize, y: usize) -> u32 {
         if x >= ATLAS || y >= ATLAS {
@@ -367,7 +381,48 @@ impl CpuRenderer {
     pub fn pixels(&self) -> &[u32] {
         &self.output
     }
+    fn validate_scene(&self, scene: &Scene) -> Result<(), CpuRenderError> {
+        let mut layers = 0usize;
+        let mut clips = 0usize;
+        let max_layers = MAX_LAYERS.min(MAX_LAYER_PIXELS / self.framebuffer.len().max(1));
+        // Preserve the original error order without allocating layers or copying atlases.
+        for cmd in scene.commands() {
+            match cmd {
+                DrawCommand::PushClip(_) => clips += 1,
+                DrawCommand::PopClip => {
+                    clips = clips
+                        .checked_sub(1)
+                        .ok_or(CpuRenderError::InvalidScene("unmatched PopClip"))?;
+                }
+                DrawCommand::BeginLayer(_) => {
+                    layers += 1;
+                    if layers > max_layers {
+                        return Err(CpuRenderError::InvalidScene(
+                            "layer allocation budget exceeded",
+                        ));
+                    }
+                }
+                DrawCommand::EndLayer => {
+                    layers = layers
+                        .checked_sub(1)
+                        .ok_or(CpuRenderError::InvalidScene("unmatched EndLayer"))?;
+                }
+                DrawCommand::Text(text) => {
+                    for upload in &text.uploads {
+                        GlyphAtlases::validate_upload(upload)?;
+                    }
+                }
+                DrawCommand::Quad(_) | DrawCommand::Image(_) => {}
+            }
+        }
+        if layers != 0 || clips != 0 {
+            return Err(CpuRenderError::InvalidScene("unclosed clip or layer"));
+        }
+        Ok(())
+    }
+    /// Render a complete scene, preserving the last frame and glyph atlases on rejection.
     pub fn render_scene(&mut self, scene: &Scene) -> Result<(), CpuRenderError> {
+        self.validate_scene(scene)?;
         self.framebuffer.fill(pack(scene.clear_color()));
         let mut layers: Vec<Layer> = Vec::new();
         let mut clips: Vec<Bounds> = Vec::new();
@@ -379,18 +434,9 @@ impl CpuRenderer {
                     clips.push(clip.map_or(next, |existing| existing.intersect(next)));
                 }
                 DrawCommand::PopClip => {
-                    if clips.pop().is_none() {
-                        return Err(CpuRenderError::InvalidScene("unmatched PopClip"));
-                    }
+                    clips.pop().expect("scene preflight validated clip balance");
                 }
                 DrawCommand::BeginLayer(params) => {
-                    let next_layer_count = layers.len() + 1;
-                    let max_by_pixels = MAX_LAYER_PIXELS / self.framebuffer.len().max(1);
-                    if next_layer_count > MAX_LAYERS || next_layer_count > max_by_pixels {
-                        return Err(CpuRenderError::InvalidScene(
-                            "layer allocation budget exceeded",
-                        ));
-                    }
                     layers.push(Layer {
                         opacity: params.opacity.clamp(0.0, 1.0),
                         pixels: vec![0; self.framebuffer.len()],
@@ -399,7 +445,7 @@ impl CpuRenderer {
                 DrawCommand::EndLayer => {
                     let layer = layers
                         .pop()
-                        .ok_or(CpuRenderError::InvalidScene("unmatched EndLayer"))?;
+                        .expect("scene preflight validated layer balance");
                     let target = layers
                         .last_mut()
                         .map_or(&mut self.framebuffer, |l| &mut l.pixels);
@@ -428,7 +474,7 @@ impl CpuRenderer {
                 }
                 DrawCommand::Text(text) => {
                     for upload in &text.uploads {
-                        self.atlases.upload(upload)?;
+                        self.atlases.upload(upload);
                     }
                     let target = layers
                         .last_mut()
@@ -444,9 +490,6 @@ impl CpuRenderer {
                     );
                 }
             }
-        }
-        if !layers.is_empty() || !clips.is_empty() {
-            return Err(CpuRenderError::InvalidScene("unclosed clip or layer"));
         }
         // Software display surfaces are opaque; composite any remaining scene alpha over black.
         for (dst, pixel) in self.output.iter_mut().zip(self.framebuffer.iter()) {
@@ -615,7 +658,7 @@ mod tests {
             Err(CpuRenderError::InvalidScene(_))
         ));
         assert!(matches!(
-            cpu.atlases.upload(&AtlasUpload {
+            GlyphAtlases::validate_upload(&AtlasUpload {
                 page: 1,
                 origin: [0, 0],
                 size: [1, 1],
