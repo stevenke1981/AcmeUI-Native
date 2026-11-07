@@ -344,10 +344,23 @@ fn first_fill_spills_onto_page_one_without_overlap() {
     let Some(prefix) = fill_prefix(&mut fonts, &pool) else {
         return;
     };
-    let layout = shape(&mut fonts, &prefix, FONT_SIZE);
+    // Prepare each character as its own run, exactly as `fill_prefix`
+    // measured it. Shaping the prefix as one run can change subpixel offsets
+    // and so bitmap sizes, and the prefix fills every page exactly.
     let mut atlas = GlyphAtlas::with_config(fill_config());
     atlas.begin_frame();
-    let prepared = fonts.prepare(&layout, &mut atlas);
+    let mut prepared = acme_text::PreparedText {
+        atlas_generation: atlas.generation(),
+        glyphs: Vec::new(),
+        uploads: Vec::new(),
+    };
+    for c in prefix.chars() {
+        let layout = shape(&mut fonts, &c.to_string(), FONT_SIZE);
+        let run = fonts.prepare(&layout, &mut atlas);
+        assert_eq!(run.atlas_generation, prepared.atlas_generation);
+        prepared.glyphs.extend(run.glyphs);
+        prepared.uploads.extend(run.uploads);
+    }
     assert_eq!(
         prepared.glyphs.len(),
         prefix.chars().count(),
