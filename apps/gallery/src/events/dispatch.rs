@@ -247,9 +247,15 @@ pub fn handle_general_key(
 
 // ── IME ──────────────────────────────────────────────────────────────────────
 
-/// Handle `ImePreedit` — set preedit string and refresh caret.
+/// Handle `ImePreedit` — set preedit string and cursor, then refresh the caret.
+///
+/// `cursor` is the platform composition cursor as `(start, end)` byte offsets
+/// into `text`; it is forwarded so the rendered composition cursor segment sits
+/// on the glyphs the IME is editing. `None` means "caret at the preedit end".
+#[allow(clippy::too_many_arguments)]
 pub fn handle_ime_preedit(
     text: &str,
+    cursor: Option<(usize, usize)>,
     text_input: &mut TextInputState,
     text_input_rect: [f32; 4],
     dark: bool,
@@ -257,7 +263,7 @@ pub fn handle_ime_preedit(
     last_scale_factor: f32,
     ime_caret_window_rect: &mut Option<[f32; 4]>,
 ) -> bool {
-    text_input.set_preedit(text, None);
+    text_input.set_preedit(text, cursor);
     *ime_caret_window_rect =
         refresh_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
     true
@@ -337,5 +343,35 @@ mod tests {
         input.focused = true;
         assert!(send(&mut input, PlatformKey::Other, Some("z"), true, false));
         assert_eq!(input.text, "hello world");
+    }
+
+    #[test]
+    fn gallery_forwards_the_platform_preedit_cursor() {
+        let mut input = TextInputState::new();
+        let mut fonts = acme_text::FontSystem::new();
+        let mut caret = None;
+        input.focused = true;
+        let rect = [0.0, 0.0, 240.0, 40.0];
+        assert!(handle_ime_preedit(
+            "ㄓㄨˋ",
+            Some((3, 6)),
+            &mut input,
+            rect,
+            false,
+            &mut fonts,
+            1.0,
+            &mut caret,
+        ));
+        assert_eq!(input.preedit, "ㄓㄨˋ");
+        assert_eq!(
+            input.preedit_cursor,
+            Some((3, 6)),
+            "the platform composition cursor must reach the text input state"
+        );
+        // `None` means "caret at the preedit end" and must stay `None`.
+        assert!(handle_ime_preedit(
+            "ㄓ", None, &mut input, rect, false, &mut fonts, 1.0, &mut caret,
+        ));
+        assert_eq!(input.preedit_cursor, None);
     }
 }

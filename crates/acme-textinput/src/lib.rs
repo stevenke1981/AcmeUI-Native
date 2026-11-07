@@ -14,6 +14,8 @@ use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextLayout, TextStyle, 
 use acme_theme::{Theme, ThemeColor};
 use unicode_segmentation::UnicodeSegmentation;
 
+mod preedit;
+
 // ---------------------------------------------------------------------------
 // EditTransaction — undo/redo record
 // ---------------------------------------------------------------------------
@@ -932,8 +934,11 @@ pub fn render_text_input(
         &display
     };
 
-    // Choose colour: placeholder gets muted; readonly gets disabled
-    let render_color = if is_empty && has_placeholder {
+    // Choose colour: placeholder gets muted; readonly gets disabled. A composing
+    // field must never borrow the placeholder token: while a preedit is active
+    // the placeholder is not drawn, so the composition takes the text colour.
+    let composing = !state.preedit.is_empty();
+    let render_color = if is_empty && has_placeholder && !composing {
         colors.text_muted
     } else if state.readonly {
         colors.disabled_text
@@ -967,52 +972,73 @@ pub fn render_text_input(
     // Apply horizontal scroll offset (text scrolls left, so content_x shifts)
     let text_origin_x = content_x - state.scroll_offset;
 
-    // Prepare glyphs from cached layout
-    let (glyphs, uploads) = prepare_text_glyphs(state, fonts, atlas);
-
-    // Push clip, then text, then pop clip
-    scene.push(DrawCommand::PushClip(Rect::new(
+    // Push clip, then text, then pop clip. While an IME preedit is active the
+    // committed text and the composition are drawn as separate runs so the
+    // composition appears inline and the text after the caret is shifted.
+    let clip = [
         effective_clip[0],
         effective_clip[1],
         effective_clip[2],
         effective_clip[3],
-    )));
-    scene.push(DrawCommand::Text(TextPrimitive {
-        origin: Point::new(text_origin_x, text_y),
-        color: Color::rgba(
-            render_color[0],
-            render_color[1],
-            render_color[2],
-            render_color[3],
-        ),
-        glyphs,
-        uploads,
-    }));
-    scene.push(DrawCommand::PopClip);
-    // 4. Selection highlight
-    if let Some((sel_start, sel_end)) = state.selection {
-        let clamped_start = sel_start.min(display.len());
-        let clamped_end = sel_end.min(display.len());
-        if clamped_start < clamped_end {
-            let start_x = byte_offset_to_x_inner(&display, clamped_start, fonts, &style, scale);
-            let end_x = byte_offset_to_x_inner(&display, clamped_end, fonts, &style, scale);
-            let sel_w = end_x - start_x;
-            if sel_w > 0.0 {
-                scene.push(DrawCommand::PushClip(Rect::new(
-                    effective_clip[0],
-                    effective_clip[1],
-                    effective_clip[2],
-                    effective_clip[3],
-                )));
-                scene.push(DrawCommand::Quad(QuadPrimitive {
-                    rect: Rect::new(text_origin_x + start_x, content_y, sel_w, content_h),
-                    color: Color::rgba(0.3, 0.5, 0.9, 0.25),
-                    radius: 0.0,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                }));
-                scene.push(DrawCommand::PopClip);
-            }
+    ];
+    let preedit_runs = preedit::preedit_runs(state, &display, fonts, &style, scale);
+    if let Some(runs) = &preedit_runs {
+        preedit::draw_composing_text(
+            scene,
+            state,
+            runs,
+            fonts,
+            atlas,
+            &style,
+            scale,
+            text_origin_x,
+            text_y,
+            render_color,
+            clip,
+        );
+    } else {
+        // Prepare glyphs from cached layout
+        let (glyphs, uploads) = prepare_text_glyphs(state, fonts, atlas);
+        scene.push(DrawCommand::PushClip(Rect::new(
+            effective_clip[0],
+            effective_clip[1],
+            effective_clip[2],
+            effective_clip[3],
+        )));
+        scene.push(DrawCommand::Text(TextPrimitive {
+            origin: Point::new(text_origin_x, text_y),
+            color: Color::rgba(
+                render_color[0],
+                render_color[1],
+                render_color[2],
+                render_color[3],
+            ),
+            glyphs,
+            uploads,
+        }));
+        scene.push(DrawCommand::PopClip);
+    }
+    // 4. Selection highlight. While a preedit is active the text after the caret
+    // is drawn shifted, so the highlight is emitted in pieces that follow the
+    // drawn runs instead of one span across the unshifted display text.
+    let selection_spans =
+        preedit::selection_spans(state, &display, preedit_runs.as_ref(), fonts, &style, scale);
+    for (start_x, width) in selection_spans {
+        if width > 0.0 {
+            scene.push(DrawCommand::PushClip(Rect::new(
+                effective_clip[0],
+                effective_clip[1],
+                effective_clip[2],
+                effective_clip[3],
+            )));
+            scene.push(DrawCommand::Quad(QuadPrimitive {
+                rect: Rect::new(text_origin_x + start_x, content_y, width, content_h),
+                color: Color::rgba(0.3, 0.5, 0.9, 0.25),
+                radius: 0.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            }));
+            scene.push(DrawCommand::PopClip);
         }
     }
     // 5. Cursor blink
@@ -1042,76 +1068,20 @@ pub fn render_text_input(
             scene.push(DrawCommand::PopClip);
         }
     }
-    // 6. IME preedit underline with composition cursor
-    if !state.preedit.is_empty() {
-        let preedit_x = byte_offset_to_x_inner(&display, state.cursor, fonts, &style, scale);
-        let preedit_layout = fonts.shape(&state.preedit, &style, TextConstraints::default(), scale);
-        let preedit_w = preedit_layout.width;
-        if preedit_w > 0.0 {
-            let underline_y = content_y + content_h - 2.5;
-            // Main underline
-            scene.push(DrawCommand::PushClip(Rect::new(
-                effective_clip[0],
-                effective_clip[1],
-                effective_clip[2],
-                effective_clip[3],
-            )));
-            scene.push(DrawCommand::Quad(QuadPrimitive {
-                rect: Rect::new(text_origin_x + preedit_x, underline_y, preedit_w, 1.0),
-                color: Color::rgba(
-                    colors.text_color[0],
-                    colors.text_color[1],
-                    colors.text_color[2],
-                    colors.text_color[3],
-                ),
-                radius: 0.0,
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
-            }));
-            scene.push(DrawCommand::PopClip);
-            // Thicker segment at the preedit cursor position, if known
-            if let Some((pc_start, pc_end)) = state.preedit_cursor {
-                let preedit_cx_start = byte_offset_to_x_inner(
-                    &state.preedit,
-                    pc_start.min(state.preedit.len()),
-                    fonts,
-                    &style,
-                    scale,
-                );
-                let preedit_cx_end = byte_offset_to_x_inner(
-                    &state.preedit,
-                    pc_end.min(state.preedit.len()),
-                    fonts,
-                    &style,
-                    scale,
-                );
-                let seg_w = (preedit_cx_end - preedit_cx_start).max(1.5);
-                scene.push(DrawCommand::PushClip(Rect::new(
-                    effective_clip[0],
-                    effective_clip[1],
-                    effective_clip[2],
-                    effective_clip[3],
-                )));
-                scene.push(DrawCommand::Quad(QuadPrimitive {
-                    rect: Rect::new(
-                        text_origin_x + preedit_x + preedit_cx_start,
-                        underline_y - 1.0,
-                        seg_w,
-                        3.0,
-                    ),
-                    color: Color::rgba(
-                        colors.text_color[0],
-                        colors.text_color[1],
-                        colors.text_color[2],
-                        colors.text_color[3],
-                    ),
-                    radius: 0.0,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                }));
-                scene.push(DrawCommand::PopClip);
-            }
-        }
+    // 6. IME preedit underline and composition cursor
+    if let Some(runs) = &preedit_runs {
+        preedit::draw_preedit_underline(
+            scene,
+            state,
+            runs,
+            fonts,
+            &style,
+            scale,
+            text_origin_x,
+            content_y + content_h - 2.5,
+            colors.text_color,
+            clip,
+        );
     }
 }
 
@@ -1178,6 +1148,11 @@ pub fn byte_offset_to_x(
 /// in logical pixels (field width minus horizontal padding). A negative or
 /// non-finite `content_width` is treated as `0`.
 ///
+/// While an IME preedit is active, the focus point is the composition cursor
+/// (the preedit cursor end, or the preedit end when unset), and the scroll
+/// range includes the whole preedit width. Without a preedit both extras are
+/// zero, so the result is the committed-caret rule.
+///
 /// After the call, the content-local caret x (`ime_caret_area(..)[0]`, which is
 /// `caret_x - scroll_offset`) lies in `[0, content_width]`. The scroll stays in
 /// `[0, text_width - content_width]`, so it shrinks when text is removed and
@@ -1196,8 +1171,10 @@ pub fn scroll_caret_into_view(
         0.0
     };
     let display = state.display_text();
-    let caret_x = byte_offset_to_x(&display, state.display_cursor(), fonts, style, scale);
-    let text_width = byte_offset_to_x(&display, display.len(), fonts, style, scale);
+    let (preedit_cursor_x, preedit_w) = preedit_extent(state, fonts, style, scale);
+    let caret_x =
+        byte_offset_to_x(&display, state.display_cursor(), fonts, style, scale) + preedit_cursor_x;
+    let text_width = byte_offset_to_x(&display, display.len(), fonts, style, scale) + preedit_w;
     // Reserve the caret's own width so a caret at the end of the text is drawn
     // inside the content area (render_text_input skips one at the right edge).
     let visible = (content_width - CARET_WIDTH).max(0.0);
@@ -1215,6 +1192,35 @@ pub fn scroll_caret_into_view(
         scroll = caret_x - visible;
     }
     state.scroll_offset = scroll.clamp(0.0, max_scroll);
+}
+
+/// Preedit geometry for scrolling, as `(cursor_x, width)` in logical pixels.
+/// `cursor_x` is the composition cursor measured from the committed caret and
+/// `width` is the whole drawn preedit. Both are `0.0` when no preedit is active.
+/// The widths come from the same string `render_text_input` draws (the mask for
+/// password fields), so the scroll matches what is on screen.
+fn preedit_extent(
+    state: &TextInputState,
+    fonts: &mut FontSystem,
+    style: &TextStyle,
+    scale: f32,
+) -> (f32, f32) {
+    if state.preedit.is_empty() {
+        return (0.0, 0.0);
+    }
+    let drawn = preedit::preedit_text(state);
+    let cursor_end = state
+        .preedit_cursor
+        .map_or(state.preedit.len(), |(_, end)| end);
+    let cursor_x = byte_offset_to_x_inner(
+        &drawn,
+        preedit::drawn_offset(state, cursor_end),
+        fonts,
+        style,
+        scale,
+    );
+    let width = byte_offset_to_x_inner(&drawn, drawn.len(), fonts, style, scale);
+    (cursor_x, width)
 }
 
 // ---------------------------------------------------------------------------

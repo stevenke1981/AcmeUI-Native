@@ -11,10 +11,10 @@
 //!   glyph has been handed out in the current frame, so every `PreparedText`
 //!   of one frame shares one generation and never references overwritten
 //!   texels.
-//! - Scenario constraint (documented, not hidden): the per-frame working set
-//!   stays below capacity over any 60-frame window, because only entries idle
-//!   for more than 60 frames are evicted. A working set above that is the
-//!   `#[ignore]`d starvation test.
+//! - Background pressure only evicts entries idle for more than 60 frames.
+//!   Demand can reuse a recent page before any current-frame glyph was issued,
+//!   or at the next boundary after deferred overflow. A per-frame working set
+//!   above capacity can still drop glyphs without overwriting issued texels.
 
 use std::collections::HashSet;
 
@@ -641,16 +641,26 @@ fn overflow_mid_frame_defers_eviction_to_next_frame() {
 }
 
 #[test]
-#[ignore = "KNOWN LIMITATION: a glyph is dropped (atlas_full) while the atlas holds only entries used within the last 60 frames; needs a multi-page or real LRU allocator"]
 fn bug_glyph_dropped_while_atlas_holds_only_recent_entries() {
     let mut fonts = FontSystem::new();
     let mut atlas = GlyphAtlas::new(64, 64);
-    let fill = fonts.shape("ABCDEFGHIJKLMN", &style(), TextConstraints::default(), 1.0);
+    // Glyph sizes depend on the platform's fallback font, so overfill the
+    // atlas and require that it reported full instead of assuming an exact
+    // capacity. This removes the fixed-count assumption; the font-independent
+    // allocator guarantee lives in the synthetic tests in `src/atlas/tests.rs`.
+    // 'O' is deliberately absent so it is never already resident.
+    let fill = fonts.shape(
+        "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+        &style(),
+        TextConstraints::default(),
+        1.0,
+    );
     let filled = fonts.prepare(&fill, &mut atlas);
-    assert_eq!(
+    assert!(
+        !filled.glyphs.is_empty() && fonts.diagnostics().atlas_full_glyphs > 0,
+        "precondition: this frame's glyphs fill the 64x64 atlas (placed={}, full={})",
         filled.glyphs.len(),
-        14,
-        "precondition: 14 glyphs fill the 64x64 atlas"
+        fonts.diagnostics().atlas_full_glyphs
     );
 
     atlas.begin_frame();

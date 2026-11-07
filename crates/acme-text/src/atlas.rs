@@ -1,5 +1,5 @@
 //! CPU-side glyph atlas bookkeeping: shelf allocation per page, page selection,
-//! and LRU-stale page eviction. Public types are re-exported from the crate root.
+//! and demand-driven LRU page eviction. Public types are re-exported from the crate root.
 
 use std::collections::HashMap;
 
@@ -69,11 +69,12 @@ struct Placement {
 ///
 /// A glyph goes to the active page first, then to the other open pages in
 /// ascending order, then to a newly opened page while `max_pages` allows it.
-/// Only when every page is full does the atlas evict: one page at a time, the
-/// least recently used page that holds an entry idle for more than 60 frames.
-/// Eviction runs in [`begin_frame`](Self::begin_frame) after an overflow or
-/// under pressure, or inside an insert only while no glyph has been used in the
-/// current frame, so glyphs handed out earlier in a frame are never overwritten.
+/// A full atlas reuses its least recently used page regardless of entry age.
+/// Background pressure alone evicts only pages with entries idle for more than
+/// 60 frames. Eviction runs in [`begin_frame`](Self::begin_frame) after an
+/// overflow or under pressure, or inside an insert only while no glyph has
+/// been used in the current frame, so glyphs handed out earlier in a frame are
+/// never overwritten.
 /// A glyph that cannot be placed mid-frame is dropped for that frame.
 /// [`evict_stale`](Self::evict_stale) evicts manually.
 ///
@@ -195,7 +196,9 @@ impl GlyphAtlas {
         self.max_pages
     }
 
-    /// Cumulative number of page evictions (explicit `clear` not counted).
+    /// Cumulative number of pages evicted (explicit `clear` not counted).
+    /// One `evict_stale` call can evict multiple pages; its return value counts
+    /// stale entries, not pages.
     pub fn page_evictions(&self) -> u64 {
         self.evictions
     }
@@ -226,16 +229,21 @@ impl GlyphAtlas {
 
     /// Advance the frame counter. Call once per frame before rendering.
     ///
-    /// Evicts at most one page: when a glyph was refused during a frame whose
-    /// glyphs were in use, or when every page is at least three quarters full
-    /// and the page budget is exhausted, the least recently used page holding
-    /// an entry idle for more than 60 frames is emptied (generation bumped
-    /// once). Evicting here keeps every [`PreparedText`](crate::PreparedText)
-    /// already produced in the frame valid.
+    /// Evicts at most one least recently used page after a deferred overflow,
+    /// even if all entries are recent. Without a deferred overflow, background
+    /// pressure (all pages at least three quarters full and the page budget
+    /// exhausted) only evicts a page holding an entry idle for more than 60
+    /// frames. Evicting here keeps every [`PreparedText`](crate::PreparedText)
+    /// subsequently produced in the frame valid.
     pub fn begin_frame(&mut self) {
         self.frame = self.frame.wrapping_add(1);
         if self.needs_space || self.under_pressure() {
-            if let Some(victim) = self.lru_stale_page() {
+            let max_age = if self.needs_space {
+                0
+            } else {
+                STALE_AGE_FRAMES
+            };
+            if let Some(victim) = self.lru_page(max_age) {
                 self.evict_page(victim);
             }
         }
@@ -280,8 +288,10 @@ impl GlyphAtlas {
     /// Evict every page holding an entry not accessed within `max_age` frames.
     ///
     /// Only those pages are emptied; other pages keep their entries. Returns the
-    /// number of stale entries found. The generation is bumped once when any
-    /// page is evicted, so the renderer can detect the invalidation.
+    /// number of stale entries found, while [`page_evictions`](Self::page_evictions)
+    /// counts the pages emptied. The generation is bumped once and a pending
+    /// space request is cleared when at least one page is evicted. If no page
+    /// is evicted, the request and counters are unchanged.
     pub fn evict_stale(&mut self, max_age: u64) -> usize {
         let stale = self.stale_count(max_age);
         let victims: Vec<usize> = (0..self.pages.len())
@@ -294,7 +304,7 @@ impl GlyphAtlas {
             self.evictions += victims.len() as u64;
             self.active = first;
             self.generation = self.generation.wrapping_add(1);
-            self.settle_needs_space();
+            self.needs_space = false;
         }
         stale
     }
@@ -386,7 +396,7 @@ impl GlyphAtlas {
             self.needs_space = true;
             return None;
         }
-        let victim = self.lru_stale_page()?;
+        let victim = self.lru_page(0)?;
         self.evict_page(victim);
         self.try_place(victim, width, height)
             .map(|placement| (victim, placement))
@@ -419,11 +429,17 @@ impl GlyphAtlas {
         })
     }
 
-    /// Least recently used page holding an entry idle for more than
-    /// [`STALE_AGE_FRAMES`]. Ties go to the lowest index.
-    fn lru_stale_page(&self) -> Option<usize> {
+    /// Least recently used occupied page. Zero `max_age` means demand without
+    /// an age restriction; background pressure requires an entry older than
+    /// [`STALE_AGE_FRAMES`]. Callers protect current-frame entries before demand.
+    /// Empty pages are never victims. Ties go to the lowest index.
+    fn lru_page(&self, max_age: u64) -> Option<usize> {
         (0..self.pages.len())
-            .filter(|&index| self.page_has_stale(index, STALE_AGE_FRAMES))
+            .filter(|&index| {
+                self.entries.values().any(|entry| {
+                    entry.page == index as u32 && (max_age == 0 || self.is_stale(entry, max_age))
+                })
+            })
             .min_by_key(|&index| (self.pages[index].last_used, index))
     }
 
@@ -444,7 +460,7 @@ impl GlyphAtlas {
         self.active = index;
         self.evictions += 1;
         self.generation = self.generation.wrapping_add(1);
-        self.settle_needs_space();
+        self.needs_space = false;
     }
 
     /// Removes the entries on `index` and resets its cursors. Does not touch
@@ -453,13 +469,6 @@ impl GlyphAtlas {
         let page = index as u32;
         self.entries.retain(|_, entry| entry.page != page);
         self.pages[index] = Page::default();
-    }
-
-    /// A deferred eviction request stays pending only while a stale page remains.
-    fn settle_needs_space(&mut self) {
-        if self.lru_stale_page().is_none() {
-            self.needs_space = false;
-        }
     }
 }
 
