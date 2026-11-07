@@ -16,6 +16,8 @@ use acme_platform::{PlatformEvent, WindowId};
 use acme_widgets::retained_binding::{RetainedBinding, SyntheticIds};
 use acme_widgets::{TextInput, WidgetNode};
 
+mod structure;
+
 /// Re-export AccessKit types used in the public API.
 pub use accesskit::{Node as AccNode, NodeId as AccNodeId};
 
@@ -126,6 +128,7 @@ impl AccessibilityAdapter {
         let mut ids = IdSource::Bound {
             binding,
             synthetic: SyntheticIds::new(),
+            virtual_ids: structure::VirtualIds::new(),
         };
         let mut nodes = Vec::new();
         let (root_id, _) = walk(root, snapshot, &mut ids, None, &mut nodes, Slot::Plain);
@@ -262,24 +265,40 @@ impl AccessibilityAdapter {
 /// those produced by [`WidgetNode::to_layout`]. Each widget variant is mapped
 /// to the AccessKit role most appropriate for assistive technology consumption:
 ///
-/// | Widget variant          | AccessKit role    |
-/// |-------------------------|-------------------|
-/// | `Row` / `Column` / `Stack` / `Card` | `Group`       |
-/// | `Label`                 | `Label`           |
-/// | `Button`                | `Button`          |
-/// | `Separator`             | `Splitter`        |
-/// | `ScrollView`            | `ScrollView`      |
-/// | `TextInput`             | `TextInput`, or `PasswordInput` when `password` |
-/// | `TabBar`                | `TabList`; each tab child is `Tab`, with `selected` |
-/// | `NavRail`               | `Navigation`; the selected item is `selected`   |
-/// | `Dialog`                | `Dialog`, `modal` when `modal`                  |
-/// | `Table` / `DataGrid`    | `Table` / `Grid`; each cell child is `Cell` when its content is a `Label` or container |
+/// | Widget variant                      | AccessKit role                                                                                                                                              |
+/// | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+/// | `Row` / `Column` / `Stack` / `Card` | `Group`                                                                                                                                                     |
+/// | `Label`                             | `Label`                                                                                                                                                     |
+/// | `Button`                            | `Button`                                                                                                                                                    |
+/// | `Separator`                         | `Splitter`                                                                                                                                                  |
+/// | `ScrollView`                        | `ScrollView`                                                                                                                                                |
+/// | `TextInput`                         | `TextInput`, or `PasswordInput` when `password`                                                                                                             |
+/// | `TabBar`                            | `TabList`; each tab child is `Tab`, with `selected`                                                                                                         |
+/// | `NavRail`                           | `Navigation`; the selected item is `selected`                                                                                                               |
+/// | `Dialog`                            | `Dialog`, `modal` when `modal`                                                                                                                              |
+/// | `Tree`                              | `Tree`; each visible row is a `TreeItem` child, in visible order                                                                                            |
+/// | `Table` / `DataGrid`                | `Table` / `Grid`; a header `Row` of `ColumnHeader` cells, then one `Row` per data row; each cell child is `Cell` when its content is a `Label` or container |
 ///
 /// A disabled `Button` has no `Click` action. A `TextInput` never exposes a
 /// password's value. A `TextInput` with a `validation_message` is `invalid`,
-/// and the message is its description. Table rows and tree items have no
-/// retained node, so they have no `Row` or `TreeItem` role; a tree's items
-/// are not exposed at all.
+/// and the message is its description.
+///
+/// Tree items, grid rows and column headers have no widget of their own, so
+/// they are virtual nodes: their IDs come from the walk's counter (sequential
+/// walk) or from a range above layout's synthetic IDs (retained walk), so
+/// they never collide with retained or layout IDs. A `TreeItem` has its `level`,
+/// and its `position_in_set` and `size_of_set` among the visible items that
+/// share its parent (zero-based position, as AccessKit expects). `expanded` is
+/// set only when the item has children, and `selected` is `false` on
+/// unselected items. A `Row` has `row_index` (header `0`, data rows from `1`);
+/// a cell has `row_index` and `column_index`, and the table or grid has
+/// `row_count` (including the header) and `column_count`. The selected row or
+/// cell is `selected`. A table whose mode selects rows states `false` on its
+/// other rows; one whose mode selects cells does the same for its other cells.
+/// Rows and headers take bounds from the table's layout rectangle, 24 px per
+/// row, clipped to it. A table or grid whose cell count is not a multiple of
+/// its column count, or that has no columns, keeps its cells as flat children
+/// with no row structure.
 ///
 /// # Parameters
 ///
@@ -325,6 +344,7 @@ where
     let mut ids = IdSource::Bound {
         binding,
         synthetic: SyntheticIds::new(),
+        virtual_ids: structure::VirtualIds::new(),
     };
     build_with_ids(root, snapshot, &mut ids, focus_id, label_override)
 }
@@ -355,13 +375,15 @@ fn build_with_ids<M: Clone + 'static>(
 ///
 /// `Sequential` numbers nodes from a counter in DFS order, as the original
 /// `update` and `build_tree_update` did. `Bound` takes the retained ID of each
-/// widget from a [`RetainedBinding`] and uses [`SyntheticIds`] for widgets the
-/// binding does not contain.
+/// widget from a [`RetainedBinding`], uses [`SyntheticIds`] for widgets the
+/// binding does not contain, and uses [`structure::VirtualIds`] for nodes with
+/// no widget (tree items, grid rows and column headers).
 enum IdSource<'s, 'b> {
     Sequential(&'s mut u64),
     Bound {
         binding: &'b RetainedBinding<'b>,
         synthetic: SyntheticIds,
+        virtual_ids: structure::VirtualIds,
     },
 }
 
@@ -374,10 +396,26 @@ impl IdSource<'_, '_> {
                 **next += 1;
                 id
             }
-            Self::Bound { binding, synthetic } => binding
+            Self::Bound {
+                binding, synthetic, ..
+            } => binding
                 .id_for(widget)
                 .unwrap_or_else(|| synthetic.allocate()),
         }
+    }
+
+    /// The ID of a node that has no widget: the next counter value in a
+    /// sequential walk, or a [`structure::VirtualIds`] ID in a bound walk.
+    fn allocate_virtual(&mut self) -> AccessNodeId {
+        let id = match self {
+            Self::Sequential(next) => {
+                let id = NodeId::new(**next);
+                **next += 1;
+                id
+            }
+            Self::Bound { virtual_ids, .. } => virtual_ids.allocate(),
+        };
+        to_access_id(id)
     }
 
     /// The layout node whose rectangle `widget` reads.
@@ -410,8 +448,36 @@ enum Slot<'a> {
     /// An item of a NavRail: named by the item's own label.
     NavItem { label: &'a str, selected: bool },
     /// A cell child of a Table or DataGrid. Text and plain containers take
-    /// `Role::Cell`; controls keep their own role (see [`walk`]).
-    Cell,
+    /// `Role::Cell`; controls keep their own role (see [`walk`]). `place` is
+    /// set when the cells fill whole rows. `selected` is `Some(true)` for the
+    /// selected cell, `Some(false)` for the other cells when the grid selects
+    /// cells, and `None` otherwise.
+    Cell {
+        place: Option<structure::CellPlace>,
+        selected: Option<bool>,
+    },
+}
+
+/// The slot of cell `index` in a grid of `columns` columns and `cells` cells.
+/// `selectable` says whether the grid's mode selects cells.
+fn grid_cell_slot(
+    columns: usize,
+    cells: usize,
+    index: usize,
+    selected_cell: Option<(usize, usize)>,
+    selectable: bool,
+) -> Slot<'static> {
+    let place = structure::cell_place(columns, cells, index);
+    let selected = place.and_then(|place| {
+        if selected_cell == Some((place.data_row, place.column)) {
+            Some(true)
+        } else if selectable {
+            Some(false)
+        } else {
+            None
+        }
+    });
+    Slot::Cell { place, selected }
 }
 
 /// The slot of child `index` within `parent`.
@@ -429,7 +495,20 @@ fn child_slot<M>(parent: &WidgetNode<M>, index: usize) -> Slot<'_> {
             selected: index == bar.selected,
         }),
         // Table and DataGrid children are their cells, in row-major order.
-        WidgetNode::Table(_) | WidgetNode::DataGrid(_) => Slot::Cell,
+        WidgetNode::Table(table) => grid_cell_slot(
+            table.columns.len(),
+            parent.children().len(),
+            index,
+            table.selected_cell,
+            structure::cells_selectable(parent),
+        ),
+        WidgetNode::DataGrid(grid) => grid_cell_slot(
+            grid.columns.len(),
+            parent.children().len(),
+            index,
+            grid.selected_cell,
+            structure::cells_selectable(parent),
+        ),
         WidgetNode::NavRail(rail) => {
             rail.items
                 .get(index)
@@ -505,7 +584,7 @@ fn walk<M: Clone + 'static>(
         // A cell's text or plain container is the cell itself. A control or a
         // nested composite keeps its own role: AccessKit has no wrapper node
         // to hold it, and `Cell` would hide its activation semantics.
-        (Slot::Cell, Role::Label | Role::Group) => Role::Cell,
+        (Slot::Cell { .. }, Role::Label | Role::Group) => Role::Cell,
         (_, own) => own,
     };
 
@@ -563,7 +642,26 @@ fn walk<M: Clone + 'static>(
 
     apply_widget_state(&mut access_node, node, slot);
 
-    let child_ids: Vec<AccessNodeId> = child_results.iter().map(|&(child, _)| child).collect();
+    // Tree items and grid rows are virtual nodes created from the widget's
+    // data; a grid whose cells do not fill rows keeps its flat cell children.
+    let child_ids = match node {
+        WidgetNode::Tree(tree) => structure::tree_item_ids(
+            tree,
+            snapshot.get(layout_id).copied(),
+            label_override,
+            ids,
+            nodes,
+        ),
+        _ => structure::grid_row_ids(
+            node,
+            &child_results,
+            snapshot.get(layout_id).copied(),
+            label_override,
+            ids,
+            nodes,
+        )
+        .unwrap_or_else(|| child_results.iter().map(|&(child, _)| child).collect()),
+    };
     if !child_ids.is_empty() {
         access_node.set_children(child_ids);
     }
@@ -602,6 +700,9 @@ fn apply_widget_state<M>(access_node: &mut AccessNode, node: &WidgetNode<M>, slo
                 access_node.set_modal();
             }
         }
+        WidgetNode::Table(_) | WidgetNode::DataGrid(_) => {
+            structure::set_grid_counts(node, access_node);
+        }
         _ => {}
     }
     match slot {
@@ -609,8 +710,16 @@ fn apply_widget_state<M>(access_node: &mut AccessNode, node: &WidgetNode<M>, slo
         Slot::Tab { selected, .. } => access_node.set_selected(selected),
         // A nav item is button-like: omit the flag rather than announce "not selected".
         Slot::NavItem { selected: true, .. } => access_node.set_selected(true),
+        Slot::Cell { place, selected } => {
+            if let Some(place) = place {
+                access_node.set_row_index(place.row_index());
+                access_node.set_column_index(place.column);
+            }
+            if let Some(selected) = selected {
+                access_node.set_selected(selected);
+            }
+        }
         Slot::Plain
-        | Slot::Cell
         | Slot::NavItem {
             selected: false, ..
         } => {}
@@ -2173,11 +2282,16 @@ mod tests {
     }
 
     #[test]
-    fn table_cells_have_cell_role_and_are_the_table_children() {
+    fn table_cells_have_cell_role_and_are_the_row_children() {
         let nodes = nodes_of(&two_by_one_table());
         let table_node = only_node_with_role(&nodes, Role::Table);
+        // The table's children are its header row and its one data row; the
+        // cells are the data row's children.
         assert_eq!(table_node.children().len(), 2);
-        for child in table_node.children() {
+        let data_row = node_with_id(&nodes, table_node.children()[1]);
+        assert_eq!(data_row.role(), Role::Row);
+        assert_eq!(data_row.children().len(), 2);
+        for child in data_row.children() {
             assert_eq!(node_with_id(&nodes, *child).role(), Role::Cell);
         }
         let names: Vec<&str> = nodes_with_role(&nodes, Role::Cell)
