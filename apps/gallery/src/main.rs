@@ -61,7 +61,8 @@ use acme_widgets::{WidgetNode, column, row, scroll_view};
 use crate::events::{
     ActivationCtx, compute_ime_caret_rect, handle_enter_space_key, handle_general_key,
     handle_ime_commit, handle_ime_preedit, handle_pointer_moved, handle_pointer_pressed,
-    handle_pointer_released, handle_scroll_event, handle_tab_key, handle_tree_arrow_key,
+    handle_pointer_released, handle_scroll_event, handle_tab_key, handle_tree_arrow_key, hit_test,
+    same_hit_list,
 };
 use crate::focus::{FocusTarget, resolve_focus};
 use crate::render::{
@@ -89,6 +90,8 @@ mod dpi_tests;
 #[cfg(test)]
 mod focus_tests;
 #[cfg(test)]
+mod hover_press_tests;
+#[cfg(test)]
 mod retained_ids_tests;
 
 fn main() -> anyhow::Result<()> {
@@ -114,8 +117,13 @@ struct Gallery {
 
     // Interaction
     cursor: (f32, f32),
+    /// Index into `button_info` under the pointer. Re-derived after every frame.
     hovered: Option<usize>,
+    /// Index into `button_info` of the press. Cleared when the page or the hit
+    /// list changes, so a release never activates a different widget.
     pressed: Option<usize>,
+    /// Page `button_info` was built for.
+    hit_page: Option<(usize, usize)>,
     /// Index of the focused hit region in `button_info` (valid for the last frame).
     focused: usize,
     /// Stable identity of the focused region; `focused` is re-resolved from it.
@@ -178,6 +186,7 @@ impl Gallery {
             cursor: (0.0, 0.0),
             hovered: None,
             pressed: None,
+            hit_page: None,
             focused: 0,
             focused_target: None,
             scroll: 0.0,
@@ -533,6 +542,12 @@ impl Application for Gallery {
             &mut self.table_viewport_rect,
             &mut self.vlist_viewport_rect,
         );
+        // ── Layer 3: A press only survives while its page and hit list do ──
+        let page = (self.selected_category, self.selected_page);
+        if self.hit_page != Some(page) || !same_hit_list(&self.button_info, &button_info) {
+            self.pressed = None;
+        }
+        self.hit_page = Some(page);
         self.button_info = button_info;
 
         // ── Layer 3: Keyboard focus follows its target across rebuilds ──
@@ -565,6 +580,14 @@ impl Application for Gallery {
         self.max_scroll = max_scroll;
         self.scroll = clamped_scroll;
         self.scroll_clip_rect = scroll_clip;
+
+        // ── Layer 3: Hover is the region under the pointer on this frame's list ──
+        self.hovered = hit_test(
+            &self.button_info,
+            self.cursor,
+            self.scroll,
+            self.scroll_clip_rect,
+        );
 
         // ── Layer 4: Build scene ──
         let mut scene = Scene::with_clear(Color::rgba(

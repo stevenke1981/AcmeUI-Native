@@ -6,6 +6,18 @@
 use crate::render::{point_in_rect, scrolled_hit_rect};
 use crate::types::HitRegion;
 
+/// Whether two region lists name the same widgets in the same order.
+///
+/// Only identity (node and action) is compared, not geometry: a layout move
+/// keeps a press valid, while a rebuilt list with different widgets does not.
+pub fn same_hit_list(before: &[HitRegion], after: &[HitRegion]) -> bool {
+    before.len() == after.len()
+        && before
+            .iter()
+            .zip(after)
+            .all(|(a, b)| a.node == b.node && a.message == b.message)
+}
+
 /// Reverse-iterate hit regions to find the top-most match under cursor.
 ///
 /// * `button_info` — hit regions collected during the last frame.
