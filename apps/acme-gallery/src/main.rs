@@ -12,14 +12,16 @@
 use acme_core::{NodeId, RetainedTree};
 use acme_layout::{LayoutEngine, LayoutNode, LayoutStyle, Length, Overflow, WidgetLayoutContext};
 use acme_platform::{Application, FrameContext, PlatformEvent, WindowConfig, WindowId};
-use acme_render_wgpu::{Frame, Quad, TextRun, scene_from_frame};
+use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun, scene_from_frame};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
 use acme_theme::packs::{available_themes, theme_by_name};
 use acme_theme::{Theme, ThemeColor, ThemeMode};
 use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
-use acme_ui::mobile::{MobileButtonSize, mobile_button};
+use acme_ui::mobile::{
+    MobileButtonSize, mobile_button, mobile_segmented, mobile_stepper, mobile_toggle,
+};
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::view_bridge::widget_to_views;
 use acme_widgets::{
@@ -86,6 +88,9 @@ enum GalleryMessage {
     CycleTheme,
     DpiInfo,
     MobilePressed(MobileButtonSize),
+    MobileToggle(bool),
+    MobileValue(i64),
+    MobileSelected(usize),
 }
 
 // ── Theme preference persistence ────────────────────────────────────────────
@@ -137,6 +142,9 @@ struct Gallery {
     max_scroll: f32,
     button_info: Vec<HitRegion>,
     last_mobile_press: Option<MobileButtonSize>,
+    mobile_checked: bool,
+    mobile_value: i64,
+    mobile_selected: usize,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -163,6 +171,9 @@ impl Gallery {
             max_scroll: 0.0,
             button_info: Vec::new(),
             last_mobile_press: None,
+            mobile_checked: false,
+            mobile_value: 2,
+            mobile_selected: 0,
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -680,6 +691,25 @@ impl Gallery {
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
             .child(self.page_section(
+                "Interactive mobile controls",
+                column()
+                    .gap(12.0)
+                    .child(mobile_toggle("Wi-Fi")
+                        .key("gallery_mobile_toggle")
+                        .checked(self.mobile_checked)
+                        .on_toggle(GalleryMessage::MobileToggle))
+                    .child(label("Quantity · 0–10, step 2"))
+                    .child(mobile_stepper(self.mobile_value)
+                        .key("gallery_mobile_stepper")
+                        .min(0).max(10).step(2)
+                        .on_change(GalleryMessage::MobileValue))
+                    .child(mobile_segmented(vec!["Day", "Week", "Month"])
+                        .key("gallery_mobile_segmented")
+                        .selected_index(self.mobile_selected)
+                        .on_select(GalleryMessage::MobileSelected))
+                    .build(),
+            ))
+            .child(self.page_section(
                 "Mobile Button — sizes",
                 column()
                     .gap(12.0)
@@ -951,6 +981,18 @@ impl Gallery {
             GalleryMessage::DpiInfo => true,
             GalleryMessage::MobilePressed(size) => {
                 self.last_mobile_press = Some(size);
+                true
+            }
+            GalleryMessage::MobileToggle(checked) => {
+                self.mobile_checked = checked;
+                true
+            }
+            GalleryMessage::MobileValue(value) => {
+                self.mobile_value = value;
+                true
+            }
+            GalleryMessage::MobileSelected(index) => {
+                self.mobile_selected = index;
                 true
             }
         }
@@ -1459,6 +1501,24 @@ fn render_content(
     atlas: &mut GlyphAtlas,
 ) {
     let colors = theme.colors;
+    // The mobile switch track/thumb are styled rows, rather than glyphs.
+    if let WidgetNode::Row(container) = widget {
+        if let (Some(background), Some(rect)) =
+            (container.style.background, snapshot.get(layout.id))
+        {
+            let fill = background.resolve(theme);
+            frame.clipped_quads.push(ClippedQuad {
+                quad: quad_rect(
+                    [rect.x, rect.y - scroll_y, rect.width, rect.height],
+                    fill,
+                    container.style.border_radius.unwrap_or(0.0),
+                    0.0,
+                    fill,
+                ),
+                clip,
+            });
+        }
+    }
     match widget {
         WidgetNode::Label(l) => {
             if let Some(rect) = snapshot.get(layout.id) {
@@ -1821,5 +1881,168 @@ mod tests {
         assert!(state.hovered);
         assert!(!state.pressed);
         assert_eq!(index, 12);
+    }
+
+    fn mobile_hits(gallery: &Gallery) -> Vec<HitRegion> {
+        let widget = gallery.mobile_page();
+        let layout = widget.to_layout_with_context(NodeId::new(1), &layout_context());
+        let snapshot = LayoutEngine::new()
+            .compute(&layout, (900.0, 1600.0))
+            .unwrap();
+        let mut hits = Vec::new();
+        collect_hit_regions(&widget, &layout, &snapshot, false, &mut hits);
+        hits
+    }
+
+    #[test]
+    fn mobile_controls_dispatch_and_rebuild_their_state() {
+        let mut gallery = Gallery::new();
+        for message in [
+            GalleryMessage::MobileToggle(true),
+            GalleryMessage::MobileValue(4),
+            GalleryMessage::MobileSelected(2),
+        ] {
+            gallery.button_info = mobile_hits(&gallery);
+            let index = gallery
+                .button_info
+                .iter()
+                .position(|hit| hit.message == message)
+                .expect("mobile control has a laid-out hit area");
+            let [x, y, w, h] = gallery.button_info[index].rect;
+            assert!(h >= 44.0);
+            gallery.cursor = (x + w / 2.0, y + h / 2.0);
+            assert_eq!(gallery.hit(), Some(index));
+            assert!(gallery.activate(index));
+        }
+        assert!(gallery.mobile_checked);
+        assert_eq!(gallery.mobile_value, 4);
+        assert_eq!(gallery.mobile_selected, 2);
+        let hits = mobile_hits(&gallery);
+        assert!(
+            hits.iter()
+                .any(|h| h.message == GalleryMessage::MobileToggle(false))
+        );
+        assert!(
+            hits.iter()
+                .any(|h| h.message == GalleryMessage::MobileValue(6))
+        );
+    }
+
+    #[test]
+    fn mobile_stepper_limits_do_not_leave_ghost_hit_indices() {
+        let mut gallery = Gallery::new();
+        for value in [0, 10] {
+            gallery.mobile_value = value;
+            let hits = mobile_hits(&gallery);
+            let values: Vec<i64> = hits
+                .iter()
+                .filter_map(|hit| match hit.message {
+                    GalleryMessage::MobileValue(value) => Some(value),
+                    _ => None,
+                })
+                .collect();
+            assert_eq!(values, if value == 0 { vec![2] } else { vec![8] });
+            assert_eq!(hits.len(), 8);
+        }
+    }
+
+    #[test]
+    fn mobile_toggle_frame_contains_themed_track_and_thumb() {
+        let mut gallery = Gallery::new();
+        for dark in [false, true] {
+            gallery.dark = dark;
+            let theme = gallery.current_theme();
+            for checked in [false, true] {
+                let widget =
+                    WidgetNode::from(mobile_toggle::<GalleryMessage>("Wi-Fi").checked(checked));
+                let layout = widget.to_layout_with_context(NodeId::new(1), &layout_context());
+                let snapshot = LayoutEngine::new()
+                    .compute(&layout, (400.0, 100.0))
+                    .unwrap();
+                let mut frame = Frame::default();
+                render_content(
+                    &mut frame,
+                    &widget,
+                    &layout,
+                    &snapshot,
+                    &theme,
+                    1.0,
+                    0.0,
+                    [0.0, 0.0, 400.0, 100.0],
+                    &mut 0,
+                    None,
+                    None,
+                    &mut gallery.fonts,
+                    &mut gallery.atlas,
+                );
+                let track = frame
+                    .clipped_quads
+                    .iter()
+                    .map(|q| &q.quad)
+                    .find(|q| q.rect[2..] == [52.0, 32.0])
+                    .expect("switch track must be painted, not just laid out");
+                let thumb = frame
+                    .clipped_quads
+                    .iter()
+                    .map(|q| &q.quad)
+                    .find(|q| q.rect[2..] == [24.0, 24.0])
+                    .expect("switch thumb must be painted");
+                assert_eq!(
+                    track.color,
+                    rgba(if checked {
+                        theme.colors.primary
+                    } else {
+                        theme.colors.muted
+                    })
+                );
+                assert_eq!(thumb.color, rgba(theme.colors.surface));
+                assert_eq!(
+                    thumb.rect[0] - track.rect[0],
+                    if checked { 24.0 } else { 4.0 }
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn mobile_toggle_paint_keeps_the_scroll_view_clip() {
+        let mut gallery = Gallery::new();
+        let widget = WidgetNode::from(mobile_toggle::<GalleryMessage>("Wi-Fi"));
+        let layout = widget.to_layout_with_context(NodeId::new(1), &layout_context());
+        let snapshot = LayoutEngine::new()
+            .compute(&layout, (400.0, 100.0))
+            .unwrap();
+        let theme = gallery.current_theme();
+        for scroll in [12.0, 100.0] {
+            let mut frame = Frame::default();
+            let clip = [0.0, 10.0, 400.0, 50.0];
+            render_content(
+                &mut frame,
+                &widget,
+                &layout,
+                &snapshot,
+                &theme,
+                1.0,
+                scroll,
+                clip,
+                &mut 0,
+                None,
+                None,
+                &mut gallery.fonts,
+                &mut gallery.atlas,
+            );
+            assert_eq!(
+                frame.clipped_quads.len(),
+                2,
+                "track/thumb need a clip even when fully scrolled out"
+            );
+            assert!(frame.clipped_quads.iter().all(|q| q.clip == clip));
+            assert!(
+                !frame
+                    .quads
+                    .iter()
+                    .any(|q| q.rect[2..] == [52.0, 32.0] || q.rect[2..] == [24.0, 24.0])
+            );
+        }
     }
 }

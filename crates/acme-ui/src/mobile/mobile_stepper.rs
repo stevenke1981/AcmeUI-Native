@@ -2,6 +2,8 @@
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_layout::Length;
+use acme_widgets::style::prelude::*;
 
 /// Builder for a mobile stepper control.
 pub struct MobileStepperBuilder<M> {
@@ -10,8 +12,11 @@ pub struct MobileStepperBuilder<M> {
     pub min: i64,
     pub max: i64,
     pub step: i64,
+    pub disabled: bool,
     pub on_decrement: Option<M>,
     pub on_increment: Option<M>,
+    /// Maps the new, clamped value to a message (ROADMAP 014).
+    pub on_change: Option<fn(i64) -> M>,
 }
 
 /// Create a mobile stepper builder.
@@ -22,8 +27,10 @@ pub fn mobile_stepper<M: Clone + 'static>(value: i64) -> MobileStepperBuilder<M>
         min: 0,
         max: 100,
         step: 1,
+        disabled: false,
         on_decrement: None,
         on_increment: None,
+        on_change: None,
     }
 }
 
@@ -33,6 +40,7 @@ impl<M: Clone + 'static> MobileStepperBuilder<M> {
         self
     }
 
+    /// Set a range endpoint. Inverted endpoints are sorted at build time.
     pub fn min(mut self, value: i64) -> Self {
         self.min = value;
         self
@@ -43,8 +51,14 @@ impl<M: Clone + 'static> MobileStepperBuilder<M> {
         self
     }
 
+    /// Set the positive increment; non-positive values are treated as one.
     pub fn step(mut self, value: i64) -> Self {
         self.step = value;
+        self
+    }
+
+    pub fn disabled(mut self, value: bool) -> Self {
+        self.disabled = value;
         self
     }
 
@@ -57,24 +71,53 @@ impl<M: Clone + 'static> MobileStepperBuilder<M> {
         self.on_increment = Some(msg);
         self
     }
+
+    /// Emit `f(new_value)` with the value clamped to `[min, max]`. An explicit
+    /// [`Self::on_decrement`] or [`Self::on_increment`] wins for its button.
+    pub fn on_change(mut self, f: fn(i64) -> M) -> Self {
+        self.on_change = Some(f);
+        self
+    }
 }
 
 impl<M: Clone + 'static> From<MobileStepperBuilder<M>> for WidgetNode<M> {
     fn from(b: MobileStepperBuilder<M>) -> Self {
-        let clamped = b.value.clamp(b.min, b.max);
-        let minus_btn = crate::button("stepper_dec", "−");
-        let plus_btn = crate::button("stepper_inc", "+");
+        let min = b.min.min(b.max);
+        let max = b.min.max(b.max);
+        let clamped = b.value.clamp(min, max);
+        let step = b.step.max(1);
+        let id = b.id.as_str();
+        let minus_btn = crate::button(format!("{id}__dec"), "−")
+            .w(Length::px(44.0))
+            .min_w(Length::px(44.0))
+            .h(Length::px(44.0))
+            .min_h(Length::px(44.0))
+            .disabled(b.disabled || clamped <= min);
+        let plus_btn = crate::button(format!("{id}__inc"), "+")
+            .w(Length::px(44.0))
+            .min_w(Length::px(44.0))
+            .h(Length::px(44.0))
+            .min_h(Length::px(44.0))
+            .disabled(b.disabled || clamped >= max);
+        let decrement = b.on_decrement.or_else(|| {
+            b.on_change
+                .map(|f| f(clamped.saturating_sub(step).clamp(min, max)))
+        });
+        let increment = b.on_increment.or_else(|| {
+            b.on_change
+                .map(|f| f(clamped.saturating_add(step).clamp(min, max)))
+        });
 
-        let minus_node = if let Some(msg) = b.on_decrement {
-            minus_btn.disabled(clamped <= b.min).on_click(msg)
+        let minus_node = if let Some(msg) = decrement {
+            minus_btn.on_click(msg)
         } else {
-            minus_btn.disabled(clamped <= b.min).into()
+            minus_btn.into()
         };
 
-        let plus_node = if let Some(msg) = b.on_increment {
-            plus_btn.disabled(clamped >= b.max).on_click(msg)
+        let plus_node = if let Some(msg) = increment {
+            plus_btn.on_click(msg)
         } else {
-            plus_btn.disabled(clamped >= b.max).into()
+            plus_btn.into()
         };
 
         crate::row::<M>()
@@ -135,3 +178,7 @@ mod tests {
         assert_eq!(b.on_increment, Some(Msg::Inc));
     }
 }
+
+#[cfg(test)]
+#[path = "mobile_stepper_tests.rs"]
+mod interaction_tests;
