@@ -258,8 +258,11 @@ impl FontSystem {
             } else if self
                 .rasterizer
                 .get_image(&mut self.inner, glyph.cache_key)
-                .is_some()
+                .as_ref()
+                .is_some_and(|image| image.placement.width > 0 && image.placement.height > 0)
             {
+                // Only a glyph with a bitmap can be refused for lack of atlas
+                // space; whitespace has none.
                 self.diagnostics.atlas_full_glyphs += 1;
             }
         }
@@ -485,6 +488,28 @@ mod tests {
                 .iter()
                 .zip(&two.raster_glyphs)
                 .any(|(a, b)| a.cache_key != b.cache_key)
+        );
+    }
+
+    #[test]
+    fn whitespace_is_not_counted_as_an_atlas_full_glyph() {
+        let mut fonts = FontSystem::new();
+        let layout = fonts.shape(
+            "a b c",
+            &TextStyle::default(),
+            TextConstraints::default(),
+            1.0,
+        );
+        let mut atlas = GlyphAtlas::new(512, 512);
+        let prepared = fonts.prepare(&layout, &mut atlas);
+        if prepared.glyphs.is_empty() {
+            eprintln!("SKIP: no usable host font");
+            return;
+        }
+        assert_eq!(
+            fonts.diagnostics().atlas_full_glyphs,
+            0,
+            "a space has no bitmap, so it is never dropped for lack of atlas space"
         );
     }
 
