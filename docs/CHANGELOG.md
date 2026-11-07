@@ -17,6 +17,17 @@
   changed from `Option<[u32; 4]>` to `Option<[f32; 4]>`, and `Application` gained
   default methods `background_tick` / `background_poll_interval` (see MIGRATION.md).
 
+## Unreleased - Audit reconciliation (PR #13, 2026-11-07)
+
+- Added a font-independent allocator regression for frame-boundary overflow
+  eviction, and multi-frame retained accessibility identity/focus/bounds
+  coverage across insertion, reorder and removal. Retained binding already
+  existed; the legacy sequential accessibility APIs are unchanged.
+- Reconciled STATUS/todos, Rust 1.88 MSRV and the English/Traditional Chinese
+  source inventory (199 category modules, not 199 fully interactive widgets).
+- No atlas behavior change: `evict_stale` and `clear` remain immediate explicit
+  operations, as defined by ROADMAP 006.
+
 ## Unreleased - Benchmarks and atlas lifecycle (ROADMAP 006, 2026-11-07)
 
 - **Behaviour change (`acme-text` `GlyphAtlas`):** automatic eviction no longer

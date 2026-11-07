@@ -22,9 +22,9 @@ AcmeUI Native 是一套 **Rust 原生桌面 UI 框架**，透過 **wgpu**（Dire
 - **中日韓 + 表情符號文字** — cosmic-text 塑形 + 字形圖集
 - **繁體中文 IME** — 預編輯/提交、游標幾何、候選視窗支援
 - **語意化設計 Token** — 淺色/深色/高對比主題
-- **AccessKit 無障礙** — 螢幕閱讀器支援
+- **AccessKit 無障礙** — 保留式 ID 樹狀橋接，螢幕閱讀器仍待人工驗證
 - **動畫引擎** — 補間/緩動/彈跳/迴圈
-- **165 個高階元件** — 經由 `acme-ui`（受 shadcn/ui + Material UI + Ant Design 啟發）
+- **199 個元件原始碼模組** — 經由 `acme-ui`（受 shadcn/ui + Material UI + Ant Design 啟發）
 
 ### 架構
 
@@ -34,9 +34,9 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 
 | 圖層 | Crate | 角色 |
 |------|-------|------|
-| UI 元件 | `acme-ui` | 165 個高階 Widget（Slider、Switch、DatePicker、Toast、Dock、Masonry、FileUpload、VideoPlayer、Heatmap、MobileCard…） |
+| UI 元件 | `acme-ui` | 199 個元件原始碼模組（Slider、Switch、DatePicker、Toast、Dock、Masonry、FileUpload、VideoPlayer、Heatmap、MobileCard…） |
 | Widget 基礎 | `acme-widgets` | WidgetNode 列舉、Builder DSL、Overlay 管理、視覺狀態 |
-| 文字編輯 | `acme-textinput` | 游標、選取、剪貼簿、IME 預編輯/提交、復原/重做（✓ 100 項測試） |
+| 文字編輯 | `acme-textinput` | 游標、選取、剪貼簿、IME 預編輯/提交、復原/重做 |
 | 排版 | `acme-layout` | 基於 Taffy 的 Flexbox 排版引擎 |
 | 文字 | `acme-text` | cosmic-text 塑形、字形圖集、中日韓 + 表情符號後備 |
 | 主題 | `acme-theme` | 語意色彩 Token V1 + V2、淺色/深色/高對比 |
@@ -52,7 +52,7 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 | 應用 | 套件 | 用途 |
 |------|------|------|
 | `apps/gallery` | `acme-gallery` | 主要展示 —— 8 類別導覽、即時 Data/Nav 展示（Tree、Table、DataGrid、VirtualList）、截圖模式 |
-| `apps/acme-gallery` | `acme-ui-gallery` | V2 元件展示 —— 165 個高階 `acme-ui` 元件 |
+| `apps/acme-gallery` | `acme-ui-gallery` | V2 的 `acme-ui` 元件展示 |
 | `apps/playground` | `playground` | 最小開發沙盒，快速實驗 |
 | `apps/benchmark` | `benchmark` | 無頭排版/調和/幀建置基準測試 |
 
@@ -223,9 +223,9 @@ assert!(theme.validate().is_ok());
 | 領域 | 狀態 |
 |------|------|
 | 核心框架 | ✅ **穩定** — 樹、排版、渲染、文字、主題、動畫、無障礙、Widget |
-| 文字輸入 + IME | ✅ **穩定** — 100 項測試、游標幾何、繁體中文預編輯/提交 |
+| 文字輸入 + IME | ✅ **穩定** — 游標幾何與預編輯／提交自動化，注音仍待人工驗證 |
 | 資料元件 | 🧪 **實驗性** — Tree、Table、DataGrid、VirtualList 附 Gallery 即時展示 |
-| UI 元件庫 | 🧪 **實驗性** — 165 個元件（acme-ui），於 acme-ui-gallery 展示 |
+| UI 元件庫 | 🧪 **實驗性** — 199 個原始碼模組（acme-ui），實作深度不一 |
 | GPU 裝置遺失復原 | 🧪 **已接線** — 純測試狀態機 + `on_gpu_recovered` 鉤子；**手動驗證待完成** |
 | 繁體中文注音 IME | 🧪 **架構完成** — **手動驗證待完成** |
 | 螢幕截圖黃金測試 | 📋 **已搭建骨架** — 尚未納入 CI |
@@ -250,7 +250,7 @@ AcmeUI-Native/
 │   ├── acme-animation/     # 補間引擎
 │   ├── acme-style/         # 樣式抽象層
 │   ├── acme-widgets/       # WidgetNode 列舉 + Builder DSL
-│   ├── acme-ui/            # 165 個高階元件
+│   ├── acme-ui/            # 199 個元件原始碼模組
 │   ├── acme-accessibility/ # AccessKit 橋接
 │   └── acme-devtools/      # 檢查器、指標、除錯器
 ├── apps/
@@ -333,19 +333,21 @@ AcmeUI-Native/
 
 ### UI 元件庫（acme-ui）
 
-| 模組 | 元件數 | 功能閘門 | 預設啟用 |
+| 模組 | 原始碼模組數 | 功能閘門 | 預設啟用 |
 |------|--------|----------|---------|
-| `foundations/` | 42（Alert、Badge、Calendar、Divider、Icon、Link、Progress、Skeleton、Tag…） | `foundations` | ✅ |
-| `inputs/` | 29（ButtonGroup、Checkbox、Combobox、DatePicker、FileUpload、Radio、Slider、Switch、Select…） | `inputs` | ✅ |
-| `layout/` | 15（Form、Grid、Masonry、Pagination、Tabs、Toolbar、SplitPanel、Stepper…） | `layout` | ✅ |
-| `overlay/` | 8（Drawer、Toast、ConfirmDialog、ContextMenu、HoverCard…） | `overlay` | ✅ |
-| `desktop/` | 11（TitleBar、Dock、Sidenav、Menubar、CommandBar、PropertyGrid…） | `desktop` | — |
-| `charts/` | 20（LineChart、PieChart、BarChart、Sparkline、AreaChart、Gauge、Heatmap、RadarChart…） | `charts` | — |
-| `mobile/` | 20（BottomNav、BottomSheet、PullToRefresh、MobileCard、MobileButton、MobileLoader…） | `mobile` | — |
-| `browser/` | 16（Carousel、Lightbox、ZoomView、VideoPlayer、AudioPlayer、PDFViewer…） | `browser` | — |
-| **總計** | **165 個元件檔案** | 8 個功能閘門 | 4 個預設 |
+| `foundations/` | 53 | `foundations` | ✅ |
+| `inputs/` | 38 | `inputs` | ✅ |
+| `layout/` | 24 | `layout` | ✅ |
+| `overlay/` | 15 | `overlay` | ✅ |
+| `desktop/` | 13 | `desktop` | — |
+| `charts/` | 20 | `charts` | — |
+| `mobile/` | 20 | `mobile` | — |
+| `browser/` | 16 | `browser` | — |
+| **總計** | **199** | 8 個功能分類 | 4 個預設 |
 
-每個元件遵循 **Builder 模式**：`Component::new() → .option(value) → .on_event(message) → .build() → WidgetNode<M>`。
+以各分類下的 `*.rs` 檔案計算，不含 `mod.rs`；這不是可互動元件的數量。
+其中包含實驗性實作與佔位內容，數量不代表無障礙支援、Gallery 展示涵蓋率、
+視覺驗證或正式產品可用程度。驗證範圍與待辦請見 [STATUS](docs/status/STATUS.md)。
 
 ---
 

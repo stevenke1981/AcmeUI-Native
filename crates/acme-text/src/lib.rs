@@ -577,6 +577,69 @@ fn map_wrap(wrap: TextWrap) -> Wrap {
 mod tests {
     use super::*;
 
+    // Synthetic keys and pixels keep allocator regressions independent of host fonts.
+    fn test_key(glyph: u16) -> CacheKey {
+        CacheKey::new(
+            Default::default(),
+            glyph,
+            16.0,
+            (0.0, 0.0),
+            cosmic_text::CacheKeyFlags::empty(),
+        )
+        .0
+    }
+
+    fn test_glyph() -> RasterizedGlyph {
+        RasterizedGlyph {
+            width: 2,
+            height: 2,
+            left: 0,
+            top: 0,
+            format: AtlasFormat::Alpha8,
+            pixels: vec![255; 4],
+        }
+    }
+
+    #[test]
+    fn overflow_preserves_current_frame_glyphs_until_begin_frame() {
+        let mut atlas = GlyphAtlas::new(5, 3);
+        let mut uploads = Vec::new();
+        atlas
+            .insert(test_key(1), test_glyph(), &mut uploads)
+            .unwrap();
+        for _ in 0..61 {
+            atlas.begin_frame();
+        }
+        let live = atlas
+            .insert(test_key(2), test_glyph(), &mut uploads)
+            .unwrap();
+        let generation = atlas.generation();
+        assert!(
+            atlas
+                .insert(test_key(3), test_glyph(), &mut uploads)
+                .is_none(),
+            "overflow must not overwrite glyphs already issued this frame"
+        );
+        assert_eq!(atlas.generation(), generation);
+        assert_eq!(atlas.entries[&test_key(2)].id, live.id);
+        assert_eq!(
+            uploads.len(),
+            2,
+            "overflow must not emit an overlapping upload"
+        );
+        atlas.begin_frame();
+        assert!(
+            atlas.is_empty(),
+            "pending eviction runs at the frame boundary"
+        );
+        assert_eq!(atlas.generation(), generation + 1);
+        assert!(
+            atlas
+                .insert(test_key(3), test_glyph(), &mut uploads)
+                .is_some()
+        );
+    }
+
     #[test]
     fn empty_text_is_safe() {
         let mut fonts = FontSystem::new();

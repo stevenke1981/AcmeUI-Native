@@ -1,5 +1,15 @@
 # Todos
 
+## Audit reconciliation — bounded hardening (2026-11-07)
+
+- [x] Re-verify accessibility findings: retained-bound IDs and Gallery wiring were already fixed by merged PR #8/#9; preserve the sequential compatibility APIs.
+- [x] Extend retained-ID regression coverage across insertion, reorder and removal, including focus and layout bounds.
+- [x] Document Rust 1.88 MSRV and 199 component source modules (excluding category `mod.rs`); module count is not a maturity claim.
+- [x] Add a font-independent regression that automatic overflow eviction waits for `begin_frame` (full clear, not per-glyph LRU). Explicit `evict_stale`/`clear` stay immediate (ROADMAP 006 contract).
+- [x] Inspect PR #6: already merged, including lockfile hardening; no historical branch update needed.
+- [x] Reconcile with merged PR #12: preserve benchmark work, pressure/overflow-triggered frame-boundary eviction and the 600-frame lifecycle suite.
+- [ ] Manual Gallery/visual, 注音 IME, physical DPI, GPU failover and screen-reader checks — NOT_RUN in this batch.
+
 ## SDK production hardening — batch-002 (2026-11-07)
 
 - [x] Integrate PR #5 (focus navigation) and PR #6 (CPU renderer fallback).
@@ -30,7 +40,7 @@
 - [x] Wire Gallery history shortcuts and test the actual event handler flow.
 - [x] Run full Windows GNU workspace check/build/tests, all features, formatting
   and changed-file Clippy validation with existing Rust 1.94.1.
-- [ ] Run pinned Rust 1.88 and cross-platform CI gates.
+- [ ] Historical patch-wide pinned Rust 1.88 / cross-platform evidence: see later team reports and current CI; this batch runs targeted Linux checks only.
 - [ ] Gallery visual validation remains pending. The retained tree drives layout/accessibility IDs since ROADMAP 003.
 
 Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-invalidation.md).
@@ -112,15 +122,16 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [ ] Manual Traditional Chinese 注音 IME validation on Windows (checklist B)
 - [ ] Manual GPU device-loss recovery on Windows (checklist A)
 - [ ] Manual DPI interaction at 125/150/200% Windows scaling
-- [x] Glyph atlas eviction/aging when full
+- [x] Glyph atlas stale detection and full-clear eviction when full (not per-glyph LRU); mid-frame eviction deferred to `begin_frame`
 - [ ] Benchmark headless CI thresholds
 - [x] Pixel regression: CPU-renderer text-free goldens (batch-002); Gallery screenshot goldens still open
 
 ## P3 — Mobile component real implementations (CBM audit 2026-07-21)
 
-> 16 mobile_* modules are currently stubs (`crate::label()` passthrough).
-> Each needs a builder-pattern struct + `From<Builder> for WidgetNode<M>` + unit tests,
-> following the `bottom_nav` / `action_sheet` reference pattern.
+> Historical CBM task list: current `mobile_*` files now contain builders; the
+> old blanket label-passthrough claim is obsolete. Unchecked items below remain
+> acceptance follow-ups, not proof that the implementation is absent. Re-audit
+> interaction and test coverage before marking them complete.
 
 - [x] mobile_button — sized variants (sm/md/lg), disabled state, on_press message; 36/44/52px touch heights, Gallery page, and hit-index regression tests (2026-07-23)
 - [ ] mobile_card — title + subtitle + optional media slot + elevation
@@ -156,7 +167,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [ ] Add Gallery "Mobile" page showcasing all mobile components
 - [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
-- [ ] Document component inventory in README (current count: 160+ UI components)
+- [x] Document source-module inventory in both READMEs (199 modules; excludes `mod.rs`, does not imply interactive completeness)
 
 ## P6 — shadcn/ui alignment (2026-07-21)
 

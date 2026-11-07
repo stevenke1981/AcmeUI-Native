@@ -1500,6 +1500,75 @@ mod tests {
     }
 
     #[test]
+    fn retained_ids_focus_and_bounds_survive_reorder_insert_and_remove() {
+        let mut tree = RetainedTree::new();
+        let mut adapter = AccessibilityAdapter::new(1);
+        let mut stable = None;
+        for keys in [
+            &["a", "b"][..],
+            &["new", "b", "a"][..],
+            &["b"][..],
+            &["b", "last"][..],
+        ] {
+            let roots = vec![keyed_buttons(keys)];
+            reconcile_frame(&mut tree, &roots);
+            let binding = bind_retained(&roots, &tree);
+            assert_eq!(binding.mismatches(), 0);
+            let layout = roots[0].to_layout_with_binding(
+                &binding,
+                &acme_layout::WidgetLayoutContext {
+                    body_font_size: 14.0,
+                    body_line_height: 21.0,
+                    label_font_size: 13.0,
+                    control_height: 36.0,
+                    scale_factor: 1.0,
+                },
+            );
+            let snapshot = LayoutEngine::new()
+                .compute(&layout, (400.0, 100.0))
+                .expect("bound layout should compute");
+            adapter.update_with_binding(&roots[0], &snapshot, &binding);
+            let (id, node) = find_button(adapter.tree_ref().expect("tree exists"), "b");
+            let retained = binding
+                .id_for(
+                    &roots[0].children()[keys
+                        .iter()
+                        .position(|key| *key == "b")
+                        .expect("b is present in every test frame")],
+                )
+                .expect("b must be bound");
+            assert_eq!(id, to_access_id(retained));
+            if let Some(previous) = stable {
+                assert_eq!(id, previous, "b changed ID in frame {keys:?}");
+            }
+            stable = Some(id);
+            let rect = snapshot.get(retained).expect("b has layout bounds");
+            assert_eq!(
+                node.bounds(),
+                Some(Rect::new(
+                    f64::from(rect.x),
+                    f64::from(rect.y),
+                    f64::from(rect.x + rect.width),
+                    f64::from(rect.y + rect.height),
+                )),
+                "b must read its own bounds after {keys:?}"
+            );
+            adapter.focus_widget(retained);
+            let update = adapter.build_tree_update().expect("tree update exists");
+            assert_eq!(update.focus, id);
+            let free_update = build_tree_update_with_binding(
+                &roots[0],
+                &snapshot,
+                &binding,
+                Some(retained),
+                None,
+            );
+            assert_eq!(free_update.focus, id);
+            assert_eq!(free_update.nodes, update.nodes);
+        }
+    }
+
+    #[test]
     fn click_resolves_center_from_snapshot_keyed_by_retained_id() {
         let mut tree = RetainedTree::new();
         let roots = vec![keyed_buttons(&["a", "b"])];
