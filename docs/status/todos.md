@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 015 — area-based clip edges (2026-11-08)
+
+- [x] Clip edges contribute fractional pixel area; sharp quads use the exact rect∩clip area (no double attenuation on coincident edges).
+- [ ] Rounded quads, images and glyphs multiply shape and clip masks (approximate where both edges cross one pixel).
+- [ ] GPU renderer parity for fractional clips — NOT_RUN.
+
 ## ROADMAP 014 — AccessKit requests, analytic arcs, mobile controls (2026-11-08)
 
 - [x] `AccessibilityAction::from_request` / `AccessibilityAdapter::handle_request`; `from_access_id` round-trips virtual ids.
@@ -44,7 +50,7 @@
 - [x] Cell bounds / layout-ID alignment — walk mirrors layout ID order (ROADMAP 010).
 - [x] Tree-item content is walked and TreeItem has Focus/Click/Expand/Collapse (ROADMAP 013).
 - [ ] DataGrid merged-cell spans. (Ragged rows group correctly since ROADMAP 010.)
-- [x] Analytic arc area (ROADMAP 014). - [ ] Area-based clip edges (clip still tests the pixel centre).
+- [x] Analytic arc area (ROADMAP 014). - [x] Area-based clip edges (ROADMAP 015).
 - [x] Multi-page glyph atlas (ROADMAP 011).
 - [ ] Screen-reader confirmation of TreeItem/Row/ColumnHeader — NOT_RUN (manual).
 

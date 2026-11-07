@@ -18,6 +18,7 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 | 012 | Lead + Rendering + Text + Accessibility | wgpu crate-root split, demand-LRU atlas starvation fix, IME preedit scroll and drawing | API page/declaration diff vs HEAD, RED/GREEN tests, cross-agent reviews (Sigma and Codex); IME/GPU manual checks NOT_RUN |
 | 013 | Lead + Accessibility + Text | TreeItem Focus/Click/Expand/Collapse actions and walked item content; acme-textinput lib.rs split | RED/GREEN + mutation tests (p5), test-list and rustdoc item diff vs master, cross reviews (lead and Codex); screen reader NOT_RUN |
 | 014 | Lead + Accessibility + Rendering + Mobile | AccessKit request mapping and trailing-edge TreeItem press; exact analytic arc coverage in the CPU renderer; interactive mobile toggle/stepper/segmented | RED/GREEN + mutation tests per part, golden delta and benchmark before/after, cross reviews (lead, Codex); screen reader, touch device, quiet-host benchmark NOT_RUN |
+| 015 | Lead + Rendering | Area-based CPU clip edges: exact rect∩clip area for sharp quads, clip-area mask for rounded quads, images and glyphs | Integer clips and goldens byte-identical, RED/GREEN + mutation tests at five scales, coincident-edge seam regression, benchmark before/after (observation); live Gallery and GPU parity NOT_RUN |
 
 ## Existing work to preserve
 

@@ -99,7 +99,7 @@ fn for_pixels(
     height: u32,
     bounds: Bounds,
     clip: Option<Bounds>,
-    mut paint: impl FnMut(usize, f32, f32),
+    mut paint: impl FnMut(usize, f32, f32, f32),
 ) {
     // Minimized surfaces and malformed geometry must not enter the raster loops.
     if width == 0 || height == 0 {
@@ -112,6 +112,8 @@ fn for_pixels(
         return;
     }
     let visible = clip.map_or(bounds, |region| bounds.intersect(region));
+    // Keep candidate pixel ranges for the approximate rounded/image/glyph
+    // masks. Sharp quads calculate the exact geometry intersection themselves.
     let left = visible.left.floor().max(0.0).min(width as f32) as u32;
     let top = visible.top.floor().max(0.0).min(height as f32) as u32;
     let right = visible.right.ceil().max(0.0).min(width as f32) as u32;
@@ -122,10 +124,18 @@ fn for_pixels(
     for y in top..bottom {
         for x in left..right {
             let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);
-            if !clip.is_none_or(|c| c.contains(px, py)) {
+            // Nested clips are already intersected. Rounded/image/glyph draws
+            // multiply this mask; sharp quads use exact rectangle intersections.
+            let clip_coverage = clip.map_or(1.0, |c| quad_coverage(c, 0.0, px, py));
+            if clip_coverage <= 0.0 {
                 continue;
             }
-            paint(y as usize * width as usize + x as usize, px, py);
+            paint(
+                y as usize * width as usize + x as usize,
+                px,
+                py,
+                clip_coverage,
+            );
         }
     }
 }
@@ -150,18 +160,32 @@ fn draw_quad(
     let inner_radius = (radius - border).max(0.0);
     let fill = pack(quad.color);
     let stroke = pack(quad.border_color);
-    for_pixels(width, height, rect, clip, |idx, x, y| {
-        let coverage = quad_coverage(rect, radius, x, y);
+    let sharp = radius == 0.0;
+    let (coverage_rect, coverage_inner) = if sharp {
+        (
+            clip.map_or(rect, |c| rect.intersect(c)),
+            clip.map_or(inner, |c| inner.intersect(c)),
+        )
+    } else {
+        (rect, inner)
+    };
+    for_pixels(width, height, rect, clip, |idx, x, y, clip_coverage| {
+        let coverage = quad_coverage(coverage_rect, radius, x, y);
         if coverage <= 0.0 {
             return;
         }
+        let clip_coverage = if sharp { 1.0 } else { clip_coverage };
         if border > 0.0 {
             // Stroke area is outer minus inner, so it cannot go negative.
-            let inside = quad_coverage(inner, inner_radius, x, y);
-            pixels[idx] = blend(pixels[idx], fill, inside);
-            pixels[idx] = blend(pixels[idx], stroke, (coverage - inside).max(0.0));
+            let inside = quad_coverage(coverage_inner, inner_radius, x, y);
+            pixels[idx] = blend(pixels[idx], fill, inside * clip_coverage);
+            pixels[idx] = blend(
+                pixels[idx],
+                stroke,
+                (coverage - inside).max(0.0) * clip_coverage,
+            );
         } else {
-            pixels[idx] = blend(pixels[idx], fill, coverage);
+            pixels[idx] = blend(pixels[idx], fill, coverage * clip_coverage);
         }
     });
 }
@@ -183,7 +207,7 @@ fn draw_image(
     let sw = image.image.width() as usize;
     let sh = image.image.height() as usize;
     let source = image.image.pixels();
-    for_pixels(width, height, dest, clip, |idx, x, y| {
+    for_pixels(width, height, dest, clip, |idx, x, y, clip_coverage| {
         if !dest.contains(x, y) {
             return;
         }
@@ -194,7 +218,7 @@ fn draw_image(
             | ((source[at] as u32) << 16)
             | ((source[at + 1] as u32) << 8)
             | source[at + 2] as u32;
-        pixels[idx] = blend(pixels[idx], src, 1.0);
+        pixels[idx] = blend(pixels[idx], src, clip_coverage);
     });
 }
 
@@ -312,7 +336,7 @@ fn draw_text(
             right: glyph.x + text.origin.x.get() * scale + glyph.width,
             bottom: glyph.y + text.origin.y.get() * scale + glyph.height,
         };
-        for_pixels(width, height, rect, clip, |idx, x, y| {
+        for_pixels(width, height, rect, clip, |idx, x, y, clip_coverage| {
             if !rect.contains(x, y) {
                 return;
             }
@@ -337,7 +361,7 @@ fn draw_text(
                     alpha | r | g | b
                 }
             };
-            pixels[idx] = blend(pixels[idx], src, 1.0);
+            pixels[idx] = blend(pixels[idx], src, clip_coverage);
         });
     }
 }
