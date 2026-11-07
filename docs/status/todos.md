@@ -1,12 +1,21 @@
 # Todos
 
+## ROADMAP 014 — AccessKit requests, analytic arcs, mobile controls (2026-11-08)
+
+- [x] `AccessibilityAction::from_request` / `AccessibilityAdapter::handle_request`; `from_access_id` round-trips virtual ids.
+- [x] Exact pixel-area coverage for corner arcs (max error 6.7e-5 vs a 512x512 reference); golden `rounded_bordered` re-blessed with measured delta.
+- [x] Interactive mobile toggle, stepper and segmented control with Gallery demos and hit tests.
+- [ ] Wire a real AccessKit platform adapter (e.g. accesskit_winit) to `handle_request`.
+- [ ] Quiet-host CPU benchmark: the single uncontrolled run showed +12.5% median at scale 1.0.
+- [ ] Whole-crate `clippy -p acme-ui --all-targets -D warnings` has 35 pre-existing diagnostics in 22 files.
+
 ## ROADMAP 013 — TreeItem actions, item content walk, textinput split (2026-11-08)
 
 - [x] TreeItem Focus/Click on every row; Expand/Collapse on rows with children; additive `AccessibilityAction::Expand/Collapse` routed as row select + arrow key.
 - [x] Non-plain tree-item content walked as the item's child (unlowered; layout-ID order unchanged).
 - [x] `acme-textinput/src/lib.rs` (2829 lines) split into render/caret/input/boundary and four test files; public items unchanged.
-- [ ] App/winit bridge mapping of AccessKit `Action::Expand`/`Collapse` requests to the new variants.
-- [ ] Click/Expand on a TreeItem press the row centre; a control at the centre of rich content would take the press instead of the row.
+- [x] AccessKit `ActionRequest` → `AccessibilityAction` mapping and `handle_request` (ROADMAP 014); a real platform adapter is still not wired.
+- [x] TreeItem presses land at the row's trailing edge (ROADMAP 014).
 - [ ] Screen-reader confirmation of TreeItem actions — NOT_RUN (manual).
 
 ## ROADMAP 012 — wgpu split, atlas starvation, IME composition (2026-11-08)
@@ -35,7 +44,7 @@
 - [x] Cell bounds / layout-ID alignment — walk mirrors layout ID order (ROADMAP 010).
 - [x] Tree-item content is walked and TreeItem has Focus/Click/Expand/Collapse (ROADMAP 013).
 - [ ] DataGrid merged-cell spans. (Ragged rows group correctly since ROADMAP 010.)
-- [ ] Area-based clip edges; analytic arc area (currently 8x8 sampled).
+- [x] Analytic arc area (ROADMAP 014). - [ ] Area-based clip edges (clip still tests the pixel centre).
 - [x] Multi-page glyph atlas (ROADMAP 011).
 - [ ] Screen-reader confirmation of TreeItem/Row/ColumnHeader — NOT_RUN (manual).
 
