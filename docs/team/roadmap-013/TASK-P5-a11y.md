@@ -1,6 +1,6 @@
 # ROADMAP 013 — TASK P5 (Antigravity / Claude Sonnet 5.5): TreeItem actions and content walk
 
-Worktree: `D:\AcmeUI-013-a11y`, branch `sdk/roadmap-013-a11y` (based on master 1d81e52). Work only inside this worktree.
+Worktree: a separate worktree, branch `sdk/roadmap-013-a11y` (based on master 1d81e52). Work only inside this worktree.
 The lead (p3, Claude Opus) is splitting `crates/acme-textinput/src/lib.rs` in parallel in another worktree. You own **only** `crates/acme-accessibility/**`. Do not touch other crates.
 
 ## Open items (from docs/status/todos.md, ROADMAP 009)

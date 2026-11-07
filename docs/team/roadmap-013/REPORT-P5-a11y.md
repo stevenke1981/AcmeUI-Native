@@ -1,6 +1,6 @@
 # REPORT P5 — TreeItem actions and content walk (ROADMAP 013)
 
-Worktree `D:\AcmeUI-013-a11y`, branch `sdk/roadmap-013-a11y`. Only `crates/acme-accessibility/**` changed, plus this report. Nothing was added, committed, stashed or pushed.
+Worktree a separate worktree, branch `sdk/roadmap-013-a11y`. Only `crates/acme-accessibility/**` changed, plus this report. Nothing was added, committed, stashed or pushed.
 
 ## Design
 - **Actions.** Every `TreeItem` gets `Action::Focus` and `Action::Click`. An item with children also gets `Action::Collapse` when it is expanded, or `Action::Expand` when it is collapsed. AccessKit 0.21.1 has both actions.
