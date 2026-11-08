@@ -108,6 +108,28 @@ pub(crate) fn physical_position_to_logical(
     (position.x as f32 / scale, position.y as f32 / scale)
 }
 
+/// Convert physical cursor coordinates (which may be negative or outside the
+/// client area while mouse capture is active during a button-held drag) into
+/// logical `(x, y)` coordinates without clamping.
+pub(crate) fn pointer_position_to_logical(x: f64, y: f64, scale_factor: f32) -> (f32, f32) {
+    let scale = if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    };
+    (x as f32 / scale, y as f32 / scale)
+}
+
+/// Events emitted when the pointer leaves the window client area.
+/// Emits [`PlatformEvent::PointerLeft`] alongside [`PlatformEvent::CursorLeft`]
+/// for backward compatibility.
+pub(crate) fn cursor_left_events(window: WindowId) -> [PlatformEvent; 2] {
+    [
+        PlatformEvent::PointerLeft { window },
+        PlatformEvent::CursorLeft { window },
+    ]
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlatformEvent {
     // ?? Existing variants (backward-compatible, unchanged) ??
@@ -131,6 +153,10 @@ pub enum PlatformEvent {
         window: WindowId,
         x: f32,
         y: f32,
+    },
+    /// Pointer left the window client area (emitted alongside [`PlatformEvent::CursorLeft`]).
+    PointerLeft {
+        window: WindowId,
     },
     PointerButton {
         window: WindowId,
@@ -901,6 +927,36 @@ mod tests {
     }
 
     #[test]
+    fn pointer_capture_coordinates_and_pointer_left_events_are_preserved() {
+        // Negative and out-of-window coordinates during a captured drag must not clamp.
+        assert_eq!(
+            pointer_position_to_logical(-150.0, 2400.0, 1.5),
+            (-100.0, 1600.0)
+        );
+        assert_eq!(
+            pointer_position_to_logical(-40.0, -20.0, 0.0),
+            (-40.0, -20.0)
+        );
+        assert_eq!(
+            pointer_position_to_logical(30.0, -60.0, f32::NAN),
+            (30.0, -60.0)
+        );
+
+        let events = cursor_left_events(WindowId(9));
+        assert_eq!(
+            events,
+            [
+                PlatformEvent::PointerLeft {
+                    window: WindowId(9)
+                },
+                PlatformEvent::CursorLeft {
+                    window: WindowId(9)
+                },
+            ]
+        );
+    }
+
+    #[test]
     fn application_frame_can_stream_backend_neutral_rgba8_images() {
         struct ImageApp {
             revision: u64,
@@ -1259,7 +1315,7 @@ fn handle_pointer_moved(
     };
     let scale = state.window.scale_factor() as f32;
     let win_id = state.id;
-    state.cursor = (x as f32 / scale, y as f32 / scale);
+    state.cursor = pointer_position_to_logical(x, y, scale);
     let dirty = app.event(PlatformEvent::PointerMoved {
         window: win_id,
         x: state.cursor.0,
@@ -1298,7 +1354,10 @@ fn handle_cursor_left(
 ) {
     if let Some(state) = windows.get_mut(&id) {
         let win_id = state.id;
-        let dirty = app.event(PlatformEvent::CursorLeft { window: win_id });
+        let mut dirty = false;
+        for event in cursor_left_events(win_id) {
+            dirty |= app.event(event);
+        }
         state.dirty |= dirty;
         if state.dirty {
             state.window.request_redraw();

@@ -53,6 +53,10 @@ pub enum CursorIcon {
     Pointer,
     ResizeHorizontal,
     ResizeVertical,
+    Grab,
+    Grabbing,
+    Move,
+    NotAllowed,
 }
 
 /// Map a platform-neutral [`CursorIcon`] to a winit [`winit::window::CursorIcon`].
@@ -63,6 +67,10 @@ pub(crate) fn map_cursor_icon(icon: CursorIcon) -> winit::window::CursorIcon {
         CursorIcon::Pointer => winit::window::CursorIcon::Pointer,
         CursorIcon::ResizeHorizontal => winit::window::CursorIcon::EwResize,
         CursorIcon::ResizeVertical => winit::window::CursorIcon::NsResize,
+        CursorIcon::Grab => winit::window::CursorIcon::Grab,
+        CursorIcon::Grabbing => winit::window::CursorIcon::Grabbing,
+        CursorIcon::Move => winit::window::CursorIcon::Move,
+        CursorIcon::NotAllowed => winit::window::CursorIcon::NotAllowed,
     }
 }
 
@@ -215,6 +223,22 @@ mod tests {
         assert_eq!(
             map_cursor_icon(CursorIcon::ResizeVertical),
             winit::window::CursorIcon::NsResize
+        );
+        assert_eq!(
+            map_cursor_icon(CursorIcon::Grab),
+            winit::window::CursorIcon::Grab
+        );
+        assert_eq!(
+            map_cursor_icon(CursorIcon::Grabbing),
+            winit::window::CursorIcon::Grabbing
+        );
+        assert_eq!(
+            map_cursor_icon(CursorIcon::Move),
+            winit::window::CursorIcon::Move
+        );
+        assert_eq!(
+            map_cursor_icon(CursorIcon::NotAllowed),
+            winit::window::CursorIcon::NotAllowed
         );
     }
 }
