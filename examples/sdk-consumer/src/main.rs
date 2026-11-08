@@ -87,6 +87,7 @@ impl Application for ConsumerApp {
             title: "AcmeUI SDK consumer".into(),
             width: WINDOW_WIDTH,
             height: WINDOW_HEIGHT,
+            ..WindowConfig::default()
         }
     }
 
