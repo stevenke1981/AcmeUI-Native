@@ -6,8 +6,8 @@ mod atlas;
 use std::collections::HashSet;
 
 use cosmic_text::{
-    Attrs, Buffer, CacheKey, Family, FontSystem as CosmicFontSystem, Metrics, Shaping, SwashCache,
-    Style as FontStyle, SwashContent, Weight, Wrap,
+    Attrs, Buffer, CacheKey, Family, FontSystem as CosmicFontSystem, Metrics, Shaping,
+    Style as FontStyle, SwashCache, SwashContent, Weight, Wrap,
 };
 
 use atlas::RasterizedGlyph;
