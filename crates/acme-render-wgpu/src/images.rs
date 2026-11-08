@@ -65,6 +65,10 @@ pub(crate) fn validate_image_upload(
     Ok(ImageUploadLayout { bytes_per_row })
 }
 
+/// Texture format for RGBA8 images: non-sRGB so sRGB-encoded image bytes pass
+/// through unchanged to the non-sRGB swapchain (matching the CPU renderer).
+pub(crate) const IMAGE_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
+
 pub(crate) fn create_image_resource(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -83,7 +87,7 @@ pub(crate) fn create_image_resource(
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        format: IMAGE_TEXTURE_FORMAT,
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
         view_formats: &[],
     });

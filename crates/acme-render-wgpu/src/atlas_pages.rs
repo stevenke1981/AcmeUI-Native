@@ -56,6 +56,15 @@ impl AtlasPages {
     }
 }
 
+pub(crate) fn atlas_texture_format(format: GlyphFormat) -> (wgpu::TextureFormat, &'static str) {
+    match format {
+        GlyphFormat::Alpha8 => (wgpu::TextureFormat::R8Unorm, "alpha"),
+        // Scene colours are sRGB-encoded; keep RGBA8 glyph texels in non-sRGB format
+        // so sampling passes sRGB bytes through unchanged to the non-sRGB surface.
+        GlyphFormat::Rgba8 => (wgpu::TextureFormat::Rgba8Unorm, "rgba"),
+    }
+}
+
 impl AtlasPage {
     fn new(
         device: &wgpu::Device,
@@ -64,10 +73,7 @@ impl AtlasPage {
         format: GlyphFormat,
         page: u32,
     ) -> Self {
-        let (texture_format, name) = match format {
-            GlyphFormat::Alpha8 => (wgpu::TextureFormat::R8Unorm, "alpha"),
-            GlyphFormat::Rgba8 => (wgpu::TextureFormat::Rgba8UnormSrgb, "rgba"),
-        };
+        let (texture_format, name) = atlas_texture_format(format);
         let label = format!("{name} atlas page {page}");
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some(&label),
@@ -474,8 +480,20 @@ mod tests {
         assert_eq!(page.texture.size().width, EDGE);
         assert_eq!(page.texture.size().height, EDGE);
         let rgba = pages.ensure(&device, &layout, &sampler, GlyphFormat::Rgba8, 7);
-        assert_eq!(rgba.texture.format(), wgpu::TextureFormat::Rgba8UnormSrgb);
+        assert_eq!(rgba.texture.format(), wgpu::TextureFormat::Rgba8Unorm);
         assert!(pages.get(GlyphFormat::Rgba8, 7).is_some());
         assert!(pages.get(GlyphFormat::Rgba8, 6).is_none());
+    }
+
+    #[test]
+    fn atlas_texture_format_uses_non_srgb_rgba8() {
+        assert_eq!(
+            atlas_texture_format(GlyphFormat::Alpha8),
+            (wgpu::TextureFormat::R8Unorm, "alpha")
+        );
+        assert_eq!(
+            atlas_texture_format(GlyphFormat::Rgba8),
+            (wgpu::TextureFormat::Rgba8Unorm, "rgba")
+        );
     }
 }

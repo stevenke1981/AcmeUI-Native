@@ -12,15 +12,15 @@ use acme_core::{
 use crate::atlas_pages::UploadReject;
 use crate::draws::{DrawBatchDesc, push_text_batch, scissor};
 use crate::images::{
-    ImageUploadError, ImageUploadLayout, collect_scene_images, retain_live_image_resources,
-    validate_image_upload,
+    IMAGE_TEXTURE_FORMAT, ImageUploadError, ImageUploadLayout, collect_scene_images,
+    retain_live_image_resources, validate_image_upload,
 };
 use crate::instances::{
     image_primitive_to_instance, normalize_color, normalize_scale, text_primitive_glyphs,
 };
 use crate::surface::{
-    AcquireOutcome, complete_recovery_state, is_device_lost, register_device_error_handlers,
-    resolve_surface_action,
+    AcquireOutcome, complete_recovery_state, configure_surface_srgb_passthrough, is_device_lost,
+    register_device_error_handlers, resolve_surface_action, surface_format,
 };
 use crate::uploads::{scene_bytes_per_pixel, validate_scene_upload};
 use crate::{Frame, Quad, SurfaceAction, SurfaceStatus};
@@ -382,4 +382,45 @@ fn scene_upload_validation_rejects_out_of_range_page() {
     );
     let last = scene_upload(ATLAS_MAX_PAGES - 1, SceneGlyphFormat::Alpha8, [0, 0]);
     assert!(validate_scene_upload(&last).is_ok());
+}
+
+#[test]
+fn surface_format_strips_srgb_suffix_and_preserves_unorm() {
+    assert_eq!(
+        surface_format(wgpu::TextureFormat::Bgra8UnormSrgb),
+        wgpu::TextureFormat::Bgra8Unorm
+    );
+    assert_eq!(
+        surface_format(wgpu::TextureFormat::Rgba8UnormSrgb),
+        wgpu::TextureFormat::Rgba8Unorm
+    );
+    assert_eq!(
+        surface_format(wgpu::TextureFormat::Bgra8Unorm),
+        wgpu::TextureFormat::Bgra8Unorm
+    );
+    assert_eq!(
+        surface_format(wgpu::TextureFormat::Rgba8Unorm),
+        wgpu::TextureFormat::Rgba8Unorm
+    );
+    assert_eq!(IMAGE_TEXTURE_FORMAT, wgpu::TextureFormat::Rgba8Unorm);
+}
+
+#[test]
+fn configure_surface_srgb_passthrough_normalizes_format_and_view_formats() {
+    let mut config = wgpu::SurfaceConfiguration {
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        format: wgpu::TextureFormat::Bgra8UnormSrgb,
+        width: 800,
+        height: 600,
+        present_mode: wgpu::PresentMode::Fifo,
+        desired_maximum_frame_latency: 2,
+        alpha_mode: wgpu::CompositeAlphaMode::Auto,
+        view_formats: vec![
+            wgpu::TextureFormat::Bgra8UnormSrgb,
+            wgpu::TextureFormat::Bgra8Unorm,
+        ],
+    };
+    configure_surface_srgb_passthrough(&mut config);
+    assert_eq!(config.format, wgpu::TextureFormat::Bgra8Unorm);
+    assert_eq!(config.view_formats, vec![wgpu::TextureFormat::Bgra8Unorm]);
 }
