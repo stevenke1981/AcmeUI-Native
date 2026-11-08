@@ -107,8 +107,9 @@ impl Renderer {
                     let start = all_quads.len() as u32;
                     for cmd_idx in cmd_range {
                         if let DrawCommand::Quad(prim) = &scene.commands()[cmd_idx] {
-                            all_quads
-                                .push(quad_primitive_to_instance(prim, scale, config_w, config_h));
+                            all_quads.push(quad_primitive_to_instance(
+                                prim, batch.clip, scale, config_w, config_h,
+                            ));
                         }
                     }
                     let count = all_quads.len() as u32 - start;
@@ -122,8 +123,9 @@ impl Renderer {
                 }
                 batch::BatchPipeline::TextAlpha => {
                     let format = SceneGlyphFormat::Alpha8;
-                    let glyphs =
-                        collect_text_glyphs(scene, cmd_range, format, scale, config_w, config_h);
+                    let glyphs = collect_text_glyphs(
+                        scene, cmd_range, format, batch.clip, scale, config_w, config_h,
+                    );
                     push_text_batch(
                         glyphs,
                         format,
@@ -134,8 +136,9 @@ impl Renderer {
                 }
                 batch::BatchPipeline::TextRgba => {
                     let format = SceneGlyphFormat::Rgba8;
-                    let glyphs =
-                        collect_text_glyphs(scene, cmd_range, format, scale, config_w, config_h);
+                    let glyphs = collect_text_glyphs(
+                        scene, cmd_range, format, batch.clip, scale, config_w, config_h,
+                    );
                     push_text_batch(
                         glyphs,
                         format,
@@ -149,7 +152,7 @@ impl Renderer {
                         if let DrawCommand::Image(primitive) = &scene.commands()[cmd_idx] {
                             let start = all_glyphs.len() as u32;
                             all_glyphs.push(image_primitive_to_instance(
-                                primitive, scale, config_w, config_h,
+                                primitive, batch.clip, scale, config_w, config_h,
                             ));
                             draw_batches.push(DrawBatchDesc::Image(ImageBatchDesc {
                                 key: image_resource_key(&primitive.image),
@@ -322,6 +325,12 @@ impl Renderer {
             extras: [
                 clean(quad.radius).max(0.0) * self.scale_factor,
                 clean(quad.border_width).max(0.0) * self.scale_factor,
+                self.config.width as f32,
+                self.config.height as f32,
+            ],
+            clip: [
+                0.0,
+                0.0,
                 self.config.width as f32,
                 self.config.height as f32,
             ],

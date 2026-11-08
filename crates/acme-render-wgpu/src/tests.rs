@@ -94,10 +94,11 @@ fn image_instance_uses_contained_rect_and_rgba_mode() {
         test_image(0, 2, 1),
         acme_core::Rect::new(0.0, 0.0, 100.0, 100.0),
     );
-    let instance = image_primitive_to_instance(&primitive, 2.0, 800, 600);
+    let instance = image_primitive_to_instance(&primitive, None, 2.0, 800, 600);
     assert_eq!(instance.rect, [0.0, 50.0, 200.0, 100.0]);
     assert_eq!(instance.uv, [0.0, 0.0, 1.0, 1.0]);
     assert_eq!(instance.viewport_mode, [800.0, 600.0, 1.0, 0.0]);
+    assert_eq!(instance.clip, [0.0, 0.0, 800.0, 600.0]);
 }
 
 #[test]
@@ -122,6 +123,8 @@ fn scissor_intersects_the_physical_viewport() {
     );
     assert_eq!(scissor([200.0, 0.0, 10.0, 10.0], 1.0, 100, 100), None);
     assert_eq!(scissor([10.0, 10.0, 0.0, 10.0], 1.0, 100, 100), None);
+    assert_eq!(scissor([0.2, 0.2, 0.0, 0.5], 1.0, 100, 100), None);
+    assert_eq!(scissor([0.3, 0.3, -0.1, 0.1], 1.0, 100, 100), None);
     assert_eq!(scissor([f32::NAN, 0.0, 10.0, 10.0], 1.0, 100, 100), None);
 }
 
@@ -287,7 +290,7 @@ fn scene_upload(page: u32, format: SceneGlyphFormat, origin: [u32; 2]) -> acme_c
 #[test]
 fn text_glyphs_carry_their_atlas_page() {
     let prim = text_with_pages(&[0, 0, 1, 1, 0]);
-    let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, 1.0, 800, 600);
+    let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, None, 1.0, 800, 600);
     let pages: Vec<u32> = glyphs.iter().map(|(page, _)| *page).collect();
     assert_eq!(pages, vec![0, 0, 1, 1, 0]);
 }
@@ -297,7 +300,7 @@ fn text_glyph_uv_is_normalized_by_page_edge() {
     let mut prim = text_with_pages(&[0]);
     prim.glyphs[0].atlas_x = 1024;
     prim.glyphs[0].atlas_y = 512;
-    let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, 1.0, 800, 600);
+    let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, None, 1.0, 800, 600);
     let uv = glyphs[0].1.uv;
     let edge = ATLAS_PAGE_EDGE as f32;
     assert_eq!(uv, [1024.0 / edge, 512.0 / edge, 4.0 / edge, 4.0 / edge]);
@@ -306,7 +309,7 @@ fn text_glyph_uv_is_normalized_by_page_edge() {
 #[test]
 fn text_glyph_with_out_of_range_page_is_skipped() {
     let prim = text_with_pages(&[0, ATLAS_MAX_PAGES, 1, u32::MAX]);
-    let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, 1.0, 800, 600);
+    let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, None, 1.0, 800, 600);
     let pages: Vec<u32> = glyphs.iter().map(|(page, _)| *page).collect();
     assert_eq!(pages, vec![0, 1]);
     let xs: Vec<f32> = glyphs.iter().map(|(_, glyph)| glyph.rect[0]).collect();
@@ -316,7 +319,7 @@ fn text_glyph_with_out_of_range_page_is_skipped() {
 #[test]
 fn text_batch_splits_into_per_page_runs_in_painter_order() {
     let prim = text_with_pages(&[0, 0, 1, 1, 0]);
-    let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, 1.0, 800, 600);
+    let glyphs = text_primitive_glyphs(&prim, SceneGlyphFormat::Alpha8, None, 1.0, 800, 600);
     let mut instances = Vec::new();
     let mut draws = Vec::new();
     push_text_batch(
