@@ -433,17 +433,43 @@ enum WindowRenderer {
 }
 
 impl WindowRenderer {
-    fn resize(&mut self, width: u32, height: u32, scale: f32) {
+    fn resize(&mut self, width: u32, height: u32, scale: f32) -> bool {
         match self {
-            Self::Gpu(renderer) => renderer.resize(width, height, scale),
+            Self::Gpu(renderer) => {
+                renderer.resize(width, height, scale);
+                true
+            }
             #[cfg(feature = "cpu-renderer")]
-            Self::Failed => {}
+            Self::Failed => false,
             #[cfg(feature = "cpu-renderer")]
             Self::Cpu(renderer) => {
                 if let Err(error) = renderer.resize(width, height, scale) {
                     tracing::error!(%error, "CPU renderer resize failed");
+                    false
+                } else {
+                    true
                 }
             }
+        }
+    }
+
+    fn dimensions(&self, fallback: (u32, u32)) -> (u32, u32) {
+        match self {
+            Self::Gpu(_) => fallback,
+            #[cfg(feature = "cpu-renderer")]
+            Self::Failed => (0, 0),
+            #[cfg(feature = "cpu-renderer")]
+            Self::Cpu(renderer) => renderer.dimensions(),
+        }
+    }
+
+    fn scale_factor(&self, fallback: f32) -> f32 {
+        match self {
+            Self::Gpu(_) => fallback,
+            #[cfg(feature = "cpu-renderer")]
+            Self::Failed => fallback,
+            #[cfg(feature = "cpu-renderer")]
+            Self::Cpu(renderer) => renderer.scale_factor(),
         }
     }
 
@@ -532,6 +558,8 @@ struct WindowState {
     id: WindowId,
     window: Arc<Window>,
     renderer: WindowRenderer,
+    renderer_dims: (u32, u32),
+    renderer_scale: f32,
     cursor: (f32, f32),
     shift: bool,
     ctrl: bool,
@@ -641,6 +669,8 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                             id: win_id,
                             window: window.clone(),
                             renderer,
+                            renderer_dims: (size.width, size.height),
+                            renderer_scale: scale,
                             cursor: (0.0, 0.0),
                             shift: false,
                             ctrl: false,
@@ -697,14 +727,13 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                 should_drain_requests = false;
             }
             WindowEvent::Resized(size) => {
-                handle_resize(app, windows, id, Some(size));
+                handle_resize(app, windows, id, Some(size), None);
             }
             WindowEvent::Moved(position) => {
                 handle_moved(app, windows, id, position);
             }
-            WindowEvent::ScaleFactorChanged { .. } => {
-                handle_resize(app, windows, id, None);
-                should_drain_requests = false;
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                handle_resize(app, windows, id, None, Some(scale_factor as f32));
             }
             WindowEvent::CursorMoved {
                 position: PhysicalPosition { x, y },
@@ -924,6 +953,25 @@ mod tests {
                 y: 300.0,
             }
         );
+    }
+
+    #[test]
+    fn needs_resize_detects_dimension_or_scale_mismatch_and_ignores_zero_size() {
+        assert!(!needs_resize((1280, 770), 1.0, (1280, 770), 1.0));
+        assert!(!needs_resize((1600, 962), 1.25, (1600, 962), 1.25));
+
+        // Stale width/height after cross-DPI monitor transitions must trigger resize.
+        assert!(needs_resize((1043, 747), 1.0, (1280, 770), 1.0));
+        assert!(needs_resize((1600, 927), 1.25, (1600, 962), 1.25));
+
+        // Scale-factor change alone must also trigger resize.
+        assert!(needs_resize((1280, 770), 1.0, (1280, 770), 1.25));
+        assert!(needs_resize((1280, 770), 1.0, (1600, 962), 1.25));
+
+        // Minimized / zero-sized windows should not trigger a resize.
+        assert!(!needs_resize((1280, 770), 1.0, (0, 770), 1.0));
+        assert!(!needs_resize((1280, 770), 1.0, (1280, 0), 1.25));
+        assert!(!needs_resize((1280, 770), 1.0, (0, 0), 1.25));
     }
 
     #[test]
@@ -1245,37 +1293,47 @@ fn handle_window_lifecycle(
     }
 }
 
+/// Return `true` when the renderer's configured physical dimensions or scale
+/// factor differ from a non-zero target `inner_size` and `scale_factor`.
+pub(crate) fn needs_resize(
+    renderer_dims: (u32, u32),
+    renderer_scale: f32,
+    inner_size: (u32, u32),
+    scale_factor: f32,
+) -> bool {
+    if inner_size.0 == 0 || inner_size.1 == 0 {
+        return false;
+    }
+    renderer_dims != inner_size || (renderer_scale - scale_factor).abs() > f32::EPSILON
+}
+
 fn handle_resize(
     app: &mut dyn Application,
     windows: &mut HashMap<WinitWindowId, WindowState>,
     id: WinitWindowId,
     size: Option<winit::dpi::PhysicalSize<u32>>,
+    scale_override: Option<f32>,
 ) {
     let Some(state) = windows.get_mut(&id) else {
         return;
     };
-    let (w, h) = match size {
-        Some(s) => (s.width, s.height),
-        None => {
-            let s = state.window.inner_size();
-            (s.width, s.height)
-        }
-    };
-    let scale = state.window.scale_factor() as f32;
+    let physical = size.unwrap_or_else(|| state.window.inner_size());
+    let (w, h) = (physical.width, physical.height);
+    let scale = scale_override
+        .filter(|&s| s > 0.0 && s.is_finite())
+        .unwrap_or_else(|| state.window.scale_factor() as f32);
     let win_id = state.id;
-    state.renderer.resize(w, h, scale);
-    let dirty = match size {
-        Some(physical) => {
-            let (logical_width, logical_height) = physical_size_to_logical(physical, scale);
-            app.event(PlatformEvent::Resized {
-                window: win_id,
-                logical_width,
-                logical_height,
-                scale_factor: scale,
-            })
-        }
-        None => true,
-    };
+    if state.renderer.resize(w, h, scale) {
+        state.renderer_dims = (w, h);
+        state.renderer_scale = scale;
+    }
+    let (logical_width, logical_height) = physical_size_to_logical(physical, scale);
+    let dirty = app.event(PlatformEvent::Resized {
+        window: win_id,
+        logical_width,
+        logical_height,
+        scale_factor: scale,
+    });
     state.dirty |= dirty;
     state.window.request_redraw();
 }
@@ -1681,6 +1739,26 @@ fn handle_redraw(
     }
     let scale = state.window.scale_factor() as f32;
     let win_id = state.id;
+    let current_dims = state.renderer.dimensions(state.renderer_dims);
+    let current_scale = state.renderer.scale_factor(state.renderer_scale);
+    if needs_resize(
+        current_dims,
+        current_scale,
+        (size.width, size.height),
+        scale,
+    ) {
+        if state.renderer.resize(size.width, size.height, scale) {
+            state.renderer_dims = (size.width, size.height);
+            state.renderer_scale = scale;
+        }
+        let (logical_width, logical_height) = physical_size_to_logical(size, scale);
+        state.dirty |= app.event(PlatformEvent::Resized {
+            window: win_id,
+            logical_width,
+            logical_height,
+            scale_factor: scale,
+        });
+    }
     let scene = app.frame(FrameContext {
         window: win_id,
         logical_width: size.width as f32 / scale,
@@ -1797,6 +1875,8 @@ fn switch_to_cpu_after_device_loss(
     drop(old);
     let cpu = CpuWindowRenderer::new(state.window.clone(), width, height, scale)?;
     state.renderer = WindowRenderer::Cpu(cpu);
+    state.renderer_dims = (width, height);
+    state.renderer_scale = scale;
     Ok(())
 }
 
