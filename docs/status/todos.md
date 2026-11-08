@@ -1,5 +1,12 @@
 # Todos
 
+## ROADMAP 019 — mobile card acceptance (2026-11-08)
+
+- [x] Audit the existing card builder; preserve title/subtitle/media ordering and elevated/outlined semantic variants.
+- [x] Preserve the card text subtree's retained IDs when optional media is inserted or removed; add combination and real-layout regressions.
+- [x] Add three Gallery Mobile card examples and themed, clipped surface tests; preserve parent/child paint order for interactive media.
+- [ ] Manual human Gallery review, physical DPI/touch and screen-reader acceptance — NOT_RUN; see [batch report](../team/roadmap-019/REPORT.md) for automated CPU-window evidence and checks.
+
 ## ROADMAP 015 — area-based clip edges (2026-11-08)
 
 - [x] Clip edges contribute fractional pixel area; sharp quads use the exact rect∩clip area (no double attenuation on coincident edges).
@@ -199,7 +206,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 > interaction and test coverage before marking them complete.
 
 - [x] mobile_button — sized variants (sm/md/lg), disabled state, on_press message; 36/44/52px touch heights, Gallery page, and hit-index regression tests (2026-07-23)
-- [ ] mobile_card — title + subtitle + optional media slot + elevation
+- [x] mobile_card — title + subtitle + optional media slot + elevated/outlined semantic variants; retained-ID regression, layout tests and Gallery demos (ROADMAP 019). Native shadows are outside this slice; manual hardware acceptance remains NOT_RUN.
 - [ ] mobile_toggle — switch track + thumb layout, checked state, on_change; ROADMAP 014 behavior/hit/accessibility/mutation checks pass; final acceptance awaits the pre-existing all-feature Clippy failures documented in [P5 report](../team/roadmap-014/REPORT-P5-mobile.md).
 - [ ] mobile_stepper — minus/plus buttons flanking a value label, min/max clamp; ROADMAP 014 behavior/hit/accessibility/mutation checks pass; final acceptance awaits the same pre-existing Clippy gate (P5 report).
 - [ ] mobile_progress — determinate bar (value/total) + optional label
@@ -229,7 +236,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
-- [ ] Add Gallery "Mobile" page showcasing all mobile components
+- [ ] Add Gallery "Mobile" page showcasing all mobile components — page exists; buttons, toggle, stepper, segmented and cards are covered through ROADMAP 019; remaining mobile demos are open.
 - [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
 - [x] Document source-module inventory in both READMEs (199 modules; excludes `mod.rs`, does not imply interactive completeness)

@@ -1,0 +1,12 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.72s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-085665444b7a57a5)
+
+running 4 tests
+test mobile::mobile_card::tests::defaults_preserve_the_existing_builder_contract ... ok
+test mobile::mobile_card::tests::optional_slots_keep_content_order_and_semantic_variants ... ok
+test mobile::mobile_card::tests::adding_and_removing_media_preserves_the_text_subtree_identity ... ok
+test mobile::mobile_card::tests::media_and_text_have_padded_non_overlapping_layout ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 302 filtered out; finished in 0.00s
+

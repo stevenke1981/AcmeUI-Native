@@ -1,0 +1,122 @@
+    Checking log v0.4.33
+    Checking acme-core v0.2.0 (/workspace/AcmeUI-Native/crates/acme-core)
+    Checking bytemuck v1.25.2
+   Compiling slotmap v1.1.1
+    Checking tracing-core v0.1.36
+    Checking zerocopy v0.8.54
+    Checking thiserror v1.0.69
+    Checking thiserror v2.0.19
+    Checking crossbeam-utils v0.8.22
+    Checking parking v2.2.1
+    Checking wayland-sys v0.31.11
+    Checking calloop v0.13.0
+    Checking font-types v0.12.1
+    Checking rustybuzz v0.14.1
+    Checking wayland-backend v0.3.15
+    Checking tracing v0.1.44
+    Checking acme-theme v0.2.0 (/workspace/AcmeUI-Native/crates/acme-theme)
+    Checking acme-render-cpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-cpu)
+    Checking wgpu-types v29.0.4
+    Checking read-fonts v0.41.0
+    Checking tiny-skia-path v0.11.4
+    Checking gpu-allocator v0.28.0
+    Checking fontdb v0.16.2
+    Checking taffy v0.9.2
+    Checking xkbcommon-dl v0.4.2
+    Checking tiny-skia v0.11.4
+    Checking wayland-client v0.31.14
+    Checking wayland-csd-frame v0.3.0
+    Checking concurrent-queue v2.5.0
+    Checking futures-core v0.3.33
+    Checking serde_core v1.0.229
+    Checking proc-macro2 v1.0.107
+    Checking futures-io v0.3.33
+    Checking tiny-xlib v0.2.5
+    Checking image v0.25.10
+    Checking drm v0.14.1
+    Checking wayland-protocols v0.32.13
+    Checking wayland-cursor v0.31.14
+    Checking calloop-wayland-source v0.3.0
+    Checking quote v1.0.47
+    Checking event-listener v5.4.1
+    Checking syn v2.0.119
+    Checking event-listener-strategy v0.5.4
+    Checking futures-lite v2.6.1
+    Checking softbuffer v0.4.8
+    Checking winnow v1.0.4
+    Checking endi v1.1.1
+    Checking serde v1.0.229
+    Checking errno v0.3.14
+    Checking async-task v4.7.1
+    Checking arboard v3.6.1
+    Checking signal-hook-registry v1.4.8
+    Checking async-io v2.6.0
+    Checking async-channel v2.5.0
+    Checking enumflags2 v0.7.12
+    Checking half v2.7.1
+    Checking ahash v0.8.12
+    Checking atomic-waker v1.1.2
+    Checking piper v0.2.5
+    Checking async-lock v3.4.2
+    Checking async-signal v0.2.14
+    Checking blocking v1.6.2
+    Checking naga v29.0.4
+    Checking async-executor v1.14.0
+    Checking uuid v1.24.0
+    Checking async-broadcast v0.7.2
+    Checking ordered-stream v0.2.0
+    Checking async-process v2.5.0
+    Checking hex v0.4.3
+   Compiling anyhow v1.0.104
+    Checking accesskit v0.21.1
+    Checking futures-task v0.3.33
+    Checking lazy_static v1.5.0
+    Checking sharded-slab v0.1.7
+    Checking futures-util v0.3.33
+    Checking accesskit_consumer v0.31.0
+    Checking tracing-log v0.2.0
+    Checking thread_local v1.1.10
+    Checking nu-ansi-term v0.50.3
+    Checking zvariant_utils v3.5.0
+    Checking acme-animation v0.2.0 (/workspace/AcmeUI-Native/crates/acme-animation)
+    Checking tracing-subscriber v0.3.23
+    Checking zvariant v5.13.1
+    Checking skrifa v0.44.0
+    Checking wayland-protocols-wlr v0.3.12
+    Checking wayland-protocols-plasma v0.3.12
+    Checking zbus_names v4.3.4
+    Checking zbus_xml v5.2.1
+    Checking zbus v5.18.0
+    Checking smithay-client-toolkit v0.19.2
+    Checking zbus-lockstep v0.5.2
+    Checking swash v0.2.10
+    Checking sctk-adwaita v0.10.1
+    Checking winit v0.30.13
+    Checking cosmic-text v0.14.2
+    Checking acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+    Checking acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+    Checking acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+    Checking wgpu-naga-bridge v29.0.4
+    Checking wgpu-hal v29.0.4
+    Checking acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+    Checking acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Checking atspi-common v0.9.0
+    Checking wgpu-core-deps-windows-linux-android v29.0.4
+    Checking wgpu-core v29.0.4
+    Checking atspi-proxies v0.9.0
+    Checking accesskit_atspi_common v0.14.2
+    Checking atspi-connection v0.9.0
+    Checking atspi v0.25.0
+    Checking accesskit_unix v0.17.2
+    Checking wgpu v29.0.4
+    Checking accesskit_winit v0.29.2
+    Checking acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+    Checking acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+    Checking acme-benchmark v0.2.0 (/workspace/AcmeUI-Native/apps/benchmark)
+    Checking acme-devtools v0.2.0 (/workspace/AcmeUI-Native/crates/acme-devtools)
+    Checking acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+    Checking acme-accessibility v0.2.0 (/workspace/AcmeUI-Native/crates/acme-accessibility)
+    Checking acme-playground v0.2.0 (/workspace/AcmeUI-Native/apps/playground)
+    Checking acme-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/gallery)
+    Checking acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 13.62s
