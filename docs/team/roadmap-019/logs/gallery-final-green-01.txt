@@ -1,0 +1,27 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.23s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 19 tests
+test retained_tests::category_replacement_keeps_chrome_ids_and_replaces_page_identity ... ok
+test retained_tests::actual_sidebar_keys_survive_insertion_and_reorder ... ok
+test mobile_card_tests::a_card_surface_is_painted_before_its_interactive_media ... ok
+test retained_tests::duplicate_sidebar_key_falls_back_and_next_valid_frame_recovers ... ok
+test mobile_card_tests::mobile_page_has_all_card_variants_and_media_before_text ... ok
+test tests::disabled_button_renders_without_consuming_hit_index ... ok
+test tests::interactive_button_consumes_hit_index ... ok
+test retained_tests::every_category_has_complete_binding_and_unique_retained_layout_ids ... ok
+test mobile_card_tests::card_surfaces_use_theme_tokens_and_keep_the_viewport_clip_when_scrolled ... ok
+test retained_tests::mobile_message_updates_keep_ids_and_disabled_button_out_of_hits ... ok
+test retained_tests::partial_binding_uses_sequential_ids_for_the_entire_layout ... ok
+test tests::mobile_stepper_limits_do_not_leave_ghost_hit_indices ... ok
+test tests::mobile_controls_dispatch_and_rebuild_their_state ... ok
+test tests::mobile_toggle_frame_contains_themed_track_and_thumb ... ok
+test tests::mobile_toggle_paint_keeps_the_scroll_view_clip ... ok
+test tests::sidebar_ids_follow_category_catalog ... ok
+test retained_tests::repeated_frames_and_theme_pack_transitions_preserve_all_ids ... ok
+test retained_tests::real_frames_keep_hits_and_drawn_buttons_on_the_retained_geometry ... ok
+test retained_tests::retained_layout_preserves_computed_geometry_in_all_categories_and_modes ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+

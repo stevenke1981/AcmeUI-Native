@@ -1,0 +1,19 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.32s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 1 test
+
+thread 'mobile_card_tests::card_surfaces_use_theme_tokens_and_keep_the_viewport_clip_when_scrolled' panicked at apps/acme-gallery/src/mobile_card_tests.rs:77:22:
+card surface must carry the viewport clip
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test mobile_card_tests::card_surfaces_use_theme_tokens_and_keep_the_viewport_clip_when_scrolled ... FAILED
+
+failures:
+
+failures:
+    mobile_card_tests::card_surfaces_use_theme_tokens_and_keep_the_viewport_clip_when_scrolled
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.95s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

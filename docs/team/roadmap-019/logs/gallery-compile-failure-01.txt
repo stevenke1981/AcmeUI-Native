@@ -1,0 +1,95 @@
+   Compiling syn v2.0.119
+   Compiling rustix v1.1.4
+   Compiling wayland-scanner v0.31.10
+   Compiling syn v3.0.2
+   Compiling rustix v0.38.44
+   Compiling drm-sys v0.8.1
+   Compiling x11rb-protocol v0.13.2
+   Compiling drm-fourcc v2.2.0
+   Compiling linux-raw-sys v0.9.4
+   Compiling tiny-xlib v0.2.5
+   Compiling ctor v0.10.1
+   Compiling acme-render-cpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-cpu)
+   Compiling wayland-backend v0.3.15
+   Compiling polling v3.11.0
+   Compiling thiserror-impl v2.0.19
+   Compiling gethostname v1.1.0
+   Compiling drm-ffi v0.9.1
+   Compiling wayland-client v0.31.14
+   Compiling wayland-protocols v0.32.13
+   Compiling wayland-cursor v0.31.14
+   Compiling wayland-csd-frame v0.3.0
+   Compiling x11rb v0.13.2
+   Compiling thiserror v2.0.19
+   Compiling gpu-allocator v0.28.0
+   Compiling bytemuck_derive v1.11.0
+   Compiling zerocopy-derive v0.8.54
+   Compiling thiserror-impl v1.0.69
+   Compiling tracing-attributes v0.1.31
+   Compiling wayland-protocols-wlr v0.3.12
+   Compiling wayland-protocols-plasma v0.3.12
+   Compiling bytemuck v1.25.2
+   Compiling font-types v0.12.1
+   Compiling read-fonts v0.41.0
+   Compiling rustybuzz v0.14.1
+   Compiling zerocopy v0.8.54
+   Compiling thiserror v1.0.69
+   Compiling wgpu-types v29.0.4
+   Compiling half v2.7.1
+   Compiling naga v29.0.4
+   Compiling calloop v0.13.0
+   Compiling skrifa v0.44.0
+   Compiling calloop-wayland-source v0.3.0
+   Compiling tracing v0.1.44
+   Compiling tiny-skia-path v0.11.4
+   Compiling swash v0.2.10
+   Compiling tiny-skia v0.11.4
+   Compiling smithay-client-toolkit v0.19.2
+   Compiling sctk-adwaita v0.10.1
+   Compiling cosmic-text v0.14.2
+   Compiling ahash v0.8.12
+   Compiling winit v0.30.13
+   Compiling wgpu-naga-bridge v29.0.4
+   Compiling acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+   Compiling wgpu-hal v29.0.4
+   Compiling acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+   Compiling wgpu-core-deps-windows-linux-android v29.0.4
+   Compiling wgpu-core v29.0.4
+   Compiling acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+   Compiling drm v0.14.1
+   Compiling image v0.25.10
+   Compiling softbuffer v0.4.8
+   Compiling arboard v3.6.1
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling wgpu v29.0.4
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+   Compiling acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+error[E0603]: function `layout_context` is private
+    --> apps/acme-gallery/src/mobile_card_tests.rs:20:72
+     |
+20   |     let layout = widget.to_layout_with_context(NodeId::new(1), &tests::layout_context());
+     |                                                                        ^^^^^^^^^^^^^^ private function
+     |
+note: the function `layout_context` is defined here
+    --> apps/acme-gallery/src/main.rs:1855:5
+     |
+1855 |     fn layout_context() -> WidgetLayoutContext {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0603]: function `layout_context` is private
+    --> apps/acme-gallery/src/mobile_card_tests.rs:51:76
+     |
+51   |         let layout = widget.to_layout_with_context(NodeId::new(1), &tests::layout_context());
+     |                                                                            ^^^^^^^^^^^^^^ private function
+     |
+note: the function `layout_context` is defined here
+    --> apps/acme-gallery/src/main.rs:1855:5
+     |
+1855 |     fn layout_context() -> WidgetLayoutContext {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0603`.
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery" test) due to 2 previous errors
