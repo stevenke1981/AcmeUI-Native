@@ -612,6 +612,9 @@ impl Application for Playground {
             title: "AcmeUI Native Playground".into(),
             width: 1080.0,
             height: 720.0,
+            min_width: None,
+            min_height: None,
+            position: None,
         }
     }
 

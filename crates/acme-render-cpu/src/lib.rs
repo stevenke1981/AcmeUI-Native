@@ -8,7 +8,7 @@ use acme_core::{
 };
 
 mod coverage;
-use coverage::quad_coverage;
+use coverage::{clipped_quad_coverage, quad_coverage};
 
 const PAGE_EDGE: usize = ATLAS_PAGE_EDGE as usize;
 const PAGE_COUNT: usize = ATLAS_MAX_PAGES as usize;
@@ -112,8 +112,8 @@ fn for_pixels(
         return;
     }
     let visible = clip.map_or(bounds, |region| bounds.intersect(region));
-    // Keep candidate pixel ranges for the approximate rounded/image/glyph
-    // masks. Sharp quads calculate the exact geometry intersection themselves.
+    // Keep candidate pixel ranges for image/glyph masks and exact quad
+    // (sharp or rounded) geometry intersections.
     let left = visible.left.floor().max(0.0).min(width as f32) as u32;
     let top = visible.top.floor().max(0.0).min(height as f32) as u32;
     let right = visible.right.ceil().max(0.0).min(width as f32) as u32;
@@ -124,8 +124,8 @@ fn for_pixels(
     for y in top..bottom {
         for x in left..right {
             let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);
-            // Nested clips are already intersected. Rounded/image/glyph draws
-            // multiply this mask; sharp quads use exact rectangle intersections.
+            // Nested clips are already intersected. Image/glyph draws multiply
+            // this mask; sharp and rounded quads use exact geometry intersections.
             let clip_coverage = clip.map_or(1.0, |c| quad_coverage(c, 0.0, px, py));
             if clip_coverage <= 0.0 {
                 continue;
@@ -160,32 +160,18 @@ fn draw_quad(
     let inner_radius = (radius - border).max(0.0);
     let fill = pack(quad.color);
     let stroke = pack(quad.border_color);
-    let sharp = radius == 0.0;
-    let (coverage_rect, coverage_inner) = if sharp {
-        (
-            clip.map_or(rect, |c| rect.intersect(c)),
-            clip.map_or(inner, |c| inner.intersect(c)),
-        )
-    } else {
-        (rect, inner)
-    };
-    for_pixels(width, height, rect, clip, |idx, x, y, clip_coverage| {
-        let coverage = quad_coverage(coverage_rect, radius, x, y);
+    for_pixels(width, height, rect, clip, |idx, x, y, _clip_coverage| {
+        let coverage = clipped_quad_coverage(rect, radius, clip, x, y);
         if coverage <= 0.0 {
             return;
         }
-        let clip_coverage = if sharp { 1.0 } else { clip_coverage };
         if border > 0.0 {
             // Stroke area is outer minus inner, so it cannot go negative.
-            let inside = quad_coverage(coverage_inner, inner_radius, x, y);
-            pixels[idx] = blend(pixels[idx], fill, inside * clip_coverage);
-            pixels[idx] = blend(
-                pixels[idx],
-                stroke,
-                (coverage - inside).max(0.0) * clip_coverage,
-            );
+            let inside = clipped_quad_coverage(inner, inner_radius, clip, x, y);
+            pixels[idx] = blend(pixels[idx], fill, inside);
+            pixels[idx] = blend(pixels[idx], stroke, (coverage - inside).max(0.0));
         } else {
-            pixels[idx] = blend(pixels[idx], fill, coverage * clip_coverage);
+            pixels[idx] = blend(pixels[idx], fill, coverage);
         }
     });
 }

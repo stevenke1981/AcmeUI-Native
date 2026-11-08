@@ -67,23 +67,49 @@ impl RenderBackendPreference {
     }
 
     fn from_var_result(result: Result<String, VarError>) -> Self {
-        match result {
-            Ok(value) => match Self::from_env_value(Some(&value)) {
+        resolve_render_backend(result, Self::Auto)
+    }
+}
+
+/// Resolve the effective [`RenderBackendPreference`] from the environment variable
+/// `ACME_RENDER_BACKEND` and the application's [` crate::Application::render_backend`]
+/// preference.
+///
+/// - An explicitly set, valid `ACME_RENDER_BACKEND` value (`auto`, `gpu`, `cpu`) wins.
+/// - When `ACME_RENDER_BACKEND` is unset or blank, `app_preference` is used.
+/// - When `ACME_RENDER_BACKEND` is set to an invalid value (or non-Unicode), a warning
+///   is logged and [`RenderBackendPreference::Auto`] is returned.
+pub(crate) fn resolve_render_backend(
+    env_result: Result<String, VarError>,
+    app_preference: RenderBackendPreference,
+) -> RenderBackendPreference {
+    match env_result {
+        Ok(value) => {
+            if value.trim().is_empty() {
+                return app_preference;
+            }
+            match RenderBackendPreference::from_env_value(Some(&value)) {
                 Ok(preference) => preference,
                 Err(message) => {
                     tracing::warn!(%message, "ignoring render backend setting; using auto");
-                    Self::Auto
+                    RenderBackendPreference::Auto
                 }
-            },
-            Err(VarError::NotPresent) => Self::Auto,
-            Err(VarError::NotUnicode(_)) => {
-                tracing::warn!(
-                    "{RENDER_BACKEND_ENV} is not valid Unicode; expected one of: {VALID_VALUES}; using auto"
-                );
-                Self::Auto
             }
         }
+        Err(VarError::NotPresent) => app_preference,
+        Err(VarError::NotUnicode(_)) => {
+            tracing::warn!(
+                "{RENDER_BACKEND_ENV} is not valid Unicode; expected one of: {VALID_VALUES}; using auto"
+            );
+            RenderBackendPreference::Auto
+        }
     }
+}
+
+pub(crate) fn resolve_render_backend_from_env(
+    app_preference: RenderBackendPreference,
+) -> RenderBackendPreference {
+    resolve_render_backend(std::env::var(RENDER_BACKEND_ENV), app_preference)
 }
 
 /// The concrete renderer strategy for one window.
@@ -234,6 +260,72 @@ mod tests {
         for preference in [RenderBackendPreference::Auto, RenderBackendPreference::Gpu] {
             assert_eq!(plan_renderer(preference, true), RendererPlan::GpuThenCpu);
             assert_eq!(plan_renderer(preference, false), RendererPlan::GpuOnly);
+        }
+    }
+
+    #[test]
+    fn resolve_render_backend_uses_app_preference_when_env_unset_or_blank() {
+        for app_pref in [
+            RenderBackendPreference::Auto,
+            RenderBackendPreference::Gpu,
+            RenderBackendPreference::Cpu,
+        ] {
+            assert_eq!(
+                resolve_render_backend(Err(VarError::NotPresent), app_pref),
+                app_pref
+            );
+            assert_eq!(resolve_render_backend(Ok("".into()), app_pref), app_pref);
+            assert_eq!(
+                resolve_render_backend(Ok("   \t ".into()), app_pref),
+                app_pref
+            );
+        }
+    }
+
+    #[test]
+    fn resolve_render_backend_explicit_valid_env_overrides_every_app_preference() {
+        let env_cases = [
+            ("auto", RenderBackendPreference::Auto),
+            (" AUTO ", RenderBackendPreference::Auto),
+            ("gpu", RenderBackendPreference::Gpu),
+            (" GPU ", RenderBackendPreference::Gpu),
+            ("cpu", RenderBackendPreference::Cpu),
+            (" Cpu ", RenderBackendPreference::Cpu),
+        ];
+        let app_prefs = [
+            RenderBackendPreference::Auto,
+            RenderBackendPreference::Gpu,
+            RenderBackendPreference::Cpu,
+        ];
+        for (raw_env, expected) in env_cases {
+            for app_pref in app_prefs {
+                assert_eq!(
+                    resolve_render_backend(Ok(raw_env.into()), app_pref),
+                    expected,
+                    "env={raw_env:?} must override app_pref={app_pref:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn resolve_render_backend_invalid_env_keeps_auto_fallback() {
+        for app_pref in [
+            RenderBackendPreference::Auto,
+            RenderBackendPreference::Gpu,
+            RenderBackendPreference::Cpu,
+        ] {
+            assert_eq!(
+                resolve_render_backend(Ok("invalid-backend".into()), app_pref),
+                RenderBackendPreference::Auto
+            );
+            assert_eq!(
+                resolve_render_backend(
+                    Err(VarError::NotUnicode(std::ffi::OsString::from("bad"))),
+                    app_pref
+                ),
+                RenderBackendPreference::Auto
+            );
         }
     }
 }

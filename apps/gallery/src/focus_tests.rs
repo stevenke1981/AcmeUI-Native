@@ -27,7 +27,11 @@ fn press(gallery: &mut Gallery, key: PlatformKey, shift: bool) -> bool {
         pressed: true,
         shift,
         ctrl: false,
+        alt: false,
+        meta: false,
+        repeat: false,
         text: None,
+        character: None,
     })
 }
 

@@ -141,7 +141,14 @@ pub fn handle_key(
             }
             true
         }
-        PlatformKey::Space | PlatformKey::Other => {
+        PlatformKey::Space
+        | PlatformKey::ArrowUp
+        | PlatformKey::ArrowDown
+        | PlatformKey::PageUp
+        | PlatformKey::PageDown
+        | PlatformKey::Insert
+        | PlatformKey::Function(_)
+        | PlatformKey::Other => {
             if !state.focused {
                 return false;
             }

@@ -36,6 +36,21 @@ pub(crate) fn is_device_lost(flag: &AtomicBool) -> bool {
     flag.load(Ordering::Acquire)
 }
 
+/// Select the non-sRGB variant of `caps_default` so sRGB-encoded scene colours
+/// are written directly without a second hardware linear-to-sRGB conversion.
+pub(crate) fn surface_format(caps_default: wgpu::TextureFormat) -> wgpu::TextureFormat {
+    caps_default.remove_srgb_suffix()
+}
+
+/// Scene colours are sRGB-encoded; the GPU path writes them unchanged, like the CPU path.
+pub(crate) fn configure_surface_srgb_passthrough(config: &mut wgpu::SurfaceConfiguration) {
+    config.format = surface_format(config.format);
+    for view_format in &mut config.view_formats {
+        *view_format = surface_format(*view_format);
+    }
+    config.view_formats.dedup();
+}
+
 pub(crate) fn complete_recovery_state(
     device_lost: &AtomicBool,
     status: &mut SurfaceStatus,

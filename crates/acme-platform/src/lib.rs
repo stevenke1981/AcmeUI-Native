@@ -4,9 +4,15 @@
 
 mod backend;
 mod clipboard;
+mod keys;
+mod waker;
 pub use backend::RenderBackendPreference;
-use backend::{CPU_FEATURE_REQUIRED, RendererPlan, plan_renderer};
+use backend::{CPU_FEATURE_REQUIRED, RendererPlan, plan_renderer, resolve_render_backend_from_env};
 pub use clipboard::Clipboard;
+pub use keys::PlatformKey;
+use keys::{map_logical_key, resolve_key_character, resolve_key_text};
+pub use waker::{CursorIcon, Waker, WindowRequest};
+use waker::{drain_window_requests, map_cursor_icon};
 
 #[cfg(feature = "cpu-renderer")]
 mod cpu_window;
@@ -25,7 +31,6 @@ use winit::{
     dpi::{LogicalPosition, LogicalSize, PhysicalPosition},
     event::{ElementState, Ime, MouseButton, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
-    keyboard::{Key, NamedKey},
     window::{Window, WindowId as WinitWindowId},
 };
 
@@ -39,8 +44,16 @@ pub struct WindowId(pub u64);
 #[derive(Clone, Debug)]
 pub struct WindowConfig {
     pub title: String,
+    /// Initial logical client (inner) width in pixels.
     pub width: f64,
+    /// Initial logical client (inner) height in pixels.
     pub height: f64,
+    /// Optional minimum logical client (inner) width.
+    pub min_width: Option<f64>,
+    /// Optional minimum logical client (inner) height.
+    pub min_height: Option<f64>,
+    /// Optional initial logical outer top-left position `(x, y)`.
+    pub position: Option<(f64, f64)>,
 }
 impl Default for WindowConfig {
     fn default() -> Self {
@@ -48,23 +61,102 @@ impl Default for WindowConfig {
             title: "AcmeUI Native".into(),
             width: 1100.0,
             height: 760.0,
+            min_width: None,
+            min_height: None,
+            position: None,
         }
     }
+}
+
+/// Resolve the minimum logical window size for a window: per-window [`WindowConfig`]
+/// bounds win over [`Application::minimum_window_size`].
+pub(crate) fn resolve_min_window_size(
+    config: &WindowConfig,
+    app_min: Option<(f64, f64)>,
+) -> Option<(f64, f64)> {
+    let width = config.min_width.or_else(|| app_min.map(|(w, _)| w));
+    let height = config.min_height.or_else(|| app_min.map(|(_, h)| h));
+    match (width, height) {
+        (None, None) => None,
+        (w, h) => Some((w.unwrap_or(0.0), h.unwrap_or(0.0))),
+    }
+}
+
+/// Convert a physical client (inner) size into logical `(width, height)` pixels.
+pub(crate) fn physical_size_to_logical(
+    size: winit::dpi::PhysicalSize<u32>,
+    scale_factor: f32,
+) -> (f32, f32) {
+    let scale = if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    };
+    (size.width as f32 / scale, size.height as f32 / scale)
+}
+
+/// Convert a physical outer window top-left position into logical `(x, y)` coordinates.
+pub(crate) fn physical_position_to_logical(
+    position: PhysicalPosition<i32>,
+    scale_factor: f32,
+) -> (f32, f32) {
+    let scale = if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    };
+    (position.x as f32 / scale, position.y as f32 / scale)
+}
+
+/// Convert physical cursor coordinates (which may be negative or outside the
+/// client area while mouse capture is active during a button-held drag) into
+/// logical `(x, y)` coordinates without clamping.
+pub(crate) fn pointer_position_to_logical(x: f64, y: f64, scale_factor: f32) -> (f32, f32) {
+    let scale = if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    };
+    (x as f32 / scale, y as f32 / scale)
+}
+
+/// Events emitted when the pointer leaves the window client area.
+/// Emits [`PlatformEvent::PointerLeft`] alongside [`PlatformEvent::CursorLeft`]
+/// for backward compatibility.
+pub(crate) fn cursor_left_events(window: WindowId) -> [PlatformEvent; 2] {
+    [
+        PlatformEvent::PointerLeft { window },
+        PlatformEvent::CursorLeft { window },
+    ]
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlatformEvent {
     // ?? Existing variants (backward-compatible, unchanged) ??
+    /// Window client (inner) area resized. `logical_width` and `logical_height`
+    /// are logical client dimensions matching [`WindowConfig::width`] and
+    /// [`WindowConfig::height`].
     Resized {
         window: WindowId,
         logical_width: f32,
         logical_height: f32,
         scale_factor: f32,
     },
+    /// Window outer top-left position moved. `x` and `y` are logical outer
+    /// coordinates matching [`WindowConfig::position`].
+    Moved {
+        window: WindowId,
+        x: f32,
+        y: f32,
+    },
     PointerMoved {
         window: WindowId,
         x: f32,
         y: f32,
+    },
+    /// Pointer left the window client area (emitted alongside [`PlatformEvent::CursorLeft`]).
+    PointerLeft {
+        window: WindowId,
     },
     PointerButton {
         window: WindowId,
@@ -73,10 +165,17 @@ pub enum PlatformEvent {
         y: f32,
         button: u16,
         pointer: u64,
+        shift: bool,
+        ctrl: bool,
+        alt: bool,
     },
     Scroll {
         window: WindowId,
+        delta_x: f32,
         delta_y: f32,
+        lines: bool,
+        x: f32,
+        y: f32,
     },
     Key {
         window: WindowId,
@@ -84,7 +183,11 @@ pub enum PlatformEvent {
         pressed: bool,
         shift: bool,
         ctrl: bool,
+        alt: bool,
+        meta: bool,
+        repeat: bool,
         text: Option<String>,
+        character: Option<String>,
     },
     /// IME preedit with WindowId and cursor position.
     ImePreedit {
@@ -141,21 +244,6 @@ pub enum PlatformEvent {
     },
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PlatformKey {
-    Tab,
-    Enter,
-    Space,
-    Escape,
-    ArrowLeft,
-    ArrowRight,
-    Backspace,
-    Delete,
-    Home,
-    End,
-    Other,
-}
-
 #[derive(Clone, Debug)]
 pub struct FrameContext {
     pub window: WindowId,
@@ -168,6 +256,10 @@ pub struct FrameContext {
 pub trait Application: 'static {
     fn window_config(&self) -> WindowConfig {
         WindowConfig::default()
+    }
+    /// Preferred rendering backend when `ACME_RENDER_BACKEND` is not explicitly set.
+    fn render_backend(&self) -> RenderBackendPreference {
+        RenderBackendPreference::Auto
     }
     /// Minimum logical window size applied to every application window.
     fn minimum_window_size(&self) -> Option<(f64, f64)> {
@@ -183,8 +275,8 @@ pub trait Application: 'static {
     /// ```ignore
     /// fn windows(&self) -> Vec<WindowConfig> {
     ///     vec![
-    ///         WindowConfig { title: "Editor".into(), width: 1200.0, height: 800.0 },
-    ///         WindowConfig { title: "Inspector".into(), width: 400.0, height: 600.0 },
+    ///         WindowConfig { title: "Editor".into(), width: 1200.0, height: 800.0, min_width: None, min_height: None, position: None },
+    ///         WindowConfig { title: "Inspector".into(), width: 400.0, height: 600.0, min_width: None, min_height: None, position: None },
     ///     ]
     /// }
     /// ```
@@ -194,6 +286,23 @@ pub trait Application: 'static {
     fn event(&mut self, _event: PlatformEvent) -> bool {
         false
     }
+    /// Called once with a cross-thread [`Waker`] before the first window is created.
+    fn on_waker(&mut self, _waker: Waker) {}
+
+    /// Called on the UI thread for each delivered [`Waker::wake`].
+    /// Returning `true` requests a redraw of every window.
+    fn wake(&mut self) -> bool {
+        false
+    }
+
+    /// Drain pending host window requests for `window`.
+    ///
+    /// The runtime drains this after every event dispatch, after [`Application::wake`],
+    /// and after [`Application::frame`], applying the requests to that window.
+    fn take_window_requests(&mut self, _window: WindowId) -> Vec<WindowRequest> {
+        Vec::new()
+    }
+
     /// Called when the application should update the IME cursor area for a window.
     ///
     /// `rect` is `[x, y, width, height]` in logical pixels relative to the window's
@@ -252,10 +361,13 @@ pub enum PlatformError {
 /// [`PlatformError::NoWindows`] when no window could be initialised, and
 /// [`PlatformError::Renderer`] when the loop stopped on an unrecoverable
 /// renderer failure.
-pub fn run<A: Application>(app: A) -> Result<(), PlatformError> {
-    let event_loop =
-        EventLoop::new().map_err(|error| PlatformError::EventLoop(error.to_string()))?;
+pub fn run<A: Application>(mut app: A) -> Result<(), PlatformError> {
+    let event_loop = EventLoop::<()>::with_user_event()
+        .build()
+        .map_err(|error| PlatformError::EventLoop(error.to_string()))?;
     event_loop.set_control_flow(ControlFlow::Wait);
+    let waker = Waker::from_proxy(event_loop.create_proxy());
+    app.on_waker(waker);
     let mut runtime = Runtime::new(app);
     let loop_result = event_loop.run_app(&mut runtime);
     finish_run(
@@ -321,17 +433,43 @@ enum WindowRenderer {
 }
 
 impl WindowRenderer {
-    fn resize(&mut self, width: u32, height: u32, scale: f32) {
+    fn resize(&mut self, width: u32, height: u32, scale: f32) -> bool {
         match self {
-            Self::Gpu(renderer) => renderer.resize(width, height, scale),
+            Self::Gpu(renderer) => {
+                renderer.resize(width, height, scale);
+                true
+            }
             #[cfg(feature = "cpu-renderer")]
-            Self::Failed => {}
+            Self::Failed => false,
             #[cfg(feature = "cpu-renderer")]
             Self::Cpu(renderer) => {
                 if let Err(error) = renderer.resize(width, height, scale) {
                     tracing::error!(%error, "CPU renderer resize failed");
+                    false
+                } else {
+                    true
                 }
             }
+        }
+    }
+
+    fn dimensions(&self, fallback: (u32, u32)) -> (u32, u32) {
+        match self {
+            Self::Gpu(_) => fallback,
+            #[cfg(feature = "cpu-renderer")]
+            Self::Failed => (0, 0),
+            #[cfg(feature = "cpu-renderer")]
+            Self::Cpu(renderer) => renderer.dimensions(),
+        }
+    }
+
+    fn scale_factor(&self, fallback: f32) -> f32 {
+        match self {
+            Self::Gpu(_) => fallback,
+            #[cfg(feature = "cpu-renderer")]
+            Self::Failed => fallback,
+            #[cfg(feature = "cpu-renderer")]
+            Self::Cpu(renderer) => renderer.scale_factor(),
         }
     }
 
@@ -365,8 +503,8 @@ fn initialize_renderer(
     width: u32,
     height: u32,
     scale: f32,
+    preference: RenderBackendPreference,
 ) -> Result<WindowRenderer, String> {
-    let preference = RenderBackendPreference::from_env();
     match plan_renderer(preference, cfg!(feature = "cpu-renderer")) {
         RendererPlan::CpuOnly => {
             tracing::info!("Using forced CPU software renderer");
@@ -420,6 +558,8 @@ struct WindowState {
     id: WindowId,
     window: Arc<Window>,
     renderer: WindowRenderer,
+    renderer_dims: (u32, u32),
+    renderer_scale: f32,
     cursor: (f32, f32),
     shift: bool,
     ctrl: bool,
@@ -450,6 +590,16 @@ impl<A> Runtime<A> {
 }
 
 impl<A: Application> ApplicationHandler for Runtime<A> {
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, (): ()) {
+        if self.app.wake() {
+            for state in self.windows.values_mut() {
+                state.dirty = true;
+                state.window.request_redraw();
+            }
+        }
+        process_window_requests(&mut self.app, &mut self.windows, event_loop);
+    }
+
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         let Some(interval) = self.app.background_poll_interval() else {
             if self.next_background_poll.take().is_some() {
@@ -478,14 +628,18 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
         }
         let configs = self.app.windows();
         let minimum_size = self.app.minimum_window_size();
+        let backend_preference = resolve_render_backend_from_env(self.app.render_backend());
         let mut failures = Vec::new();
         for config in configs {
             let mut attrs = Window::default_attributes()
                 .with_title(&config.title)
                 .with_inner_size(LogicalSize::new(config.width, config.height))
                 .with_resizable(true);
-            if let Some((width, height)) = minimum_size {
+            if let Some((width, height)) = resolve_min_window_size(&config, minimum_size) {
                 attrs = attrs.with_min_inner_size(LogicalSize::new(width, height));
+            }
+            if let Some((x, y)) = config.position {
+                attrs = attrs.with_position(LogicalPosition::new(x, y));
             }
             let window = match event_loop.create_window(attrs) {
                 Ok(window) => Arc::new(window),
@@ -498,7 +652,13 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             window.set_ime_allowed(true);
             let size = window.inner_size();
             let scale = window.scale_factor() as f32;
-            match initialize_renderer(window.clone(), size.width, size.height, scale) {
+            match initialize_renderer(
+                window.clone(),
+                size.width,
+                size.height,
+                scale,
+                backend_preference,
+            ) {
                 Ok(renderer) => {
                     let winit_id = window.id();
                     let win_id = WindowId(self.next_window_id);
@@ -509,6 +669,8 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                             id: win_id,
                             window: window.clone(),
                             renderer,
+                            renderer_dims: (size.width, size.height),
+                            renderer_scale: scale,
                             cursor: (0.0, 0.0),
                             shift: false,
                             ctrl: false,
@@ -555,18 +717,23 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             ..
         } = self;
 
+        let mut should_drain_requests = true;
         match event {
             WindowEvent::CloseRequested => {
                 handle_window_lifecycle(app, windows, id, event_loop, false);
             }
             WindowEvent::Destroyed => {
                 handle_window_lifecycle(app, windows, id, event_loop, true);
+                should_drain_requests = false;
             }
             WindowEvent::Resized(size) => {
-                handle_resize(app, windows, id, Some(size));
+                handle_resize(app, windows, id, Some(size), None);
             }
-            WindowEvent::ScaleFactorChanged { .. } => {
-                handle_resize(app, windows, id, None);
+            WindowEvent::Moved(position) => {
+                handle_moved(app, windows, id, position);
+            }
+            WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
+                handle_resize(app, windows, id, None, Some(scale_factor as f32));
             }
             WindowEvent::CursorMoved {
                 position: PhysicalPosition { x, y },
@@ -595,6 +762,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             }
             WindowEvent::ModifiersChanged(modifiers) => {
                 handle_modifiers(windows, id, &modifiers.state());
+                should_drain_requests = false;
             }
             WindowEvent::KeyboardInput {
                 event: key_event, ..
@@ -618,11 +786,17 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             }
             WindowEvent::HoveredFileCancelled | WindowEvent::HoveredFile(_) => {
                 // Not currently mapped; available for future use.
+                should_drain_requests = false;
             }
             WindowEvent::RedrawRequested => {
                 handle_redraw(app, windows, id, event_loop, fatal);
             }
-            _ => {}
+            _ => {
+                should_drain_requests = false;
+            }
+        }
+        if should_drain_requests && fatal.is_none() && !windows.is_empty() {
+            process_window_requests(app, windows, event_loop);
         }
     }
 }
@@ -681,11 +855,17 @@ mod tests {
                         title: "Window 1".into(),
                         width: 800.0,
                         height: 600.0,
+                        min_width: None,
+                        min_height: None,
+                        position: None,
                     },
                     WindowConfig {
                         title: "Window 2".into(),
                         width: 400.0,
                         height: 300.0,
+                        min_width: Some(320.0),
+                        min_height: Some(240.0),
+                        position: Some((100.0, 120.0)),
                     },
                 ]
             }
@@ -697,7 +877,131 @@ mod tests {
         let configs = app.windows();
         assert_eq!(configs.len(), 2);
         assert_eq!(configs[0].title, "Window 1");
+        assert_eq!(configs[0].min_width, None);
+        assert_eq!(configs[0].min_height, None);
+        assert_eq!(configs[0].position, None);
         assert_eq!(configs[1].title, "Window 2");
+        assert_eq!(configs[1].min_width, Some(320.0));
+        assert_eq!(configs[1].min_height, Some(240.0));
+        assert_eq!(configs[1].position, Some((100.0, 120.0)));
+    }
+
+    #[test]
+    fn resolve_min_window_size_prefers_per_window_over_app_default() {
+        let default_cfg = WindowConfig::default();
+        assert_eq!(resolve_min_window_size(&default_cfg, None), None);
+        assert_eq!(
+            resolve_min_window_size(&default_cfg, Some((400.0, 300.0))),
+            Some((400.0, 300.0))
+        );
+
+        let override_cfg = WindowConfig {
+            title: "Custom".into(),
+            width: 800.0,
+            height: 600.0,
+            min_width: Some(640.0),
+            min_height: Some(480.0),
+            position: None,
+        };
+        assert_eq!(
+            resolve_min_window_size(&override_cfg, Some((400.0, 300.0))),
+            Some((640.0, 480.0))
+        );
+        assert_eq!(
+            resolve_min_window_size(&override_cfg, None),
+            Some((640.0, 480.0))
+        );
+    }
+
+    #[test]
+    fn resolve_scroll_delta_preserves_sign_and_marks_line_vs_pixel() {
+        let (dx, dy, lines) = resolve_scroll_delta(MouseScrollDelta::LineDelta(-1.5, 2.0), 2.0);
+        assert!(lines);
+        assert!((dx - (-48.0)).abs() < f32::EPSILON);
+        assert!((dy - 64.0).abs() < f32::EPSILON);
+
+        let (px, py, pixel_lines) = resolve_scroll_delta(
+            MouseScrollDelta::PixelDelta(PhysicalPosition::new(20.0, -40.0)),
+            2.0,
+        );
+        assert!(!pixel_lines);
+        assert!((px - 10.0).abs() < f32::EPSILON);
+        assert!((py - (-20.0)).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn physical_bounds_conversions_scale_and_handle_invalid_scale_factors() {
+        let size = winit::dpi::PhysicalSize::new(2560, 1440);
+        assert_eq!(physical_size_to_logical(size, 2.0), (1280.0, 720.0));
+        assert_eq!(physical_size_to_logical(size, 0.0), (2560.0, 1440.0));
+        assert_eq!(physical_size_to_logical(size, f32::NAN), (2560.0, 1440.0));
+
+        let pos = PhysicalPosition::new(-300, 450);
+        assert_eq!(physical_position_to_logical(pos, 1.5), (-200.0, 300.0));
+        assert_eq!(physical_position_to_logical(pos, -1.0), (-300.0, 450.0));
+
+        let moved = PlatformEvent::Moved {
+            window: WindowId(3),
+            x: -200.0,
+            y: 300.0,
+        };
+        assert_eq!(
+            moved,
+            PlatformEvent::Moved {
+                window: WindowId(3),
+                x: -200.0,
+                y: 300.0,
+            }
+        );
+    }
+
+    #[test]
+    fn needs_resize_detects_dimension_or_scale_mismatch_and_ignores_zero_size() {
+        assert!(!needs_resize((1280, 770), 1.0, (1280, 770), 1.0));
+        assert!(!needs_resize((1600, 962), 1.25, (1600, 962), 1.25));
+
+        // Stale width/height after cross-DPI monitor transitions must trigger resize.
+        assert!(needs_resize((1043, 747), 1.0, (1280, 770), 1.0));
+        assert!(needs_resize((1600, 927), 1.25, (1600, 962), 1.25));
+
+        // Scale-factor change alone must also trigger resize.
+        assert!(needs_resize((1280, 770), 1.0, (1280, 770), 1.25));
+        assert!(needs_resize((1280, 770), 1.0, (1600, 962), 1.25));
+
+        // Minimized / zero-sized windows should not trigger a resize.
+        assert!(!needs_resize((1280, 770), 1.0, (0, 770), 1.0));
+        assert!(!needs_resize((1280, 770), 1.0, (1280, 0), 1.25));
+        assert!(!needs_resize((1280, 770), 1.0, (0, 0), 1.25));
+    }
+
+    #[test]
+    fn pointer_capture_coordinates_and_pointer_left_events_are_preserved() {
+        // Negative and out-of-window coordinates during a captured drag must not clamp.
+        assert_eq!(
+            pointer_position_to_logical(-150.0, 2400.0, 1.5),
+            (-100.0, 1600.0)
+        );
+        assert_eq!(
+            pointer_position_to_logical(-40.0, -20.0, 0.0),
+            (-40.0, -20.0)
+        );
+        assert_eq!(
+            pointer_position_to_logical(30.0, -60.0, f32::NAN),
+            (30.0, -60.0)
+        );
+
+        let events = cursor_left_events(WindowId(9));
+        assert_eq!(
+            events,
+            [
+                PlatformEvent::PointerLeft {
+                    window: WindowId(9)
+                },
+                PlatformEvent::CursorLeft {
+                    window: WindowId(9)
+                },
+            ]
+        );
     }
 
     #[test]
@@ -989,36 +1293,72 @@ fn handle_window_lifecycle(
     }
 }
 
+/// Return `true` when the renderer's configured physical dimensions or scale
+/// factor differ from a non-zero target `inner_size` and `scale_factor`.
+pub(crate) fn needs_resize(
+    renderer_dims: (u32, u32),
+    renderer_scale: f32,
+    inner_size: (u32, u32),
+    scale_factor: f32,
+) -> bool {
+    if inner_size.0 == 0 || inner_size.1 == 0 {
+        return false;
+    }
+    renderer_dims != inner_size || (renderer_scale - scale_factor).abs() > f32::EPSILON
+}
+
 fn handle_resize(
     app: &mut dyn Application,
     windows: &mut HashMap<WinitWindowId, WindowState>,
     id: WinitWindowId,
     size: Option<winit::dpi::PhysicalSize<u32>>,
+    scale_override: Option<f32>,
 ) {
     let Some(state) = windows.get_mut(&id) else {
         return;
     };
-    let (w, h) = match size {
-        Some(s) => (s.width, s.height),
-        None => {
-            let s = state.window.inner_size();
-            (s.width, s.height)
-        }
+    let physical = size.unwrap_or_else(|| state.window.inner_size());
+    let (w, h) = (physical.width, physical.height);
+    let scale = scale_override
+        .filter(|&s| s > 0.0 && s.is_finite())
+        .unwrap_or_else(|| state.window.scale_factor() as f32);
+    let win_id = state.id;
+    if state.renderer.resize(w, h, scale) {
+        state.renderer_dims = (w, h);
+        state.renderer_scale = scale;
+    }
+    let (logical_width, logical_height) = physical_size_to_logical(physical, scale);
+    let dirty = app.event(PlatformEvent::Resized {
+        window: win_id,
+        logical_width,
+        logical_height,
+        scale_factor: scale,
+    });
+    state.dirty |= dirty;
+    state.window.request_redraw();
+}
+
+fn handle_moved(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    position: PhysicalPosition<i32>,
+) {
+    let Some(state) = windows.get_mut(&id) else {
+        return;
     };
     let scale = state.window.scale_factor() as f32;
     let win_id = state.id;
-    state.renderer.resize(w, h, scale);
-    let dirty = match size {
-        Some(_) => app.event(PlatformEvent::Resized {
-            window: win_id,
-            logical_width: w as f32 / scale,
-            logical_height: h as f32 / scale,
-            scale_factor: scale,
-        }),
-        None => true,
-    };
+    let (x, y) = physical_position_to_logical(position, scale);
+    let dirty = app.event(PlatformEvent::Moved {
+        window: win_id,
+        x,
+        y,
+    });
     state.dirty |= dirty;
-    state.window.request_redraw();
+    if state.dirty {
+        state.window.request_redraw();
+    }
 }
 
 fn handle_pointer_moved(
@@ -1033,7 +1373,7 @@ fn handle_pointer_moved(
     };
     let scale = state.window.scale_factor() as f32;
     let win_id = state.id;
-    state.cursor = (x as f32 / scale, y as f32 / scale);
+    state.cursor = pointer_position_to_logical(x, y, scale);
     let dirty = app.event(PlatformEvent::PointerMoved {
         window: win_id,
         x: state.cursor.0,
@@ -1072,7 +1412,10 @@ fn handle_cursor_left(
 ) {
     if let Some(state) = windows.get_mut(&id) {
         let win_id = state.id;
-        let dirty = app.event(PlatformEvent::CursorLeft { window: win_id });
+        let mut dirty = false;
+        for event in cursor_left_events(win_id) {
+            dirty |= app.event(event);
+        }
         state.dirty |= dirty;
         if state.dirty {
             state.window.request_redraw();
@@ -1122,6 +1465,9 @@ fn handle_mouse_input(
         _ => 0,
     };
     let pointer = 0; // mouse pointer
+    let shift = state.shift;
+    let ctrl = state.ctrl;
+    let alt = state.alt;
 
     let dirty = app.event(PlatformEvent::PointerButton {
         window: win_id,
@@ -1130,10 +1476,20 @@ fn handle_mouse_input(
         y,
         button: button_code,
         pointer,
+        shift,
+        ctrl,
+        alt,
     });
     state.dirty |= dirty;
     if state.dirty {
         state.window.request_redraw();
+    }
+}
+
+fn resolve_scroll_delta(delta: MouseScrollDelta, scale: f32) -> (f32, f32, bool) {
+    match delta {
+        MouseScrollDelta::LineDelta(x, y) => (x * 32.0, y * 32.0, true),
+        MouseScrollDelta::PixelDelta(p) => (p.x as f32 / scale, p.y as f32 / scale, false),
     }
 }
 
@@ -1143,17 +1499,18 @@ fn handle_scroll(
     id: WinitWindowId,
     delta: MouseScrollDelta,
 ) {
-    let (scale, win_id) = match windows.get(&id) {
-        Some(state) => (state.window.scale_factor() as f32, state.id),
+    let (scale, win_id, (x, y)) = match windows.get(&id) {
+        Some(state) => (state.window.scale_factor() as f32, state.id, state.cursor),
         None => return,
     };
-    let delta_y = match delta {
-        MouseScrollDelta::LineDelta(_, y) => y * 32.0,
-        MouseScrollDelta::PixelDelta(p) => p.y as f32 / scale,
-    };
+    let (delta_x, delta_y, lines) = resolve_scroll_delta(delta, scale);
     let dirty = app.event(PlatformEvent::Scroll {
         window: win_id,
+        delta_x,
         delta_y,
+        lines,
+        x,
+        y,
     });
     if let Some(state) = windows.get_mut(&id) {
         state.dirty |= dirty;
@@ -1189,35 +1546,78 @@ fn handle_keyboard(
     let win_id = state.id;
     let shift = state.shift;
     let ctrl = state.ctrl;
-    let text = match &key_event.logical_key {
-        Key::Character(s) => Some(s.to_string()),
-        _ => None,
-    };
-    let key = match key_event.logical_key.clone() {
-        Key::Named(NamedKey::Tab) => PlatformKey::Tab,
-        Key::Named(NamedKey::Enter) => PlatformKey::Enter,
-        Key::Named(NamedKey::Space) => PlatformKey::Space,
-        Key::Named(NamedKey::Escape) => PlatformKey::Escape,
-        Key::Named(NamedKey::ArrowLeft) => PlatformKey::ArrowLeft,
-        Key::Named(NamedKey::ArrowRight) => PlatformKey::ArrowRight,
-        Key::Named(NamedKey::Backspace) => PlatformKey::Backspace,
-        Key::Named(NamedKey::Delete) => PlatformKey::Delete,
-        Key::Named(NamedKey::Home) => PlatformKey::Home,
-        Key::Named(NamedKey::End) => PlatformKey::End,
-        _ => PlatformKey::Other,
-    };
+    let alt = state.alt;
+    let meta = state.meta;
+    let repeat = key_event.repeat;
+    let text = resolve_key_text(key_event.text.as_deref(), &key_event.logical_key);
+    let character = resolve_key_character(&key_event.logical_key);
+    let key = map_logical_key(&key_event.logical_key);
     let dirty = app.event(PlatformEvent::Key {
         window: win_id,
         key,
         pressed: key_event.state == ElementState::Pressed,
         shift,
         ctrl,
+        alt,
+        meta,
+        repeat,
         text,
+        character,
     });
     if let Some(state) = windows.get_mut(&id) {
         state.dirty |= dirty;
         if state.dirty {
             state.window.request_redraw();
+        }
+    }
+}
+
+fn process_window_requests<A: Application>(
+    app: &mut A,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    event_loop: &ActiveEventLoop,
+) {
+    let window_order: Vec<(WinitWindowId, WindowId)> = windows
+        .iter()
+        .map(|(&winit_id, state)| (winit_id, state.id))
+        .collect();
+    let batches = drain_window_requests(app, window_order.iter().map(|&(_, id)| id));
+    for (win_id, requests) in batches {
+        let Some(&(winit_id, _)) = window_order.iter().find(|&&(_, id)| id == win_id) else {
+            continue;
+        };
+        let mut should_close = false;
+        if let Some(state) = windows.get(&winit_id) {
+            for request in requests {
+                match request {
+                    WindowRequest::SetTitle(title) => {
+                        state.window.set_title(&title);
+                    }
+                    WindowRequest::Focus => {
+                        state.window.set_minimized(false);
+                        state.window.set_visible(true);
+                        state.window.focus_window();
+                    }
+                    WindowRequest::Minimize => {
+                        state.window.set_minimized(true);
+                    }
+                    WindowRequest::Close => {
+                        should_close = true;
+                    }
+                    WindowRequest::SetImeAllowed(allowed) => {
+                        state.window.set_ime_allowed(allowed);
+                    }
+                    WindowRequest::SetCursor(icon) => {
+                        state.window.set_cursor(map_cursor_icon(icon));
+                    }
+                }
+            }
+        }
+        if should_close {
+            windows.remove(&winit_id);
+            if windows.is_empty() {
+                event_loop.exit();
+            }
         }
     }
 }
@@ -1339,6 +1739,26 @@ fn handle_redraw(
     }
     let scale = state.window.scale_factor() as f32;
     let win_id = state.id;
+    let current_dims = state.renderer.dimensions(state.renderer_dims);
+    let current_scale = state.renderer.scale_factor(state.renderer_scale);
+    if needs_resize(
+        current_dims,
+        current_scale,
+        (size.width, size.height),
+        scale,
+    ) {
+        if state.renderer.resize(size.width, size.height, scale) {
+            state.renderer_dims = (size.width, size.height);
+            state.renderer_scale = scale;
+        }
+        let (logical_width, logical_height) = physical_size_to_logical(size, scale);
+        state.dirty |= app.event(PlatformEvent::Resized {
+            window: win_id,
+            logical_width,
+            logical_height,
+            scale_factor: scale,
+        });
+    }
     let scene = app.frame(FrameContext {
         window: win_id,
         logical_width: size.width as f32 / scale,
@@ -1455,6 +1875,8 @@ fn switch_to_cpu_after_device_loss(
     drop(old);
     let cpu = CpuWindowRenderer::new(state.window.clone(), width, height, scale)?;
     state.renderer = WindowRenderer::Cpu(cpu);
+    state.renderer_dims = (width, height);
+    state.renderer_scale = scale;
     Ok(())
 }
 

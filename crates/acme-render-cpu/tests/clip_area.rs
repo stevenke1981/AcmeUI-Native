@@ -1,4 +1,4 @@
-//! Sharp quads use exact clip intersections; other paths use an area-mask product.
+//! Sharp and rounded quads use exact clip intersections; image and glyph paths use a clip-area mask.
 
 use acme_core::{
     AtlasUpload, Color, DrawCommand, GlyphDraw, GlyphFormat, ImageFit, ImageKey, ImagePrimitive,
@@ -23,7 +23,7 @@ const CONTENTS: [Content; 5] = [
 ];
 const SCALES: [f32; 5] = [1.0, 1.25, 1.5, 1.75, 2.0];
 
-fn assert_sharp_self_clip(border_width: f32) {
+fn assert_quad_self_clip(radius: f32, border_width: f32) {
     let rect = Rect::new(0.375, 0.375, 5.25, 5.25);
     for scale in SCALES {
         assert_ne!((rect.origin.x.get() * scale).fract(), 0.0);
@@ -31,7 +31,7 @@ fn assert_sharp_self_clip(border_width: f32) {
             let quad = QuadPrimitive {
                 rect,
                 color: Color::rgba(1.0, 0.0, 0.0, f32::from(alpha) / 255.0),
-                radius: 0.0,
+                radius,
                 border_width,
                 border_color: Color::rgba(0.0, 1.0, 0.0, 0.6),
             };
@@ -51,10 +51,14 @@ fn assert_sharp_self_clip(border_width: f32) {
             );
             assert_eq!(
                 clipped, uncut,
-                "{scale}x alpha {alpha} border {border_width}"
+                "{scale}x alpha {alpha} radius {radius} border {border_width}"
             );
         }
     }
+}
+
+fn assert_sharp_self_clip(border_width: f32) {
+    assert_quad_self_clip(0.0, border_width);
 }
 
 #[test]
@@ -65,6 +69,16 @@ fn sharp_coincident_outer_clip_preserves_edges_at_every_dpi() {
 #[test]
 fn sharp_border_coincident_outer_clip_preserves_edges_at_every_dpi() {
     assert_sharp_self_clip(0.5);
+}
+
+#[test]
+fn rounded_coincident_outer_clip_preserves_edges_at_every_dpi() {
+    assert_quad_self_clip(1.25, 0.0);
+}
+
+#[test]
+fn rounded_border_coincident_outer_clip_preserves_edges_at_every_dpi() {
+    assert_quad_self_clip(1.25, 0.5);
 }
 
 #[test]
@@ -340,13 +354,81 @@ fn sharp_border_inner_coincident_clip_does_not_add_a_stroke_seam() {
 
 #[test]
 fn rounded_shape_area_and_clip_area_are_multiplied() {
-    let pixels = render(
+    let quad = QuadPrimitive {
+        rect: Rect::new(0.0, 0.0, 2.0, 2.0),
+        color: Color::rgba(1.0, 0.0, 0.0, 1.0),
+        radius: 1.0,
+        border_width: 0.0,
+        border_color: Color::TRANSPARENT,
+    };
+    let right_half = render(
         [
             DrawCommand::PushClip(Rect::new(0.5, 0.0, 1.5, 2.0)),
+            DrawCommand::Quad(quad),
+            DrawCommand::PopClip,
+        ],
+        1.0,
+    );
+    // Exact integral of sqrt(1 - u^2) over u in [0, 0.5] is pi/12 + sqrt(3)/8.
+    let exact_right = std::f32::consts::PI / 12.0 + 3.0_f32.sqrt() / 8.0;
+    assert_eq!(right_half[0], ((255.0 * exact_right).round() as u32) << 16);
+    let left_half = render(
+        [
+            DrawCommand::PushClip(Rect::new(0.0, 0.0, 0.5, 2.0)),
+            DrawCommand::Quad(quad),
+            DrawCommand::PopClip,
+        ],
+        1.0,
+    );
+    let exact_left = std::f32::consts::FRAC_PI_4 - exact_right;
+    assert_eq!(left_half[0], ((255.0 * exact_left).round() as u32) << 16);
+}
+
+#[test]
+fn rounded_border_clip_at_or_inside_flat_inner_has_only_exact_fill_at_every_dpi() {
+    let quad = QuadPrimitive {
+        rect: Rect::new(0.375, 0.375, 5.25, 5.25),
+        color: Color::rgba(1.0, 0.0, 0.0, 0.6),
+        radius: 1.0,
+        border_width: 1.0,
+        border_color: Color::rgba(0.0, 1.0, 0.0, 1.0),
+    };
+    for scale in SCALES {
+        for clip in [
+            Rect::new(1.375, 1.375, 3.25, 3.25),
+            Rect::new(2.375, 2.375, 1.25, 1.25),
+        ] {
+            let clipped = render(
+                [
+                    DrawCommand::PushClip(clip),
+                    DrawCommand::Quad(quad),
+                    DrawCommand::PopClip,
+                ],
+                scale,
+            );
+            let expected = render(
+                [DrawCommand::Quad(QuadPrimitive {
+                    rect: clip,
+                    radius: 0.0,
+                    border_width: 0.0,
+                    ..quad
+                })],
+                scale,
+            );
+            assert_eq!(clipped, expected, "{scale}x clip {clip:?}");
+        }
+    }
+}
+
+#[test]
+fn rounded_disjoint_parts_of_one_pixel_have_zero_joint_area() {
+    let pixels = render(
+        [
+            DrawCommand::PushClip(Rect::new(0.75, 0.0, 0.25, 1.0)),
             DrawCommand::Quad(QuadPrimitive {
-                rect: Rect::new(0.0, 0.0, 2.0, 2.0),
+                rect: Rect::new(0.0, 0.0, 0.25, 1.0),
                 color: Color::rgba(1.0, 0.0, 0.0, 1.0),
-                radius: 1.0,
+                radius: 0.125,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             }),
@@ -354,10 +436,7 @@ fn rounded_shape_area_and_clip_area_are_multiplied() {
         ],
         1.0,
     );
-    assert_eq!(
-        pixels[0],
-        ((255.0 * std::f32::consts::PI / 8.0).round() as u32) << 16
-    );
+    assert!(pixels.iter().all(|pixel| *pixel == 0));
 }
 
 #[test]

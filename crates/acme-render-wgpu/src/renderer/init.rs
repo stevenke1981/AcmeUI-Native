@@ -8,7 +8,7 @@ use std::sync::atomic::AtomicBool;
 use crate::atlas_pages::AtlasPages;
 use crate::instances::{GlyphInstance, Instance, normalize_scale};
 use crate::pipelines::build_render_resources;
-use crate::surface::register_device_error_handlers;
+use crate::surface::{configure_surface_srgb_passthrough, register_device_error_handlers};
 use crate::{RenderError, RenderStats, SurfaceStatus};
 
 use super::{INITIAL_GLYPH_CAPACITY, INITIAL_QUAD_CAPACITY, Renderer};
@@ -48,6 +48,8 @@ impl Renderer {
         let mut config = surface
             .get_default_config(&adapter, safe_width, safe_height)
             .ok_or(RenderError::Adapter)?;
+        // Scene colours are sRGB-encoded; the GPU path writes them unchanged, like the CPU path.
+        configure_surface_srgb_passthrough(&mut config);
         config.present_mode = wgpu::PresentMode::Fifo;
         surface.configure(&device, &config);
         let (pipeline, text_pipeline, texture_layout, image_sampler) =
