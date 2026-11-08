@@ -44,10 +44,15 @@ pub struct WindowId(pub u64);
 #[derive(Clone, Debug)]
 pub struct WindowConfig {
     pub title: String,
+    /// Initial logical client (inner) width in pixels.
     pub width: f64,
+    /// Initial logical client (inner) height in pixels.
     pub height: f64,
+    /// Optional minimum logical client (inner) width.
     pub min_width: Option<f64>,
+    /// Optional minimum logical client (inner) height.
     pub min_height: Option<f64>,
+    /// Optional initial logical outer top-left position `(x, y)`.
     pub position: Option<(f64, f64)>,
 }
 impl Default for WindowConfig {
@@ -77,14 +82,50 @@ pub(crate) fn resolve_min_window_size(
     }
 }
 
+/// Convert a physical client (inner) size into logical `(width, height)` pixels.
+pub(crate) fn physical_size_to_logical(
+    size: winit::dpi::PhysicalSize<u32>,
+    scale_factor: f32,
+) -> (f32, f32) {
+    let scale = if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    };
+    (size.width as f32 / scale, size.height as f32 / scale)
+}
+
+/// Convert a physical outer window top-left position into logical `(x, y)` coordinates.
+pub(crate) fn physical_position_to_logical(
+    position: PhysicalPosition<i32>,
+    scale_factor: f32,
+) -> (f32, f32) {
+    let scale = if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    };
+    (position.x as f32 / scale, position.y as f32 / scale)
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlatformEvent {
     // ?? Existing variants (backward-compatible, unchanged) ??
+    /// Window client (inner) area resized. `logical_width` and `logical_height`
+    /// are logical client dimensions matching [`WindowConfig::width`] and
+    /// [`WindowConfig::height`].
     Resized {
         window: WindowId,
         logical_width: f32,
         logical_height: f32,
         scale_factor: f32,
+    },
+    /// Window outer top-left position moved. `x` and `y` are logical outer
+    /// coordinates matching [`WindowConfig::position`].
+    Moved {
+        window: WindowId,
+        x: f32,
+        y: f32,
     },
     PointerMoved {
         window: WindowId,
@@ -632,6 +673,9 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             WindowEvent::Resized(size) => {
                 handle_resize(app, windows, id, Some(size));
             }
+            WindowEvent::Moved(position) => {
+                handle_moved(app, windows, id, position);
+            }
             WindowEvent::ScaleFactorChanged { .. } => {
                 handle_resize(app, windows, id, None);
                 should_drain_requests = false;
@@ -828,6 +872,32 @@ mod tests {
         assert!(!pixel_lines);
         assert!((px - 10.0).abs() < f32::EPSILON);
         assert!((py - (-20.0)).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn physical_bounds_conversions_scale_and_handle_invalid_scale_factors() {
+        let size = winit::dpi::PhysicalSize::new(2560, 1440);
+        assert_eq!(physical_size_to_logical(size, 2.0), (1280.0, 720.0));
+        assert_eq!(physical_size_to_logical(size, 0.0), (2560.0, 1440.0));
+        assert_eq!(physical_size_to_logical(size, f32::NAN), (2560.0, 1440.0));
+
+        let pos = PhysicalPosition::new(-300, 450);
+        assert_eq!(physical_position_to_logical(pos, 1.5), (-200.0, 300.0));
+        assert_eq!(physical_position_to_logical(pos, -1.0), (-300.0, 450.0));
+
+        let moved = PlatformEvent::Moved {
+            window: WindowId(3),
+            x: -200.0,
+            y: 300.0,
+        };
+        assert_eq!(
+            moved,
+            PlatformEvent::Moved {
+                window: WindowId(3),
+                x: -200.0,
+                y: 300.0,
+            }
+        );
     }
 
     #[test]
@@ -1139,16 +1209,42 @@ fn handle_resize(
     let win_id = state.id;
     state.renderer.resize(w, h, scale);
     let dirty = match size {
-        Some(_) => app.event(PlatformEvent::Resized {
-            window: win_id,
-            logical_width: w as f32 / scale,
-            logical_height: h as f32 / scale,
-            scale_factor: scale,
-        }),
+        Some(physical) => {
+            let (logical_width, logical_height) = physical_size_to_logical(physical, scale);
+            app.event(PlatformEvent::Resized {
+                window: win_id,
+                logical_width,
+                logical_height,
+                scale_factor: scale,
+            })
+        }
         None => true,
     };
     state.dirty |= dirty;
     state.window.request_redraw();
+}
+
+fn handle_moved(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    position: PhysicalPosition<i32>,
+) {
+    let Some(state) = windows.get_mut(&id) else {
+        return;
+    };
+    let scale = state.window.scale_factor() as f32;
+    let win_id = state.id;
+    let (x, y) = physical_position_to_logical(position, scale);
+    let dirty = app.event(PlatformEvent::Moved {
+        window: win_id,
+        x,
+        y,
+    });
+    state.dirty |= dirty;
+    if state.dirty {
+        state.window.request_redraw();
+    }
 }
 
 fn handle_pointer_moved(
