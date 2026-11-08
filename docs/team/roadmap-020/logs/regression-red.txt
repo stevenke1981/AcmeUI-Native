@@ -1,0 +1,47 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.33s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-085665444b7a57a5)
+
+running 4 tests
+test mobile::mobile_progress::tests::defaults_and_optional_label_preserve_readable_percentage_and_theme_tokens ... FAILED
+test mobile::mobile_progress::tests::numeric_boundaries_produce_finite_clamped_fractions_even_after_public_field_edits ... FAILED
+test mobile::mobile_progress::tests::optional_label_and_value_changes_preserve_track_and_fill_identity ... FAILED
+test mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track ... FAILED
+
+failures:
+
+---- mobile::mobile_progress::tests::defaults_and_optional_label_preserve_readable_percentage_and_theme_tokens stdout ----
+
+thread 'mobile::mobile_progress::tests::defaults_and_optional_label_preserve_readable_percentage_and_theme_tokens' panicked at crates/acme-ui/src/mobile/mobile_progress_tests.rs:36:9:
+assertion `left == right` failed
+  left: 1
+ right: 2
+
+---- mobile::mobile_progress::tests::numeric_boundaries_produce_finite_clamped_fractions_even_after_public_field_edits stdout ----
+
+thread 'mobile::mobile_progress::tests::numeric_boundaries_produce_finite_clamped_fractions_even_after_public_field_edits' panicked at crates/acme-ui/src/mobile/mobile_progress_tests.rs:89:17:
+expected percentage
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile::mobile_progress::tests::optional_label_and_value_changes_preserve_track_and_fill_identity stdout ----
+
+thread 'mobile::mobile_progress::tests::optional_label_and_value_changes_preserve_track_and_fill_identity' panicked at crates/acme-ui/src/mobile/mobile_progress_tests.rs:19:21:
+progress part must exist
+
+---- mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track stdout ----
+
+thread 'mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track' panicked at crates/acme-ui/src/mobile/mobile_progress_tests.rs:119:17:
+assertion `left == right` failed
+  left: 16.0
+ right: 120.0
+
+
+failures:
+    mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track
+    mobile::mobile_progress::tests::defaults_and_optional_label_preserve_readable_percentage_and_theme_tokens
+    mobile::mobile_progress::tests::numeric_boundaries_produce_finite_clamped_fractions_even_after_public_field_edits
+    mobile::mobile_progress::tests::optional_label_and_value_changes_preserve_track_and_fill_identity
+
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 303 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

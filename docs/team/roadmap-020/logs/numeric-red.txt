@@ -1,0 +1,19 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.99s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-085665444b7a57a5)
+
+running 1 test
+
+thread 'mobile::mobile_progress::tests::numeric_boundaries_produce_finite_clamped_fractions_even_after_public_field_edits' panicked at crates/acme-ui/src/mobile/mobile_progress_tests.rs:64:5:
+assertion failed: mobile_progress::<Msg>(f32::NAN, 100.0).fraction().is_finite()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test mobile::mobile_progress::tests::numeric_boundaries_produce_finite_clamped_fractions_even_after_public_field_edits ... FAILED
+
+failures:
+
+failures:
+    mobile::mobile_progress::tests::numeric_boundaries_produce_finite_clamped_fractions_even_after_public_field_edits
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 306 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

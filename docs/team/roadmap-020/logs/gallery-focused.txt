@@ -1,0 +1,15 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+error[E0609]: no field `width` on type `acme_core::Rect<Logical>`
+   --> apps/acme-gallery/src/mobile_progress_tests.rs:150:45
+    |
+150 | ...                   Some(q.rect.width)
+    |                                   ^^^^^ unknown field
+    |
+help: one of the expressions' fields has a field of the same name
+    |
+150 |                                 Some(q.rect.size.width)
+    |                                             +++++
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery" test) due to 1 previous error

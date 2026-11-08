@@ -1,0 +1,19 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.79s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 1 test
+
+thread 'mobile_progress_tests::shaped_percentage_glyphs_stay_below_the_progress_track' panicked at apps/acme-gallery/src/mobile_progress_tests.rs:180:13:
+percentage ink overlaps the track: 33, track=LayoutRect { x: 8.0, y: 33.0, width: 384.0, height: 6.0 }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test mobile_progress_tests::shaped_percentage_glyphs_stay_below_the_progress_track ... FAILED
+
+failures:
+
+failures:
+    mobile_progress_tests::shaped_percentage_glyphs_stay_below_the_progress_track
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 22 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

@@ -1,0 +1,25 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.23s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-085665444b7a57a5)
+
+running 4 tests
+test mobile::mobile_progress::tests::defaults_and_optional_label_preserve_readable_percentage_and_theme_tokens ... ok
+test mobile::mobile_progress::tests::numeric_boundaries_produce_finite_clamped_fractions_even_after_public_field_edits ... ok
+test mobile::mobile_progress::tests::optional_label_and_value_changes_preserve_track_and_fill_identity ... ok
+test mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track ... FAILED
+
+failures:
+
+---- mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track stdout ----
+
+thread 'mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track' panicked at crates/acme-ui/src/mobile/mobile_progress_tests.rs:124:17:
+assertion failed: (fill.width - track.width * fraction).abs() < 0.001
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 303 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

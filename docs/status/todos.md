@@ -1,5 +1,12 @@
 # Todos
 
+## ROADMAP 020 — mobile determinate progress (2026-11-09)
+
+- [x] Replace percentage-only output with a responsive themed track/fill, optional description and separate percentage text; normalize numeric edge cases.
+- [x] Cover real layout, retained IDs, Gallery examples, stepper-driven updates, theme/clip/order and shaped-glyph positioning.
+- [x] Correct Gallery content-label baseline alignment discovered in the automated native CPU capture; preserve RED/GREEN evidence.
+- [ ] Manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN; see [batch report](../team/roadmap-020/REPORT.md).
+
 ## ROADMAP 019 — mobile card acceptance (2026-11-08)
 
 - [x] Audit the existing card builder; preserve title/subtitle/media ordering and elevated/outlined semantic variants.
@@ -209,7 +216,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] mobile_card — title + subtitle + optional media slot + elevated/outlined semantic variants; retained-ID regression, layout tests and Gallery demos (ROADMAP 019). Native shadows are outside this slice; manual hardware acceptance remains NOT_RUN.
 - [ ] mobile_toggle — switch track + thumb layout, checked state, on_change; ROADMAP 014 behavior/hit/accessibility/mutation checks pass; final acceptance awaits the pre-existing all-feature Clippy failures documented in [P5 report](../team/roadmap-014/REPORT-P5-mobile.md).
 - [ ] mobile_stepper — minus/plus buttons flanking a value label, min/max clamp; ROADMAP 014 behavior/hit/accessibility/mutation checks pass; final acceptance awaits the same pre-existing Clippy gate (P5 report).
-- [ ] mobile_progress — determinate bar (value/total) + optional label
+- [x] mobile_progress — responsive determinate bar (value/total) + optional label; numeric boundaries, retained IDs and Gallery demos/tests (ROADMAP 020). Manual hardware acceptance remains NOT_RUN.
 - [ ] mobile_loader — spinner indicator with optional message
 - [ ] mobile_search — rounded input + search icon + clear button
 - [ ] mobile_segmented — N-segment row, selected highlight, on_select(usize); ROADMAP 014 behavior/hit/accessibility/mutation checks pass; final acceptance awaits the same pre-existing Clippy gate (P5 report).
@@ -236,7 +243,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
-- [ ] Add Gallery "Mobile" page showcasing all mobile components — page exists; buttons, toggle, stepper, segmented and cards are covered through ROADMAP 019; remaining mobile demos are open.
+- [ ] Add Gallery "Mobile" page showcasing all mobile components — page exists; buttons, toggle, stepper, segmented, cards and progress are covered through ROADMAP 020; remaining mobile demos are open.
 - [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
 - [x] Document source-module inventory in both READMEs (199 modules; excludes `mod.rs`, does not imply interactive completeness)

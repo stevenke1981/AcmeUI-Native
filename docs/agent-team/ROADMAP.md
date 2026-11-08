@@ -23,6 +23,7 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 | 017 | Lead + Rendering | Fractional GPU clips and analytic quad coverage in shaders; physical instance clip bounds | [Q1 report](../team/roadmap-017/REPORT-Q1-gpu-fractional-clip.md): 71 headless tests, WGSL validation and CPU formula comparisons; real GPU drawing NOT_RUN |
 | 018 | Lead + Rendering | Fully covered CPU pixel spans and opaque blending fast paths | [R1 report](../team/roadmap-018/REPORT-R1-cpu-fast-path.md): tests/goldens and before/after frame timing reported by the original batch; timing was not re-measured in 019 |
 | 019 | Lead + UI/UX + Verification (single-agent role passes) | Mobile card retained text identity, optional-slot acceptance coverage and Gallery examples with clipped surfaces | [Brief](../team/roadmap-019/BRIEF.md); verification and delivery recorded in [report](../team/roadmap-019/REPORT.md); manual hardware acceptance remains separate |
+| 020 | Lead + UI/UX + Verification (single-agent role passes) | Responsive determinate mobile progress, numeric/retained acceptance, Gallery demos and content-label baseline alignment | [Brief](../team/roadmap-020/BRIEF.md); tests, CPU-window evidence and delivery snapshot in [report](../team/roadmap-020/REPORT.md); manual hardware acceptance remains separate |
 
 ## Existing work to preserve
 
