@@ -126,6 +126,15 @@ pub(crate) fn clipped_quad_coverage(
     if radius <= 0.0 {
         return base;
     }
+    let px0 = cx - 0.5;
+    let px1 = cx + 0.5;
+    let py0 = cy - 0.5;
+    let py1 = cy + 0.5;
+    if (px0 >= bounds.left + radius && px1 <= bounds.right - radius)
+        || (py0 >= bounds.top + radius && py1 <= bounds.bottom - radius)
+    {
+        return base;
+    }
     let (kcx, kcy, hx, hy) = match clip {
         Some(c) => {
             let kx0 = (f64::from(cx) - 0.5).max(f64::from(c.left));
