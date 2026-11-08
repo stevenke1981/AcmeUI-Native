@@ -139,6 +139,9 @@ fn focus_text_input(gallery: &mut Gallery) {
         y: cy,
         button: 0,
         pointer: 0,
+        shift: false,
+        ctrl: false,
+        alt: false,
     });
     assert!(handled, "pointer press on the TextInput was not handled");
     assert!(

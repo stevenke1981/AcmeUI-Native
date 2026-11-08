@@ -319,6 +319,9 @@ impl AccessibilityAdapter {
                         y: cy,
                         button: 0,
                         pointer: 0,
+                        shift: false,
+                        ctrl: false,
+                        alt: false,
                     },
                 ]
             }
@@ -342,7 +345,11 @@ impl AccessibilityAdapter {
                     pressed,
                     shift: false,
                     ctrl: false,
+                    alt: false,
+                    meta: false,
+                    repeat: false,
                     text: None,
+                    character: None,
                 };
                 // Select the row as a click does, then expand or collapse it
                 // with the key the keyboard uses for the selected row.
@@ -359,6 +366,9 @@ impl AccessibilityAdapter {
                         y: cy,
                         button: 0,
                         pointer: 0,
+                        shift: false,
+                        ctrl: false,
+                        alt: false,
                     },
                     key_event(true),
                     key_event(false),

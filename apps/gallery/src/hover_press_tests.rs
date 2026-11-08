@@ -43,7 +43,11 @@ fn key_press(gallery: &mut Gallery, key: PlatformKey) -> bool {
         pressed: true,
         shift: false,
         ctrl: false,
+        alt: false,
+        meta: false,
+        repeat: false,
         text: None,
+        character: None,
     })
 }
 
@@ -63,6 +67,9 @@ fn pointer_button(gallery: &mut Gallery, (x, y): (f32, f32), pressed: bool) -> b
         y,
         button: 0,
         pointer: 0,
+        shift: false,
+        ctrl: false,
+        alt: false,
     })
 }
 
