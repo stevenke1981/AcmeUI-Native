@@ -20,9 +20,10 @@ use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_ui::mobile::{
-    MobileButtonSize, mobile_button, mobile_segmented, mobile_stepper, mobile_toggle,
+    MobileButtonSize, mobile_button, mobile_card, mobile_segmented, mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
+use acme_widgets::style::Styled;
 use acme_widgets::view_bridge::widget_to_views;
 use acme_widgets::{
     ButtonSize, ButtonState, ButtonVariant, CardVariant, WidgetNode, button, card, column, label,
@@ -75,7 +76,7 @@ const CATEGORIES: &[CategoryInfo] = &[
     },
     CategoryInfo {
         name: "Mobile",
-        pages: &["Button sizes", "States"],
+        pages: &["Cards", "Controls", "Button sizes", "States"],
     },
 ];
 
@@ -689,6 +690,27 @@ impl Gallery {
             .child(separator())
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
+            ))
+            .child(self.page_section(
+                "Mobile Card — content and variants",
+                column()
+                    .gap(12.0)
+                    .child(mobile_card("Title only")
+                        .key("gallery_card_title"))
+                    .child(mobile_card("Outlined card")
+                        .key("gallery_card_outlined")
+                        .subtitle("Title and subtitle, without media")
+                        .elevated(false))
+                    .child(mobile_card("Card with media")
+                        .key("gallery_card_media")
+                        .subtitle("Optional content appears above the title")
+                        .media(row()
+                            .key("gallery_card_media_slot")
+                            .height(80.0)
+                            .bg_muted()
+                            .child(label("Media slot · 媒體內容"))
+                            .build()))
+                    .build(),
             ))
             .child(self.page_section(
                 "Interactive mobile controls",
@@ -1504,7 +1526,7 @@ fn render_content(
     atlas: &mut GlyphAtlas,
 ) {
     let colors = theme.colors;
-    // The mobile switch track/thumb are styled rows, rather than glyphs.
+    // Styled rows include switch tracks/thumbs and optional card media.
     if let WidgetNode::Row(container) = widget {
         if let (Some(background), Some(rect)) =
             (container.style.background, snapshot.get(layout.id))
@@ -1538,13 +1560,16 @@ fn render_content(
                                 let swatch_x = rect.x + 4.0;
                                 let swatch_y = y_text + (fs * 1.5 - swatch_size).max(0.0) / 2.0;
                                 let swatch_radius = theme.radii.sm.min(swatch_size / 2.0);
-                                frame.quads.push(quad_rect(
-                                    [swatch_x, swatch_y, swatch_size, swatch_size],
-                                    swatch_color,
-                                    swatch_radius,
-                                    0.0,
-                                    swatch_color,
-                                ));
+                                frame.clipped_quads.push(ClippedQuad {
+                                    quad: quad_rect(
+                                        [swatch_x, swatch_y, swatch_size, swatch_size],
+                                        swatch_color,
+                                        swatch_radius,
+                                        0.0,
+                                        swatch_color,
+                                    ),
+                                    clip,
+                                });
                                 let text_x = swatch_x + swatch_size + 8.0;
                                 add_text(
                                     fonts,
@@ -1581,13 +1606,16 @@ fn render_content(
                 let y = rect.y - scroll_y;
                 let st = button_state_for_render(btn, btn_idx, hovered, pressed);
                 let resolved = btn.resolve_style(theme, st);
-                frame.quads.push(quad_rect(
-                    [rect.x, y, rect.width, rect.height],
-                    resolved.background,
-                    theme.radii.md,
-                    1.0,
-                    resolved.border,
-                ));
+                frame.clipped_quads.push(ClippedQuad {
+                    quad: quad_rect(
+                        [rect.x, y, rect.width, rect.height],
+                        resolved.background,
+                        theme.radii.md,
+                        1.0,
+                        resolved.border,
+                    ),
+                    clip,
+                });
                 add_text(
                     fonts,
                     atlas,
@@ -1604,13 +1632,16 @@ fn render_content(
         WidgetNode::Separator(_) => {
             if let Some(rect) = snapshot.get(layout.id) {
                 let y = rect.y - scroll_y;
-                frame.quads.push(quad_rect(
-                    [rect.x, y, rect.width, 1.0],
-                    colors.border,
-                    0.0,
-                    0.0,
-                    colors.border,
-                ));
+                frame.clipped_quads.push(ClippedQuad {
+                    quad: quad_rect(
+                        [rect.x, y, rect.width, 1.0],
+                        colors.border,
+                        0.0,
+                        0.0,
+                        colors.border,
+                    ),
+                    clip,
+                });
             }
         }
         // Card: paint as colored container
@@ -1630,13 +1661,16 @@ fn render_content(
                 };
                 // Use explicit border_radius when set, otherwise default to sm
                 let radius = c.border_radius.unwrap_or(theme.radii.sm);
-                frame.quads.push(quad_rect(
-                    [rect.x, y, rect.width, rect.height],
-                    bg,
-                    radius,
-                    1.0,
-                    border,
-                ));
+                frame.clipped_quads.push(ClippedQuad {
+                    quad: quad_rect(
+                        [rect.x, y, rect.width, rect.height],
+                        bg,
+                        radius,
+                        1.0,
+                        border,
+                    ),
+                    clip,
+                });
             }
             // Recursively render children
             let wc = widget.children();
@@ -1824,6 +1858,9 @@ fn quad_rect(
 
 #[cfg(test)]
 mod retained_tests;
+
+#[cfg(test)]
+mod mobile_card_tests;
 
 #[cfg(test)]
 mod tests {
@@ -2036,8 +2073,8 @@ mod tests {
             );
             assert_eq!(
                 frame.clipped_quads.len(),
-                2,
-                "track/thumb need a clip even when fully scrolled out"
+                3,
+                "host, track and thumb need a clip even when fully scrolled out"
             );
             assert!(frame.clipped_quads.iter().all(|q| q.clip == clip));
             assert!(
