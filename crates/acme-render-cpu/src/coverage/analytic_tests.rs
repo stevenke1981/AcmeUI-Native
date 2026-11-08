@@ -186,3 +186,123 @@ fn analytic_coverage_sums_to_exact_rounded_rect_area() {
     }
     println!("area conservation: 128 rects, max error {max_error:.9}");
 }
+
+fn fine_clipped_reference(bounds: Bounds, radius: f32, clip: Bounds, cx: f32, cy: f32) -> f64 {
+    const FINE: usize = 512;
+    let (left, top, right, bottom) = (
+        f64::from(bounds.left),
+        f64::from(bounds.top),
+        f64::from(bounds.right),
+        f64::from(bounds.bottom),
+    );
+    let radius = f64::from(radius).clamp(0.0, ((right - left).min(bottom - top)) * 0.5);
+    let x0 = (f64::from(cx) - 0.5).max(left).max(f64::from(clip.left));
+    let x1 = (f64::from(cx) + 0.5).min(right).min(f64::from(clip.right));
+    let y0 = (f64::from(cy) - 0.5).max(top).max(f64::from(clip.top));
+    let y1 = (f64::from(cy) + 0.5)
+        .min(bottom)
+        .min(f64::from(clip.bottom));
+    if x0 >= x1 || y0 >= y1 {
+        return 0.0;
+    }
+    let mut hits = 0;
+    for row in 0..FINE {
+        let y = y0 + (row as f64 + 0.5) * (y1 - y0) / FINE as f64;
+        let dy = y - y.max(top + radius).min(bottom - radius);
+        for column in 0..FINE {
+            let x = x0 + (column as f64 + 0.5) * (x1 - x0) / FINE as f64;
+            let dx = x - x.max(left + radius).min(right - radius);
+            hits += usize::from(dx * dx + dy * dy <= radius * radius);
+        }
+    }
+    (x1 - x0) * (y1 - y0) * hits as f64 / (FINE * FINE) as f64
+}
+
+#[test]
+fn clipped_analytic_coverage_matches_fine_reference() {
+    let mut seed = 0x0160_c11b_5eed_u64;
+    let mut max_error = 0.0_f64;
+    for index in 0..256 {
+        let scale = [1.0, 1.25, 1.5, 2.0][index % 4];
+        let bounds = random_rect(&mut seed, scale);
+        let radius =
+            random(&mut seed) * (bounds.right - bounds.left).min(bounds.bottom - bounds.top) * 0.5;
+        let right = index % 2 == 0;
+        let bottom = index % 4 < 2;
+        let arc_x = if right {
+            bounds.right - radius
+        } else {
+            bounds.left + radius
+        };
+        let arc_y = if bottom {
+            bounds.bottom - radius
+        } else {
+            bounds.top + radius
+        };
+        let angle = random(&mut seed) * std::f32::consts::FRAC_PI_2;
+        let cx = (arc_x + if right { 1.0 } else { -1.0 } * radius * angle.cos()).floor() + 0.5;
+        let cy = (arc_y + if bottom { 1.0 } else { -1.0 } * radius * angle.sin()).floor() + 0.5;
+        let clip = Bounds {
+            left: cx - 0.5 + random(&mut seed) * 0.75,
+            top: cy - 0.5 + random(&mut seed) * 0.75,
+            right: cx - 0.25 + random(&mut seed) * 1.25,
+            bottom: cy - 0.25 + random(&mut seed) * 1.25,
+        };
+        let got = f64::from(clipped_quad_coverage(bounds, radius, Some(clip), cx, cy));
+        let want = fine_clipped_reference(bounds, radius, clip, cx, cy);
+        max_error = max_error.max((got - want).abs());
+        assert!(
+            (got - want).abs() <= 1e-3,
+            "case {index}, scale {scale}, radius {radius}, pixel ({cx},{cy}): {got} vs {want}"
+        );
+    }
+    println!("clipped 512x512 reference: 256 cases, max error {max_error:.9}");
+}
+
+#[test]
+fn clipped_analytic_coverage_is_additive_across_partition_splits() {
+    let mut seed = 0x0160_5b17_5eed_u64;
+    for index in 0..128 {
+        let scale = [1.0, 1.25, 1.5, 2.0][index % 4];
+        let bounds = random_rect(&mut seed, scale);
+        let radius =
+            random(&mut seed) * (bounds.right - bounds.left).min(bounds.bottom - bounds.top) * 0.5;
+        let cx = bounds.left.floor() + 0.5;
+        let cy = bounds.top.floor() + 0.5;
+        let split_x = cx - 0.5 + random(&mut seed);
+        let split_y = cy - 0.5 + random(&mut seed);
+        let q00 = Bounds {
+            left: cx - 10.0,
+            top: cy - 10.0,
+            right: split_x,
+            bottom: split_y,
+        };
+        let q10 = Bounds {
+            left: split_x,
+            top: cy - 10.0,
+            right: cx + 10.0,
+            bottom: split_y,
+        };
+        let q01 = Bounds {
+            left: cx - 10.0,
+            top: split_y,
+            right: split_x,
+            bottom: cy + 10.0,
+        };
+        let q11 = Bounds {
+            left: split_x,
+            top: split_y,
+            right: cx + 10.0,
+            bottom: cy + 10.0,
+        };
+        let sum = clipped_quad_coverage(bounds, radius, Some(q00), cx, cy)
+            + clipped_quad_coverage(bounds, radius, Some(q10), cx, cy)
+            + clipped_quad_coverage(bounds, radius, Some(q01), cx, cy)
+            + clipped_quad_coverage(bounds, radius, Some(q11), cx, cy);
+        let unclipped = quad_coverage(bounds, radius, cx, cy);
+        assert!(
+            (sum - unclipped).abs() <= 1e-6,
+            "case {index}: partition sum {sum} vs unclipped {unclipped}"
+        );
+    }
+}

@@ -3,7 +3,7 @@
 ## ROADMAP 015 — area-based clip edges (2026-11-08)
 
 - [x] Clip edges contribute fractional pixel area; sharp quads use the exact rect∩clip area (no double attenuation on coincident edges).
-- [ ] Rounded quads, images and glyphs multiply shape and clip masks (approximate where both edges cross one pixel).
+- [x] Rounded quads (fill and border) use the exact analytic rounded-quad∩clip pixel area (`clipped_quad_coverage`, ROADMAP 016 P6); images and glyphs multiply texel alpha by the clip-area mask.
 - [ ] GPU renderer parity for fractional clips — NOT_RUN.
 
 ## ROADMAP 014 — AccessKit requests, analytic arcs, mobile controls (2026-11-08)

@@ -60,17 +60,24 @@ fn disc_rectangle_area(x0: f64, y0: f64, x1: f64, y1: f64, r: f64) -> f64 {
 
 /// Subtract the area outside each disc within its disjoint corner square.
 /// Reflecting each corner into the positive quadrant lets all four share the
-/// same integral. Clip the pixel to each square *before* integrating: one pixel
-/// can cross several corners when the whole rounded rectangle is sub-pixel.
-fn rounded_coverage(bounds: Bounds, radius: f32, cx: f32, cy: f32, base: f32) -> f32 {
-    let (left, top, right, bottom, radius, cx, cy) = (
+/// same integral. Clip the pixel (or clipped pixel sub-rectangle) to each
+/// square *before* integrating: one pixel can cross several corners when the
+/// whole rounded rectangle is sub-pixel.
+fn rounded_coverage(
+    bounds: Bounds,
+    radius: f32,
+    kcx: f64,
+    kcy: f64,
+    hx: f64,
+    hy: f64,
+    base: f32,
+) -> f32 {
+    let (left, top, right, bottom, radius) = (
         f64::from(bounds.left),
         f64::from(bounds.top),
         f64::from(bounds.right),
         f64::from(bounds.bottom),
         f64::from(radius),
-        f64::from(cx),
-        f64::from(cy),
     );
     let mut removed = 0.0;
     for (arc_x, arc_y, sx, sy) in [
@@ -79,10 +86,10 @@ fn rounded_coverage(bounds: Bounds, radius: f32, cx: f32, cy: f32, base: f32) ->
         (left + radius, bottom - radius, -1.0, 1.0),
         (right - radius, bottom - radius, 1.0, 1.0),
     ] {
-        let x0 = ((cx - arc_x) * sx - 0.5).max(0.0);
-        let x1 = ((cx - arc_x) * sx + 0.5).min(radius);
-        let y0 = ((cy - arc_y) * sy - 0.5).max(0.0);
-        let y1 = ((cy - arc_y) * sy + 0.5).min(radius);
+        let x0 = ((kcx - arc_x) * sx - hx).max(0.0);
+        let x1 = ((kcx - arc_x) * sx + hx).min(radius);
+        let y0 = ((kcy - arc_y) * sy - hy).max(0.0);
+        let y1 = ((kcy - arc_y) * sy + hy).min(radius);
         if x0 >= x1 || y0 >= y1 {
             continue;
         }
@@ -91,16 +98,27 @@ fn rounded_coverage(bounds: Bounds, radius: f32, cx: f32, cy: f32, base: f32) ->
     (f64::from(base) - removed).clamp(0.0, f64::from(base)) as f32
 }
 
-/// Exact-area coverage of a quad with the given corner radius, at the pixel whose
-/// centre is `(cx, cy)`. Non-finite or empty bounds yield zero.
-pub(crate) fn quad_coverage(bounds: Bounds, radius: f32, cx: f32, cy: f32) -> f32 {
+/// Exact-area coverage of a quad with the given corner radius, optionally
+/// intersected with an axis-aligned `clip`, at the pixel whose centre is `(cx, cy)`.
+/// Non-finite or empty bounds/clips yield zero.
+pub(crate) fn clipped_quad_coverage(
+    bounds: Bounds,
+    radius: f32,
+    clip: Option<Bounds>,
+    cx: f32,
+    cy: f32,
+) -> f32 {
     let half_x = (bounds.right - bounds.left) * 0.5;
     let half_y = (bounds.bottom - bounds.top) * 0.5;
     // The negated form also rejects NaN.
     if !(half_x > 0.0 && half_y > 0.0) {
         return 0.0;
     }
-    let base = sharp_coverage(bounds, cx, cy);
+    if clip.is_some_and(|c| !(c.right - c.left > 0.0 && c.bottom - c.top > 0.0)) {
+        return 0.0;
+    }
+    let clipped_bounds = clip.map_or(bounds, |c| bounds.intersect(c));
+    let base = sharp_coverage(clipped_bounds, cx, cy);
     if base <= 0.0 {
         return 0.0;
     }
@@ -108,7 +126,28 @@ pub(crate) fn quad_coverage(bounds: Bounds, radius: f32, cx: f32, cy: f32) -> f3
     if radius <= 0.0 {
         return base;
     }
-    rounded_coverage(bounds, radius, cx, cy, base)
+    let (kcx, kcy, hx, hy) = match clip {
+        Some(c) => {
+            let kx0 = (f64::from(cx) - 0.5).max(f64::from(c.left));
+            let kx1 = (f64::from(cx) + 0.5).min(f64::from(c.right));
+            let ky0 = (f64::from(cy) - 0.5).max(f64::from(c.top));
+            let ky1 = (f64::from(cy) + 0.5).min(f64::from(c.bottom));
+            (
+                0.5 * (kx0 + kx1),
+                0.5 * (ky0 + ky1),
+                0.5 * (kx1 - kx0),
+                0.5 * (ky1 - ky0),
+            )
+        }
+        None => (f64::from(cx), f64::from(cy), 0.5, 0.5),
+    };
+    rounded_coverage(bounds, radius, kcx, kcy, hx, hy, base)
+}
+
+/// Exact-area coverage of an unclipped quad with the given corner radius, at the
+/// pixel whose centre is `(cx, cy)`. Non-finite or empty bounds yield zero.
+pub(crate) fn quad_coverage(bounds: Bounds, radius: f32, cx: f32, cy: f32) -> f32 {
+    clipped_quad_coverage(bounds, radius, None, cx, cy)
 }
 
 #[cfg(test)]
