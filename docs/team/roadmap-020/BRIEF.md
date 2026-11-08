@@ -62,4 +62,12 @@ performance claims, releases or production-readiness claims. Manual human
 Gallery review, Windows 注音 IME, physical DPI/touch, GPU and screen-reader
 acceptance stay NOT_RUN. CPU screenshots do not establish these results.
 
+Acceptance refinement after the first native capture: percentage ink overlapped
+the track despite non-overlapping layout rectangles. The existing Gallery Label
+paint path supplied a top coordinate where prepared glyphs need a first-baseline
+origin. Include that existing-path correction (normal and swatch labels share
+the corrected shaping path) and a shaped-glyph RED/GREEN test at three scales.
+Preserve the initial capture under `logs/gallery-overlap-before.png` and rerun
+final checks on the corrected source commit before PR delivery.
+
 Rollback: revert the bounded PR; manifests and lockfile remain unchanged.

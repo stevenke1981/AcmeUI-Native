@@ -159,3 +159,43 @@ fn progress_paints_track_before_fill_with_semantic_colours_and_viewport_clips() 
         }
     }
 }
+
+#[test]
+fn shaped_percentage_glyphs_stay_below_the_progress_track() {
+    let mut gallery = Gallery::new();
+    let theme = gallery.current_theme();
+    for scale in [1.0, 1.25, 2.0] {
+        let widget = WidgetNode::from(mobile_progress(25.0, 100.0).key("job").label("Download"));
+        let layout = widget.to_layout_with_context(NodeId::new(1), &context());
+        let snapshot = LayoutEngine::new()
+            .compute_with_text(&layout, (400.0, 200.0), &mut gallery.fonts, scale)
+            .unwrap();
+        let (_, track) = find(&widget, &layout, "job__track").unwrap();
+        let track = snapshot.get(track.id).unwrap();
+        let mut frame = Frame::default();
+        render_content(
+            &mut frame,
+            &widget,
+            &layout,
+            &snapshot,
+            &theme,
+            scale,
+            0.0,
+            [0.0, 0.0, 400.0, 200.0],
+            &mut 0,
+            None,
+            None,
+            &mut gallery.fonts,
+            &mut gallery.atlas,
+        );
+        let percent = frame.text.last().unwrap();
+        assert!(!percent.prepared.glyphs.is_empty());
+        for glyph in &percent.prepared.glyphs {
+            let top = percent.origin[1] + glyph.y as f32 / scale;
+            assert!(
+                top >= track.y + track.height + 4.0,
+                "percentage ink overlaps the track: {top}, track={track:?}"
+            );
+        }
+    }
+}
