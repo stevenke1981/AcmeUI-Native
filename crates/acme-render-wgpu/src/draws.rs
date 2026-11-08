@@ -37,18 +37,16 @@ pub(crate) enum DrawBatchDesc {
 }
 
 pub(crate) fn scissor(rect: [f32; 4], scale: f32, width: u32, height: u32) -> Option<[u32; 4]> {
-    if rect.iter().any(|value| !value.is_finite()) {
+    let [left, top, right, bottom] =
+        crate::clip::physical_clip_bounds(Some(rect), scale, width, height);
+    if right <= left || bottom <= top {
         return None;
     }
-    let x = (rect[0].max(0.0) * scale).floor().clamp(0.0, width as f32) as u32;
-    let y = (rect[1].max(0.0) * scale).floor().clamp(0.0, height as f32) as u32;
-    let right = ((rect[0] + rect[2].max(0.0)) * scale)
-        .ceil()
-        .clamp(0.0, width as f32) as u32;
-    let bottom = ((rect[1] + rect[3].max(0.0)) * scale)
-        .ceil()
-        .clamp(0.0, height as f32) as u32;
-    (right > x && bottom > y).then_some([x, y, right - x, bottom - y])
+    let x = left.floor() as u32;
+    let y = top.floor() as u32;
+    let r = right.ceil() as u32;
+    let b = bottom.ceil() as u32;
+    (r > x && b > y).then_some([x, y, r - x, b - y])
 }
 
 /// Appends one text batch's glyphs to `instances` and records one draw per

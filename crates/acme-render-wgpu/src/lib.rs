@@ -3,6 +3,7 @@
 
 mod atlas_pages;
 pub mod batch;
+mod clip;
 mod draws;
 pub mod golden;
 mod images;
