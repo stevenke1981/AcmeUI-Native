@@ -20,7 +20,8 @@ use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_ui::mobile::{
-    MobileButtonSize, mobile_button, mobile_card, mobile_segmented, mobile_stepper, mobile_toggle,
+    MobileButtonSize, mobile_button, mobile_card, mobile_progress, mobile_segmented,
+    mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::style::Styled;
@@ -76,7 +77,7 @@ const CATEGORIES: &[CategoryInfo] = &[
     },
     CategoryInfo {
         name: "Mobile",
-        pages: &["Cards", "Controls", "Button sizes", "States"],
+        pages: &["Progress", "Cards", "Controls", "Button sizes", "States"],
     },
 ];
 
@@ -690,6 +691,20 @@ impl Gallery {
             .child(separator())
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
+            ))
+            .child(self.page_section(
+                "Mobile Progress — empty, partial, complete",
+                column()
+                    .gap(12.0)
+                    .child(mobile_progress(0.0, 10.0)
+                        .key("gallery_progress_empty"))
+                    .child(mobile_progress(self.mobile_value as f32, 10.0)
+                        .key("gallery_progress_quantity")
+                        .label("Quantity · 數量 — adjust with the stepper below"))
+                    .child(mobile_progress(10.0, 10.0)
+                        .key("gallery_progress_complete")
+                        .label("Complete"))
+                    .build(),
             ))
             .child(self.page_section(
                 "Mobile Card — content and variants",
@@ -1861,6 +1876,9 @@ mod retained_tests;
 
 #[cfg(test)]
 mod mobile_card_tests;
+
+#[cfg(test)]
+mod mobile_progress_tests;
 
 #[cfg(test)]
 mod tests {
