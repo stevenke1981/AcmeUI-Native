@@ -1,0 +1,15 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+error[E0277]: can't compare `Pixels<Logical>` with `f32`
+   --> apps/acme-gallery/src/mobile_progress_tests.rs:156:21
+    |
+156 |                     assert_eq!(widths, vec![384.0, 384.0 * value / 100.0]);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no implementation for `Pixels<Logical> == f32`
+    |
+    = help: the trait `PartialEq<f32>` is not implemented for `Pixels<Logical>`
+            but trait `PartialEq<Pixels<Logical>>` is implemented for it
+    = help: for that trait implementation, expected `Pixels<Logical>`, found `f32`
+    = note: required for `Vec<Pixels<Logical>>` to implement `PartialEq<Vec<f32>>`
+    = note: this error originates in the macro `assert_eq` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery" test) due to 1 previous error

@@ -1,0 +1,19 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.31s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-085665444b7a57a5)
+
+running 1 test
+
+thread 'mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track' panicked at crates/acme-ui/src/mobile/mobile_progress_tests.rs:130:17:
+width=120, fraction=0.01, track=104, fill=1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track ... FAILED
+
+failures:
+
+failures:
+    mobile::mobile_progress::tests::actual_layout_scales_fill_with_available_width_and_keeps_text_outside_the_track
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 306 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

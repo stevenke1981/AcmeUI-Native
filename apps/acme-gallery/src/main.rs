@@ -20,7 +20,8 @@ use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_ui::mobile::{
-    MobileButtonSize, mobile_button, mobile_card, mobile_segmented, mobile_stepper, mobile_toggle,
+    MobileButtonSize, mobile_button, mobile_card, mobile_progress, mobile_segmented,
+    mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::style::Styled;
@@ -76,7 +77,7 @@ const CATEGORIES: &[CategoryInfo] = &[
     },
     CategoryInfo {
         name: "Mobile",
-        pages: &["Cards", "Controls", "Button sizes", "States"],
+        pages: &["Progress", "Cards", "Controls", "Button sizes", "States"],
     },
 ];
 
@@ -690,6 +691,20 @@ impl Gallery {
             .child(separator())
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
+            ))
+            .child(self.page_section(
+                "Mobile Progress — empty, partial, complete",
+                column()
+                    .gap(12.0)
+                    .child(mobile_progress(0.0, 10.0)
+                        .key("gallery_progress_empty"))
+                    .child(mobile_progress(self.mobile_value as f32, 10.0)
+                        .key("gallery_progress_quantity")
+                        .label("Quantity · 數量 — adjust with the stepper below"))
+                    .child(mobile_progress(10.0, 10.0)
+                        .key("gallery_progress_complete")
+                        .label("Complete"))
+                    .build(),
             ))
             .child(self.page_section(
                 "Mobile Card — content and variants",
@@ -1551,54 +1566,50 @@ fn render_content(
                 let y_text = rect.y - scroll_y;
                 let text_color = l.color.unwrap_or(colors.foreground);
 
+                let mut display_text = l.text.as_str();
+                let mut text_x = rect.x + 4.0;
                 // Color swatch label: "\x01{color_name}|{display_text}"
-                if l.text.starts_with('\x01') {
-                    if let Some(rest) = l.text.get(1..) {
-                        if let Some((color_name, display)) = rest.split_once('|') {
-                            if let Some(swatch_color) = resolve_swatch_color(theme, color_name) {
-                                let swatch_size = fs * 0.85;
-                                let swatch_x = rect.x + 4.0;
-                                let swatch_y = y_text + (fs * 1.5 - swatch_size).max(0.0) / 2.0;
-                                let swatch_radius = theme.radii.sm.min(swatch_size / 2.0);
-                                frame.clipped_quads.push(ClippedQuad {
-                                    quad: quad_rect(
-                                        [swatch_x, swatch_y, swatch_size, swatch_size],
-                                        swatch_color,
-                                        swatch_radius,
-                                        0.0,
-                                        swatch_color,
-                                    ),
-                                    clip,
-                                });
-                                let text_x = swatch_x + swatch_size + 8.0;
-                                add_text(
-                                    fonts,
-                                    atlas,
-                                    frame,
-                                    display,
-                                    ([text_x, y_text], fs),
-                                    text_color,
-                                    scale,
-                                    Some(clip),
-                                    theme.typography.line_height,
-                                );
-                                return;
-                            }
-                        }
+                if let Some((color_name, display)) = l
+                    .text
+                    .strip_prefix('\x01')
+                    .and_then(|rest| rest.split_once('|'))
+                {
+                    if let Some(swatch_color) = resolve_swatch_color(theme, color_name) {
+                        let swatch_size = fs * 0.85;
+                        let swatch_x = rect.x + 4.0;
+                        let swatch_y = y_text + (fs * 1.5 - swatch_size).max(0.0) / 2.0;
+                        frame.clipped_quads.push(ClippedQuad {
+                            quad: quad_rect(
+                                [swatch_x, swatch_y, swatch_size, swatch_size],
+                                swatch_color,
+                                theme.radii.sm.min(swatch_size / 2.0),
+                                0.0,
+                                swatch_color,
+                            ),
+                            clip,
+                        });
+                        display_text = display;
+                        text_x = swatch_x + swatch_size + 8.0;
                     }
                 }
-
-                add_text(
-                    fonts,
-                    atlas,
-                    frame,
-                    &l.text,
-                    ([rect.x + 4.0, y_text], fs),
-                    text_color,
+                let shaped = fonts.shape(
+                    display_text,
+                    &TextStyle {
+                        font_size: fs,
+                        line_height: fs * theme.typography.line_height,
+                        ..TextStyle::default()
+                    },
+                    TextConstraints::default(),
                     scale,
-                    Some(clip),
-                    theme.typography.line_height,
                 );
+                // Prepared glyph offsets are relative to the first baseline;
+                // the layout rectangle supplies the top of the label instead.
+                frame.text.push(TextRun {
+                    prepared: fonts.prepare(&shaped, atlas),
+                    origin: [text_x, y_text + shaped.baseline],
+                    color: rgba(text_color),
+                    clip: Some(clip),
+                });
             }
         }
         WidgetNode::Button(btn) => {
@@ -1861,6 +1872,9 @@ mod retained_tests;
 
 #[cfg(test)]
 mod mobile_card_tests;
+
+#[cfg(test)]
+mod mobile_progress_tests;
 
 #[cfg(test)]
 mod tests {
