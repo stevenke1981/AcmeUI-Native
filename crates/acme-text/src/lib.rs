@@ -7,7 +7,7 @@ use std::collections::HashSet;
 
 use cosmic_text::{
     Attrs, Buffer, CacheKey, Family, FontSystem as CosmicFontSystem, Metrics, Shaping, SwashCache,
-    SwashContent, Wrap,
+    Style as FontStyle, SwashContent, Weight, Wrap,
 };
 
 use atlas::RasterizedGlyph;
@@ -19,6 +19,11 @@ pub struct TextStyle {
     pub font_size: f32,
     pub line_height: f32,
     pub family: String,
+    /// Bold weight (700) instead of normal (400). Falls back through the font system
+    /// when the family has no bold face.
+    pub bold: bool,
+    /// Italic style. Falls back through the font system when no italic face exists.
+    pub italic: bool,
 }
 
 impl Default for TextStyle {
@@ -27,7 +32,30 @@ impl Default for TextStyle {
             font_size: 16.0,
             line_height: 20.0,
             family: "sans-serif".into(),
+            bold: false,
+            italic: false,
         }
+    }
+}
+
+/// Map a [`TextStyle`] onto cosmic-text attributes (family, weight, style).
+fn style_attrs(style: &TextStyle) -> Attrs<'_> {
+    let family = style.family.trim();
+    let attrs = match family {
+        "" | "sans-serif" => Attrs::new().family(Family::SansSerif),
+        "monospace" => Attrs::new().family(Family::Monospace),
+        "serif" => Attrs::new().family(Family::Serif),
+        name => Attrs::new().family(Family::Name(name)),
+    };
+    let attrs = if style.bold {
+        attrs.weight(Weight::BOLD)
+    } else {
+        attrs
+    };
+    if style.italic {
+        attrs.style(FontStyle::Italic)
+    } else {
+        attrs
     }
 }
 
@@ -140,11 +168,7 @@ impl FontSystem {
         buffer.set_size(&mut self.inner, width, None);
         buffer.set_wrap(&mut self.inner, map_wrap(constraints.wrap));
 
-        let attrs = if style.family.trim().is_empty() || style.family == "sans-serif" {
-            Attrs::new().family(Family::SansSerif)
-        } else {
-            Attrs::new().family(Family::Name(style.family.trim()))
-        };
+        let attrs = style_attrs(style);
         buffer.set_text(&mut self.inner, text, &attrs, Shaping::Advanced);
 
         let mut glyphs = Vec::new();
@@ -747,5 +771,57 @@ mod tests {
             "a nearly empty atlas must not be evicted by a request made before clear()"
         );
         assert_eq!(atlas.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod style_attr_tests {
+    use super::*;
+
+    #[test]
+    fn default_style_is_regular_upright() {
+        let style = TextStyle::default();
+        assert!(!style.bold && !style.italic);
+        let attrs = style_attrs(&style);
+        assert_eq!(attrs.weight, Weight::NORMAL);
+        assert_eq!(attrs.style, FontStyle::Normal);
+        assert_eq!(attrs.family, Family::SansSerif);
+    }
+
+    #[test]
+    fn bold_italic_monospace_map_to_cosmic_attrs() {
+        let style = TextStyle {
+            family: "monospace".into(),
+            bold: true,
+            italic: true,
+            ..TextStyle::default()
+        };
+        let attrs = style_attrs(&style);
+        assert_eq!(attrs.weight, Weight::BOLD);
+        assert_eq!(attrs.style, FontStyle::Italic);
+        assert_eq!(attrs.family, Family::Monospace);
+    }
+
+    #[test]
+    fn named_family_is_trimmed() {
+        let style = TextStyle {
+            family: "  Consolas ".into(),
+            ..TextStyle::default()
+        };
+        assert_eq!(style_attrs(&style).family, Family::Name("Consolas"));
+    }
+
+    #[test]
+    fn bold_shapes_and_prepares_glyphs() {
+        let mut fonts = FontSystem::new();
+        let mut atlas = GlyphAtlas::new(512, 512);
+        let style = TextStyle {
+            bold: true,
+            ..TextStyle::default()
+        };
+        let layout = fonts.shape("Bold", &style, TextConstraints::default(), 1.0);
+        assert_eq!(layout.glyphs.len(), 4);
+        let prepared = fonts.prepare(&layout, &mut atlas);
+        assert!(!prepared.glyphs.is_empty());
     }
 }

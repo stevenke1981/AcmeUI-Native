@@ -48,6 +48,7 @@ fn style(size: f32) -> TextStyle {
         font_size: size,
         line_height: size + 6.0,
         family: "sans-serif".into(),
+        ..TextStyle::default()
     }
 }
 
