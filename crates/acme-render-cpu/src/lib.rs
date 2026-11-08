@@ -77,7 +77,14 @@ fn pack(c: Color) -> u32 {
     (channel(c.a) << 24) | (channel(c.r) << 16) | (channel(c.g) << 8) | channel(c.b)
 }
 fn blend(dst: u32, src: u32, opacity: f32) -> u32 {
-    let sa = ((src >> 24) & 255) as f32 * opacity.clamp(0.0, 1.0);
+    let opacity = opacity.clamp(0.0, 1.0);
+    if opacity <= 0.0 {
+        return dst;
+    }
+    if opacity == 1.0 && (src >> 24) == 255 {
+        return src;
+    }
+    let sa = ((src >> 24) & 255) as f32 * opacity;
     if sa <= 0.0 {
         return dst;
     }
@@ -140,6 +147,64 @@ fn for_pixels(
     }
 }
 
+fn row_interior_span(
+    bounds: Bounds,
+    radius: f32,
+    clip: Option<Bounds>,
+    y: usize,
+    width: usize,
+) -> Option<(usize, usize)> {
+    let y_lo = y as f32;
+    let y_hi = (y + 1) as f32;
+
+    if y_lo < bounds.top || y_hi > bounds.bottom {
+        return None;
+    }
+
+    if let Some(c) = clip {
+        if y_lo < c.top || y_hi > c.bottom {
+            return None;
+        }
+    }
+
+    let in_top_band = y_lo < bounds.top + radius;
+    let in_bottom_band = y_hi > bounds.bottom - radius;
+
+    let (valid_x_left, valid_x_right) = if in_top_band || in_bottom_band {
+        (bounds.left + radius, bounds.right - radius)
+    } else {
+        (bounds.left, bounds.right)
+    };
+
+    if valid_x_left >= valid_x_right {
+        return None;
+    }
+
+    let (span_left, span_right) = if let Some(c) = clip {
+        (valid_x_left.max(c.left), valid_x_right.min(c.right))
+    } else {
+        (valid_x_left, valid_x_right)
+    };
+
+    if span_left >= span_right || !span_left.is_finite() || !span_right.is_finite() {
+        return None;
+    }
+
+    let x0 = span_left.ceil() as i32;
+    let x1 = span_right.floor() as i32;
+    if x0 >= x1 {
+        return None;
+    }
+
+    let x0 = (x0.max(0) as usize).min(width);
+    let x1 = (x1.max(0) as usize).min(width);
+    if x0 >= x1 {
+        return None;
+    }
+
+    Some((x0, x1))
+}
+
 fn draw_quad(
     pixels: &mut [u32],
     width: u32,
@@ -148,7 +213,27 @@ fn draw_quad(
     clip: Option<Bounds>,
     quad: &QuadPrimitive,
 ) {
+    if width == 0 || height == 0 {
+        return;
+    }
     let rect = Bounds::from_rect(quad.rect, scale);
+    if ![rect.left, rect.top, rect.right, rect.bottom]
+        .iter()
+        .all(|value| value.is_finite())
+    {
+        return;
+    }
+    let half_x = (rect.right - rect.left) * 0.5;
+    let half_y = (rect.bottom - rect.top) * 0.5;
+    if !(half_x > 0.0 && half_y > 0.0) {
+        return;
+    }
+    if let Some(c) = clip {
+        if !(c.right - c.left > 0.0 && c.bottom - c.top > 0.0) {
+            return;
+        }
+    }
+
     let radius = quad.radius.max(0.0) * scale;
     let border = quad.border_width.max(0.0) * scale;
     let inner = Bounds {
@@ -160,20 +245,116 @@ fn draw_quad(
     let inner_radius = (radius - border).max(0.0);
     let fill = pack(quad.color);
     let stroke = pack(quad.border_color);
-    for_pixels(width, height, rect, clip, |idx, x, y, _clip_coverage| {
-        let coverage = clipped_quad_coverage(rect, radius, clip, x, y);
-        if coverage <= 0.0 {
-            return;
-        }
-        if border > 0.0 {
-            // Stroke area is outer minus inner, so it cannot go negative.
-            let inside = clipped_quad_coverage(inner, inner_radius, clip, x, y);
-            pixels[idx] = blend(pixels[idx], fill, inside);
-            pixels[idx] = blend(pixels[idx], stroke, (coverage - inside).max(0.0));
+
+    let visible = clip.map_or(rect, |region| rect.intersect(region));
+    let left = visible.left.floor().max(0.0).min(width as f32) as usize;
+    let top = visible.top.floor().max(0.0).min(height as f32) as usize;
+    let right = visible.right.ceil().max(0.0).min(width as f32) as usize;
+    let bottom = visible.bottom.ceil().max(0.0).min(height as f32) as usize;
+    if left >= right || top >= bottom {
+        return;
+    }
+
+    let rect_r = radius.min(half_x.min(half_y));
+    let inner_interior = if border > 0.0 {
+        let inner_half_x = (inner.right - inner.left) * 0.5;
+        let inner_half_y = (inner.bottom - inner.top) * 0.5;
+        if inner_half_x > 0.0 && inner_half_y > 0.0 {
+            let inner_r = inner_radius.min(inner_half_x.min(inner_half_y));
+            Some((inner, inner_r))
         } else {
-            pixels[idx] = blend(pixels[idx], fill, coverage);
+            None
         }
-    });
+    } else {
+        None
+    };
+
+    let width_usize = width as usize;
+
+    for y in top..bottom {
+        let py = y as f32 + 0.5;
+        let y_lo = y as f32;
+        let y_hi = (y + 1) as f32;
+        let row_start = y * width_usize;
+
+        let (x0, x1, span_color) = if border > 0.0 {
+            if y_hi <= inner.top || y_lo >= inner.bottom {
+                // Entire row is outside inner; rect's interior is 100% stroke.
+                if let Some((sx0, sx1)) = row_interior_span(rect, rect_r, clip, y, width_usize) {
+                    let cx0 = sx0.clamp(left, right);
+                    let cx1 = sx1.clamp(cx0, right);
+                    (cx0, cx1, stroke)
+                } else {
+                    (left, left, fill)
+                }
+            } else if let Some((inner_bounds, inner_r)) = inner_interior {
+                if let Some((ix0, ix1)) =
+                    row_interior_span(inner_bounds, inner_r, clip, y, width_usize)
+                {
+                    let cx0 = ix0.clamp(left, right);
+                    let cx1 = ix1.clamp(cx0, right);
+                    (cx0, cx1, fill)
+                } else {
+                    (left, left, fill)
+                }
+            } else {
+                (left, left, fill)
+            }
+        } else if let Some((rx0, rx1)) = row_interior_span(rect, rect_r, clip, y, width_usize) {
+            let cx0 = rx0.clamp(left, right);
+            let cx1 = rx1.clamp(cx0, right);
+            (cx0, cx1, fill)
+        } else {
+            (left, left, fill)
+        };
+
+        // Edge pixels before interior span.
+        for x in left..x0 {
+            let px = x as f32 + 0.5;
+            let coverage = clipped_quad_coverage(rect, radius, clip, px, py);
+            if coverage <= 0.0 {
+                continue;
+            }
+            let idx = row_start + x;
+            if border > 0.0 {
+                let inside = clipped_quad_coverage(inner, inner_radius, clip, px, py);
+                pixels[idx] = blend(pixels[idx], fill, inside);
+                pixels[idx] = blend(pixels[idx], stroke, (coverage - inside).max(0.0));
+            } else {
+                pixels[idx] = blend(pixels[idx], fill, coverage);
+            }
+        }
+
+        // Fast interior span.
+        if x0 < x1 {
+            let span_alpha = (span_color >> 24) & 255;
+            if span_alpha == 255 {
+                pixels[row_start + x0..row_start + x1].fill(span_color);
+            } else if span_alpha > 0 {
+                for x in x0..x1 {
+                    let idx = row_start + x;
+                    pixels[idx] = blend(pixels[idx], span_color, 1.0);
+                }
+            }
+        }
+
+        // Edge pixels after interior span.
+        for x in x1..right {
+            let px = x as f32 + 0.5;
+            let coverage = clipped_quad_coverage(rect, radius, clip, px, py);
+            if coverage <= 0.0 {
+                continue;
+            }
+            let idx = row_start + x;
+            if border > 0.0 {
+                let inside = clipped_quad_coverage(inner, inner_radius, clip, px, py);
+                pixels[idx] = blend(pixels[idx], fill, inside);
+                pixels[idx] = blend(pixels[idx], stroke, (coverage - inside).max(0.0));
+            } else {
+                pixels[idx] = blend(pixels[idx], fill, coverage);
+            }
+        }
+    }
 }
 
 fn draw_image(
@@ -519,10 +700,16 @@ impl CpuRenderer {
         // Software display surfaces are opaque; composite any remaining scene alpha over black.
         for (dst, pixel) in self.output.iter_mut().zip(self.framebuffer.iter()) {
             let a = (pixel >> 24) & 255;
-            let r = (pixel >> 16) & 255;
-            let g = (pixel >> 8) & 255;
-            let b = pixel & 255;
-            *dst = ((r * a / 255) << 16) | ((g * a / 255) << 8) | (b * a / 255);
+            if a == 255 {
+                *dst = pixel & 0x00ff_ffff;
+            } else if a == 0 {
+                *dst = 0;
+            } else {
+                let r = (pixel >> 16) & 255;
+                let g = (pixel >> 8) & 255;
+                let b = pixel & 255;
+                *dst = ((r * a / 255) << 16) | ((g * a / 255) << 8) | (b * a / 255);
+            }
         }
         Ok(())
     }
