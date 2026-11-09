@@ -20,7 +20,7 @@ use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_ui::mobile::{
-    MobileButtonSize, mobile_button, mobile_card, mobile_progress, mobile_segmented,
+    MobileButtonSize, mobile_button, mobile_card, mobile_loader, mobile_progress, mobile_segmented,
     mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
@@ -77,7 +77,14 @@ const CATEGORIES: &[CategoryInfo] = &[
     },
     CategoryInfo {
         name: "Mobile",
-        pages: &["Progress", "Cards", "Controls", "Button sizes", "States"],
+        pages: &[
+            "Loader",
+            "Progress",
+            "Cards",
+            "Controls",
+            "Button sizes",
+            "States",
+        ],
     },
 ];
 
@@ -691,6 +698,22 @@ impl Gallery {
             .child(separator())
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
+            ))
+            .child(self.page_section(
+                "Mobile Loader — indicator and messages",
+                column()
+                    .gap(12.0)
+                    .child(mobile_loader()
+                        .key("gallery_loader_indicator"))
+                    .child(mobile_loader()
+                        .key("gallery_loader_message")
+                        .message("Loading · 載入中…"))
+                    .child(column()
+                        .width(240.0)
+                        .child(mobile_loader()
+                            .key("gallery_loader_long")
+                            .message("Loading the next page. Please wait while the request finishes. 正在準備資料，請稍候。")))
+                    .build(),
             ))
             .child(self.page_section(
                 "Mobile Progress — empty, partial, complete",
@@ -1565,7 +1588,15 @@ fn render_content(
                 let text_color = l.color.unwrap_or(colors.foreground);
 
                 let mut display_text = l.text.as_str();
-                let mut text_x = rect.x + 4.0;
+                // Wrapped text must use the same content width as layout.
+                // Keep the existing inset for unwrapped labels and swatches.
+                let wrap = match l.wrap {
+                    acme_widgets::LabelWrap::None => acme_text::TextWrap::None,
+                    acme_widgets::LabelWrap::Word => acme_text::TextWrap::Word,
+                    acme_widgets::LabelWrap::Character => acme_text::TextWrap::Glyph,
+                };
+                let wrapped = l.wrap != acme_widgets::LabelWrap::None;
+                let mut text_x = rect.x + if wrapped { 0.0 } else { 4.0 };
                 // Color swatch label: "\x01{color_name}|{display_text}"
                 if let Some((color_name, display)) = l
                     .text
@@ -1594,10 +1625,13 @@ fn render_content(
                     display_text,
                     &TextStyle {
                         font_size: fs,
-                        line_height: fs * theme.typography.line_height,
+                        line_height: l.line_height.unwrap_or(fs * theme.typography.line_height),
                         ..TextStyle::default()
                     },
-                    TextConstraints::default(),
+                    TextConstraints {
+                        max_width: wrapped.then_some((rect.width - (text_x - rect.x)).max(0.0)),
+                        wrap,
+                    },
                     scale,
                 );
                 // Prepared glyph offsets are relative to the first baseline;
@@ -1873,6 +1907,9 @@ mod mobile_card_tests;
 
 #[cfg(test)]
 mod mobile_progress_tests;
+
+#[cfg(test)]
+mod mobile_loader_tests;
 
 #[cfg(test)]
 mod tests {

@@ -187,7 +187,10 @@ impl FontSystem {
             measured_height = measured_height.max(run.line_top + run.line_height);
             for glyph in run.glyphs {
                 fonts.insert(glyph.font_id);
-                let physical = glyph.physical((0.0, 0.0), scale);
+                // Prepared text is drawn relative to the first baseline. The
+                // shaper's glyph coordinates are local to each visual line;
+                // physical() takes its offset in physical pixels.
+                let physical = glyph.physical((0.0, (run.line_y - baseline) * scale), scale);
                 glyphs.push(ShapedGlyph {
                     line: run.line_i,
                     byte_range: glyph.start..glyph.end,
@@ -468,6 +471,45 @@ mod tests {
         );
         assert!(wrapped.line_count > unconstrained.line_count);
         assert!(wrapped.width <= 50.01);
+    }
+
+    #[test]
+    fn prepared_multiline_glyphs_preserve_line_offsets_from_the_first_baseline() {
+        let mut fonts = FontSystem::new();
+        for scale in [1.0, 1.25, 2.0] {
+            let style = TextStyle {
+                font_size: 16.0,
+                line_height: 21.5,
+                ..TextStyle::default()
+            };
+            let single = fonts.shape("A", &style, TextConstraints::default(), scale);
+            let single = fonts.prepare(&single, &mut GlyphAtlas::default());
+            for (text, width) in [("A\nA\nA", None), ("AAAAAAAAAAAA", Some(16.0))] {
+                let layout = fonts.shape(
+                    text,
+                    &style,
+                    TextConstraints {
+                        max_width: width,
+                        wrap: TextWrap::Glyph,
+                    },
+                    scale,
+                );
+                assert!(layout.line_count >= 3);
+                let prepared = fonts.prepare(&layout, &mut GlyphAtlas::default());
+                assert_eq!(prepared.glyphs.len(), layout.glyphs.len());
+                assert_eq!(prepared.glyphs[0].y, single.glyphs[0].y);
+                for (shaped, glyph) in layout.glyphs.iter().zip(&prepared.glyphs) {
+                    // Identical glyphs have identical bearings. Only the line
+                    // baseline changes; physical pixel rounding permits <1 px.
+                    let expected = (shaped.y - layout.glyphs[0].y) * scale;
+                    let actual = (glyph.y - prepared.glyphs[0].y) as f32;
+                    assert!(
+                        (actual - expected).abs() < 1.0,
+                        "line offset lost: expected={expected}, actual={actual}, scale={scale}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
