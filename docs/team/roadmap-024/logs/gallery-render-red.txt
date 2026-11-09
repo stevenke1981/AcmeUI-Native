@@ -1,0 +1,35 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.59s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 3 tests
+test mobile_avatar_tests::avatars_paint_themed_circles_before_centered_clipped_initials ... FAILED
+test mobile_avatar_tests::explicit_single_line_alignment_uses_existing_style_and_bounds_long_text ... FAILED
+test mobile_avatar_tests::mobile_page_has_all_avatar_sizes_placeholder_and_complete_binding ... ok
+
+failures:
+
+---- mobile_avatar_tests::avatars_paint_themed_circles_before_centered_clipped_initials stdout ----
+
+thread 'mobile_avatar_tests::avatars_paint_themed_circles_before_centered_clipped_initials' panicked at apps/acme-gallery/src/mobile_avatar_tests.rs:98:21:
+assertion `left == right` failed: avatar circle must be painted
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile_avatar_tests::explicit_single_line_alignment_uses_existing_style_and_bounds_long_text stdout ----
+
+thread 'mobile_avatar_tests::explicit_single_line_alignment_uses_existing_style_and_bounds_long_text' panicked at apps/acme-gallery/src/mobile_avatar_tests.rs:178:13:
+assertion `left == right` failed
+  left: 240.0
+ right: 40.0
+
+
+failures:
+    mobile_avatar_tests::avatars_paint_themed_circles_before_centered_clipped_initials
+    mobile_avatar_tests::explicit_single_line_alignment_uses_existing_style_and_bounds_long_text
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.06s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

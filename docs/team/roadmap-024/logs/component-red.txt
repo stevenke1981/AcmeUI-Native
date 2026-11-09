@@ -1,0 +1,33 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.08s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_avatar::acceptance_tests::circular_sizes_defaults_placeholder_and_public_edits_preserve_noninteractive_semantics ... FAILED
+test mobile::mobile_avatar::acceptance_tests::avatar_and_initials_ids_survive_size_text_changes_and_keyed_reordering ... ok
+test mobile::mobile_avatar::acceptance_tests::actual_layout_keeps_exact_diameters_and_text_square_inside_the_circle ... FAILED
+
+failures:
+
+---- mobile::mobile_avatar::acceptance_tests::circular_sizes_defaults_placeholder_and_public_edits_preserve_noninteractive_semantics stdout ----
+
+thread 'mobile::mobile_avatar::acceptance_tests::circular_sizes_defaults_placeholder_and_public_edits_preserve_noninteractive_semantics' panicked at crates/acme-ui/src/mobile/mobile_avatar_tests.rs:36:13:
+assertion `left == right` failed
+  left: None
+ right: Some(16.0)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile::mobile_avatar::acceptance_tests::actual_layout_keeps_exact_diameters_and_text_square_inside_the_circle stdout ----
+
+thread 'mobile::mobile_avatar::acceptance_tests::actual_layout_keeps_exact_diameters_and_text_square_inside_the_circle' panicked at crates/acme-ui/src/mobile/mobile_avatar_tests.rs:77:9:
+assertion failed: text.x > root.x && text.y > root.y
+
+
+failures:
+    mobile::mobile_avatar::acceptance_tests::actual_layout_keeps_exact_diameters_and_text_square_inside_the_circle
+    mobile::mobile_avatar::acceptance_tests::circular_sizes_defaults_placeholder_and_public_edits_preserve_noninteractive_semantics
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 776 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

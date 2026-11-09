@@ -1,0 +1,16 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0433]: failed to resolve: use of undeclared type `TextAlign`
+  --> crates/acme-ui/src/mobile/mobile_avatar.rs:83:33
+   |
+83 |                     .text_align(TextAlign::Center)
+   |                                 ^^^^^^^^^ use of undeclared type `TextAlign`
+   |
+help: consider importing this enum
+   |
+3  + use crate::style::TextAlign;
+   |
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `acme-ui` (lib) due to 1 previous error

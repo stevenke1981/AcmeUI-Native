@@ -30,6 +30,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 023 | Lead + UI/UX + Verification (single-agent role passes) | Themed mobile chips with separate tap/dismiss actions, retained identity and Gallery filter/removal/restore | [Brief](../team/roadmap-023/BRIEF.md); [report](../team/roadmap-023/REPORT.md) with locked checks and native CPU pointer captures; manual hardware acceptance remains open |
 
+| 024 | Lead + UI/UX + Verification (single-agent role passes) | Circular mobile avatars, centered initials/empty placeholder, Label sizing/alignment and themed Stack painting | [Brief](../team/roadmap-024/BRIEF.md); [report](../team/roadmap-024/REPORT.md) with locked checks and native CPU capture; manual hardware acceptance remains open |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.
