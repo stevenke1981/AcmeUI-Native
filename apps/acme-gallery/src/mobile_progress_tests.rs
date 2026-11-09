@@ -50,7 +50,9 @@ fn mobile_page_exposes_empty_partial_and_complete_progress_with_readable_labels(
         let fill = snapshot.get(track.children[0].id).unwrap();
         assert!(rect.width > 0.0);
         assert_eq!(rect.height, 6.0);
-        assert!((fill.width - rect.width * fraction).abs() < 0.001);
+        // The page's intrinsic width varies with its examples; Taffy rounds
+        // final edges to logical pixels, as in the component layout tests.
+        assert_eq!(fill.width, (rect.width * fraction).round());
         let WidgetNode::Label(percent) = progress.children().last().unwrap() else {
             panic!("progress percentage must be readable text");
         };

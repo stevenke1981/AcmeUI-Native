@@ -46,6 +46,7 @@ read long loading messages at narrow widths, and scroll or change themes.
 - `crates/acme-text/src/lib.rs` (scope refinement below)
 - `apps/acme-gallery/src/main.rs` (shared, sole writer)
 - `apps/acme-gallery/src/mobile_loader_tests.rs` (new)
+- `apps/acme-gallery/src/mobile_progress_tests.rs` (rounding correction below)
 - `docs/status/todos.md`
 - `docs/agent-team/ROADMAP.md`
 - `docs/team/roadmap-021/BRIEF.md`
@@ -73,3 +74,9 @@ OBSERVED in `FontSystem::shape`: `ShapedGlyph.y` includes `run.line_y`, but
 in `crates/acme-text/src/lib.rs` and a RED/GREEN test for explicit and automatic
 line breaks at multiple scales. Preserve first-line baseline-relative offsets,
 and run locked text tests/Clippy plus dependent workspace/CPU gates.
+
+The first complete Gallery run exposed a pre-existing exact-fraction assertion
+in the 020 page test: adding loader content changes the page's intrinsic width,
+and the progress fill is rounded by Taffy. Correct that assertion to expect the
+rounded width, consistent with the existing component acceptance test; keep
+the observed failure and rerun the complete Gallery suite.
