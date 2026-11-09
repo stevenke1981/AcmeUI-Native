@@ -20,11 +20,11 @@ use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_ui::mobile::{
-    MobileButtonSize, mobile_button, mobile_card, mobile_chip, mobile_loader, mobile_progress,
-    mobile_search, mobile_segmented, mobile_stepper, mobile_toggle,
+    MobileAvatarSize, MobileButtonSize, mobile_avatar, mobile_button, mobile_card, mobile_chip,
+    mobile_loader, mobile_progress, mobile_search, mobile_segmented, mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
-use acme_widgets::style::Styled;
+use acme_widgets::style::{Styled, TextAlign};
 use acme_widgets::view_bridge::widget_to_views;
 use acme_widgets::{
     ButtonSize, ButtonState, ButtonVariant, CardVariant, WidgetNode, button, card, column, label,
@@ -82,6 +82,7 @@ const CATEGORIES: &[CategoryInfo] = &[
     CategoryInfo {
         name: "Mobile",
         pages: &[
+            "Avatars",
             "Chips",
             "Search",
             "Loader",
@@ -754,6 +755,17 @@ impl Gallery {
             .child(separator())
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
+            ))
+            .child(self.page_section(
+                "Mobile Avatars — initials and placeholder",
+                column().gap(8.0)
+                    .child(row().gap(16.0)
+                        .child(mobile_avatar("AB").key("gallery_avatar_sm").size(MobileAvatarSize::Sm))
+                        .child(mobile_avatar("陳").key("gallery_avatar_md"))
+                        .child(mobile_avatar("UI").key("gallery_avatar_lg").size(MobileAvatarSize::Lg))
+                        .child(mobile_avatar("").key("gallery_avatar_placeholder")))
+                    .child(label("Small · 32 px / Medium · 40 px / Large · 56 px / Empty placeholder"))
+                    .build(),
             ))
             .child(self.page_section("Mobile Chips — tags and actions", self.chip_examples()))
             .child(self.page_section(
@@ -1693,8 +1705,8 @@ fn render_content(
     atlas: &mut GlyphAtlas,
 ) {
     let colors = theme.colors;
-    // Styled rows include switch tracks/thumbs and optional card media.
-    if let WidgetNode::Row(container) = widget {
+    // Styled rows and stacks include switch tracks, card media and avatars.
+    if let WidgetNode::Row(container) | WidgetNode::Stack(container) = widget {
         if let (Some(background), Some(rect)) =
             (container.style.background, snapshot.get(layout.id))
         {
@@ -1727,7 +1739,9 @@ fn render_content(
                     acme_widgets::LabelWrap::Character => acme_text::TextWrap::Glyph,
                 };
                 let wrapped = l.wrap != acme_widgets::LabelWrap::None;
-                let mut text_x = rect.x + if wrapped { 0.0 } else { 4.0 };
+                let alignment = l.style.text_align.unwrap_or(TextAlign::Left);
+                let aligned = !wrapped && alignment != TextAlign::Left;
+                let mut text_x = rect.x + if wrapped || aligned { 0.0 } else { 4.0 };
                 // Color swatch label: "\x01{color_name}|{display_text}"
                 if let Some((color_name, display)) = l
                     .text
@@ -1765,13 +1779,31 @@ fn render_content(
                     },
                     scale,
                 );
+                // Single-line alignment uses the existing style contract.
+                // Clip aligned text to its content box (e.g. avatar initials).
+                let text_clip = if aligned {
+                    let remaining = (rect.width - shaped.width).max(0.0);
+                    text_x = rect.x
+                        + if alignment == TextAlign::Center {
+                            remaining / 2.0
+                        } else {
+                            remaining
+                        };
+                    let x = rect.x.max(clip[0]);
+                    let y = y_text.max(clip[1]);
+                    let right = (rect.x + rect.width).min(clip[0] + clip[2]);
+                    let bottom = (y_text + rect.height).min(clip[1] + clip[3]);
+                    [x, y, (right - x).max(0.0), (bottom - y).max(0.0)]
+                } else {
+                    clip
+                };
                 // Prepared glyph offsets are relative to the first baseline;
                 // the layout rectangle supplies the top of the label instead.
                 frame.text.push(TextRun {
                     prepared: fonts.prepare(&shaped, atlas),
                     origin: [text_x, y_text + shaped.baseline],
                     color: rgba(text_color),
-                    clip: Some(clip),
+                    clip: Some(text_clip),
                 });
             }
         }
@@ -2284,3 +2316,6 @@ mod mobile_search_tests;
 
 #[cfg(test)]
 mod mobile_chip_tests;
+
+#[cfg(test)]
+mod mobile_avatar_tests;
