@@ -247,3 +247,58 @@ fn tab_reveals_an_offscreen_search_field() {
     assert!(rect[1] - gallery.scroll >= TOOLBAR_HEIGHT);
     assert!(gallery.ime_cursor_area(WindowId(1)).is_some());
 }
+
+#[test]
+fn search_action_labels_are_centered_inside_their_touch_targets() {
+    let mut gallery = Gallery::new();
+    for dark in [false, true] {
+        gallery.dark = dark;
+        let theme = gallery.current_theme();
+        for scale in [1.0, 1.25, 2.0] {
+            let widget = button("clear", "Clear")
+                .w(Length::px(72.0))
+                .min_h(Length::px(44.0))
+                .on_click(GalleryMessage::MobileSearchClear);
+            let context = WidgetLayoutContext {
+                body_font_size: 14.0,
+                body_line_height: 20.0,
+                label_font_size: 13.0,
+                control_height: 36.0,
+                scale_factor: scale,
+            };
+            let layout = widget.to_layout_with_context(NodeId::new(1), &context);
+            let snapshot = gallery
+                .layout
+                .compute_with_text(&layout, (240.0, 100.0), &mut gallery.fonts, scale)
+                .unwrap();
+            let rect = snapshot.get(layout.id).unwrap();
+            let mut frame = Frame::default();
+            render_content(
+                &mut frame,
+                &widget,
+                &layout,
+                &snapshot,
+                &theme,
+                scale,
+                0.0,
+                [0.0, 0.0, 240.0, 100.0],
+                &mut 0,
+                None,
+                None,
+                &mut gallery.fonts,
+                &mut gallery.atlas,
+            );
+            let run = &frame.text[0];
+            assert!(!run.prepared.glyphs.is_empty());
+            for glyph in &run.prepared.glyphs {
+                let top = run.origin[1] + glyph.y as f32 / scale;
+                let bottom = top + glyph.height as f32 / scale;
+                assert!(
+                    top >= rect.y + 8.0,
+                    "action text touches the top border: {top}"
+                );
+                assert!(bottom <= rect.y + rect.height - 6.0);
+            }
+        }
+    }
+}

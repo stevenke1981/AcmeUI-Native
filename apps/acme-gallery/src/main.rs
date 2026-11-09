@@ -1724,17 +1724,28 @@ fn render_content(
                     ),
                     clip,
                 });
-                add_text(
-                    fonts,
-                    atlas,
-                    frame,
+                let shaped = fonts.shape(
                     &btn.label,
-                    ([rect.x + 10.0, y + 8.0], theme.typography.label),
-                    resolved.foreground,
+                    &TextStyle {
+                        font_size: theme.typography.label,
+                        line_height: theme.typography.label * theme.typography.line_height,
+                        ..TextStyle::default()
+                    },
+                    TextConstraints {
+                        max_width: None,
+                        wrap: acme_text::TextWrap::None,
+                    },
                     scale,
-                    Some(clip),
-                    theme.typography.line_height,
                 );
+                frame.text.push(TextRun {
+                    prepared: fonts.prepare(&shaped, atlas),
+                    origin: [
+                        rect.x + (rect.width - shaped.width).max(0.0) / 2.0,
+                        y + (rect.height - shaped.height).max(0.0) / 2.0 + shaped.baseline,
+                    ],
+                    color: rgba(resolved.foreground),
+                    clip: Some(clip),
+                });
             }
         }
         WidgetNode::Separator(_) => {

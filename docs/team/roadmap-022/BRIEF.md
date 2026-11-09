@@ -82,3 +82,8 @@ Additional sole-writer leases:
 Run locked acme-textinput tests and strict Clippy in addition to original gates.
 The existing Gallery stepper test's fixed action count becomes 10 after adding
 Search/Clear; its limit-specific message assertions remain unchanged.
+
+The first native CPU capture exposed Gallery content-button glyphs above their
+44 px touch-target interiors. Preserve the rejected capture and failing glyph
+regression. Correct the already-leased main.rs Button paint path to center its
+shaped text and supply the baseline, then repeat the affected checks and capture.
