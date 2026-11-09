@@ -53,6 +53,10 @@ pub enum CursorIcon {
     Pointer,
     ResizeHorizontal,
     ResizeVertical,
+    /// North-west / south-east diagonal resize (`\` arrow).
+    ResizeNwSe,
+    /// North-east / south-west diagonal resize (`/` arrow).
+    ResizeNeSw,
     Grab,
     Grabbing,
     Move,
@@ -67,6 +71,8 @@ pub(crate) fn map_cursor_icon(icon: CursorIcon) -> winit::window::CursorIcon {
         CursorIcon::Pointer => winit::window::CursorIcon::Pointer,
         CursorIcon::ResizeHorizontal => winit::window::CursorIcon::EwResize,
         CursorIcon::ResizeVertical => winit::window::CursorIcon::NsResize,
+        CursorIcon::ResizeNwSe => winit::window::CursorIcon::NwseResize,
+        CursorIcon::ResizeNeSw => winit::window::CursorIcon::NeswResize,
         CursorIcon::Grab => winit::window::CursorIcon::Grab,
         CursorIcon::Grabbing => winit::window::CursorIcon::Grabbing,
         CursorIcon::Move => winit::window::CursorIcon::Move,
@@ -74,8 +80,38 @@ pub(crate) fn map_cursor_icon(icon: CursorIcon) -> winit::window::CursorIcon {
     }
 }
 
+/// Platform-neutral window edge or corner used for custom-frame resizing.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ResizeEdge {
+    North,
+    South,
+    East,
+    West,
+    NorthEast,
+    NorthWest,
+    SouthEast,
+    SouthWest,
+}
+
+/// Map a platform-neutral [`ResizeEdge`] to a winit [`winit::window::ResizeDirection`].
+pub(crate) fn map_resize_edge(edge: ResizeEdge) -> winit::window::ResizeDirection {
+    use winit::window::ResizeDirection;
+    match edge {
+        ResizeEdge::North => ResizeDirection::North,
+        ResizeEdge::South => ResizeDirection::South,
+        ResizeEdge::East => ResizeDirection::East,
+        ResizeEdge::West => ResizeDirection::West,
+        ResizeEdge::NorthEast => ResizeDirection::NorthEast,
+        ResizeEdge::NorthWest => ResizeDirection::NorthWest,
+        ResizeEdge::SouthEast => ResizeDirection::SouthEast,
+        ResizeEdge::SouthWest => ResizeDirection::SouthWest,
+    }
+}
+
 /// Host window control requests queued by an [`Application`].
-#[derive(Clone, Debug, PartialEq, Eq)]
+///
+/// `PartialEq` only: `ShowSystemMenu` carries `f32` coordinates.
+#[derive(Clone, Debug, PartialEq)]
 pub enum WindowRequest {
     SetTitle(String),
     /// Unminimize, show, and focus the window.
@@ -84,6 +120,21 @@ pub enum WindowRequest {
     Close,
     SetImeAllowed(bool),
     SetCursor(CursorIcon),
+    /// Toggle between maximized and restored.
+    ToggleMaximize,
+    /// Explicitly maximize (`true`) or restore (`false`).
+    SetMaximized(bool),
+    /// Begin an OS-driven window move from the current pointer press
+    /// (Windows: enters the system move loop; release is consumed by the OS).
+    DragMove,
+    /// Begin an OS-driven window resize from the given edge or corner.
+    DragResize(ResizeEdge),
+    /// Show the native system menu at logical client coordinates `(x, y)`
+    /// (Windows only; no-op elsewhere).
+    ShowSystemMenu {
+        x: f32,
+        y: f32,
+    },
 }
 
 /// Pure helper used by the runtime to drain pending [`WindowRequest`] batches
@@ -240,5 +291,68 @@ mod tests {
             map_cursor_icon(CursorIcon::NotAllowed),
             winit::window::CursorIcon::NotAllowed
         );
+        assert_eq!(
+            map_cursor_icon(CursorIcon::ResizeNwSe),
+            winit::window::CursorIcon::NwseResize
+        );
+        assert_eq!(
+            map_cursor_icon(CursorIcon::ResizeNeSw),
+            winit::window::CursorIcon::NeswResize
+        );
+    }
+
+    #[test]
+    fn map_resize_edge_maps_all_eight_directions() {
+        use winit::window::ResizeDirection as Dir;
+        let cases = [
+            (ResizeEdge::North, Dir::North),
+            (ResizeEdge::South, Dir::South),
+            (ResizeEdge::East, Dir::East),
+            (ResizeEdge::West, Dir::West),
+            (ResizeEdge::NorthEast, Dir::NorthEast),
+            (ResizeEdge::NorthWest, Dir::NorthWest),
+            (ResizeEdge::SouthEast, Dir::SouthEast),
+            (ResizeEdge::SouthWest, Dir::SouthWest),
+        ];
+        for (edge, expected) in cases {
+            assert_eq!(map_resize_edge(edge), expected, "edge {edge:?}");
+        }
+    }
+
+    #[test]
+    fn drain_window_requests_preserves_order_for_frameless_variants() {
+        struct FramelessApp {
+            pending: Vec<WindowRequest>,
+        }
+
+        impl Application for FramelessApp {
+            fn take_window_requests(&mut self, window: WindowId) -> Vec<WindowRequest> {
+                if window.0 == 7 {
+                    std::mem::take(&mut self.pending)
+                } else {
+                    Vec::new()
+                }
+            }
+
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
+            }
+        }
+
+        let queued = vec![
+            WindowRequest::DragMove,
+            WindowRequest::ToggleMaximize,
+            WindowRequest::DragResize(ResizeEdge::SouthEast),
+            WindowRequest::SetMaximized(false),
+            WindowRequest::ShowSystemMenu { x: 12.5, y: 3.0 },
+            WindowRequest::SetCursor(CursorIcon::ResizeNwSe),
+        ];
+        let mut app = FramelessApp {
+            pending: queued.clone(),
+        };
+
+        let drained = drain_window_requests(&mut app, [WindowId(7)]);
+        assert_eq!(drained, vec![(WindowId(7), queued)]);
+        assert!(drain_window_requests(&mut app, [WindowId(7)]).is_empty());
     }
 }

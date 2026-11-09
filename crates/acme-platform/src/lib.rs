@@ -11,8 +11,8 @@ use backend::{CPU_FEATURE_REQUIRED, RendererPlan, plan_renderer, resolve_render_
 pub use clipboard::Clipboard;
 pub use keys::PlatformKey;
 use keys::{map_logical_key, resolve_key_character, resolve_key_text};
-pub use waker::{CursorIcon, Waker, WindowRequest};
-use waker::{drain_window_requests, map_cursor_icon};
+pub use waker::{CursorIcon, ResizeEdge, Waker, WindowRequest};
+use waker::{drain_window_requests, map_cursor_icon, map_resize_edge};
 
 #[cfg(feature = "cpu-renderer")]
 mod cpu_window;
@@ -54,6 +54,12 @@ pub struct WindowConfig {
     pub min_height: Option<f64>,
     /// Optional initial logical outer top-left position `(x, y)`.
     pub position: Option<(f64, f64)>,
+    /// `false` removes the native title bar and border (custom frame). On Windows the
+    /// OS still provides Aero Snap, Alt+F4 and the Alt+Space system menu.
+    pub decorations: bool,
+    /// Windows only, effective when `decorations` is `false`: DWM drop shadow.
+    /// The shadow draws a 1px line along the top edge.
+    pub undecorated_shadow: bool,
 }
 impl Default for WindowConfig {
     fn default() -> Self {
@@ -64,6 +70,8 @@ impl Default for WindowConfig {
             min_width: None,
             min_height: None,
             position: None,
+            decorations: true,
+            undecorated_shadow: true,
         }
     }
 }
@@ -148,6 +156,12 @@ pub enum PlatformEvent {
         window: WindowId,
         x: f32,
         y: f32,
+    },
+    /// Window maximized state changed (or was first observed). Emitted before the
+    /// matching [`PlatformEvent::Resized`] for the same frame or resize.
+    MaximizedChanged {
+        window: WindowId,
+        maximized: bool,
     },
     PointerMoved {
         window: WindowId,
@@ -275,8 +289,8 @@ pub trait Application: 'static {
     /// ```ignore
     /// fn windows(&self) -> Vec<WindowConfig> {
     ///     vec![
-    ///         WindowConfig { title: "Editor".into(), width: 1200.0, height: 800.0, min_width: None, min_height: None, position: None },
-    ///         WindowConfig { title: "Inspector".into(), width: 400.0, height: 600.0, min_width: None, min_height: None, position: None },
+    ///         WindowConfig { title: "Editor".into(), width: 1200.0, height: 800.0, ..Default::default() },
+    ///         WindowConfig { title: "Inspector".into(), width: 400.0, height: 600.0, ..Default::default() },
     ///     ]
     /// }
     /// ```
@@ -566,6 +580,8 @@ struct WindowState {
     alt: bool,
     meta: bool,
     dirty: bool,
+    /// Last maximized state reported via `MaximizedChanged`; `None` until the first sync.
+    maximized: Option<bool>,
 }
 
 struct Runtime<A> {
@@ -634,7 +650,13 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             let mut attrs = Window::default_attributes()
                 .with_title(&config.title)
                 .with_inner_size(LogicalSize::new(config.width, config.height))
-                .with_resizable(true);
+                .with_resizable(true)
+                .with_decorations(config.decorations);
+            #[cfg(windows)]
+            {
+                use winit::platform::windows::WindowAttributesExtWindows;
+                attrs = attrs.with_undecorated_shadow(config.undecorated_shadow);
+            }
             if let Some((width, height)) = resolve_min_window_size(&config, minimum_size) {
                 attrs = attrs.with_min_inner_size(LogicalSize::new(width, height));
             }
@@ -677,6 +699,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                             alt: false,
                             meta: false,
                             dirty: true,
+                            maximized: None,
                         },
                     );
                     window.request_redraw();
@@ -823,6 +846,23 @@ mod tests {
         let c = WindowConfig::default();
         assert!(c.width > 0.0 && c.height > 0.0);
     }
+
+    #[test]
+    fn default_window_config_keeps_native_decorations_with_shadow() {
+        let c = WindowConfig::default();
+        assert!(c.decorations);
+        assert!(c.undecorated_shadow);
+    }
+
+    #[test]
+    fn maximized_transition_reports_first_sample_and_only_flips() {
+        assert_eq!(maximized_transition(None, false), Some(false));
+        assert_eq!(maximized_transition(None, true), Some(true));
+        assert_eq!(maximized_transition(Some(false), false), None);
+        assert_eq!(maximized_transition(Some(true), true), None);
+        assert_eq!(maximized_transition(Some(false), true), Some(true));
+        assert_eq!(maximized_transition(Some(true), false), Some(false));
+    }
     #[test]
     fn platform_events_are_backend_agnostic() {
         assert_eq!(PlatformKey::Tab, PlatformKey::Tab);
@@ -856,8 +896,7 @@ mod tests {
                         width: 800.0,
                         height: 600.0,
                         min_width: None,
-                        min_height: None,
-                        position: None,
+                        ..Default::default()
                     },
                     WindowConfig {
                         title: "Window 2".into(),
@@ -866,6 +905,7 @@ mod tests {
                         min_width: Some(320.0),
                         min_height: Some(240.0),
                         position: Some((100.0, 120.0)),
+                        ..Default::default()
                     },
                 ]
             }
@@ -901,7 +941,7 @@ mod tests {
             height: 600.0,
             min_width: Some(640.0),
             min_height: Some(480.0),
-            position: None,
+            ..Default::default()
         };
         assert_eq!(
             resolve_min_window_size(&override_cfg, Some((400.0, 300.0))),
@@ -1307,6 +1347,26 @@ pub(crate) fn needs_resize(
     renderer_dims != inner_size || (renderer_scale - scale_factor).abs() > f32::EPSILON
 }
 
+/// Decide whether a maximized-state report is due. `prev` is the last reported state
+/// (`None` before the first report). Returns the new value to report, or `None` if unchanged.
+pub(crate) fn maximized_transition(prev: Option<bool>, now: bool) -> Option<bool> {
+    (prev != Some(now)).then_some(now)
+}
+
+/// Emit [`PlatformEvent::MaximizedChanged`] when the window's maximized state differs
+/// from the last report. Returns `true` when the application requested a redraw.
+fn sync_maximized(app: &mut dyn Application, state: &mut WindowState) -> bool {
+    let now = state.window.is_maximized();
+    let Some(maximized) = maximized_transition(state.maximized, now) else {
+        return false;
+    };
+    state.maximized = Some(maximized);
+    app.event(PlatformEvent::MaximizedChanged {
+        window: state.id,
+        maximized,
+    })
+}
+
 fn handle_resize(
     app: &mut dyn Application,
     windows: &mut HashMap<WinitWindowId, WindowState>,
@@ -1323,6 +1383,7 @@ fn handle_resize(
         .filter(|&s| s > 0.0 && s.is_finite())
         .unwrap_or_else(|| state.window.scale_factor() as f32);
     let win_id = state.id;
+    state.dirty |= sync_maximized(app, state);
     if state.renderer.resize(w, h, scale) {
         state.renderer_dims = (w, h);
         state.renderer_scale = scale;
@@ -1610,6 +1671,27 @@ fn process_window_requests<A: Application>(
                     WindowRequest::SetCursor(icon) => {
                         state.window.set_cursor(map_cursor_icon(icon));
                     }
+                    WindowRequest::ToggleMaximize => {
+                        state.window.set_maximized(!state.window.is_maximized());
+                    }
+                    WindowRequest::SetMaximized(maximized) => {
+                        state.window.set_maximized(maximized);
+                    }
+                    WindowRequest::DragMove => {
+                        if let Err(error) = state.window.drag_window() {
+                            tracing::warn!(%error, "window drag-move unavailable");
+                        }
+                    }
+                    WindowRequest::DragResize(edge) => {
+                        if let Err(error) = state.window.drag_resize_window(map_resize_edge(edge)) {
+                            tracing::warn!(%error, ?edge, "window drag-resize unavailable");
+                        }
+                    }
+                    WindowRequest::ShowSystemMenu { x, y } => {
+                        state
+                            .window
+                            .show_window_menu(LogicalPosition::new(f64::from(x), f64::from(y)));
+                    }
                 }
             }
         }
@@ -1741,6 +1823,7 @@ fn handle_redraw(
     let win_id = state.id;
     let current_dims = state.renderer.dimensions(state.renderer_dims);
     let current_scale = state.renderer.scale_factor(state.renderer_scale);
+    state.dirty |= sync_maximized(app, state);
     if needs_resize(
         current_dims,
         current_scale,
