@@ -1042,9 +1042,7 @@ impl Application for Gallery {
             title: "AcmeUI Gallery".into(),
             width: 1100.0,
             height: 700.0,
-            min_width: None,
-            min_height: None,
-            position: None,
+            ..WindowConfig::default()
         }
     }
 

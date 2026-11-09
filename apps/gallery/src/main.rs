@@ -260,18 +260,14 @@ impl Application for Gallery {
                 title: "AcmeUI Native Gallery — Screenshot Mode".into(),
                 width: sc.width as f64,
                 height: sc.height as f64,
-                min_width: None,
-                min_height: None,
-                position: None,
+                ..WindowConfig::default()
             };
         }
         WindowConfig {
             title: "AcmeUI Native Gallery".into(),
             width: 1280.0,
             height: 800.0,
-            min_width: None,
-            min_height: None,
-            position: None,
+            ..WindowConfig::default()
         }
     }
 
