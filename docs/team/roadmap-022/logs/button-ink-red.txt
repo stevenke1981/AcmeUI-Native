@@ -1,0 +1,22 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.87s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 1 test
+test mobile_search_tests::search_action_labels_are_centered_inside_their_touch_targets ... FAILED
+
+failures:
+
+---- mobile_search_tests::search_action_labels_are_centered_inside_their_touch_targets stdout ----
+
+thread 'mobile_search_tests::search_action_labels_are_centered_inside_their_touch_targets' panicked at apps/acme-gallery/src/mobile_search_tests.rs:296:17:
+action text touches the top border: -1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile_search_tests::search_action_labels_are_centered_inside_their_touch_targets
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

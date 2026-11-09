@@ -1,0 +1,11 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+error[E0609]: no field `clip` on type `&TextPrimitive`
+   --> apps/acme-gallery/src/mobile_search_tests.rs:203:34
+    |
+203 | ...                   if t.clip.is_some_and(|clip| clip.origin.x.get() >= r[0]) =>
+    |                            ^^^^ unknown field
+    |
+    = note: available fields are: `origin`, `color`, `glyphs`, `uploads`
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery" test) due to 1 previous error

@@ -26,6 +26,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 | 020 | Lead + UI/UX + Verification (single-agent role passes) | Responsive determinate mobile progress, numeric/retained acceptance, Gallery demos and content-label baseline alignment | [Brief](../team/roadmap-020/BRIEF.md); tests, CPU-window evidence and delivery snapshot in [report](../team/roadmap-020/REPORT.md); manual hardware acceptance remains separate |
 | 021 | Lead + UI/UX + Verification (single-agent role passes) | Mobile loader acceptance, wrapping messages, Gallery wrap constraints and prepared multiline baseline offsets | [Brief](../team/roadmap-021/BRIEF.md); tests, native CPU capture and evidence in [report](../team/roadmap-021/REPORT.md); spinner rotation and manual hardware acceptance remain open |
 
+| 022 | Lead + UI/UX + Rust Core + Verification (single-agent role passes) | Real mobile search, Gallery text-input host, responsive TextInput styling, baseline/cache regressions and historical mobile Clippy reconciliation | [Brief](../team/roadmap-022/BRIEF.md); [report](../team/roadmap-022/REPORT.md) with locked checks and automated native CPU interaction captures; manual hardware acceptance remains open |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

@@ -1,0 +1,31 @@
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.76s
+     Running unittests src/lib.rs (target/debug/deps/acme_textinput-f170df5acbe27134)
+
+running 2 tests
+test render_acceptance_tests::committed_placeholder_and_composing_ink_stay_inside_the_content_height ... FAILED
+test render_acceptance_tests::cached_input_matches_fresh_shaping_after_dpi_width_and_typography_changes ... FAILED
+
+failures:
+
+---- render_acceptance_tests::committed_placeholder_and_composing_ink_stay_inside_the_content_height stdout ----
+
+thread 'render_acceptance_tests::committed_placeholder_and_composing_ink_stay_inside_the_content_height' panicked at crates/acme-textinput/src/render_acceptance_tests.rs:55:25:
+ink above content: scale=1, mode=0, y=31.5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- render_acceptance_tests::cached_input_matches_fresh_shaping_after_dpi_width_and_typography_changes stdout ----
+
+thread 'render_acceptance_tests::cached_input_matches_fresh_shaping_after_dpi_width_and_typography_changes' panicked at crates/acme-textinput/src/render_acceptance_tests.rs:104:9:
+assertion `left == right` failed: cache reused stale shaping
+  left: [(Point { x: 28.0, y: 41.5 }, [(0.0, -10.0, 11.0, 12.0), (12.0, -8.0, 7.0, 8.0), (20.0, -8.0, 7.0, 8.0), (28.0, -8.0, 5.0, 8.0), (33.0, -8.0, 8.0, 11.0)])]
+ right: [(Point { x: 28.0, y: 41.5 }, [(1.0, -20.0, 20.0, 24.0), (23.0, -15.0, 14.0, 15.0), (40.0, -15.0, 14.0, 15.0), (57.0, -15.0, 9.0, 15.0), (66.0, -15.0, 15.0, 22.0)])]
+
+
+failures:
+    render_acceptance_tests::cached_input_matches_fresh_shaping_after_dpi_width_and_typography_changes
+    render_acceptance_tests::committed_placeholder_and_composing_ink_stay_inside_the_content_height
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 105 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p acme-textinput --lib`

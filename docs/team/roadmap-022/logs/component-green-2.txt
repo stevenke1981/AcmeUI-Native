@@ -1,0 +1,16 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.35s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 8 tests
+test mobile::mobile_search::tests::mobile_search_has_icon_and_placeholder ... ok
+test mobile::mobile_search::acceptance_tests::search_contains_a_real_focusable_input_and_themed_rounded_surface ... ok
+test mobile::mobile_search::acceptance_tests::controlled_values_and_input_markers_do_not_submit_or_clear ... ok
+test mobile::mobile_search::tests::mobile_search_stores_submit_message ... ok
+test mobile::mobile_search::acceptance_tests::keyed_search_inputs_survive_optional_actions_and_instance_reordering ... ok
+test mobile::mobile_search::tests::mobile_search_with_clear_adds_button ... ok
+test mobile::mobile_search::tests::mobile_search_produces_row ... ok
+test mobile::mobile_search::acceptance_tests::input_fills_remaining_width_without_overlapping_optional_actions ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 764 filtered out; finished in 0.06s
+
