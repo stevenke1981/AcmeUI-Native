@@ -20,8 +20,8 @@ use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_ui::mobile::{
-    MobileButtonSize, mobile_button, mobile_card, mobile_loader, mobile_progress, mobile_segmented,
-    mobile_stepper, mobile_toggle,
+    MobileButtonSize, mobile_button, mobile_card, mobile_loader, mobile_progress, mobile_search,
+    mobile_segmented, mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::style::Styled;
@@ -30,6 +30,10 @@ use acme_widgets::{
     ButtonSize, ButtonState, ButtonVariant, CardVariant, WidgetNode, button, card, column, label,
     label_with_size, row, scroll_view, separator,
 };
+
+#[path = "mobile_search.rs"]
+mod mobile_search_host;
+use mobile_search_host::SearchDemo;
 
 fn main() -> Result<(), acme_platform::PlatformError> {
     acme_platform::run(Gallery::new())
@@ -78,6 +82,7 @@ const CATEGORIES: &[CategoryInfo] = &[
     CategoryInfo {
         name: "Mobile",
         pages: &[
+            "Search",
             "Loader",
             "Progress",
             "Cards",
@@ -100,6 +105,9 @@ enum GalleryMessage {
     MobileToggle(bool),
     MobileValue(i64),
     MobileSelected(usize),
+    MobileSearchEdited,
+    MobileSearchSubmit,
+    MobileSearchClear,
 }
 
 // ── Theme preference persistence ────────────────────────────────────────────
@@ -154,6 +162,7 @@ struct Gallery {
     mobile_checked: bool,
     mobile_value: i64,
     mobile_selected: usize,
+    search: SearchDemo,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -183,6 +192,7 @@ impl Gallery {
             mobile_checked: false,
             mobile_value: 2,
             mobile_selected: 0,
+            search: SearchDemo::new(),
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -700,6 +710,22 @@ impl Gallery {
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
             .child(self.page_section(
+                "Mobile Search — edit, submit and clear",
+                column()
+                    .gap(8.0)
+                    .child(mobile_search("Search · 搜尋")
+                        .key("gallery_search")
+                        .value(&self.search.input.text)
+                        .on_input(GalleryMessage::MobileSearchEdited)
+                        .on_submit(GalleryMessage::MobileSearchSubmit)
+                        .on_clear(GalleryMessage::MobileSearchClear))
+                    .child(label("Tab to focus; type a query, Enter to search; Tab to Search / Clear."))
+                    .child(acme_widgets::label_builder(format!("Last search: {}", self.search.submitted))
+                        .wrap(acme_widgets::LabelWrap::Character)
+                        .build())
+                    .build(),
+            ))
+            .child(self.page_section(
                 "Mobile Loader — indicator and messages",
                 column()
                     .gap(12.0)
@@ -1035,9 +1061,14 @@ impl Gallery {
                 self.selected_category = i;
                 if changed {
                     self.scroll = 0.0;
+                    self.search.blur();
+                    self.search.rect = None;
                 }
                 true
             }
+            GalleryMessage::MobileSearchSubmit => self.search.submit(),
+            GalleryMessage::MobileSearchClear => self.search.clear(),
+            GalleryMessage::MobileSearchEdited => true,
             GalleryMessage::DpiInfo => true,
             GalleryMessage::MobilePressed(size) => {
                 self.last_mobile_press = Some(size);
@@ -1070,6 +1101,24 @@ impl Application for Gallery {
     }
 
     fn event(&mut self, event: PlatformEvent) -> bool {
+        if self.selected_category == 7 {
+            if let Some(changed) = self.search.event(&event, self.scroll) {
+                if matches!(
+                    event,
+                    PlatformEvent::Key {
+                        key: acme_platform::PlatformKey::Tab,
+                        pressed: true,
+                        ..
+                    }
+                ) {
+                    self.scroll = self
+                        .search
+                        .reveal_scroll(self.scroll)
+                        .clamp(0.0, self.max_scroll);
+                }
+                return changed;
+            }
+        }
         match event {
             PlatformEvent::PointerMoved { x, y, .. } => {
                 self.cursor = (x, y);
@@ -1097,6 +1146,10 @@ impl Application for Gallery {
             PlatformEvent::Resized { .. } => true,
             _ => false,
         }
+    }
+
+    fn ime_cursor_area(&self, _window: WindowId) -> Option<[f32; 4]> {
+        self.search.caret
     }
 
     fn on_gpu_recovered(&mut self, _window: WindowId) {
@@ -1358,7 +1411,19 @@ impl Application for Gallery {
             }
         }
 
-        scene_from_frame(&frame)
+        let mut scene = scene_from_frame(&frame);
+        self.search.paint(
+            &mut scene,
+            &description,
+            &root,
+            &snapshot,
+            &theme,
+            context.scale_factor,
+            self.scroll,
+            &mut self.fonts,
+            &mut self.atlas,
+        );
+        scene
     }
 }
 
@@ -1659,17 +1724,28 @@ fn render_content(
                     ),
                     clip,
                 });
-                add_text(
-                    fonts,
-                    atlas,
-                    frame,
+                let shaped = fonts.shape(
                     &btn.label,
-                    ([rect.x + 10.0, y + 8.0], theme.typography.label),
-                    resolved.foreground,
+                    &TextStyle {
+                        font_size: theme.typography.label,
+                        line_height: theme.typography.label * theme.typography.line_height,
+                        ..TextStyle::default()
+                    },
+                    TextConstraints {
+                        max_width: None,
+                        wrap: acme_text::TextWrap::None,
+                    },
                     scale,
-                    Some(clip),
-                    theme.typography.line_height,
                 );
+                frame.text.push(TextRun {
+                    prepared: fonts.prepare(&shaped, atlas),
+                    origin: [
+                        rect.x + (rect.width - shaped.width).max(0.0) / 2.0,
+                        y + (rect.height - shaped.height).max(0.0) / 2.0 + shaped.baseline,
+                    ],
+                    color: rgba(resolved.foreground),
+                    clip: Some(clip),
+                });
             }
         }
         WidgetNode::Separator(_) => {
@@ -2031,7 +2107,7 @@ mod tests {
                 })
                 .collect();
             assert_eq!(values, if value == 0 { vec![2] } else { vec![8] });
-            assert_eq!(hits.len(), 8);
+            assert_eq!(hits.len(), 10);
         }
     }
 
@@ -2135,3 +2211,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod mobile_search_tests;

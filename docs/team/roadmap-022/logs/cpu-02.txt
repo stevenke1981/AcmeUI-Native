@@ -1,0 +1,143 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running unittests src/lib.rs (target/debug/deps/acme_render_cpu-313b6897a18a027e)
+
+running 20 tests
+test coverage::tests::empty_inverted_and_non_finite_bounds_have_no_coverage ... ok
+test coverage::tests::interior_pixels_are_fully_covered ... ok
+test coverage::analytic_tests::analytic_coverage_resolves_subpixel_discs_and_quarter_discs ... ok
+test coverage::analytic_tests::clipped_analytic_coverage_is_additive_across_partition_splits ... ok
+test coverage::tests::sharp_rect_uses_axis_overlap_product ... ok
+test tests::alpha_blends_over_clear ... ok
+test tests::alpha_glyph_and_persistent_atlas ... ok
+test tests::clear_and_ordered_painter ... ok
+test tests::image_contain_keeps_letterbox ... ok
+test tests::layer_opacity_composes_once ... ok
+test tests::nested_clipping_intersects ... ok
+test tests::physical_scale_and_resize ... ok
+test tests::rejects_bad_commands_and_data ... ok
+test tests::round_rect_and_border ... ok
+test coverage::analytic_tests::analytic_coverage_sums_to_exact_rounded_rect_area ... ok
+test coverage::analytic_tests::analytic_coverage_is_bounded_and_monotone ... ok
+test coverage::analytic_tests::analytic_coverage_large_radii_do_not_cancel_area ... ok
+test coverage::tests::rounded_fast_paths_agree_with_reference ... ok
+test coverage::analytic_tests::clipped_analytic_coverage_matches_fine_reference ... ok
+test coverage::analytic_tests::analytic_coverage_matches_fine_reference ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
+     Running tests/atlas_pages.rs (target/debug/deps/atlas_pages-b8a7301ff4ac0272)
+
+running 8 tests
+test alpha8_page_two_is_visible_while_page_zero_at_same_origin_is_unaffected ... ok
+test same_slot_replacement_on_page_one_keeps_earlier_draws_in_painter_order ... ok
+test rgba8_page_two_is_visible_while_page_zero_at_same_origin_is_unaffected ... ok
+test never_uploaded_pages_draw_transparent_for_both_formats ... ok
+test out_of_range_page_is_rejected_and_preserves_cache_and_framebuffer ... ok
+test rejected_later_bad_upload_does_not_seed_any_page ... ok
+test page_edge_bounds_apply_to_every_accepted_page ... ok
+test pages_one_through_seven_each_keep_their_own_texels ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/clip_area.rs (target/debug/deps/clip_area-8ee64bc100c8ccdc)
+
+running 20 tests
+test disjoint_subpixel_and_zero_area_clips_remain_empty ... ok
+test fractional_quad_clip_at_every_dpi ... ok
+test fractional_image_clip_at_every_dpi ... ok
+test rounded_disjoint_parts_of_one_pixel_have_zero_joint_area ... ok
+test rounded_shape_area_and_clip_area_are_multiplied ... ok
+test rounded_coincident_outer_clip_preserves_edges_at_every_dpi ... ok
+test scrolling_sharp_shape_uses_exact_viewport_intersection ... ok
+test rounded_border_coincident_outer_clip_preserves_edges_at_every_dpi ... ok
+test sharp_border_inner_coincident_clip_does_not_add_a_stroke_seam ... ok
+test sharp_border_clip_at_or_inside_inner_has_only_exact_fill_at_every_dpi ... ok
+test rounded_border_clip_at_or_inside_flat_inner_has_only_exact_fill_at_every_dpi ... ok
+test sharp_border_coincident_outer_clip_preserves_edges_at_every_dpi ... ok
+test sharp_coincident_outer_clip_preserves_edges_at_every_dpi ... ok
+test sharp_disjoint_parts_of_one_pixel_have_zero_joint_area ... ok
+test sharp_orthogonal_edges_keep_axis_overlap_product_at_every_dpi ... ok
+test subpixel_clip_without_any_inside_centre_still_paints_its_area ... ok
+test fractional_alpha8_glyph_clip_at_every_dpi ... ok
+test repeated_nested_clip_is_not_applied_twice_and_pop_restores_parent ... ok
+test integer_clips_are_byte_identical_to_legacy_centre_mask ... ok
+test fractional_rgba8_glyph_clip_at_every_dpi ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/coverage.rs (target/debug/deps/coverage-f03ab1e81843c9ff)
+
+running 9 tests
+test half_pixel_vertical_edge_has_half_area_coverage ... ok
+test coverage_never_leaves_the_rect_bounds ... ok
+test physical_overflow_paints_nothing_and_does_not_panic ... ok
+test quarter_pixel_corner_has_quarter_area_coverage ... ok
+test non_finite_and_empty_quads_paint_nothing_and_do_not_panic ... ok
+test non_finite_radius_is_contained_within_the_rect ... ok
+test stroke_is_outer_area_minus_inner_area_and_never_negative ... ok
+test coverage_is_monotone_non_increasing_in_radius ... ok
+test full_circle_total_coverage_is_within_one_percent_of_pi_r_squared ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/dpi.rs (target/debug/deps/dpi-627436dd51f779c1)
+
+running 8 tests
+test framebuffer_matches_caller_physical_size_at_every_scale ... ok
+test fractional_clip_uses_pixel_area_at_every_scale ... ok
+test one_logical_px_border_is_visible_on_the_outer_ring_at_every_scale ... ok
+test fractional_logical_extent_follows_the_host_chosen_frame_width ... ok
+test resize_through_every_scale_leaves_no_stale_pixels_and_uses_the_new_scale ... ok
+test one_logical_px_separator_keeps_physical_ink_at_every_scale ... ok
+test sharp_quad_corner_pixel_uses_exact_area_coverage ... ok
+test solid_quad_at_10_10_20_20_covers_expected_physical_range ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/frame_timing.rs (target/debug/deps/frame_timing-0a938b2d9e6785f8)
+
+running 1 test
+test crewdesk_like_frame_cost ... ignored, timing probe
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/golden.rs (target/debug/deps/golden-b4a6470dfd263cdd)
+
+running 7 tests
+test comparator_reports_dimension_mismatch ... ok
+test comparator_tolerates_drift_within_channel_tolerance ... ok
+test comparator_flags_one_pixel_beyond_tolerance_with_coordinates ... ok
+test ppm_decoder_accepts_comments_and_rejects_malformed_input ... ok
+test ppm_round_trips_through_encode_and_decode ... ok
+test golden_scenes_match_committed_fixtures ... ok
+test rendered_scenes_hit_hand_derived_sample_pixels ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/regression.rs (target/debug/deps/regression-64bb37929d71fb93)
+
+running 15 tests
+test extreme_offscreen_glyph_does_not_overflow_atlas_coordinates ... ok
+test fractional_clip_preserves_pixel_area ... ok
+test accepted_uploads_keep_text_command_order_and_cached_replacements ... ok
+test disjoint_nested_clip_is_empty_and_pop_restores_parent ... ok
+test failed_resize_preserves_dimensions_and_last_output ... ok
+test geometry_overflow_after_scaling_is_ignored ... ok
+test rejected_scene_does_not_seed_either_glyph_atlas ... ok
+test malformed_atlas_upload_is_rejected ... ok
+test minimized_frame_accepts_draws_without_pixels ... ok
+test nested_layer_limit_applies_even_to_empty_frames ... ok
+test rejected_scene_does_not_publish_a_partial_frame ... ok
+test rgba_atlas_updates_replace_previous_pixels ... ok
+test later_bad_text_primitive_preserves_both_glyph_atlases ... ok
+test rejected_scene_structure_preserves_both_glyph_atlases ... ok
+test later_bad_upload_in_same_text_preserves_both_glyph_atlases ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+   Doc-tests acme_render_cpu
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

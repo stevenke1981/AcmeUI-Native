@@ -1,0 +1,29 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.02s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 7 tests
+test mobile::mobile_search::acceptance_tests::search_contains_a_real_focusable_input_and_themed_rounded_surface ... ok
+test mobile::mobile_search::tests::mobile_search_has_icon_and_placeholder ... ok
+test mobile::mobile_search::acceptance_tests::keyed_search_inputs_survive_optional_actions_and_instance_reordering ... ok
+test mobile::mobile_search::tests::mobile_search_with_clear_adds_button ... ok
+test mobile::mobile_search::tests::mobile_search_stores_submit_message ... ok
+test mobile::mobile_search::tests::mobile_search_produces_row ... ok
+test mobile::mobile_search::acceptance_tests::input_fills_remaining_width_without_overlapping_optional_actions ... FAILED
+
+failures:
+
+---- mobile::mobile_search::acceptance_tests::input_fills_remaining_width_without_overlapping_optional_actions stdout ----
+
+thread 'mobile::mobile_search::acceptance_tests::input_fills_remaining_width_without_overlapping_optional_actions' panicked at crates/acme-ui/src/mobile/mobile_search_tests.rs:100:13:
+assertion failed: r.width <= width
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile::mobile_search::acceptance_tests::input_fills_remaining_width_without_overlapping_optional_actions
+
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 764 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

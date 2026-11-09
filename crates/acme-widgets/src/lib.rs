@@ -208,14 +208,15 @@ impl<M> WidgetNode<M> {
                     },
                 )
             }
-            Self::TextInput(_) => LayoutNode::leaf(
-                id,
-                LayoutStyle {
+            Self::TextInput(input) => {
+                let mut style = LayoutStyle {
                     min_height: Length::px(40.0),
                     flex_shrink: 0.0,
                     ..Default::default()
-                },
-            ),
+                };
+                input.style.clone().apply_to_layout(&mut style);
+                LayoutNode::leaf(id, style)
+            }
             Self::Button(_) => LayoutNode::leaf(
                 id,
                 LayoutStyle {
@@ -581,14 +582,15 @@ impl<M> WidgetNode<M> {
                     spec,
                 )
             }
-            Self::TextInput(_) => LayoutNode::leaf(
-                id,
-                LayoutStyle {
+            Self::TextInput(input) => {
+                let mut style = LayoutStyle {
                     min_height: Length::px(context.control_height),
                     flex_shrink: 0.0,
                     ..Default::default()
-                },
-            ),
+                };
+                input.style.clone().apply_to_layout(&mut style);
+                LayoutNode::leaf(id, style)
+            }
             Self::Button(v) => {
                 // Buttons are text-bearing leaves. Leaving their width as an
                 // unmeasured `auto` value makes them collapse to zero inside a
@@ -1872,5 +1874,35 @@ mod tests {
         assert!(matches!(sb, WidgetNode::Sidebar(_)));
         assert!(matches!(tabs, WidgetNode::TabBar(_)));
         assert!(matches!(bc, WidgetNode::Breadcrumb(_)));
+    }
+}
+
+#[cfg(test)]
+mod text_input_style_tests {
+    use super::*;
+    use acme_style::prelude::*;
+
+    #[test]
+    fn text_input_style_is_applied_in_both_layout_paths() {
+        let input = text_input::<()>("query")
+            .w(Length::px(125.0))
+            .min_h(Length::px(44.0))
+            .flex_1()
+            .build();
+        let context = WidgetLayoutContext {
+            body_font_size: 14.0,
+            body_line_height: 20.0,
+            label_font_size: 13.0,
+            control_height: 36.0,
+            scale_factor: 1.0,
+        };
+        for layout in [
+            input.to_layout(NodeId::new(1)),
+            input.to_layout_with_context(NodeId::new(1), &context),
+        ] {
+            assert_eq!(layout.style.width, Length::px(125.0));
+            assert_eq!(layout.style.min_height, Length::px(44.0));
+            assert_eq!(layout.style.flex_grow, 1.0);
+        }
     }
 }

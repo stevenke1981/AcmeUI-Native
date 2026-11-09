@@ -1,0 +1,40 @@
+   Compiling acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+   Compiling acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+   Compiling acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.30s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_search::acceptance_tests::search_contains_a_real_focusable_input_and_themed_rounded_surface ... FAILED
+test mobile::mobile_search::acceptance_tests::keyed_search_inputs_survive_optional_actions_and_instance_reordering ... FAILED
+test mobile::mobile_search::acceptance_tests::input_fills_remaining_width_without_overlapping_optional_actions ... FAILED
+
+failures:
+
+---- mobile::mobile_search::acceptance_tests::search_contains_a_real_focusable_input_and_themed_rounded_surface stdout ----
+
+thread 'mobile::mobile_search::acceptance_tests::search_contains_a_real_focusable_input_and_themed_rounded_surface' panicked at crates/acme-ui/src/mobile/mobile_search_tests.rs:19:5:
+search needs a themed surface
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile::mobile_search::acceptance_tests::keyed_search_inputs_survive_optional_actions_and_instance_reordering stdout ----
+
+thread 'mobile::mobile_search::acceptance_tests::keyed_search_inputs_survive_optional_actions_and_instance_reordering' panicked at crates/acme-ui/src/mobile/mobile_search_tests.rs:45:13:
+assertion failed: matches!(node.children()[1], WidgetNode::TextInput(_))
+
+---- mobile::mobile_search::acceptance_tests::input_fills_remaining_width_without_overlapping_optional_actions stdout ----
+
+thread 'mobile::mobile_search::acceptance_tests::input_fills_remaining_width_without_overlapping_optional_actions' panicked at crates/acme-ui/src/mobile/mobile_search_tests.rs:69:13:
+assertion failed: input.height >= 44.0
+
+
+failures:
+    mobile::mobile_search::acceptance_tests::input_fills_remaining_width_without_overlapping_optional_actions
+    mobile::mobile_search::acceptance_tests::keyed_search_inputs_survive_optional_actions_and_instance_reordering
+    mobile::mobile_search::acceptance_tests::search_contains_a_real_focusable_input_and_themed_rounded_surface
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 768 filtered out; finished in 1.64s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

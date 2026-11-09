@@ -1,5 +1,13 @@
 # Todos
 
+## ROADMAP 022 — mobile search acceptance (2026-11-09)
+
+- [x] Replace the placeholder Label with a real controlled TextInput, instance-derived action keys, themed rounded surface, separate search/clear actions and retained/layout regressions.
+- [x] Add a keyboard/pointer/Unicode editing Gallery demo, undoable clear, composition guards, scroll clips, native CPU interaction captures and targeted/workspace gates; see [report](../team/roadmap-022/REPORT.md).
+- [x] Correct TextInput style application, render baselines and stale DPI/typography shaping cache; center Gallery content-button labels. Preserve RED/GREEN evidence.
+- [x] Reconcile the historical toggle/stepper/segmented Clippy blocker after the exact all-feature strict gate and current behavior suites pass; no new implementation claimed.
+- [ ] Manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 021 — mobile loader acceptance (2026-11-09)
 
 - [x] Audit the existing foundation spinner + optional message composition; preserve API/defaults and verify retained IDs, message omission/changes and keyed instance reorder.
@@ -222,12 +230,12 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 - [x] mobile_button — sized variants (sm/md/lg), disabled state, on_press message; 36/44/52px touch heights, Gallery page, and hit-index regression tests (2026-07-23)
 - [x] mobile_card — title + subtitle + optional media slot + elevated/outlined semantic variants; retained-ID regression, layout tests and Gallery demos (ROADMAP 019). Native shadows are outside this slice; manual hardware acceptance remains NOT_RUN.
-- [ ] mobile_toggle — switch track + thumb layout, checked state, on_change; ROADMAP 014 behavior/hit/accessibility/mutation checks pass; final acceptance awaits the pre-existing all-feature Clippy failures documented in [P5 report](../team/roadmap-014/REPORT-P5-mobile.md).
-- [ ] mobile_stepper — minus/plus buttons flanking a value label, min/max clamp; ROADMAP 014 behavior/hit/accessibility/mutation checks pass; final acceptance awaits the same pre-existing Clippy gate (P5 report).
+- [x] mobile_toggle — switch track + thumb, checked state, on_change; ROADMAP 014 behavior/hit/accessibility/mutation evidence preserved, historical Clippy gate reverified PASS in ROADMAP 022. Manual hardware acceptance remains NOT_RUN.
+- [x] mobile_stepper — minus/plus buttons, value and min/max clamp; ROADMAP 014 behavior/hit/accessibility/mutation evidence preserved, historical Clippy gate reverified PASS in ROADMAP 022. Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_progress — responsive determinate bar (value/total) + optional label; numeric boundaries, retained IDs and Gallery demos/tests (ROADMAP 020). Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_loader — existing static foundation spinner indicator + optional wrapping message; retained-ID/layout/paint tests and Gallery demos (ROADMAP 021). Rotation/runtime scheduling remains a separate unchecked follow-up; manual hardware acceptance is NOT_RUN.
-- [ ] mobile_search — rounded input + search icon + clear button
-- [ ] mobile_segmented — N-segment row, selected highlight, on_select(usize); ROADMAP 014 behavior/hit/accessibility/mutation checks pass; final acceptance awaits the same pre-existing Clippy gate (P5 report).
+- [x] mobile_search — rounded themed TextInput + search icon/action + clear button; controlled query, input marker, retained/layout/host-event tests and native CPU Gallery evidence (ROADMAP 022). Manual hardware acceptance remains NOT_RUN.
+- [x] mobile_segmented — selected N-segment row and on_select; ROADMAP 014 behavior/hit/accessibility/mutation evidence preserved, historical Clippy gate reverified PASS in ROADMAP 022. Manual hardware acceptance remains NOT_RUN.
 - [ ] mobile_chip — compact tag with optional close icon, on_dismiss
 - [ ] mobile_avatar — circular initials or image placeholder, size variants
 - [ ] mobile_banner — full-width alert with icon + text + optional action

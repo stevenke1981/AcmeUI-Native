@@ -81,10 +81,19 @@ pub struct TextInputState {
     undo_stack: Vec<EditTransaction>,
     /// Redo transaction stack.
     redo_stack: Vec<EditTransaction>,
-    /// Cached shaped text layout, auto-invalidated by text comparison.
-    /// The `String` is the `render_text` that was shaped (display text or
-    /// placeholder).  Set to `None` initially; populated on first render.
-    pub(crate) cached_layout: Option<(String, TextLayout)>,
+    /// Cached shaped text layout, invalidated when shaping inputs change.
+    /// The key includes display/placeholder text, typography, constraints and DPI.
+    /// Set to `None` initially; populated on first render.
+    pub(crate) cached_layout: Option<(InputLayoutKey, TextLayout)>,
+}
+
+/// All inputs that affect cached shaping, including physical glyph scale.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct InputLayoutKey {
+    text: String,
+    style: TextStyle,
+    constraints: TextConstraints,
+    scale: f32,
 }
 
 impl Default for TextInputState {
@@ -732,3 +741,6 @@ impl TextInputState {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod render_acceptance_tests;

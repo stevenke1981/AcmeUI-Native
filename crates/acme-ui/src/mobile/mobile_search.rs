@@ -2,11 +2,17 @@
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_layout::Length;
+use acme_widgets::style::prelude::*;
 
 /// Builder for a mobile search bar.
 pub struct MobileSearchBuilder<M> {
     pub id: WidgetKey,
     pub placeholder: String,
+    /// Controlled query value; update it from the host text-input state.
+    pub value: String,
+    /// Marker message for input changes, matching the foundation TextInput API.
+    pub on_input: Option<M>,
     pub on_submit: Option<M>,
     pub on_clear: Option<M>,
 }
@@ -16,6 +22,8 @@ pub fn mobile_search<M: Clone + 'static>(placeholder: impl Into<String>) -> Mobi
     MobileSearchBuilder {
         id: WidgetKey::from("mobile_search"),
         placeholder: placeholder.into(),
+        value: String::new(),
+        on_input: None,
         on_submit: None,
         on_clear: None,
     }
@@ -27,6 +35,19 @@ impl<M: Clone + 'static> MobileSearchBuilder<M> {
         self
     }
 
+    /// Set the current query. The host owns editing state for `{key}__input`.
+    pub fn value(mut self, value: impl Into<String>) -> Self {
+        self.value = value.into();
+        self
+    }
+
+    pub fn on_input(mut self, msg: M) -> Self {
+        self.on_input = Some(msg);
+        self
+    }
+
+    /// Attach the search action. Hosts may also dispatch the root Row message
+    /// on Enter while its input is focused and no composition is active.
     pub fn on_submit(mut self, msg: M) -> Self {
         self.on_submit = Some(msg);
         self
@@ -40,17 +61,39 @@ impl<M: Clone + 'static> MobileSearchBuilder<M> {
 
 impl<M: Clone + 'static> From<MobileSearchBuilder<M>> for WidgetNode<M> {
     fn from(b: MobileSearchBuilder<M>) -> Self {
-        let icon = crate::icon::<M>(crate::IconName::Search).build();
+        let id = b.id.as_str();
+        let icon = if let Some(msg) = b.on_submit.as_ref() {
+            crate::button(format!("{id}__submit"), "⌕ Search")
+                .min_h(Length::px(44.0))
+                .on_click(msg.clone())
+        } else {
+            crate::icon::<M>(crate::IconName::Search).build()
+        };
+        let mut input = crate::text_input(format!("{id}__input"))
+            .placeholder(b.placeholder)
+            .value(b.value)
+            .w(Length::px(0.0))
+            .min_w(Length::px(0.0))
+            .min_h(Length::px(44.0))
+            .flex_1();
+        // This is an input-change marker, never the submit action.
+        input.message = b.on_input;
         let mut row = crate::row::<M>()
-            .key(b.id)
+            .key(b.id.clone())
+            .w(Length::Percent(1.0))
+            .bg_muted()
+            .rounded(16.0)
             .gap(8.0)
             .padding(10.0)
             .child(icon)
-            .child(crate::label(b.placeholder));
+            .child(input);
 
         if let Some(msg) = b.on_clear {
-            let clear = crate::button("search_clear", "✕").on_click(msg);
-            row = row.child(clear);
+            row = row.child(
+                crate::button(format!("{id}__clear"), "Clear")
+                    .min_h(Length::px(44.0))
+                    .on_click(msg),
+            );
         }
         if let Some(msg) = b.on_submit {
             row = row.on_click(msg);
@@ -99,3 +142,7 @@ mod tests {
         assert_eq!(b.on_submit, Some(Msg::Submit));
     }
 }
+
+#[cfg(test)]
+#[path = "mobile_search_tests.rs"]
+mod acceptance_tests;

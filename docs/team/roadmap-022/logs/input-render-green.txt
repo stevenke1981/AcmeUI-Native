@@ -1,0 +1,186 @@
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.27s
+     Running unittests src/lib.rs (target/debug/deps/acme_textinput-f170df5acbe27134)
+
+running 107 tests
+test tests::geometry::next_word_boundary_works ... ok
+test tests::geometry::prev_word_boundary_empty ... ok
+test tests::geometry::prev_word_boundary_works ... ok
+test tests::history::accessors_return_expected_values ... ok
+test tests::history::ctrl_arrow_left_jumps_word ... ok
+test tests::history::ctrl_arrow_right_jumps_word ... ok
+test tests::history::ctrl_backspace_deletes_prev_word ... ok
+test tests::history::ctrl_delete_deletes_next_word ... ok
+test tests::history::ctrl_delete_selection_discards_old_redo_branch ... ok
+test tests::geometry::next_word_boundary_empty ... ok
+test tests::history::ctrl_delete_selection_is_one_undoable_edit ... ok
+test tests::history::invalid_default_is_false ... ok
+test tests::history::move_cursor_to_offset_basic ... ok
+test tests::history::move_cursor_to_offset_clears_selection ... ok
+test tests::history::move_cursor_to_offset_clamps ... ok
+test tests::history::placeholder_default_is_empty ... ok
+test tests::history::readonly_history_operations_preserve_state_and_history ... ok
+test tests::history::readonly_prevents_commit_preedit ... ok
+test tests::history::readonly_prevents_delete_after ... ok
+test tests::history::readonly_prevents_delete_before ... ok
+test tests::history::readonly_prevents_handle_text ... ok
+test tests::history::readonly_prevents_insert_char ... ok
+test tests::history::readonly_prevents_keyboard_cut ... ok
+test tests::history::redo_cleared_on_new_mutation ... ok
+test tests::history::scroll_offset_default_is_zero ... ok
+test tests::history::select_word_at_offset_double_click ... ok
+test tests::history::select_word_at_offset_empty_text ... ok
+test tests::history::set_selection_range_basic ... ok
+test tests::history::set_selection_range_clamps ... ok
+test tests::history::set_selection_range_empty_when_start_equals_end ... ok
+test tests::history::shift_arrow_left_extends_selection ... ok
+test tests::history::shift_arrow_right_extends_selection ... ok
+test tests::history::shift_end_extends_to_end ... ok
+test tests::history::shift_home_extends_to_start ... ok
+test tests::history::undo_after_delete ... ok
+test tests::history::undo_after_handle_text ... ok
+test tests::history::undo_after_redo_multiple_chars ... ok
+test tests::history::undo_after_redo_restores_previous_state ... ok
+test tests::history::undo_redo_basic ... ok
+test tests::history::undo_redo_empty_stacks ... ok
+test tests::history::undo_redo_clear_history ... ok
+test tests::keys::copy_via_text_access ... ok
+test tests::keys::handle_key_arrow_left_moves_cursor ... ok
+test tests::keys::cut_via_text_access ... ok
+test tests::keys::handle_key_arrow_right_moves_cursor ... ok
+test tests::keys::handle_key_arrow_left_noop_when_not_focused ... ok
+test tests::keys::handle_key_backspace_deletes_before ... ok
+test tests::keys::handle_key_backspace_noop_when_not_focused ... ok
+test tests::keys::handle_key_delete_deletes_after ... ok
+test tests::keys::handle_key_end_moves_to_end ... ok
+test tests::keys::handle_key_escape_blurs ... ok
+test tests::keys::handle_key_enter_is_noop ... ok
+test tests::keys::handle_key_home_moves_to_start ... ok
+test tests::keys::handle_key_escape_noop_when_not_focused ... ok
+test tests::keys::handle_key_navigation_clears_selection ... ok
+test tests::keys::handle_key_noop_on_release ... ok
+test tests::keys::handle_key_tab_is_noop ... ok
+test tests::keys::handle_text_commits_single_char ... ok
+test tests::keys::handle_text_empty_is_noop ... ok
+test tests::keys::handle_text_inserts_at_cursor ... ok
+test tests::keys::handle_text_replaces_selection ... ok
+test tests::keys::paste_via_text_handle ... ok
+test tests::keys::shortcut_ctrl_a_noop_when_not_focused ... ok
+test tests::keys::shortcut_ctrl_a_selects_all ... ok
+test tests::keys::shortcut_ctrl_c_does_not_panic ... ok
+test tests::keys::shortcut_ctrl_v_noop_without_clipboard ... ok
+test tests::keys::shortcut_ctrl_x_cuts_selection ... ok
+test tests::keys::shortcut_unknown_key_is_noop ... ok
+test tests::state::cursor_movement_clears_selection ... ok
+test tests::state::cursor_next_ascii ... ok
+test tests::state::cursor_home_end ... ok
+test tests::state::cursor_next_empty ... ok
+test tests::state::cursor_next_grapheme ... ok
+test tests::state::cursor_prev_ascii ... ok
+test tests::state::cursor_prev_empty ... ok
+test tests::state::cursor_prev_grapheme ... ok
+test tests::state::delete_after_at_end ... ok
+test tests::state::delete_after_grapheme ... ok
+test tests::state::delete_after_single ... ok
+test tests::state::delete_after_with_selection ... ok
+test tests::state::delete_before_at_start ... ok
+test tests::state::delete_before_empty ... ok
+test tests::state::delete_before_grapheme ... ok
+test tests::state::delete_before_single_ascii ... ok
+test tests::state::delete_before_with_selection ... ok
+test tests::state::display_text_normal ... ok
+test tests::state::insert_at_end ... ok
+test tests::state::insert_in_middle ... ok
+test tests::state::insert_into_empty ... ok
+test tests::state::insert_replaces_selection ... ok
+test tests::state::password_masking_default_char ... ok
+test tests::state::password_masking_empty ... ok
+test tests::state::password_masking_graphemes ... ok
+test tests::state::password_masking_nonempty ... ok
+test tests::state::preedit_commit_empty_is_noop ... ok
+test tests::state::preedit_commit_in_middle ... ok
+test tests::state::preedit_commit_into_empty ... ok
+test tests::state::preedit_commit_replaces_selection ... ok
+test tests::state::preedit_set_and_cancel ... ok
+test tests::state::select_all_empty ... ok
+test tests::state::select_all_nonempty ... ok
+test tests::geometry::ime_caret_area_height_from_style_line_height ... ok
+test tests::geometry::ime_caret_area_empty_near_origin ... ok
+test tests::geometry::ime_caret_area_accounts_for_scroll_offset ... ok
+test render_acceptance_tests::cached_input_matches_fresh_shaping_after_dpi_width_and_typography_changes ... ok
+test render_acceptance_tests::committed_placeholder_and_composing_ink_stay_inside_the_content_height ... ok
+test tests::geometry::ime_caret_area_x_increases_after_ascii_insert ... ok
+
+test result: ok. 107 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/ime_dpi.rs (target/debug/deps/ime_dpi-86209bc69e83334a)
+
+running 20 tests
+test caret_at_start_is_zero_at_every_scale ... ok
+test candidate_rect_stays_inside_field_with_preedit_span ... ok
+test cursor_steps_land_on_grapheme_boundaries_only ... ok
+test escape_cancels_preedit ... ok
+test handle_text_commit_clears_preedit ... ok
+test candidate_rect_stays_inside_field_when_text_fits ... ok
+test caret_x_equals_shaped_prefix_width_at_char_boundaries ... ok
+test mixed_string_byte_and_char_counts_differ ... ok
+test caret_end_matches_layout_width_and_cursor_x_at_every_scale ... ok
+test caret_x_is_scale_invariant_in_logical_pixels ... ok
+test cancel_preedit_restores_caret_geometry ... ok
+test caret_x_strictly_increases_in_grapheme_order_at_every_scale ... ok
+test handle_text_commit_inserts_at_caret_with_byte_length ... ok
+test layout_widths_and_glyph_x_are_scale_invariant ... ok
+test non_finite_or_non_positive_scale_falls_back_to_one ... ok
+test commit_preedit_advances_caret_by_preedit_width_at_every_scale ... ok
+test move_cursor_to_mid_char_offset_is_snapped_to_boundary ... ok
+test overflowing_caret_is_not_clamped_without_owner_scroll ... ok
+test preedit_does_not_move_caret_or_candidate_anchor ... ok
+test undo_after_commit_restores_caret_and_redo_reapplies_it ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+     Running tests/multipage_e2e.rs (target/debug/deps/multipage_e2e-98ff59e26c7a9918)
+
+running 2 tests
+test config_constants_match_the_core_atlas_contract ... ok
+test multi_page_text_frame_matches_single_page_pixels ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/preedit_render.rs (target/debug/deps/preedit_render-0132b22668bf078c)
+
+running 18 tests
+test backwards_selection_caret_stays_at_the_selection_start ... ok
+test committed_text_after_the_caret_shifts_by_the_preedit_width ... ok
+test composition_run_shares_the_committed_baseline ... FAILED
+test composition_reaches_the_cpu_rasterizer ... ok
+test placeholder_keeps_the_muted_colour_without_a_composition ... ok
+test placeholder_is_hidden_and_composition_uses_the_text_colour ... ok
+test empty_preedit_renders_exactly_as_without_one ... ok
+test password_preedit_is_masked_not_plaintext ... ok
+test readonly_composition_uses_the_disabled_text_token ... ok
+test preedit_glyphs_are_drawn_while_composing ... ok
+test selection_highlight_unchanged_without_a_preedit ... ok
+test selection_before_the_composition_stays_unshifted ... ok
+test trailing_run_is_unshifted_without_a_preedit ... ok
+test underline_and_composition_segment_line_up_with_the_preedit_run ... ok
+test backwards_selection_highlight_matches_the_tail_glyphs ... ok
+test long_preedit_right_edge_stays_inside_the_scrolled_field ... ok
+test composition_run_covers_the_preedit_width ... ok
+test cross_caret_selection_hits_both_runs_once ... ok
+
+failures:
+
+---- composition_run_shares_the_committed_baseline stdout ----
+
+thread 'composition_run_shares_the_committed_baseline' panicked at crates/acme-textinput/tests/preedit_render.rs:535:5:
+runs at different y: [25.431152, 26.069]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    composition_run_shares_the_committed_baseline
+
+test result: FAILED. 17 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+
+error: test failed, to rerun pass `-p acme-textinput --test preedit_render`

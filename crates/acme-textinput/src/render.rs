@@ -228,15 +228,23 @@ pub fn render_text_input(
         max_width: Some(content_w),
         wrap: TextWrap::None,
     };
-    // Use cached layout if the render_text hasn't changed — avoids re-shaping
-    // every frame for static or infrequently-changing text.
-    if state
-        .cached_layout
-        .as_ref()
-        .is_none_or(|(t, _)| t != render_text)
-    {
+    // Reuse shaping only while text, typography, constraints and DPI match.
+    if state.cached_layout.as_ref().is_none_or(|(key, _)| {
+        key.text != *render_text
+            || key.style != style
+            || key.constraints != constraints
+            || key.scale != scale
+    }) {
         let new_layout = fonts.shape(render_text, &style, constraints, scale);
-        state.cached_layout = Some((render_text.to_string(), new_layout));
+        state.cached_layout = Some((
+            InputLayoutKey {
+                text: render_text.to_string(),
+                style: style.clone(),
+                constraints,
+                scale,
+            },
+            new_layout,
+        ));
     }
     let (_, cached) = state
         .cached_layout
@@ -245,6 +253,7 @@ pub fn render_text_input(
     let text_height = cached.height;
     // Vertically center
     let text_y = content_y + (content_h - text_height).max(0.0) / 2.0;
+    let text_baseline = text_y + cached.baseline;
 
     // Apply horizontal scroll offset (text scrolls left, so content_x shifts)
     let text_origin_x = content_x - state.scroll_offset;
@@ -269,7 +278,7 @@ pub fn render_text_input(
             &style,
             scale,
             text_origin_x,
-            text_y,
+            text_baseline,
             render_color,
             clip,
         );
@@ -283,7 +292,7 @@ pub fn render_text_input(
             effective_clip[3],
         )));
         scene.push(DrawCommand::Text(TextPrimitive {
-            origin: Point::new(text_origin_x, text_y),
+            origin: Point::new(text_origin_x, text_baseline),
             color: Color::rgba(
                 render_color[0],
                 render_color[1],
