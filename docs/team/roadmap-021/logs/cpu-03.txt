@@ -1,0 +1,3 @@
+    Checking acme-core v0.2.0 (/workspace/AcmeUI-Native/crates/acme-core)
+    Checking acme-render-cpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-cpu)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.46s

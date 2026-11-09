@@ -1,4 +1,7 @@
 //! Mobile loader — indeterminate spinner indicator with optional message.
+//!
+//! Reuses the foundation spinner's static glyph; no animation timer is scheduled.
+//! Messages wrap at character boundaries to fit narrow content areas.
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
@@ -39,40 +42,16 @@ impl<M: Clone + 'static> From<MobileLoaderBuilder<M>> for WidgetNode<M> {
             .padding(24.0)
             .child(crate::foundations::spinner::<M>().build());
         if let Some(msg) = b.message {
-            col = col.child(crate::label(msg));
+            col = col.child(
+                crate::label_builder(msg)
+                    .wrap(crate::LabelWrap::Character)
+                    .build(),
+            );
         }
         col.build()
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Clone, Debug, PartialEq)]
-    enum Msg {}
-
-    #[test]
-    fn mobile_loader_produces_column() {
-        let node: WidgetNode<Msg> = mobile_loader().into();
-        assert!(matches!(node, WidgetNode::Column(_)));
-    }
-
-    #[test]
-    fn mobile_loader_with_message() {
-        let node: WidgetNode<Msg> = mobile_loader().message("Loading…").into();
-        let WidgetNode::Column(c) = &node else {
-            panic!("expected Column");
-        };
-        assert_eq!(c.children.len(), 2);
-    }
-
-    #[test]
-    fn mobile_loader_without_message() {
-        let node: WidgetNode<Msg> = mobile_loader().into();
-        let WidgetNode::Column(c) = &node else {
-            panic!("expected Column");
-        };
-        assert_eq!(c.children.len(), 1);
-    }
-}
+#[path = "mobile_loader_tests.rs"]
+mod tests;
