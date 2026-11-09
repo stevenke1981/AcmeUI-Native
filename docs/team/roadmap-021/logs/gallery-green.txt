@@ -1,0 +1,31 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.35s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 3 tests
+test mobile_loader_tests::gallery_label_paint_respects_existing_wrap_modes_and_line_height ... FAILED
+test mobile_loader_tests::loader_messages_paint_multiple_lines_with_themed_foreground_and_scroll_clips ... FAILED
+test mobile_loader_tests::mobile_page_has_distinct_indicator_short_and_long_message_examples ... ok
+
+failures:
+
+---- mobile_loader_tests::gallery_label_paint_respects_existing_wrap_modes_and_line_height stdout ----
+
+thread 'mobile_loader_tests::gallery_label_paint_respects_existing_wrap_modes_and_line_height' panicked at apps/acme-gallery/src/mobile_loader_tests.rs:167:13:
+assertion failed: high - low >= 50
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile_loader_tests::loader_messages_paint_multiple_lines_with_themed_foreground_and_scroll_clips stdout ----
+
+thread 'mobile_loader_tests::loader_messages_paint_multiple_lines_with_themed_foreground_and_scroll_clips' panicked at apps/acme-gallery/src/mobile_loader_tests.rs:112:21:
+long message must be painted on multiple lines
+
+
+failures:
+    mobile_loader_tests::gallery_label_paint_respects_existing_wrap_modes_and_line_height
+    mobile_loader_tests::loader_messages_paint_multiple_lines_with_themed_foreground_and_scroll_clips
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 23 filtered out; finished in 0.07s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

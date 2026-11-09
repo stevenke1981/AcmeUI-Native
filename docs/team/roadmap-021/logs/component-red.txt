@@ -1,0 +1,9 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0433]: failed to resolve: could not find `mobile_test_support` in `super`
+  --> crates/acme-ui/src/mobile/mobile_loader_tests.rs:63:32
+   |
+63 |                 &super::super::mobile_test_support::context(),
+   |                                ^^^^^^^^^^^^^^^^^^^ could not find `mobile_test_support` in `super`
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `acme-ui` (lib test) due to 1 previous error

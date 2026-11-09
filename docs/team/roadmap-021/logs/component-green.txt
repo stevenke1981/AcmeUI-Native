@@ -1,0 +1,26 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.31s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-085665444b7a57a5)
+
+running 3 tests
+test mobile::mobile_loader::tests::defaults_optional_messages_and_public_field_edits_preserve_the_indicator ... ok
+test mobile::mobile_loader::tests::omission_and_message_changes_keep_loader_and_indicator_identity_when_reordered ... ok
+test mobile::mobile_loader::tests::long_messages_wrap_inside_the_loader_at_narrow_and_wide_widths ... FAILED
+
+failures:
+
+---- mobile::mobile_loader::tests::long_messages_wrap_inside_the_loader_at_narrow_and_wide_widths stdout ----
+
+thread 'mobile::mobile_loader::tests::long_messages_wrap_inside_the_loader_at_narrow_and_wide_widths' panicked at crates/acme-ui/src/mobile/mobile_loader_tests.rs:82:13:
+assertion `left == right` failed
+  left: 116.0
+ right: 120.0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile::mobile_loader::tests::long_messages_wrap_inside_the_loader_at_narrow_and_wide_widths
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 304 filtered out; finished in 0.06s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

@@ -1,0 +1,79 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running unittests src/lib.rs (target/debug/deps/acme_text-0d381b78c9d211bd)
+
+running 44 tests
+test atlas::tests::begin_frame_does_not_evict_when_only_some_pages_are_under_pressure ... ok
+test atlas::tests::clear_is_immediate_keeps_pages_open_and_is_not_counted_as_eviction ... ok
+test atlas::tests::begin_frame_evicts_at_most_one_page_and_bumps_generation_once_per_call ... ok
+test atlas::tests::background_pressure_without_demand_keeps_fresh_pages_resident ... ok
+test atlas::tests::evict_stale_evicts_only_pages_holding_stale_entries ... ok
+test atlas::tests::deferred_demand_evicts_one_fresh_page_at_the_next_boundary ... ok
+test atlas::tests::evict_stale_returns_entries_and_counts_evicted_pages_separately ... ok
+test atlas::tests::failed_placement_leaves_cursors_untouched ... ok
+test atlas::tests::evict_stale_without_a_victim_keeps_the_deferred_request ... ok
+test atlas::tests::empty_pages_are_not_lru_victims_when_occupied_entries_are_from_an_earlier_frame ... ok
+test atlas::tests::demand_evicts_the_least_recent_page_even_when_every_entry_is_fresh ... ok
+test atlas::tests::insert_refreshes_page_recency_so_an_older_page_is_the_victim ... ok
+test atlas::tests::full_page_opens_page_one_and_uploads_to_page_one ... ok
+test atlas::tests::max_pages_caps_open_pages_and_drops_glyph_when_every_page_is_in_use ... ok
+test atlas::tests::new_single_page_packing_matches_legacy_sequence_and_rejects_when_full ... ok
+test atlas::tests::failed_too_tall_placement_does_not_advance_the_row_cursor ... ok
+test atlas::tests::page_eviction_removes_only_victim_entries_and_retargets_that_page ... ok
+test atlas::tests::mid_frame_overflow_defers_eviction_and_keeps_glyphs_already_handed_out ... ok
+test atlas::tests::satisfied_demand_does_not_evict_a_fresh_page_while_another_page_has_stale_entries ... ok
+test atlas::tests::settled_eviction_request_does_not_evict_again_later ... ok
+test atlas::tests::victim_is_the_stale_page_with_the_oldest_last_use_not_the_lowest_index ... ok
+test atlas::tests::lru_demand_filters_on_occupancy_without_a_stale_age_requirement ... ok
+test atlas::tests::with_config_clamps_page_budget_and_dimensions ... ok
+test atlas::tests::pressure_does_not_evict_while_a_new_page_can_still_open ... ok
+test style_attr_tests::named_family_is_trimmed ... ok
+test style_attr_tests::bold_italic_monospace_map_to_cosmic_attrs ... ok
+test atlas::tests::placement_prefers_active_page_then_other_pages_ascending_then_opens_new_page ... ok
+test style_attr_tests::default_style_is_regular_upright ... ok
+test tests::begin_frame_pressure_check_does_not_overflow_on_tall_atlas ... ok
+test atlas::tests::page_edges_are_capped_at_the_renderer_page_edge ... ok
+test tests::atlas_auto_evict_on_full ... ok
+test style_attr_tests::bold_shapes_and_prepares_glyphs ... ok
+test tests::overflow_preserves_current_frame_glyphs_until_begin_frame ... ok
+test tests::atlas_evict_stale_clears_all_entries ... ok
+test tests::constrained_text_wraps ... ok
+test tests::clear_resets_deferred_eviction_request ... ok
+test tests::atlas_touch_updates_last_used ... ok
+test tests::dpi_changes_raster_keys_not_logical_measurement ... ok
+test tests::atlas_clear_forces_reupload_after_recovery ... ok
+test tests::empty_text_is_safe ... ok
+test tests::preparation_reuses_atlas_entries ... ok
+test tests::whitespace_is_not_counted_as_an_atlas_full_glyph ... ok
+test tests::prepared_multiline_glyphs_preserve_line_offsets_from_the_first_baseline ... ok
+test tests::traditional_chinese_and_emoji_shape_without_panicking ... ok
+
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+     Running tests/atlas_lifecycle.rs (target/debug/deps/atlas_lifecycle-586392b189366ed1)
+
+running 6 tests
+test overflow_mid_frame_defers_eviction_to_next_frame ... ok
+test bug_glyph_dropped_while_atlas_holds_only_recent_entries ... ok
+test latin_set_shapes_and_resolves_in_one_frame ... ok
+test explicit_clear_forces_full_reupload_and_bumps_generation ... ok
+test hot_set_is_not_counted_stale_while_idle_glyphs_age_out ... ok
+test rotation_over_600_frames_keeps_atlas_invariants ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/atlas_pages.rs (target/debug/deps/atlas_pages-6618aff75ab215f7)
+
+running 4 tests
+test first_fill_spills_onto_page_one_without_overlap ... ok
+test clear_reuploads_every_glyph_with_its_page ... ok
+test every_prepared_text_in_a_frame_shares_one_generation ... ok
+test four_pages_evict_less_than_one_page_under_rotation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+   Doc-tests acme_text
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

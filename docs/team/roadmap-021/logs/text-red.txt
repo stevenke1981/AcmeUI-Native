@@ -1,0 +1,25 @@
+   Compiling slotmap v1.1.1
+   Compiling fontdb v0.16.2
+   Compiling cosmic-text v0.14.2
+   Compiling acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.57s
+     Running unittests src/lib.rs (target/debug/deps/acme_text-0d381b78c9d211bd)
+
+running 1 test
+test tests::prepared_multiline_glyphs_preserve_line_offsets_from_the_first_baseline ... FAILED
+
+failures:
+
+---- tests::prepared_multiline_glyphs_preserve_line_offsets_from_the_first_baseline stdout ----
+
+thread 'tests::prepared_multiline_glyphs_preserve_line_offsets_from_the_first_baseline' panicked at crates/acme-text/src/lib.rs:496:21:
+line offset lost: expected=21.5, actual=0, scale=1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::prepared_multiline_glyphs_preserve_line_offsets_from_the_first_baseline
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `-p acme-text --lib`
