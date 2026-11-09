@@ -74,7 +74,10 @@ fn pointer_edit_submit_clear_and_undo_use_the_real_gallery_event_path() {
     let mut gallery = Gallery::new();
     frame(&mut gallery, 1.0);
     let r = gallery.search.rect.expect("actual retained search layout");
-    click(&mut gallery, r[0] + 12.0, r[1] + 12.0);
+    gallery.scroll = (r[1] - 80.0).max(0.0).min(gallery.max_scroll);
+    frame(&mut gallery, 1.0);
+    let y = r[1] - gallery.scroll + 12.0;
+    click(&mut gallery, r[0] + 12.0, y);
     assert!(gallery.search.input.focused);
     assert!(key(
         &mut gallery,
@@ -94,7 +97,8 @@ fn pointer_edit_submit_clear_and_undo_use_the_real_gallery_event_path() {
     assert_eq!(gallery.search.submitted, "找", "clear must not submit");
     frame(&mut gallery, 1.0);
     let r = gallery.search.rect.unwrap();
-    click(&mut gallery, r[0] + 12.0, r[1] + 12.0);
+    let y = r[1] - gallery.scroll + 12.0;
+    click(&mut gallery, r[0] + 12.0, y);
     key(&mut gallery, PlatformKey::Other, Some("z"), false, true);
     assert_eq!(gallery.search.input.text, "找", "clear remains undoable");
 }

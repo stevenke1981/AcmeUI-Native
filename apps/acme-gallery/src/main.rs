@@ -20,8 +20,8 @@ use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_ui::mobile::{
-    MobileButtonSize, mobile_button, mobile_card, mobile_loader, mobile_progress, mobile_search,
-    mobile_segmented, mobile_stepper, mobile_toggle,
+    MobileButtonSize, mobile_button, mobile_card, mobile_chip, mobile_loader, mobile_progress,
+    mobile_search, mobile_segmented, mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::style::Styled;
@@ -82,6 +82,7 @@ const CATEGORIES: &[CategoryInfo] = &[
     CategoryInfo {
         name: "Mobile",
         pages: &[
+            "Chips",
             "Search",
             "Loader",
             "Progress",
@@ -105,6 +106,10 @@ enum GalleryMessage {
     MobileToggle(bool),
     MobileValue(i64),
     MobileSelected(usize),
+    MobileChipToggle,
+    MobileChipTap,
+    MobileChipDismiss,
+    MobileChipRestore,
     MobileSearchEdited,
     MobileSearchSubmit,
     MobileSearchClear,
@@ -163,6 +168,9 @@ struct Gallery {
     mobile_value: i64,
     mobile_selected: usize,
     search: SearchDemo,
+    chip_selected: bool,
+    chip_visible: bool,
+    chip_action: &'static str,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -193,6 +201,9 @@ impl Gallery {
             mobile_value: 2,
             mobile_selected: 0,
             search: SearchDemo::new(),
+            chip_selected: true,
+            chip_visible: true,
+            chip_action: "none",
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -692,6 +703,41 @@ impl Gallery {
             .build()
     }
 
+    fn chip_examples(&self) -> WidgetNode<GalleryMessage> {
+        let removable = if self.chip_visible {
+            row()
+                .child(
+                    mobile_chip("Rust · 原生")
+                        .key("gallery_chip_removable")
+                        .on_tap(GalleryMessage::MobileChipTap)
+                        .on_dismiss(GalleryMessage::MobileChipDismiss),
+                )
+                .build()
+        } else {
+            label("Tag removed — restore it below")
+        };
+        column()
+            .gap(8.0)
+            .child(row().child(mobile_chip("Static tag").key("gallery_chip_static")))
+            .child(
+                row().child(
+                    mobile_chip("Filter · 篩選")
+                        .key("gallery_chip_filter")
+                        .selected(self.chip_selected)
+                        .on_tap(GalleryMessage::MobileChipToggle),
+                ),
+            )
+            .child(removable)
+            .child(
+                row().child(
+                    button("gallery_chip_restore", "Restore tag")
+                        .on_click(GalleryMessage::MobileChipRestore),
+                ),
+            )
+            .child(label(format!("Chip action: {}", self.chip_action)))
+            .build()
+    }
+
     fn mobile_page(&self) -> WidgetNode<GalleryMessage> {
         let status = match self.last_mobile_press {
             Some(MobileButtonSize::Sm) => "Last action: Small button",
@@ -709,6 +755,7 @@ impl Gallery {
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
+            .child(self.page_section("Mobile Chips — tags and actions", self.chip_examples()))
             .child(self.page_section(
                 "Mobile Search — edit, submit and clear",
                 column()
@@ -1064,6 +1111,25 @@ impl Gallery {
                     self.search.blur();
                     self.search.rect = None;
                 }
+                true
+            }
+            GalleryMessage::MobileChipToggle => {
+                self.chip_selected = !self.chip_selected;
+                self.chip_action = "filter toggled";
+                true
+            }
+            GalleryMessage::MobileChipTap => {
+                self.chip_action = "tag tapped";
+                true
+            }
+            GalleryMessage::MobileChipDismiss => {
+                self.chip_visible = false;
+                self.chip_action = "tag dismissed";
+                true
+            }
+            GalleryMessage::MobileChipRestore => {
+                self.chip_visible = true;
+                self.chip_action = "tag restored";
                 true
             }
             GalleryMessage::MobileSearchSubmit => self.search.submit(),
@@ -2096,6 +2162,7 @@ mod tests {
     #[test]
     fn mobile_stepper_limits_do_not_leave_ghost_hit_indices() {
         let mut gallery = Gallery::new();
+        let full_hit_count = mobile_hits(&gallery).len();
         for value in [0, 10] {
             gallery.mobile_value = value;
             let hits = mobile_hits(&gallery);
@@ -2107,7 +2174,7 @@ mod tests {
                 })
                 .collect();
             assert_eq!(values, if value == 0 { vec![2] } else { vec![8] });
-            assert_eq!(hits.len(), 10);
+            assert_eq!(hits.len() + 1, full_hit_count);
         }
     }
 
@@ -2214,3 +2281,6 @@ mod tests {
 
 #[cfg(test)]
 mod mobile_search_tests;
+
+#[cfg(test)]
+mod mobile_chip_tests;
