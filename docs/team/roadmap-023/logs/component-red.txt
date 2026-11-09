@@ -1,0 +1,26 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.62s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 4 tests
+test mobile::mobile_chip::acceptance_tests::empty_and_unicode_static_tags_are_noninteractive_and_preserve_public_field_edits ... ok
+test mobile::mobile_chip::acceptance_tests::chip_actions_are_separate_and_surface_uses_semantic_tokens ... FAILED
+test mobile::mobile_chip::acceptance_tests::retained_chip_and_tap_ids_survive_selection_dismiss_changes_and_reorder ... ok
+test mobile::mobile_chip::acceptance_tests::chip_layout_has_separate_nonzero_hit_targets_and_compact_height ... ok
+
+failures:
+
+---- mobile::mobile_chip::acceptance_tests::chip_actions_are_separate_and_surface_uses_semantic_tokens stdout ----
+
+thread 'mobile::mobile_chip::acceptance_tests::chip_actions_are_separate_and_surface_uses_semantic_tokens' panicked at crates/acme-ui/src/mobile/mobile_chip_tests.rs:45:17:
+assertion failed: row.style.background.is_some()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile::mobile_chip::acceptance_tests::chip_actions_are_separate_and_surface_uses_semantic_tokens
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 772 filtered out; finished in 0.06s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

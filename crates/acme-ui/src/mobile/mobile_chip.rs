@@ -2,6 +2,8 @@
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_layout::Length;
+use acme_widgets::style::prelude::*;
 
 /// Builder for a mobile chip.
 pub struct MobileChipBuilder<M> {
@@ -47,21 +49,40 @@ impl<M: Clone + 'static> MobileChipBuilder<M> {
 
 impl<M: Clone + 'static> From<MobileChipBuilder<M>> for WidgetNode<M> {
     fn from(b: MobileChipBuilder<M>) -> Self {
+        let id = b.id.as_str();
         let prefix = if b.selected { "✓ " } else { "" };
         let text = format!("{}{}", prefix, b.text);
+        let body = if let Some(msg) = b.on_tap {
+            crate::button(format!("{id}__tap"), text)
+                .variant(crate::ButtonVariant::Ghost)
+                .h(Length::px(32.0))
+                .min_h(Length::px(32.0))
+                .on_click(msg)
+        } else {
+            crate::label(text)
+        };
         let mut row = crate::row::<M>()
-            .key(b.id)
+            .key(b.id.clone())
+            .min_h(Length::px(32.0))
+            .rounded(16.0)
             .gap(4.0)
             .padding(6.0)
-            .child(crate::label(text));
-
+            .child(body);
+        row = if b.selected {
+            row.bg_accent()
+        } else {
+            row.bg_muted()
+        };
         if let Some(msg) = b.on_dismiss {
-            let close = crate::button("chip_close", "✕").on_click(msg);
-            row = row.child(close);
+            row = row.child(
+                crate::button(format!("{id}__dismiss"), "✕ Remove")
+                    .variant(crate::ButtonVariant::Ghost)
+                    .h(Length::px(32.0))
+                    .min_h(Length::px(32.0))
+                    .on_click(msg),
+            );
         }
-        if let Some(msg) = b.on_tap {
-            row = row.on_click(msg);
-        }
+        // Tap is a sibling of dismiss; no ancestor action can consume dismiss.
         row.build()
     }
 }
@@ -103,3 +124,7 @@ mod tests {
         assert_eq!(b.on_tap, Some(Msg::Tap));
     }
 }
+
+#[cfg(test)]
+#[path = "mobile_chip_tests.rs"]
+mod acceptance_tests;

@@ -28,6 +28,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 022 | Lead + UI/UX + Rust Core + Verification (single-agent role passes) | Real mobile search, Gallery text-input host, responsive TextInput styling, baseline/cache regressions and historical mobile Clippy reconciliation | [Brief](../team/roadmap-022/BRIEF.md); [report](../team/roadmap-022/REPORT.md) with locked checks and automated native CPU interaction captures; manual hardware acceptance remains open |
 
+| 023 | Lead + UI/UX + Verification (single-agent role passes) | Themed mobile chips with separate tap/dismiss actions, retained identity and Gallery filter/removal/restore | [Brief](../team/roadmap-023/BRIEF.md); [report](../team/roadmap-023/REPORT.md) with locked checks and native CPU pointer captures; manual hardware acceptance remains open |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

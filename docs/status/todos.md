@@ -1,5 +1,12 @@
 # Todos
 
+## ROADMAP 023 — mobile chip acceptance (2026-11-09)
+
+- [x] Add rounded semantic chip surfaces and distinct child tap/dismiss actions with instance-derived keys; preserve the builder API.
+- [x] Cover optional actions, selected/empty/Unicode tags, real layout and retained identity; add Gallery filter/removal/restore demos and automated native CPU pointer captures.
+- [x] Locked targeted/mobile-only tests, strict Clippy, actual CPU verification and workspace milestone gates; see [report](../team/roadmap-023/REPORT.md).
+- [ ] Manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 022 — mobile search acceptance (2026-11-09)
 
 - [x] Replace the placeholder Label with a real controlled TextInput, instance-derived action keys, themed rounded surface, separate search/clear actions and retained/layout regressions.
@@ -236,7 +243,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] mobile_loader — existing static foundation spinner indicator + optional wrapping message; retained-ID/layout/paint tests and Gallery demos (ROADMAP 021). Rotation/runtime scheduling remains a separate unchecked follow-up; manual hardware acceptance is NOT_RUN.
 - [x] mobile_search — rounded themed TextInput + search icon/action + clear button; controlled query, input marker, retained/layout/host-event tests and native CPU Gallery evidence (ROADMAP 022). Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_segmented — selected N-segment row and on_select; ROADMAP 014 behavior/hit/accessibility/mutation evidence preserved, historical Clippy gate reverified PASS in ROADMAP 022. Manual hardware acceptance remains NOT_RUN.
-- [ ] mobile_chip — compact tag with optional close icon, on_dismiss
+- [x] mobile_chip — compact themed tag, selected marker and optional close action; separate tap/dismiss messages, retained/layout tests and native CPU Gallery evidence (ROADMAP 023). Manual hardware acceptance remains NOT_RUN.
 - [ ] mobile_avatar — circular initials or image placeholder, size variants
 - [ ] mobile_banner — full-width alert with icon + text + optional action
 - [ ] mobile_notification — toast-style card with title + body + auto-dismiss hint
