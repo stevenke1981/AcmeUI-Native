@@ -204,7 +204,7 @@ pub(crate) fn draw_composing_text(
     style: &TextStyle,
     scale: f32,
     text_origin_x: f32,
-    text_y: f32,
+    text_baseline: f32,
     color: [f32; 4],
     clip: [f32; 4],
 ) {
@@ -224,7 +224,7 @@ pub(crate) fn draw_composing_text(
     for (text, origin_x) in items {
         let (glyphs, uploads) = prepare_run(fonts, atlas, text, style, scale);
         scene.push(DrawCommand::Text(TextPrimitive {
-            origin: Point::new(origin_x, text_y),
+            origin: Point::new(origin_x, text_baseline),
             color: Color::rgba(color[0], color[1], color[2], color[3]),
             glyphs,
             uploads,
