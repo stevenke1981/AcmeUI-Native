@@ -1,0 +1,26 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.27s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_sheet_handle::tests::defaults_and_numeric_public_widths_produce_visible_finite_fixed_bars ... FAILED
+test mobile::mobile_sheet_handle::tests::width_changes_and_keyed_reorder_keep_retained_handle_ids ... ok
+test mobile::mobile_sheet_handle::tests::handle_keeps_its_size_beside_a_flexible_sibling ... ok
+
+failures:
+
+---- mobile::mobile_sheet_handle::tests::defaults_and_numeric_public_widths_produce_visible_finite_fixed_bars stdout ----
+
+thread 'mobile::mobile_sheet_handle::tests::defaults_and_numeric_public_widths_produce_visible_finite_fixed_bars' panicked at crates/acme-ui/src/mobile/mobile_sheet_handle_tests.rs:36:9:
+assertion `left == right` failed
+  left: None
+ right: Some(MutedForeground)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile::mobile_sheet_handle::tests::defaults_and_numeric_public_widths_produce_visible_finite_fixed_bars
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 774 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

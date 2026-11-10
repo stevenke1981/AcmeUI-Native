@@ -1,0 +1,11 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.67s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_sheet_handle::tests::mobile_sheet_handle_default_width ... ok
+test mobile::mobile_sheet_handle::tests::mobile_sheet_handle_custom_width ... ok
+test mobile::mobile_sheet_handle::tests::mobile_sheet_handle_produces_row ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 774 filtered out; finished in 0.00s
+
