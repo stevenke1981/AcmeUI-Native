@@ -42,6 +42,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 029 | Lead + UI/UX + Verification (single-agent role passes) | Visible themed mobile sheet handle, finite fixed geometry and centered Gallery preview | [Brief](../team/roadmap-029/BRIEF.md); [report](../team/roadmap-029/REPORT.md) with locked gates and native CPU capture; actual dragging and manual acceptance remain open |
 
+| 030 | Lead + UI/UX + Verification (single-agent role passes) | Default/layout/child-count contracts and inventory guard for all 20 public mobile modules; retained Gallery presence for 15 P3 builders; historical count reconciliation | [Brief](../team/roadmap-030/BRIEF.md); [report](../team/roadmap-030/REPORT.md) with coverage matrix, locked gates and native CPU smoke; legacy interactions and manual acceptance remain open |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

@@ -43,3 +43,6 @@ pub use mobile_stepper::*;
 pub use mobile_toggle::*;
 pub use pull_to_refresh::*;
 pub use search_bar::*;
+
+#[cfg(test)]
+mod mobile_contract_tests;
