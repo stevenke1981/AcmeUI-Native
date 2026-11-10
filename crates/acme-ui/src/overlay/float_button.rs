@@ -1,8 +1,23 @@
 //! FloatButton — floating action button (FAB).
-//! Aligns with Ant Design FloatButton component.
+//! Mini, normal and extended elevated primary actions. The host places the
+//! resulting widget in its overlay; `placement` is host-owned metadata.
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_layout::Length;
+use acme_widgets::style::Styled;
+
+/// FAB size and content presentation.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum FloatButtonSize {
+    /// Compact 40 px control.
+    Mini,
+    /// Standard 56 px control.
+    #[default]
+    Normal,
+    /// A 56 px high action with an intrinsic-width icon and label.
+    Extended,
+}
 
 /// Float button shape.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -28,6 +43,7 @@ pub struct FloatButtonBuilder<M> {
     pub icon: Option<crate::IconName>,
     pub label: Option<String>,
     pub shape: FloatButtonShape,
+    pub size: FloatButtonSize,
     pub placement: FloatButtonPlacement,
     pub on_click: Option<M>,
 }
@@ -39,6 +55,7 @@ pub fn float_button<M: Clone + 'static>() -> FloatButtonBuilder<M> {
         icon: None,
         label: None,
         shape: FloatButtonShape::default(),
+        size: FloatButtonSize::default(),
         placement: FloatButtonPlacement::default(),
         on_click: None,
     }
@@ -65,6 +82,13 @@ impl<M: Clone + 'static> FloatButtonBuilder<M> {
         self
     }
 
+    pub fn size(mut self, value: FloatButtonSize) -> Self {
+        self.size = value;
+        self
+    }
+
+    /// Preferred viewport corner for the host's overlay layout.
+    /// Conversion to a widget does not install a global overlay or position it.
     pub fn placement(mut self, value: FloatButtonPlacement) -> Self {
         self.placement = value;
         self
@@ -78,63 +102,61 @@ impl<M: Clone + 'static> FloatButtonBuilder<M> {
 
 impl<M: Clone + 'static> From<FloatButtonBuilder<M>> for WidgetNode<M> {
     fn from(b: FloatButtonBuilder<M>) -> Self {
-        let size = 56.0;
-        let content = if let Some(icon) = b.icon {
-            crate::icon::<M>(icon).build()
-        } else if let Some(label) = b.label {
-            crate::label(label)
+        let height = if b.size == FloatButtonSize::Mini {
+            40.0
         } else {
-            crate::label("+")
+            56.0
         };
-
-        let mut stack = crate::stack::<M>()
-            .key(b.id)
-            .size(size, size)
-            .child(content);
-
-        if let Some(msg) = b.on_click {
-            stack = stack.on_click(msg);
+        let extended = b.size == FloatButtonSize::Extended;
+        let radius = if b.shape == FloatButtonShape::Circle {
+            height / 2.0
+        } else {
+            0.0
+        };
+        let label = b.label.filter(|text| !text.is_empty());
+        let text = match (b.icon, label) {
+            (Some(icon), Some(label)) if extended => format!("{} {label}", icon.char()),
+            (Some(icon), _) => icon.char().to_owned(),
+            (None, Some(label)) => label,
+            (None, None) => "+".into(),
+        };
+        // A typed Button gives hosts one actionable/focusable descendant.
+        // Keep the outer instance key stable when size/content changes.
+        let mut button = crate::button(format!("{}__action", b.id.as_str()), text)
+            .primary()
+            .h(Length::px(height))
+            .min_w(Length::px(height))
+            .max_w(Length::Percent(1.0))
+            .flex_shrink(1.0)
+            .rounded(radius)
+            .border_width(0.0);
+        if extended {
+            button = button.px(16.0);
+        } else {
+            button = button.w(Length::px(height)).p(0.0);
         }
-        stack.build()
+        let action = if let Some(msg) = b.on_click {
+            button.on_click(msg)
+        } else {
+            button.into()
+        };
+        let mut surface = crate::card()
+            .key(b.id)
+            .variant(crate::CardVariant::Elevated)
+            .padding(0.0)
+            .border_radius(radius)
+            .border_width(0.0)
+            .h(Length::px(height))
+            .min_w(Length::px(height))
+            .max_w(Length::Percent(1.0))
+            .flex_shrink(if extended { 1.0 } else { 0.0 });
+        if !extended {
+            surface = surface.w(Length::px(height));
+        }
+        surface.child(action).build()
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Clone, Debug, PartialEq)]
-    enum Msg {
-        Clicked,
-    }
-
-    #[test]
-    fn float_button_produces_stack() {
-        let node: WidgetNode<Msg> = float_button().into();
-        assert!(matches!(node, WidgetNode::Stack(_)));
-    }
-
-    #[test]
-    fn float_button_with_icon() {
-        let node: WidgetNode<Msg> = float_button().icon(crate::IconName::Plus).into();
-        let WidgetNode::Stack(s) = &node else {
-            panic!("expected Stack");
-        };
-        assert_eq!(s.children.len(), 1);
-    }
-
-    #[test]
-    fn float_button_on_click() {
-        let node: WidgetNode<Msg> = float_button().on_click(Msg::Clicked).into();
-        let WidgetNode::Stack(s) = &node else {
-            panic!("expected Stack");
-        };
-        assert_eq!(s.message, Some(Msg::Clicked));
-    }
-
-    #[test]
-    fn float_button_default_placement() {
-        let b = float_button::<Msg>();
-        assert_eq!(b.placement, FloatButtonPlacement::BottomRight);
-    }
-}
+#[path = "float_button_tests.rs"]
+mod tests;

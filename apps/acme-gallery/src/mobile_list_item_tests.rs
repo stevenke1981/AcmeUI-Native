@@ -87,7 +87,7 @@ fn keyboard_scrolled_page_text_retains_the_viewport_clip_in_the_actual_scene() {
     let r = snapshot
         .get(extract_gallery_ids(layout).scroll_view)
         .unwrap();
-    let expected = acme_core::Rect::new(r.x, r.y, r.width, r.height);
+    let expected = [r.x, r.y, r.width, r.height];
     assert_eq!(r.y, TOOLBAR_HEIGHT);
     let mut clips = Vec::new();
     let mut checked = 0;
@@ -100,9 +100,16 @@ fn keyboard_scrolled_page_text_retains_the_viewport_clip_in_the_actual_scene() {
             acme_core::DrawCommand::Text(t)
                 if t.origin.x.get() >= SIDEBAR_WIDTH && t.origin.y.get() < 0.0 =>
             {
-                assert_eq!(
-                    clips.last(),
-                    Some(&expected),
+                assert!(
+                    fab_tests::clip_within(
+                        clips.last().map(|c| [
+                            c.origin.x.get(),
+                            c.origin.y.get(),
+                            c.size.width.get(),
+                            c.size.height.get()
+                        ]),
+                        expected
+                    ),
                     "offscreen content must not escape the scroll viewport"
                 );
                 checked += 1;
@@ -326,7 +333,8 @@ fn list_row_hits_and_paint_indices_preserve_following_buttons_theme_and_scroll_c
                         frame
                             .text
                             .iter()
-                            .all(|t| t.clip == Some(clip) && !t.prepared.glyphs.is_empty())
+                            .all(|t| fab_tests::clip_within(t.clip, clip)
+                                && !t.prepared.glyphs.is_empty())
                     );
                 }
             }

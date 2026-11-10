@@ -43,6 +43,7 @@ mod notification_examples;
 use notification_examples::NotificationDemo;
 #[path = "mobile_action.rs"]
 mod action_examples;
+mod fab;
 #[path = "mobile_list_item.rs"]
 mod list_examples;
 
@@ -138,6 +139,7 @@ enum GalleryMessage {
     MobileSearchEdited,
     MobileSearchSubmit,
     MobileSearchClear,
+    FabPress(usize),
 }
 
 // ── Theme preference persistence ────────────────────────────────────────────
@@ -204,6 +206,7 @@ struct Gallery {
     last_list_tap: Option<usize>,
     list_reverse: bool,
     list_details: bool,
+    fab_status: &'static str,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -245,6 +248,7 @@ impl Gallery {
             last_list_tap: None,
             list_reverse: false,
             list_details: true,
+            fab_status: "none",
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -825,6 +829,7 @@ impl Gallery {
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
+            .child(self.page_section("Floating Action Buttons — mini, normal, extended", self.fab_examples()))
             .child(self.page_section("Mobile Sheet Handles", self.sheet_handle_examples()))
             .child(self.page_section("Mobile Actions — normal, destructive and disabled", self.action_examples()))
             .child(self.page_section(
@@ -1204,6 +1209,15 @@ impl Gallery {
                     self.search.blur();
                     self.search.rect = None;
                 }
+                true
+            }
+            GalleryMessage::FabPress(index) => {
+                self.fab_status = match index {
+                    0 => "mini",
+                    1 => "normal",
+                    2 => "create",
+                    _ => "star",
+                };
                 true
             }
             GalleryMessage::MobileActionPress(destructive) => {
@@ -1994,8 +2008,8 @@ fn render_content(
                     quad: quad_rect(
                         [rect.x, y, rect.width, rect.height],
                         resolved.background,
-                        theme.radii.md,
-                        1.0,
+                        btn.style.border_radius.unwrap_or(theme.radii.md),
+                        btn.style.border_width.unwrap_or(1.0),
                         resolved.border,
                     ),
                     clip,
@@ -2020,7 +2034,7 @@ fn render_content(
                         y + (rect.height - shaped.height).max(0.0) / 2.0 + shaped.baseline,
                     ],
                     color: rgba(resolved.foreground),
-                    clip: Some(clip),
+                    clip: Some(intersect_clip([rect.x, y, rect.width, rect.height], clip)),
                 });
             }
         }
@@ -2056,12 +2070,21 @@ fn render_content(
                 };
                 // Use explicit border_radius when set, otherwise default to sm
                 let radius = c.border_radius.unwrap_or(theme.radii.sm);
+                if c.variant == CardVariant::Elevated {
+                    paint_card_shadow(
+                        frame,
+                        [rect.x, y, rect.width, rect.height],
+                        radius,
+                        theme.shadows.sm,
+                        clip,
+                    );
+                }
                 frame.clipped_quads.push(ClippedQuad {
                     quad: quad_rect(
                         [rect.x, y, rect.width, rect.height],
                         bg,
                         radius,
-                        1.0,
+                        c.style.border_width.unwrap_or(1.0),
                         border,
                     ),
                     clip,
@@ -2123,8 +2146,8 @@ fn button_state_for_render(
         index
     });
     ButtonState {
-        hovered: hovered == current,
-        pressed: pressed == current,
+        hovered: current.is_some_and(|index| hovered == Some(index)),
+        pressed: current.is_some_and(|index| pressed == Some(index)),
         focused: false,
     }
 }
@@ -2181,6 +2204,48 @@ fn collect_hit_regions(
 }
 
 // ── Render Helpers ───────────────────────────────────────────────────────────
+
+fn intersect_clip(rect: [f32; 4], clip: [f32; 4]) -> [f32; 4] {
+    let x = rect[0].max(clip[0]);
+    let y = rect[1].max(clip[1]);
+    [
+        x,
+        y,
+        ((rect[0] + rect[2]).min(clip[0] + clip[2]) - x).max(0.0),
+        ((rect[1] + rect[3]).min(clip[1] + clip[3]) - y).max(0.0),
+    ]
+}
+
+/// A bounded layered approximation, using the theme's elevation token. This
+/// Gallery path emits ordinary clipped quads; it is not a renderer blur effect.
+fn paint_card_shadow(
+    frame: &mut Frame,
+    rect: [f32; 4],
+    radius: f32,
+    shadow: acme_theme::ShadowDef,
+    clip: [f32; 4],
+) {
+    for layer in (1..=4).rev() {
+        let spread = shadow.spread + shadow.blur * layer as f32 / 8.0;
+        let mut color = shadow.color;
+        color.alpha /= 4.0;
+        frame.clipped_quads.push(ClippedQuad {
+            quad: quad_rect(
+                [
+                    rect[0] + shadow.offset_x - spread,
+                    rect[1] + shadow.offset_y - spread,
+                    rect[2] + 2.0 * spread,
+                    rect[3] + 2.0 * spread,
+                ],
+                color,
+                radius + spread,
+                0.0,
+                color,
+            ),
+            clip,
+        });
+    }
+}
 
 #[allow(clippy::too_many_arguments)]
 fn add_text(
@@ -2524,3 +2589,6 @@ mod mobile_sheet_handle_tests;
 
 #[cfg(test)]
 mod mobile_contract_tests;
+
+#[cfg(test)]
+mod fab_tests;

@@ -218,9 +218,9 @@ fn notification_surface_text_and_actions_keep_themed_paint_order_and_scroll_clip
                     &mut gallery.fonts,
                     &mut gallery.atlas,
                 );
-                assert_eq!(frame.clipped_quads.len(), 3);
+                assert_eq!(frame.clipped_quads.len(), 7);
                 assert_eq!(
-                    frame.clipped_quads[0].quad.color,
+                    frame.clipped_quads[4].quad.color,
                     rgba(theme.colors.surface)
                 );
                 assert!(frame.clipped_quads.iter().all(|q| q.clip == clip));
@@ -229,7 +229,8 @@ fn notification_surface_text_and_actions_keep_themed_paint_order_and_scroll_clip
                     frame
                         .text
                         .iter()
-                        .all(|t| t.clip == Some(clip) && !t.prepared.glyphs.is_empty())
+                        .all(|t| fab_tests::clip_within(t.clip, clip)
+                            && !t.prepared.glyphs.is_empty())
                 );
                 assert_eq!(frame.text[0].color, rgba(theme.colors.foreground));
                 assert_eq!(frame.text[1].color, rgba(theme.colors.foreground));
