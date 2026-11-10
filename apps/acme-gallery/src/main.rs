@@ -44,6 +44,8 @@ use notification_examples::NotificationDemo;
 #[path = "mobile_action.rs"]
 mod action_examples;
 mod fab;
+mod snackbar;
+use snackbar::SnackbarDemo;
 #[path = "mobile_list_item.rs"]
 mod list_examples;
 
@@ -140,6 +142,9 @@ enum GalleryMessage {
     MobileSearchSubmit,
     MobileSearchClear,
     FabPress(usize),
+    SnackbarShow(bool),
+    SnackbarAction,
+    SnackbarDismiss,
 }
 
 // ── Theme preference persistence ────────────────────────────────────────────
@@ -207,6 +212,7 @@ struct Gallery {
     list_reverse: bool,
     list_details: bool,
     fab_status: &'static str,
+    snackbar: SnackbarDemo,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -249,6 +255,7 @@ impl Gallery {
             list_reverse: false,
             list_details: true,
             fab_status: "none",
+            snackbar: SnackbarDemo::new(),
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -829,6 +836,7 @@ impl Gallery {
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
+            .child(self.page_section("Snackbar — timed bottom message", self.snackbar_examples()))
             .child(self.page_section("Floating Action Buttons — mini, normal, extended", self.fab_examples()))
             .child(self.page_section("Mobile Sheet Handles", self.sheet_handle_examples()))
             .child(self.page_section("Mobile Actions — normal, destructive and disabled", self.action_examples()))
@@ -1166,6 +1174,11 @@ impl Gallery {
             .enumerate()
             .rev()
             .find_map(|(i, hr)| {
+                if self.snackbar.covers(self.cursor.0, self.cursor.1)
+                    && !snackbar::is_overlay_action(hr.message)
+                {
+                    return None;
+                }
                 let r = if hr.scrolled {
                     if self.cursor.1 < 40.0 {
                         return None;
@@ -1209,6 +1222,29 @@ impl Gallery {
                     self.search.blur();
                     self.search.rect = None;
                 }
+                true
+            }
+            GalleryMessage::SnackbarShow(with_action) => {
+                self.snackbar.show(std::time::Instant::now(), with_action);
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::SnackbarAction | GalleryMessage::SnackbarDismiss => {
+                if !self.snackbar.visible {
+                    return false;
+                }
+                if hr.message == GalleryMessage::SnackbarAction && !self.snackbar.with_action {
+                    return false;
+                }
+                self.snackbar
+                    .close(if hr.message == GalleryMessage::SnackbarAction {
+                        "undone"
+                    } else {
+                        "dismissed"
+                    });
+                self.pressed = None;
+                self.hovered = None;
                 true
             }
             GalleryMessage::FabPress(index) => {
@@ -1325,7 +1361,15 @@ impl Application for Gallery {
     }
 
     fn event(&mut self, event: PlatformEvent) -> bool {
-        if self.selected_category == 7 {
+        let overlay_pointer = match &event {
+            PlatformEvent::PointerMoved { x, y, .. }
+            | PlatformEvent::PointerButton { x, y, .. } => self.snackbar.covers(*x, *y),
+            _ => false,
+        };
+        if overlay_pointer && matches!(event, PlatformEvent::PointerButton { pressed: true, .. }) {
+            self.search.blur();
+        }
+        if self.selected_category == 7 && !overlay_pointer {
             if let Some(changed) = self.list_item_event(&event) {
                 return changed;
             }
@@ -1384,11 +1428,18 @@ impl Application for Gallery {
     }
 
     fn background_poll_interval(&self) -> Option<std::time::Duration> {
-        self.notification.poll_interval()
+        self.notification
+            .poll_interval()
+            .into_iter()
+            .chain(self.snackbar.poll_interval())
+            .min()
     }
 
     fn background_tick(&mut self) -> bool {
-        if self.notification.expire(std::time::Instant::now()) {
+        let now = std::time::Instant::now();
+        let notification_changed = self.notification.expire(now);
+        let snackbar_changed = self.snackbar.expire(now);
+        if notification_changed || snackbar_changed {
             // Removing a card changes hit indices while a pointer may be held.
             self.pressed = None;
             self.hovered = None;
@@ -1665,6 +1716,7 @@ impl Application for Gallery {
             &mut self.fonts,
             &mut self.atlas,
         );
+        self.paint_snackbar(&mut scene, &context, &theme);
         scene
     }
 }
@@ -2592,3 +2644,6 @@ mod mobile_contract_tests;
 
 #[cfg(test)]
 mod fab_tests;
+
+#[cfg(test)]
+mod snackbar_tests;
