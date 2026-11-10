@@ -1,5 +1,12 @@
 # Todos
 
+## ROADMAP 030 — mobile builder contract coverage (2026-11-10)
+
+- [x] Add named default/layout-kind/widget-and-layout-child-count contracts for all 20 public mobile modules, with a registry-driven inventory guard (historical P3 “16” count corrected: 15 mobile_* + five legacy modules).
+- [x] Verify all 15 P3 Gallery examples and stable bound roots across themes/scales; run locked touched/mobile tests, strict Clippy, actual CPU profile, workspace milestone gates and native CPU smoke; see [coverage/report](../team/roadmap-030/REPORT.md).
+- [ ] Legacy composite interaction/theme/runtime gaps, generic Row focus/typed AccessKit actions, spinner animation and actual sheet dragging remain open.
+- [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 029 — mobile sheet handle acceptance (2026-11-10)
 
 - [x] Render a themed 36×4 rounded indicator, preserve custom width and fixed finite geometry, add retained/layout/paint tests and centered Gallery preview.
@@ -291,7 +298,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] mobile_list_item — responsive themed title/detail row with optional fixed trailing icon and on_tap; retained/layout/Gallery pointer/keyboard tests and native CPU evidence (ROADMAP 027). Framework-wide Row focus/typed semantics remain open; manual hardware acceptance is NOT_RUN.
 - [x] mobile_action — themed tappable Row with bounded icon, wrapping stable label, destructive/disabled states and Gallery pointer evidence (ROADMAP 028). Generic Row focus/typed semantics and manual hardware acceptance remain open.
 - [x] mobile_sheet_handle — themed 36×4 rounded visual indicator, optional custom width, fixed/finite geometry, retained/layout/Gallery tests and native CPU capture (ROADMAP 029). Actual dragging is outside this decoration; manual hardware acceptance remains NOT_RUN.
-- [ ] Unit tests for all 16 modules (layout kind, child count, builder defaults)
+- [x] Unit tests for all public mobile modules: builder defaults, layout kind and widget/layout child counts (ROADMAP 030). Historical “16” count corrected to 20 public modules: 15 P3 mobile_* builders plus five legacy composites; this coverage does not certify their interaction/runtime completeness.
 
 ## P4 — New mobile components (gap analysis)
 
@@ -309,7 +316,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
-- [ ] Add Gallery "Mobile" page showcasing all mobile components — page exists; buttons, toggle, stepper, segmented, cards, progress, loader, search, chips, avatars, banners, notifications and list items are covered through ROADMAP 027; actions and sheet handles are covered through ROADMAP 029; acceptance inventory reconciliation remains in ROADMAP 030.
+- [x] Add Gallery "Mobile" page for all 15 P3 mobile_* builders — examples/evidence through ROADMAP 029; complete presence and retained-root inventory verified in ROADMAP 030. This does not claim demos or interaction acceptance for the five other legacy mobile composites.
 - [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
 - [x] Document source-module inventory in both READMEs (199 modules; excludes `mod.rs`, does not imply interactive completeness)

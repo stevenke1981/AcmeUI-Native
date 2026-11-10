@@ -1,0 +1,29 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.29s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 21 tests
+test mobile::mobile_contract_tests::mobile_button ... ok
+test mobile::mobile_contract_tests::every_public_mobile_module_has_a_contract ... ok
+test mobile::mobile_contract_tests::bottom_nav ... ok
+test mobile::mobile_contract_tests::mobile_action ... ok
+test mobile::mobile_contract_tests::bottom_sheet ... ok
+test mobile::mobile_contract_tests::mobile_banner ... ok
+test mobile::mobile_contract_tests::mobile_chip ... ok
+test mobile::mobile_contract_tests::mobile_avatar ... ok
+test mobile::mobile_contract_tests::mobile_loader ... ok
+test mobile::mobile_contract_tests::mobile_search ... ok
+test mobile::mobile_contract_tests::mobile_notification ... ok
+test mobile::mobile_contract_tests::mobile_segmented ... ok
+test mobile::mobile_contract_tests::mobile_sheet_handle ... ok
+test mobile::mobile_contract_tests::mobile_card ... ok
+test mobile::mobile_contract_tests::action_sheet ... ok
+test mobile::mobile_contract_tests::mobile_stepper ... ok
+test mobile::mobile_contract_tests::mobile_list_item ... ok
+test mobile::mobile_contract_tests::pull_to_refresh ... ok
+test mobile::mobile_contract_tests::mobile_toggle ... ok
+test mobile::mobile_contract_tests::mobile_progress ... ok
+test mobile::mobile_contract_tests::search_bar ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 777 filtered out; finished in 0.00s
+

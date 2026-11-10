@@ -1,0 +1,472 @@
+{
+  "schema_version": 1,
+  "task": "ROADMAP-030",
+  "base_sha": "913abe681b690bf69568395ec823b2dec2304d5f",
+  "tested_source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+  "execution_mode": "single-agent-role-passes",
+  "review": {
+    "type": "Author self-review",
+    "independent_review": "NOT_RUN"
+  },
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-ui",
+        "--all-features",
+        "mobile_contract_tests"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:35:58.793756+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/component-contracts.txt",
+      "finished_at": "2026-11-10T02:36:08.141247+00:00",
+      "duration_seconds": 9.347,
+      "log_sha256": "71cf32d438140c989af4800725b381cf4826cb29c4ab130016aeda9e6acd16f2",
+      "source_sha": "913abe681b690bf69568395ec823b2dec2304d5f",
+      "git_status": "M apps/acme-gallery/src/main.rs\n M crates/acme-ui/src/mobile/mod.rs\n?? apps/acme-gallery/src/mobile_contract_tests.rs\n?? crates/acme-ui/src/mobile/mobile_contract_tests.rs\n?? docs/team/roadmap-030/",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/component-contracts.txt"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-ui-gallery",
+        "mobile_contract_tests"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:36:08.246513+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/gallery-contracts.txt",
+      "finished_at": "2026-11-10T02:36:12.523928+00:00",
+      "duration_seconds": 4.277,
+      "log_sha256": "a2e29a482df825beaca6fd62ab020e17b9516fac0798fd8b4063168753614fbc",
+      "source_sha": "913abe681b690bf69568395ec823b2dec2304d5f",
+      "git_status": "M apps/acme-gallery/src/main.rs\n M crates/acme-ui/src/mobile/mod.rs\n?? apps/acme-gallery/src/mobile_contract_tests.rs\n?? crates/acme-ui/src/mobile/mobile_contract_tests.rs\n?? docs/team/roadmap-030/",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/gallery-contracts.txt"
+    },
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "acme-ui",
+        "-p",
+        "acme-ui-gallery",
+        "--",
+        "--check"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:36:21.703671+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/final-format.txt",
+      "finished_at": "2026-11-10T02:36:22.018686+00:00",
+      "duration_seconds": 0.315,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+      "git_status": "",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/final-format.txt"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-ui",
+        "--all-features"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:36:22.125528+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/final-ui.txt",
+      "finished_at": "2026-11-10T02:36:24.245274+00:00",
+      "duration_seconds": 2.12,
+      "log_sha256": "5e3114e480ddbd48e7dff7376645ac5f61c8dc573e31b0d406c60ab13f47f7b3",
+      "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+      "git_status": "",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/final-ui.txt"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-ui",
+        "--no-default-features",
+        "--features",
+        "mobile"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:36:24.340125+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/final-mobile.txt",
+      "finished_at": "2026-11-10T02:36:29.120122+00:00",
+      "duration_seconds": 4.78,
+      "log_sha256": "9f28daee82453071570ae5f92c2a3517756e59bca32a9c9f2fdc1356d792bcdc",
+      "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+      "git_status": "",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/final-mobile.txt"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-ui-gallery"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:36:29.224542+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/final-gallery.txt",
+      "finished_at": "2026-11-10T02:36:33.148456+00:00",
+      "duration_seconds": 3.924,
+      "log_sha256": "5a50e2d219f62e5f0d7adc3f33b513209c27a903eb870d831f96712a7b79139c",
+      "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+      "git_status": "",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/final-gallery.txt"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "acme-ui",
+        "-p",
+        "acme-ui-gallery",
+        "--all-features",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:36:33.247513+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/final-clippy.txt",
+      "finished_at": "2026-11-10T02:36:35.718604+00:00",
+      "duration_seconds": 2.471,
+      "log_sha256": "c4234097e41d2fa1dddd68f09520b1ca6784d5c3b4a378e9e4b6f9359b501675",
+      "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+      "git_status": "",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/final-clippy.txt"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "acme-ui",
+        "--no-default-features",
+        "--features",
+        "mobile",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:36:35.821616+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/final-mobile-clippy.txt",
+      "finished_at": "2026-11-10T02:36:37.139896+00:00",
+      "duration_seconds": 1.318,
+      "log_sha256": "61e183c18285e29925e775bbdf2e81aca0088ed506b34c30ad2a3b7a036bec2c",
+      "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+      "git_status": "",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/final-mobile-clippy.txt"
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/verify_sdk.py",
+        "--profile",
+        "cpu",
+        "--output",
+        "target/roadmap-030/cpu-final"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:36:37.235899+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/final-cpu.txt",
+      "finished_at": "2026-11-10T02:36:38.754877+00:00",
+      "duration_seconds": 1.519,
+      "log_sha256": "3835952f1a82aadc66f3dd647a9c6faf1a45c3bbba251de2b2e5a6762e4a5247",
+      "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+      "git_status": "",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/final-cpu.txt"
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--workspace",
+        "--all-targets"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:36:38.859538+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/final-workspace-check.txt",
+      "finished_at": "2026-11-10T02:36:40.027551+00:00",
+      "duration_seconds": 1.168,
+      "log_sha256": "37153da9a63aee684c1af3223453ae21f3fc1d2443b49edfbaab2ee7b9848320",
+      "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+      "git_status": "",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/final-workspace-check.txt"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:36:40.133261+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/final-workspace-test.txt",
+      "finished_at": "2026-11-10T02:37:13.120313+00:00",
+      "duration_seconds": 32.987,
+      "log_sha256": "0c98b72414b6e5ebc915a13cbe5b0c9040d012e3d6533a4bdda7ebef2f4e07a7",
+      "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+      "git_status": "",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/final-workspace-test.txt"
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "acme-ui-gallery"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-10T02:37:13.227669+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "logs/final-build.txt",
+      "finished_at": "2026-11-10T02:37:17.002510+00:00",
+      "duration_seconds": 3.775,
+      "log_sha256": "fe29e84f0cf245627a701e21c750ecf41b2305752a3689c276e0f6bbf49aa781",
+      "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+      "git_status": "",
+      "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "original_log": "/workspace/AcmeUI-Native/target/roadmap-030/final-build.txt"
+    }
+  ],
+  "cpu_profile": {
+    "schema_version": 1,
+    "status": "PASS",
+    "checks": [
+      {
+        "command": [
+          "cargo",
+          "fmt",
+          "-p",
+          "acme-render-cpu",
+          "--",
+          "--check"
+        ],
+        "cwd": "/workspace/AcmeUI-Native",
+        "started_at": "2026-11-10T02:36:37.328576+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "logs/cpu-01.txt",
+        "finished_at": "2026-11-10T02:36:37.443005+00:00",
+        "duration_seconds": 0.114,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "acme-render-cpu"
+        ],
+        "cwd": "/workspace/AcmeUI-Native",
+        "started_at": "2026-11-10T02:36:37.443318+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "logs/cpu-02.txt",
+        "finished_at": "2026-11-10T02:36:38.210831+00:00",
+        "duration_seconds": 0.767,
+        "log_sha256": "c444a2ff8a0d96994c09d9a6bcf59539ba1ccf5515d19bd22c294ae83c5ab3a8"
+      },
+      {
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "acme-render-cpu",
+          "--all-targets",
+          "--no-deps",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "cwd": "/workspace/AcmeUI-Native",
+        "started_at": "2026-11-10T02:36:38.211046+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "logs/cpu-03.txt",
+        "finished_at": "2026-11-10T02:36:38.728328+00:00",
+        "duration_seconds": 0.517,
+        "log_sha256": "2991bd5b3b94ff4785b4ce235fa4cb7ce2c3b26e74e5a172874b087cf99cc37a"
+      }
+    ],
+    "started_at": "2026-11-10T02:36:37.262373+00:00",
+    "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+    "git_status": "",
+    "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]",
+    "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+    "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+    "profile": "cpu",
+    "manual_validation": "NOT_RUN",
+    "independent_review": "NOT_RUN",
+    "finished_at": "2026-11-10T02:36:38.728524+00:00"
+  },
+  "native_window": {
+    "script_argv": [
+      "target/roadmap-030/capture.py",
+      "030",
+      "contracts"
+    ],
+    "started_at": "2026-11-10T02:37:43.095047+00:00",
+    "source_sha": "6d75f40604d9955457326932faf41b4b17c4bdc3",
+    "git_status": "",
+    "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+    "manual_validation": "NOT_RUN",
+    "scenario": "Automated X11 CPU Gallery window on isolated Xvfb; default light theme; Mobile page",
+    "commands": [
+      [
+        "Xvfb",
+        "-displayfd",
+        "1",
+        "-screen",
+        "0",
+        "1100x1100x24",
+        "-nolisten",
+        "tcp"
+      ],
+      [
+        "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+      ],
+      [
+        "xdotool",
+        "windowsize",
+        "--sync",
+        "2097154",
+        "1100",
+        "1100"
+      ],
+      [
+        "xdotool",
+        "getwindowgeometry",
+        "--shell",
+        "2097154"
+      ]
+    ],
+    "captures": [
+      {
+        "captured_at": "2026-11-10T02:37:44.858619+00:00",
+        "path": "docs/team/roadmap-030/gallery-mobile-contracts.png",
+        "dimensions": [
+          1100,
+          1100
+        ],
+        "sha256": "ec9278d25052ae3cf022503e5c404e589c1191d3941265cfd9a200ba1988d7a4"
+      }
+    ],
+    "environment": {
+      "DISPLAY": ":0",
+      "WINIT_UNIX_BACKEND": "x11",
+      "ACME_RENDER_BACKEND": "cpu"
+    },
+    "window_geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=1100\nSCREEN=0\n",
+    "status": "PASS",
+    "finished_at": "2026-11-10T02:37:44.869589+00:00",
+    "log": "logs/native-window.txt",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "capture": "PIL.ImageGrab.grab(xdisplay=display)",
+    "cwd": "/workspace/AcmeUI-Native/target/roadmap-030/native-cwd",
+    "visual_review": {
+      "type": "Author image inspection",
+      "status": "PASS",
+      "human_sign_off": "NOT_RUN"
+    }
+  },
+  "manual_validation": {
+    "human_gallery": "NOT_RUN",
+    "Windows_Traditional_Chinese_IME": "NOT_RUN",
+    "physical_DPI_touch": "NOT_RUN",
+    "real_GPU": "NOT_RUN",
+    "screen_reader": "NOT_RUN"
+  },
+  "source_files": {
+    "apps/acme-gallery/src/main.rs": "2532206763c813d2b48169eb4490313f1ee934afd09a8e27bd83632c68a77b29",
+    "apps/acme-gallery/src/mobile_contract_tests.rs": "61d6a7aee822d761a1ac7d1e8fa0b00f701e87af4a2655279c550e109dab3d4d",
+    "crates/acme-ui/src/mobile/mobile_contract_tests.rs": "fb08113c19eb18255c27e0f85bc9946fafde6ec2f41d250b4809177ed4fffd46",
+    "crates/acme-ui/src/mobile/mod.rs": "d441ab0b554d83894afddb0c1dffda6121dc9ae272c7409a6689b2f38bf8f8b4"
+  }
+}
