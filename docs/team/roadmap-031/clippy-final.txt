@@ -1,0 +1,4 @@
+    Checking acme-text v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-text)
+    Checking acme-render-wgpu v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-render-wgpu)
+    Checking acme-platform v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-platform)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.85s

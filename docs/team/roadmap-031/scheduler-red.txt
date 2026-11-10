@@ -1,0 +1,64 @@
+   Compiling num-traits v0.2.19
+   Compiling simd-adler32 v0.3.10
+   Compiling crc32fast v1.5.0
+   Compiling adler2 v2.0.1
+   Compiling pxfm v0.1.30
+   Compiling byteorder-lite v0.1.0
+   Compiling error-code v3.3.2
+   Compiling windows-sys v0.59.0
+   Compiling windows-sys v0.61.2
+   Compiling miniz_oxide v0.8.9
+   Compiling fdeflate v0.3.7
+   Compiling clipboard-win v5.4.1
+   Compiling flate2 v1.1.9
+   Compiling half v2.7.1
+   Compiling ordered-float v5.3.0
+   Compiling png v0.18.1
+   Compiling naga v29.0.4
+   Compiling softbuffer v0.4.8
+   Compiling moxcms v0.8.1
+   Compiling image v0.25.10
+   Compiling arboard v3.6.1
+   Compiling wgpu-naga-bridge v29.0.4
+   Compiling wgpu-hal v29.0.4
+   Compiling wgpu-core-deps-windows-linux-android v29.0.4
+   Compiling wgpu-core v29.0.4
+   Compiling wgpu v29.0.4
+   Compiling acme-render-wgpu v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-render-wgpu)
+   Compiling acme-platform v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-platform)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 35.67s
+     Running unittests src\lib.rs (D:/AcmeUI-Native/target\debug\deps\acme_platform-cf5219ee11cd94f6.exe)
+
+running 5 tests
+
+thread 'scheduling::tests::skipped_frames_retry_without_input_and_stop_after_success' panicked at crates\acme-platform\src\scheduling.rs:61:13:
+unpresented frame stays dirty
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'scheduling::tests::huge_background_interval_cannot_overflow' panicked at library\std\src\time.rs:421:33:
+overflow when adding duration to instant
+
+thread 'scheduling::tests::zero_background_interval_cannot_busy_loop' panicked at crates\acme-platform\src\scheduling.rs:88:9:
+assertion failed: poll.deadline.unwrap() > now
+
+thread 'scheduling::tests::changed_background_interval_reschedules_and_none_cancels' panicked at crates\acme-platform\src\scheduling.rs:106:9:
+assertion `left == right` failed
+  left: Some(Instant { t: 28286.2079879s })
+ right: Some(Instant { t: 28227.2079879s })
+test scheduling::tests::terminal_actions_cancel_pending_retry ... ok
+test scheduling::tests::skipped_frames_retry_without_input_and_stop_after_success ... FAILED
+test scheduling::tests::zero_background_interval_cannot_busy_loop ... FAILED
+test scheduling::tests::huge_background_interval_cannot_overflow ... FAILED
+test scheduling::tests::changed_background_interval_reschedules_and_none_cancels ... FAILED
+
+failures:
+
+failures:
+    scheduling::tests::changed_background_interval_reschedules_and_none_cancels
+    scheduling::tests::huge_background_interval_cannot_overflow
+    scheduling::tests::skipped_frames_retry_without_input_and_stop_after_success
+    scheduling::tests::zero_background_interval_cannot_busy_loop
+
+test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 55 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-platform --lib`

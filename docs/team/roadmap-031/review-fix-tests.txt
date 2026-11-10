@@ -1,0 +1,165 @@
+   Compiling acme-render-wgpu v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-render-wgpu)
+   Compiling acme-platform v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-platform)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.77s
+     Running unittests src\lib.rs (D:/AcmeUI-Native/target\debug\deps\acme_platform-cf5219ee11cd94f6.exe)
+
+running 60 tests
+test backend::tests::accepts_each_backend_case_insensitively_with_whitespace ... ok
+test backend::tests::plan_auto_and_gpu_fall_back_to_cpu_only_when_compiled ... ok
+test backend::tests::plan_forces_cpu_when_compiled ... ok
+test backend::tests::default_preference_is_auto ... ok
+test backend::tests::missing_or_blank_value_means_auto ... ok
+test backend::tests::plan_reports_unavailable_cpu_without_feature ... ok
+test backend::tests::rejects_typos_and_lists_valid_values ... ok
+test backend::tests::resolve_render_backend_explicit_valid_env_overrides_every_app_preference ... ok
+test backend::tests::resolve_render_backend_invalid_env_keeps_auto_fallback ... ok
+test backend::tests::resolve_render_backend_uses_app_preference_when_env_unset_or_blank ... ok
+test backend::tests::var_result_honours_valid_values ... ok
+test scheduling::tests::changed_background_interval_reschedules_and_none_cancels ... ok
+test scheduling::tests::huge_background_interval_cannot_overflow ... ok
+test backend::tests::rejects_value_that_is_only_partially_valid ... ok
+test clipboard::tests::clipboard_set_get_roundtrip ... ok
+test keys::tests::map_named_key_maps_function_keys_f1_through_f24 ... ok
+test keys::tests::map_named_key_maps_navigation_and_insert_variants ... ok
+test keys::tests::map_named_key_preserves_existing_variants ... ok
+test keys::tests::resolve_key_character_returns_logical_character_even_under_ctrl ... ok
+test keys::tests::resolve_key_text_prefers_event_text_and_falls_back_to_character ... ok
+test backend::tests::var_result_maps_unset_and_invalid_to_auto ... ok
+test clipboard::tests::clipboard_new_succeeds_or_fails_gracefully ... ok
+test scheduling::tests::skipped_frames_retry_without_input_and_stop_after_success ... ok
+test scheduling::tests::zero_background_interval_cannot_busy_loop ... ok
+test tests::application_frame_can_stream_backend_neutral_rgba8_images ... ok
+test tests::background_polling_is_opt_in ... ok
+test tests::default_window_config_keeps_native_decorations_with_shadow ... ok
+test scheduling::tests::terminal_actions_cancel_pending_retry ... ok
+test tests::clean_shutdown_without_fatal_error_is_ok ... ok
+test tests::default_window_is_visible_sized ... ok
+test tests::event_loop_error_is_reported_without_fatal_error ... ok
+test tests::exit_error_message_includes_root_cause_when_known ... ok
+test tests::fatal_error_wins_over_event_loop_error ... ok
+test tests::first_fatal_error_wins ... ok
+test tests::frame_context_carries_window_id ... ok
+test tests::ime_cursor_area_default_is_none ... ok
+test tests::ime_cursor_area_override_is_used_by_resolver ... ok
+test tests::maximized_transition_reports_first_sample_and_only_flips ... ok
+test tests::multiple_window_configs ... ok
+test tests::needs_resize_detects_dimension_or_scale_mismatch_and_ignores_zero_size ... ok
+test tests::no_windows_error_is_returned_as_run_outcome ... ok
+test tests::no_windows_error_lists_every_failure_reason ... ok
+test tests::on_gpu_recovered_default_is_noop_and_overridable ... ok
+test tests::physical_bounds_conversions_scale_and_handle_invalid_scale_factors ... ok
+test tests::platform_events_are_backend_agnostic ... ok
+test tests::pointer_capture_coordinates_and_pointer_left_events_are_preserved ... ok
+test tests::recorded_fatal_error_is_returned_by_run_outcome ... ok
+test tests::renderer_error_display_names_the_failure ... ok
+test tests::resolve_ime_cursor_area_falls_back_to_mouse_when_none ... ok
+test tests::resolve_ime_cursor_area_prefers_app_rect_over_mouse ... ok
+test tests::resolve_min_window_size_prefers_per_window_over_app_default ... ok
+test tests::resolve_scroll_delta_preserves_sign_and_marks_line_vs_pixel ... ok
+test tests::window_close_requested_roundtrip ... ok
+test tests::window_id_equality ... ok
+test waker::tests::drain_window_requests_drains_all_windows_and_leaves_empty_on_second_pass ... ok
+test waker::tests::drain_window_requests_preserves_order_for_frameless_variants ... ok
+test waker::tests::map_cursor_icon_maps_every_variant ... ok
+test waker::tests::map_resize_edge_maps_all_eight_directions ... ok
+test waker::tests::waker_wake_after_loop_drop_is_noop ... ok
+test cpu_window::tests::scale_change_and_self_healing_resize_cover_full_cpu_buffer ... ok
+
+test result: ok. 60 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running unittests src\lib.rs (D:/AcmeUI-Native/target\debug\deps\acme_render_wgpu-3e812bd22da1649e.exe)
+
+running 76 tests
+test atlas_pages::tests::atlas_pages_ensure_gpu ... ignored, requires a wgpu adapter; run with -- --ignored
+test atlas_pages::tests::atlas_texture_format_uses_non_srgb_rgba8 ... ok
+test atlas_pages::tests::check_upload_accepts_region_touching_the_page_edge ... ok
+test atlas_pages::tests::check_upload_accepts_a_valid_region ... ok
+test atlas_pages::tests::check_upload_payload_math_is_overflow_safe ... ok
+test atlas_pages::tests::page_runs_consecutive_equal_pages_merge ... ok
+test atlas_pages::tests::check_upload_rejects_page_at_or_above_max_pages ... ok
+test atlas_pages::tests::check_upload_accepts_last_valid_page ... ok
+test atlas_pages::tests::check_upload_rejects_region_past_the_page_edge ... ok
+test atlas_pages::tests::check_upload_rejects_zero_width_or_height ... ok
+test batch::tests::adjacent_text_with_same_format_and_clip_are_merged ... ok
+test atlas_pages::tests::page_runs_alternating_pages_split_every_draw ... ok
+test batch::tests::clip_keeps_fractional_logical_coordinates ... ok
+test atlas_pages::tests::page_runs_empty_input_has_no_runs ... ok
+test atlas_pages::tests::page_runs_single_draw_is_one_run ... ok
+test atlas_pages::tests::upload_key_distinguishes_format_for_the_same_region ... ok
+test atlas_pages::tests::check_upload_rejects_payload_length_mismatch ... ok
+test batch::tests::compile_scene_is_deterministic ... ok
+test atlas_pages::tests::upload_key_distinguishes_page_for_the_same_region ... ok
+test atlas_pages::tests::upload_key_distinguishes_region_geometry ... ok
+test atlas_pages::tests::upload_key_is_stable_for_identical_uploads ... ok
+test batch::tests::adjacent_quads_are_merged ... ok
+test atlas_pages::tests::check_upload_reports_the_first_failing_rule ... ok
+test batch::tests::clip_boundary_flushes_batches ... ok
+test batch::tests::compiled_scene_from_frame_is_valid ... ok
+test atlas_pages::tests::page_runs_mixed_input_preserves_order_and_indices ... ok
+test atlas_pages::tests::check_upload_region_math_is_overflow_safe ... ok
+test batch::tests::layer_boundary_flushes_batches ... ok
+test batch::tests::empty_scene_produces_no_batches ... ok
+test batch::tests::image_batches_preserve_painter_order ... ok
+test batch::tests::malformed_scene_produces_no_partial_batches ... ok
+test batch::tests::scene_from_frame_groups_adjacent_clip_quads ... ok
+test batch::tests::scene_from_frame_preserves_clear_color ... ok
+test batch::tests::scene_from_frame_preserves_each_text_clip_without_leaking_to_unclipped_runs ... ok
+test batch::tests::scene_from_frame_handles_empty_frame ... ok
+test batch::tests::scene_from_frame_propagates_glyph_and_upload_pages ... ok
+test batch::tests::scene_from_frame_preserves_quad_count ... ok
+test batch::tests::single_quad_produces_one_batch ... ok
+test batch::tests::text_alpha_and_rgba_in_same_command_produce_separate_batches ... ok
+test batch::tests::text_and_quad_are_separate_batches ... ok
+test clip::tests::instance_preparation_carries_scaled_physical_clip_bounds ... ok
+test clip::tests::physical_clip_bounds_and_raster_bounds_handle_fractional_and_subpixel_geometry ... ok
+test clip::tests::rounded_shape_area_and_clip_area_are_integrated_analytically ... ok
+test clip::tests::sharp_border_inner_coincident_clip_does_not_add_a_stroke_seam ... ok
+test clip::tests::subpixel_clip_and_disjoint_subpixel_quad_match_cpu_semantics ... ok
+test golden::tests::golden_config_paths ... ok
+test golden::tests::pixel_diff_identical ... ok
+test golden::tests::pixel_diff_length_mismatch ... ok
+test renderer::frame::recovery_tests::skipped_acquisition_preserves_one_shot_glyph_uploads ... ignored, requires a Windows window and real GPU; run explicitly
+test golden::tests::pixel_diff_within_tolerance ... ok
+test clip::tests::sharp_and_rounded_border_clips_inside_flat_inner_have_only_exact_fill ... ok
+test tests::configure_surface_srgb_passthrough_normalizes_format_and_view_formats ... ok
+test tests::device_lost_action_is_distinct ... ok
+test tests::device_recovery_smoke_ignored ... ignored, requires real GPU adapter; run with cargo test -p acme-render-wgpu -- --ignored
+test clip::tests::fractional_clips_on_quad_image_alpha8_and_rgba8_match_cpu_at_every_dpi ... ok
+test tests::device_lost_flag_maps_to_device_lost_action ... ok
+test tests::empty_frame_has_opaque_clear ... ok
+test tests::image_instance_uses_contained_rect_and_rgba_mode ... ok
+test tests::image_upload_layout_rejects_device_limit_and_row_pitch_overflow ... ok
+test tests::image_resource_retention_is_bounded_to_live_scene_keys ... ok
+test tests::invalid_scale_and_color_are_normalized ... ok
+test tests::recovery_resets_pure_state_and_bumps_epoch ... ok
+test tests::resolve_surface_action_covers_all_transitions ... ok
+test tests::same_key_revisions_are_distinct_resources_within_one_scene ... ok
+test tests::scene_upload_key_distinguishes_page_and_format_for_the_same_rect ... ok
+test tests::scene_upload_validation_rejects_out_of_range_page ... ok
+test tests::scissor_intersects_the_physical_viewport ... ok
+test tests::solid_quad_defaults_are_valid ... ok
+test tests::surface_format_strips_srgb_suffix_and_preserves_unorm ... ok
+test tests::text_batch_splits_into_per_page_runs_in_painter_order ... ok
+test tests::text_batch_with_no_glyphs_emits_no_draws ... ok
+test tests::text_glyph_uv_is_normalized_by_page_edge ... ok
+test tests::text_glyph_with_out_of_range_page_is_skipped ... ok
+test tests::text_glyphs_carry_their_atlas_page ... ok
+test clip::tests::quad_and_text_wgsl_shaders_validate_with_naga ... ok
+test clip::tests::sharp_and_rounded_coincident_outer_clips_preserve_edges_at_every_dpi ... ok
+
+test result: ok. 73 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests acme_platform
+
+running 1 test
+test crates\acme-platform\src\lib.rs - Application::windows (line 291) ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests acme_render_wgpu
+
+running 1 test
+test crates\acme-render-wgpu\src\golden.rs - golden (line 9) ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

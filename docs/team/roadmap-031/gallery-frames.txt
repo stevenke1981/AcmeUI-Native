@@ -1,0 +1,59 @@
+   Compiling log v0.4.33
+   Compiling slotmap v1.1.1
+   Compiling windows-link v0.1.3
+   Compiling tracing-core v0.1.36
+   Compiling windows-sys v0.61.2
+   Compiling grid v1.0.1
+   Compiling acme-theme v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-theme)
+   Compiling accesskit v0.21.1
+   Compiling anyhow v1.0.104
+   Compiling lazy_static v1.5.0
+   Compiling thread_local v1.1.10
+   Compiling windows-strings v0.4.2
+   Compiling windows-result v0.3.4
+   Compiling windows-threading v0.1.0
+   Compiling sharded-slab v0.1.7
+   Compiling wgpu-types v29.0.4
+   Compiling naga v29.0.4
+   Compiling gpu-allocator v0.28.0
+   Compiling arboard v3.6.1
+   Compiling windows-core v0.61.2
+   Compiling tracing v0.1.44
+   Compiling tracing-log v0.2.0
+   Compiling accesskit_consumer v0.31.0
+   Compiling winit v0.30.13
+   Compiling fontdb v0.16.2
+   Compiling taffy v0.9.2
+   Compiling windows-numerics v0.2.0
+   Compiling windows-future v0.2.1
+   Compiling windows-collections v0.2.0
+   Compiling cosmic-text v0.14.2
+   Compiling windows v0.61.3
+   Compiling acme-text v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-text)
+   Compiling acme-layout v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-layout)
+   Compiling softbuffer v0.4.8
+   Compiling nu-ansi-term v0.50.3
+   Compiling tracing-subscriber v0.3.23
+   Compiling acme-style v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-style)
+   Compiling acme-widgets v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-widgets)
+   Compiling wgpu-naga-bridge v29.0.4
+   Compiling wgpu-hal v29.0.4
+   Compiling accesskit_windows v0.29.2
+   Compiling accesskit_winit v0.29.2
+   Compiling wgpu-core-deps-windows-linux-android v29.0.4
+   Compiling wgpu-core v29.0.4
+   Compiling wgpu v29.0.4
+   Compiling acme-render-wgpu v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-render-wgpu)
+   Compiling acme-platform v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-platform)
+   Compiling acme-textinput v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-textinput)
+   Compiling acme-accessibility v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-accessibility)
+   Compiling acme-gallery v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\apps\gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 34.50s
+     Running unittests src\main.rs (D:/AcmeUI-Native/target\debug\deps\acme_gallery-596cd60c6b7f6ac3.exe)
+
+running 1 test
+Gallery evidence: 36 pages x 2 themes x 2 frames passed scene preflight
+test retained_ids_tests::all_gallery_frames_pass_shared_scene_preflight ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 35 filtered out; finished in 3.41s
+

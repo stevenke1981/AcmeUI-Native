@@ -1,0 +1,21 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "acme-platform",
+    "scheduling::tests",
+    "--",
+    "--nocapture"
+  ],
+  "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+  "started_at": "2026-11-10T11:14:07.597398+00:00",
+  "status": "FAIL",
+  "exit_code": 101,
+  "log": "docs/team/roadmap-031/scheduler-red.txt",
+  "finished_at": "2026-11-10T11:14:43.467237+00:00",
+  "duration_seconds": 35.87,
+  "log_sha256": "fec47ca25d639de4763da902fd5411b42f249d06a7413361d6e9ee185d8d9dfb",
+  "original_log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\docs\\team\\roadmap-031\\scheduler-red.log"
+}

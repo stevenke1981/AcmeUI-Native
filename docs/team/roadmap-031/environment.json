@@ -1,0 +1,23 @@
+{
+  "source_sha": "118a8039ae78d85d9c5219fde01f7510dc239b0a",
+  "base_sha": "1f23c910f05d7c975094df1e3b2be65ee2437ec9",
+  "os": "Windows-10-10.0.19045-SP0",
+  "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-pc-windows-msvc\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+  "source_sha256": {
+    "apps/gallery/src/retained_ids_tests.rs": "ba544c37a4e3da26d7b3424563ada535971508eea039aa4ed546a5d3944135f7",
+    "crates/acme-core/src/scene.rs": "4f3568b5339657c4497f4fc4223a9b5e768ec3a425f2bac2e27fe70273fb59d0",
+    "crates/acme-platform/src/lib.rs": "6380bfcf5a66509be6dd7919197f123f5453588b61368b40af3f535334709060",
+    "crates/acme-platform/src/scheduling.rs": "8f03d161c6baf34a2b6b675d782d45f117c2fa76eac095bc34d91fee66543cc8",
+    "crates/acme-render-cpu/src/lib.rs": "e512c2064349da055f3ca137b1c52f61d3b1a0214947785e65bc3bddc0bcc55d",
+    "crates/acme-render-wgpu/src/atlas_pages.rs": "68408da21de2f19130a6c1255c5cc9b37d6aa6df88134bf3e0fd715d42ebbbf7",
+    "crates/acme-render-wgpu/src/batch.rs": "a395ef62e544d6c293d37b65e07ff6564218826715a82e6a66c9096c3519764e",
+    "crates/acme-render-wgpu/src/renderer/frame.rs": "03d030a1f2c337aaabd14e57b55ed08b6849c80b625d4516b872be7d78276ae3"
+  },
+  "note": "Final code source manifest. RED logs predate implementation; main-agent RED test additions were uncommitted. Zero-test cache result is excluded, preserved in target diagnostics. Shared cargo target was serialized and touched source recompiled with positive test count.",
+  "desktop_status": {
+    "status": "BLOCKED",
+    "error": "PERM_DENIED: IO error: private file DACL grants an untrusted principal",
+    "actions_taken": "No UI actions, no permission modifications"
+  },
+  "manual_validation": "NOT_RUN"
+}

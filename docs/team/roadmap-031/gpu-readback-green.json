@@ -1,0 +1,21 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "acme-render-wgpu",
+    "skipped_acquisition_preserves_one_shot_glyph_uploads",
+    "--",
+    "--ignored",
+    "--nocapture"
+  ],
+  "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+  "started_at": "2026-11-10T11:17:51.171136+00:00",
+  "status": "PASS",
+  "exit_code": 0,
+  "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\docs\\team\\roadmap-031\\gpu-readback-green.txt",
+  "finished_at": "2026-11-10T11:17:54.429477+00:00",
+  "duration_seconds": 3.258,
+  "log_sha256": "32f4faac67054e73cadc0aefaf4ffb99b427442c10424ae2fff8f022f0e2b291"
+}

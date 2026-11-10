@@ -1,0 +1,28 @@
+{
+  "command": [
+    "cargo",
+    "clippy",
+    "--locked",
+    "-p",
+    "acme-core",
+    "-p",
+    "acme-render-cpu",
+    "-p",
+    "acme-render-wgpu",
+    "-p",
+    "acme-platform",
+    "--all-targets",
+    "--no-deps",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+  "started_at": "2026-11-10T11:18:01.148582+00:00",
+  "status": "PASS",
+  "exit_code": 0,
+  "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\docs\\team\\roadmap-031\\clippy-final.txt",
+  "finished_at": "2026-11-10T11:18:03.141693+00:00",
+  "duration_seconds": 1.993,
+  "log_sha256": "818f29784068add83d0abd9fa14a4b51599bb9790f6f4ad93b5ed74d49e053fa"
+}

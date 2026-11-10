@@ -1,0 +1,196 @@
+{
+  "cpu-reviewed": {
+    "schema_version": 1,
+    "status": "PASS",
+    "checks": [
+      {
+        "command": [
+          "cargo",
+          "fmt",
+          "-p",
+          "acme-render-cpu",
+          "--",
+          "--check"
+        ],
+        "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+        "started_at": "2026-11-10T11:29:34.114830+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\target\\roadmap-031\\cpu-reviewed\\01.log",
+        "finished_at": "2026-11-10T11:29:34.333594+00:00",
+        "duration_seconds": 0.219,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "acme-render-cpu"
+        ],
+        "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+        "started_at": "2026-11-10T11:29:34.333851+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\target\\roadmap-031\\cpu-reviewed\\02.log",
+        "finished_at": "2026-11-10T11:29:35.625492+00:00",
+        "duration_seconds": 1.292,
+        "log_sha256": "aa4f574b0c25e007e2bbd80cbe63295a03a515a17be95c232071b35b5a2bf79b"
+      },
+      {
+        "command": [
+          "cargo",
+          "clippy",
+          "--locked",
+          "-p",
+          "acme-render-cpu",
+          "--all-targets",
+          "--no-deps",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+        "started_at": "2026-11-10T11:29:35.632463+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\target\\roadmap-031\\cpu-reviewed\\03.log",
+        "finished_at": "2026-11-10T11:29:35.953414+00:00",
+        "duration_seconds": 0.321,
+        "log_sha256": "299f16a2c523be18fef769975d2df00e0505521db047540feea3a74b94666887"
+      }
+    ],
+    "started_at": "2026-11-10T11:29:33.855705+00:00",
+    "source_sha": "118a8039ae78d85d9c5219fde01f7510dc239b0a",
+    "git_status": "M docs/status/todos.md\n?? docs/team/roadmap-031/PLAN.md\n?? docs/team/roadmap-031/REPORT.md\n?? docs/team/roadmap-031/clippy-final.json\n?? docs/team/roadmap-031/clippy-final.txt\n?? docs/team/roadmap-031/environment.json\n?? docs/team/roadmap-031/gallery-frames.json\n?? docs/team/roadmap-031/gallery-frames.txt\n?? docs/team/roadmap-031/gpu-readback-green.json\n?? docs/team/roadmap-031/gpu-readback-green.txt\n?? docs/team/roadmap-031/gpu-red-fresh.json\n?? docs/team/roadmap-031/gpu-red-fresh.txt\n?? docs/team/roadmap-031/review-fix-clippy.json\n?? docs/team/roadmap-031/review-fix-clippy.txt\n?? docs/team/roadmap-031/review-fix-tests.json\n?? docs/team/roadmap-031/review-fix-tests.txt\n?? docs/team/roadmap-031/scheduler-red.json\n?? docs/team/roadmap-031/scheduler-red.txt\n?? docs/team/roadmap-031/suspended-green.json\n?? docs/team/roadmap-031/suspended-green.txt\n?? docs/team/roadmap-031/suspended-red.json\n?? docs/team/roadmap-031/suspended-red.txt\n?? docs/team/roadmap-031/targeted-final.json\n?? docs/team/roadmap-031/targeted-final.txt",
+    "os": "Windows-10-10.0.19045-SP0",
+    "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+    "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-pc-windows-msvc\nrelease: 1.88.0\nLLVM version: 20.1.5",
+    "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+    "profile": "cpu",
+    "manual_validation": "NOT_RUN",
+    "independent_review": "NOT_RUN",
+    "finished_at": "2026-11-10T11:29:35.959318+00:00"
+  },
+  "milestone": {
+    "schema_version": 1,
+    "status": "PASS",
+    "checks": [
+      {
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+        "started_at": "2026-11-10T11:19:45.511262+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\target\\roadmap-031\\milestone\\01.log",
+        "finished_at": "2026-11-10T11:19:50.991971+00:00",
+        "duration_seconds": 5.481,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "--workspace",
+          "--all-targets"
+        ],
+        "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+        "started_at": "2026-11-10T11:19:50.992543+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\target\\roadmap-031\\milestone\\02.log",
+        "finished_at": "2026-11-10T11:20:10.983388+00:00",
+        "duration_seconds": 19.991,
+        "log_sha256": "fa2a25ac64dfb94b26ee6b18759e01a9231e1a992fa15dd972dae2852831a086"
+      },
+      {
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "-p",
+          "acme-platform",
+          "--no-default-features"
+        ],
+        "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+        "started_at": "2026-11-10T11:20:10.988896+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\target\\roadmap-031\\milestone\\03.log",
+        "finished_at": "2026-11-10T11:20:12.385037+00:00",
+        "duration_seconds": 1.396,
+        "log_sha256": "1a1928a4e01965bb2275c3d7833d8ebec12c2d8a5de4b0c0a021ad75aeb69df2"
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--workspace"
+        ],
+        "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+        "started_at": "2026-11-10T11:20:12.391368+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\target\\roadmap-031\\milestone\\04.log",
+        "finished_at": "2026-11-10T11:22:50.128830+00:00",
+        "duration_seconds": 157.737,
+        "log_sha256": "f8ec4d8f7ad0040eb9167c48ee5343809623942365e4f503db47f855dcbefba2"
+      },
+      {
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "acme-ui",
+          "--all-features"
+        ],
+        "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+        "started_at": "2026-11-10T11:22:50.140185+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\target\\roadmap-031\\milestone\\05.log",
+        "finished_at": "2026-11-10T11:24:20.470218+00:00",
+        "duration_seconds": 90.33,
+        "log_sha256": "463d1445dc76e69fed347f4fd8ca616c87022420c25a89d6f530199c0ce2a0cc"
+      },
+      {
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "--release",
+          "--workspace"
+        ],
+        "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+        "started_at": "2026-11-10T11:24:20.477766+00:00",
+        "status": "PASS",
+        "exit_code": 0,
+        "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\target\\roadmap-031\\milestone\\06.log",
+        "finished_at": "2026-11-10T11:26:30.962962+00:00",
+        "duration_seconds": 130.485,
+        "log_sha256": "5fd9c1a06292177599959a825a0d4c46f4dfa48761252bff864b05d6683a235d"
+      }
+    ],
+    "started_at": "2026-11-10T11:19:45.114905+00:00",
+    "source_sha": "e0dcd4259fe2467fea12f35a9fc9e6a74be0d5fe",
+    "git_status": "?? docs/team/roadmap-031/PLAN.md\n?? docs/team/roadmap-031/clippy-final.json\n?? docs/team/roadmap-031/clippy-final.txt\n?? docs/team/roadmap-031/gallery-frames.json\n?? docs/team/roadmap-031/gallery-frames.txt\n?? docs/team/roadmap-031/gpu-green-fixed.json\n?? docs/team/roadmap-031/gpu-green-fixed.txt\n?? docs/team/roadmap-031/gpu-green.json\n?? docs/team/roadmap-031/gpu-green.txt\n?? docs/team/roadmap-031/gpu-readback-green.json\n?? docs/team/roadmap-031/gpu-readback-green.txt\n?? docs/team/roadmap-031/gpu-red-fresh.json\n?? docs/team/roadmap-031/gpu-red.json\n?? docs/team/roadmap-031/scheduler-red.json\n?? docs/team/roadmap-031/targeted-clippy.json\n?? docs/team/roadmap-031/targeted-clippy.txt\n?? docs/team/roadmap-031/targeted-final.json\n?? docs/team/roadmap-031/targeted-final.txt\n?? docs/team/roadmap-031/targeted-green.json\n?? docs/team/roadmap-031/targeted-green.txt\n?? scripts/__pycache__/",
+    "os": "Windows-10-10.0.19045-SP0",
+    "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+    "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-pc-windows-msvc\nrelease: 1.88.0\nLLVM version: 20.1.5",
+    "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+    "profile": "milestone",
+    "manual_validation": "NOT_RUN",
+    "independent_review": "NOT_RUN",
+    "finished_at": "2026-11-10T11:26:30.981530+00:00"
+  }
+}

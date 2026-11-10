@@ -1,0 +1,23 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "acme-core",
+    "-p",
+    "acme-render-cpu",
+    "-p",
+    "acme-render-wgpu",
+    "-p",
+    "acme-platform"
+  ],
+  "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+  "started_at": "2026-11-10T11:17:54.436484+00:00",
+  "status": "PASS",
+  "exit_code": 0,
+  "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\docs\\team\\roadmap-031\\targeted-final.txt",
+  "finished_at": "2026-11-10T11:18:01.140526+00:00",
+  "duration_seconds": 6.704,
+  "log_sha256": "f47f5257ffdc8c9cef9582e9393de91f4dae6f6787fbf79082d355dab71e0bfb"
+}
