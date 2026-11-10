@@ -1,7 +1,12 @@
 //! Mobile notification — toast-style card with title, body, and optional action.
+//!
+//! This is a stateless card. Its host owns visibility and any auto-dismiss
+//! deadline; rendering the card does not schedule a timer or emit dismissal.
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_layout::Length;
+use acme_widgets::style::Styled;
 
 /// Builder for a mobile notification card.
 pub struct MobileNotificationBuilder<M> {
@@ -52,65 +57,61 @@ impl<M: Clone + 'static> MobileNotificationBuilder<M> {
 
 impl<M: Clone + 'static> From<MobileNotificationBuilder<M>> for WidgetNode<M> {
     fn from(b: MobileNotificationBuilder<M>) -> Self {
-        let mut content = crate::column::<M>().gap(4.0).child(crate::label(b.title));
+        let id = b.id.as_str();
+        let mut content = crate::column::<M>()
+            .key(format!("{id}__content"))
+            .w(Length::Percent(1.0))
+            .gap(4.0)
+            .child(
+                crate::label_builder(b.title)
+                    .wrap(crate::LabelWrap::Character)
+                    .build(),
+            );
         if let Some(body) = b.body {
-            content = content.child(crate::label(body));
+            content = content.child(
+                crate::label_builder(body)
+                    .wrap(crate::LabelWrap::Character)
+                    .build(),
+            );
         }
 
         let mut card = crate::card::<M>()
-            .key(b.id)
+            .key(b.id.clone())
+            .w(Length::Percent(1.0))
             .variant(acme_widgets::CardVariant::Elevated)
+            .border_radius(12.0)
             .padding(12.0)
             .gap(8.0)
             .child(content.build());
 
+        let has_action = b.action_label.is_some() && b.on_action.is_some();
+        let has_footer = has_action || b.on_dismiss.is_some();
+        let mut footer = crate::row::<M>().key(format!("{id}__actions")).gap(8.0);
         if let (Some(label), Some(msg)) = (b.action_label, b.on_action) {
-            let btn = crate::button("notif_action", label).on_click(msg);
-            card = card.child(btn);
+            footer = footer.child(
+                crate::button(format!("{id}__action"), label)
+                    .variant(crate::ButtonVariant::Ghost)
+                    .h(Length::px(44.0))
+                    .min_h(Length::px(44.0))
+                    .on_click(msg),
+            );
         }
         if let Some(msg) = b.on_dismiss {
-            let close = crate::button("notif_close", "✕").on_click(msg);
-            card = card.child(close);
+            footer = footer.child(
+                crate::button(format!("{id}__dismiss"), "Dismiss")
+                    .variant(crate::ButtonVariant::Ghost)
+                    .h(Length::px(44.0))
+                    .min_h(Length::px(44.0))
+                    .on_click(msg),
+            );
+        }
+        if has_footer {
+            card = card.child(footer);
         }
         card.build()
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Clone, Debug, PartialEq)]
-    enum Msg {
-        Action,
-        Dismiss,
-    }
-
-    #[test]
-    fn mobile_notification_produces_card() {
-        let node: WidgetNode<Msg> = mobile_notification("Alert").into();
-        assert!(matches!(node, WidgetNode::Card(_)));
-    }
-
-    #[test]
-    fn mobile_notification_with_body() {
-        let node: WidgetNode<Msg> = mobile_notification("Title").body("Details").into();
-        let WidgetNode::Card(c) = &node else {
-            panic!("expected Card");
-        };
-        assert!(!c.children.is_empty());
-    }
-
-    #[test]
-    fn mobile_notification_with_action_and_dismiss() {
-        let node: WidgetNode<Msg> = mobile_notification("N")
-            .action("Reply", Msg::Action)
-            .on_dismiss(Msg::Dismiss)
-            .into();
-        let WidgetNode::Card(c) = &node else {
-            panic!("expected Card");
-        };
-        // content column + action button + dismiss button
-        assert_eq!(c.children.len(), 3);
-    }
-}
+#[path = "mobile_notification_tests.rs"]
+mod tests;

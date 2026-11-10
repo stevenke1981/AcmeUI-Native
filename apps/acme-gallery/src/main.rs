@@ -21,8 +21,8 @@ use acme_ui::charts::{
 };
 use acme_ui::mobile::{
     MobileAvatarSize, MobileBannerTone, MobileButtonSize, mobile_avatar, mobile_banner,
-    mobile_button, mobile_card, mobile_chip, mobile_loader, mobile_progress, mobile_search,
-    mobile_segmented, mobile_stepper, mobile_toggle,
+    mobile_button, mobile_card, mobile_chip, mobile_loader, mobile_notification, mobile_progress,
+    mobile_search, mobile_segmented, mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::style::{Styled, TextAlign};
@@ -37,6 +37,9 @@ mod mobile_search_host;
 use mobile_search_host::SearchDemo;
 #[path = "mobile_banner.rs"]
 mod banner_examples;
+#[path = "mobile_notification.rs"]
+mod notification_examples;
+use notification_examples::NotificationDemo;
 
 fn main() -> Result<(), acme_platform::PlatformError> {
     acme_platform::run(Gallery::new())
@@ -86,6 +89,7 @@ const CATEGORIES: &[CategoryInfo] = &[
         name: "Mobile",
         pages: &[
             "Banners",
+            "Notifications",
             "Avatars",
             "Chips",
             "Search",
@@ -118,6 +122,9 @@ enum GalleryMessage {
     MobileBannerAction,
     MobileBannerDismiss,
     MobileBannerRestore,
+    MobileNotificationAction,
+    MobileNotificationDismiss,
+    MobileNotificationShow,
     MobileSearchEdited,
     MobileSearchSubmit,
     MobileSearchClear,
@@ -181,6 +188,7 @@ struct Gallery {
     chip_action: &'static str,
     banner_visible: bool,
     banner_action: &'static str,
+    notification: NotificationDemo,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -216,6 +224,7 @@ impl Gallery {
             chip_action: "none",
             banner_visible: true,
             banner_action: "none",
+            notification: NotificationDemo::new(),
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -768,6 +777,9 @@ impl Gallery {
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
             .child(self.page_section(
+                "Mobile Notifications — content and lifetime", self.notification_examples(),
+            ))
+            .child(self.page_section(
                 "Mobile Banners — status and actions", self.banner_examples(),
             ))
             .child(self.page_section(
@@ -1139,6 +1151,18 @@ impl Gallery {
                 }
                 true
             }
+            GalleryMessage::MobileNotificationAction => {
+                self.notification.status = "open requested";
+                true
+            }
+            GalleryMessage::MobileNotificationDismiss => {
+                self.notification.dismiss();
+                true
+            }
+            GalleryMessage::MobileNotificationShow => {
+                self.notification.show_timed(std::time::Instant::now());
+                true
+            }
             GalleryMessage::MobileBannerAction => {
                 self.banner_action = "retry requested";
                 true
@@ -1260,6 +1284,21 @@ impl Application for Gallery {
 
     fn on_gpu_recovered(&mut self, _window: WindowId) {
         self.atlas.clear();
+    }
+
+    fn background_poll_interval(&self) -> Option<std::time::Duration> {
+        self.notification.poll_interval()
+    }
+
+    fn background_tick(&mut self) -> bool {
+        if self.notification.expire(std::time::Instant::now()) {
+            // Removing a card changes hit indices while a pointer may be held.
+            self.pressed = None;
+            self.hovered = None;
+            true
+        } else {
+            false
+        }
     }
 
     fn frame(&mut self, context: FrameContext) -> acme_core::Scene {
@@ -2350,3 +2389,6 @@ mod mobile_avatar_tests;
 
 #[cfg(test)]
 mod mobile_banner_tests;
+
+#[cfg(test)]
+mod mobile_notification_tests;

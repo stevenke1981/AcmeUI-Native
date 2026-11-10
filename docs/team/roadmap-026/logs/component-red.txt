@@ -1,0 +1,38 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.66s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_notification::tests::defaults_public_optional_fields_and_unicode_keep_distinct_actions ... FAILED
+test mobile::mobile_notification::tests::retained_title_content_and_dismiss_survive_optional_changes_and_keyed_reorder ... FAILED
+test mobile::mobile_notification::tests::long_title_and_body_fit_narrow_cards_and_actions_stay_below_text ... FAILED
+
+failures:
+
+---- mobile::mobile_notification::tests::defaults_public_optional_fields_and_unicode_keep_distinct_actions stdout ----
+
+thread 'mobile::mobile_notification::tests::defaults_public_optional_fields_and_unicode_keep_distinct_actions' panicked at crates/acme-ui/src/mobile/mobile_notification_tests.rs:36:53:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile::mobile_notification::tests::retained_title_content_and_dismiss_survive_optional_changes_and_keyed_reorder stdout ----
+
+thread 'mobile::mobile_notification::tests::retained_title_content_and_dismiss_survive_optional_changes_and_keyed_reorder' panicked at crates/acme-ui/src/mobile/mobile_notification_tests.rs:88:343:
+called `Option::unwrap()` on a `None` value
+
+---- mobile::mobile_notification::tests::long_title_and_body_fit_narrow_cards_and_actions_stay_below_text stdout ----
+
+thread 'mobile::mobile_notification::tests::long_title_and_body_fit_narrow_cards_and_actions_stay_below_text' panicked at crates/acme-ui/src/mobile/mobile_notification_tests.rs:62:58:
+assertion `left == right` failed
+  left: 193.0
+ right: 180.0
+
+
+failures:
+    mobile::mobile_notification::tests::defaults_public_optional_fields_and_unicode_keep_distinct_actions
+    mobile::mobile_notification::tests::long_title_and_body_fit_narrow_cards_and_actions_stay_below_text
+    mobile::mobile_notification::tests::retained_title_content_and_dismiss_survive_optional_changes_and_keyed_reorder
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 776 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

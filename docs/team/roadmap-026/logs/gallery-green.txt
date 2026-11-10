@@ -1,0 +1,14 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.38s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 3 tests
+test mobile_notification_tests::host_deadline_boundaries_restart_and_manual_cancel_are_deterministic ... ok
+test mobile_notification_tests::notification_surface_text_and_actions_keep_themed_paint_order_and_scroll_clips ... ok
+test mobile_notification_tests::notification_actions_dismiss_show_and_expiry_clear_hits_without_replacing_other_cards ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 40 filtered out; finished in 0.44s
+

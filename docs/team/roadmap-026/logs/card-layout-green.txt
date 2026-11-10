@@ -1,0 +1,21 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.00s
+     Running unittests src/lib.rs (target/debug/deps/acme_widgets-c3795d61fecc6e3b)
+
+running 1 test
+test foundations::card::layout_tests::card_existing_style_is_honoured_in_both_layout_paths_and_empty_style_keeps_defaults ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 147 filtered out; finished in 0.00s
+
+     Running tests/integration.rs (target/debug/deps/integration-f6ed118f4c4b231f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/layout_binding.rs (target/debug/deps/layout_binding-6ed18b89a0f6fde0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+

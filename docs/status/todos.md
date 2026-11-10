@@ -1,5 +1,12 @@
 # Todos
 
+## ROADMAP 026 — mobile notification acceptance (2026-11-10)
+
+- [x] Add responsive wrapping title/body, stable content/footer keys and separate 44 px actions; preserve the stateless builder API and semantic elevated Card.
+- [x] Honour existing Card layout Style in both paths with a RED/GREEN regression. Add Gallery action/dismiss/show flows and host-owned five-second expiry with cancellation/restart tests and native timed CPU captures.
+- [x] Cancel stale pointer press/hover state on asynchronous card removal; run locked widgets/UI/Gallery and mobile-only tests, strict Clippy, actual CPU profile and workspace milestone gates; see [report](../team/roadmap-026/REPORT.md).
+- [ ] Manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 025 — mobile banner acceptance (2026-11-10)
 
 - [x] Add full-width semantic soft status surfaces, Unicode wrapping and separate instance-keyed 44 px action/dismiss buttons; preserve the builder API.
@@ -260,7 +267,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] mobile_chip — compact themed tag, selected marker and optional close action; separate tap/dismiss messages, retained/layout tests and native CPU Gallery evidence (ROADMAP 023). Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_avatar — circular themed initials / neutral empty-name placeholder, 32/40/56 px variants; retained/layout/paint tests and native CPU Gallery evidence (ROADMAP 024). Actual image loading is outside this builder; manual hardware acceptance remains NOT_RUN.
 - [x] mobile_banner — full-width themed soft alert with icon, wrapping text and optional independent action/dismiss; retained/layout/Gallery tests and native CPU evidence (ROADMAP 025). Manual hardware acceptance remains NOT_RUN.
-- [ ] mobile_notification — toast-style card with title + body + auto-dismiss hint
+- [x] mobile_notification — themed toast-style card with wrapping title/body, separate actions and Gallery host-owned auto-dismiss/hint; retained/layout/timer tests and native CPU captures (ROADMAP 026). The stateless component schedules no timer itself; manual hardware acceptance remains NOT_RUN.
 - [ ] mobile_list_item — title + detail + optional trailing icon, on_tap
 - [ ] mobile_action — tappable action row with icon + label + destructive flag
 - [ ] mobile_sheet_handle — drag indicator bar (fixed 36×4 rounded rect)

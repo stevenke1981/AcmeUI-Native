@@ -1,0 +1,11 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.59s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_notification::tests::defaults_public_optional_fields_and_unicode_keep_distinct_actions ... ok
+test mobile::mobile_notification::tests::retained_title_content_and_dismiss_survive_optional_changes_and_keyed_reorder ... ok
+test mobile::mobile_notification::tests::long_title_and_body_fit_narrow_cards_and_actions_stay_below_text ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 776 filtered out; finished in 0.07s
+

@@ -183,12 +183,7 @@ impl<M> WidgetNode<M> {
             ),
             Self::Card(v) => LayoutNode::container(
                 id,
-                LayoutStyle {
-                    kind: LayoutKind::Column,
-                    gap: v.gap,
-                    padding: v.padding,
-                    ..Default::default()
-                },
+                v.layout(),
                 v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
             Self::ScrollView(v) => LayoutNode::container(
@@ -541,12 +536,7 @@ impl<M> WidgetNode<M> {
             ),
             Self::Card(v) => LayoutNode::container(
                 id,
-                LayoutStyle {
-                    kind: LayoutKind::Column,
-                    gap: v.gap,
-                    padding: v.padding,
-                    ..Default::default()
-                },
+                v.layout(),
                 v.children
                     .iter()
                     .map(|c| c.to_layout_alloc_with_context(ids, context))

@@ -1,0 +1,8 @@
+    Checking acme-core v0.2.0 (/workspace/AcmeUI-Native/crates/acme-core)
+    Checking acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+    Checking acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+    Checking acme-theme v0.2.0 (/workspace/AcmeUI-Native/crates/acme-theme)
+    Checking acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+    Checking acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+    Checking acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.04s
