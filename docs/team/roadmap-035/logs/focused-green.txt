@@ -1,0 +1,11 @@
+   Compiling acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+   Compiling acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.22s
+     Running tests/full_sizing.rs (target/debug/deps/full_sizing-778e5e5fb97d5f65)
+
+running 2 tests
+test full_width_root_matches_the_viewport ... ok
+test full_helpers_fill_the_parent_content_box_in_both_dimensions ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

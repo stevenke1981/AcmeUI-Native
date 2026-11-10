@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased - Full sizing percentage correction (ROADMAP 035, 2026-11-11)
+
+- `Styled::{w_full,h_full}`, Tailwind `{w,h}::{full,screen}` and
+  `Button.full_width` now use `Length::Percent(1.0)` (100% of the containing
+  content box). Previously `100.0` made a 240 px root 24000 px wide. Existing
+  explicit width/height overrides still apply; the layout engine's fractional
+  unit is unchanged. Callers compensating for the old overflow should remove
+  those workarounds. `screen()` remains a parent-relative alias for `full()`;
+  no viewport-relative length unit is introduced.
+
 ## Unreleased - Multi-page glyph atlas (ROADMAP 011, 2026-11-07)
 
 - `acme-core`: `ATLAS_PAGE_EDGE` (2048) and `ATLAS_MAX_PAGES` (8);

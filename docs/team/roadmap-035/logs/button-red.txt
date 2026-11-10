@@ -1,0 +1,24 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.10s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 1 test
+test mobile::mobile_button::tests::mobile_button_maps_size_and_touch_height ... FAILED
+
+failures:
+
+---- mobile::mobile_button::tests::mobile_button_maps_size_and_touch_height stdout ----
+
+thread 'mobile::mobile_button::tests::mobile_button_maps_size_and_touch_height' panicked at crates/acme-ui/src/mobile/mobile_button.rs:157:13:
+assertion `left == right` failed
+  left: 24000.0
+ right: 240.0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile::mobile_button::tests::mobile_button_maps_size_and_touch_height
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 806 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

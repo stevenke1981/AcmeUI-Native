@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 035 — full sizing percentage correction (2026-11-11)
+
+- [x] Reproduce 24000 vs 240 px root width and padded child overflow; correct Styled/Tailwind full sizing and Button.full_width to the existing fractional Percent convention, preserving explicit overrides.
+- [x] Add real-layout/theme/clip Gallery evidence and behavior-change notes; see [report](../team/roadmap-035/REPORT.md) for exact verification/delivery status.
+- [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 034 — SwipeActions acceptance (2026-11-11)
 
 - [x] Add controlled mobile swipe_actions and backend-neutral horizontal threshold state, optional keyed Archive/Delete Buttons, layout/identity tests and a 21st public mobile default contract.
@@ -340,7 +346,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 ## P5 — Architecture & quality improvements (CBM audit)
 
-- [ ] Reconcile `Styled::w_full()` percentage units with `Length::Percent`: ROADMAP 025 observed 24000 px for a 240 px root; components use the layout engine's existing `Percent(1.0)` convention. General style helper migration is outside that slice.
+- [x] Reconcile `Styled::w_full()` and related full sizing helpers with fractional `Length::Percent(1.0)`; correct Button.full_width, regressions and Gallery evidence (ROADMAP 035). Engine units unchanged; screen helpers remain parent-relative.
 
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
