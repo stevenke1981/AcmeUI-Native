@@ -24,7 +24,7 @@ AcmeUI Native 是一套 **Rust 原生桌面 UI 框架**，透過 **wgpu**（Dire
 - **語意化設計 Token** — 淺色/深色/高對比主題
 - **AccessKit 無障礙** — 保留式 ID 樹狀橋接，螢幕閱讀器仍待人工驗證
 - **動畫引擎** — 補間/緩動/彈跳/迴圈
-- **199 個元件原始碼模組** — 經由 `acme-ui`（受 shadcn/ui + Material UI + Ant Design 啟發）
+- **200 個元件原始碼模組** — 經由 `acme-ui`（受 shadcn/ui + Material UI + Ant Design 啟發）
 
 ### 架構
 
@@ -34,7 +34,7 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 
 | 圖層 | Crate | 角色 |
 |------|-------|------|
-| UI 元件 | `acme-ui` | 199 個元件原始碼模組（Slider、Switch、DatePicker、Toast、Dock、Masonry、FileUpload、VideoPlayer、Heatmap、MobileCard…） |
+| UI 元件 | `acme-ui` | 200 個元件原始碼模組（Slider、Switch、DatePicker、Toast、Dock、Masonry、FileUpload、VideoPlayer、Heatmap、MobileCard…） |
 | Widget 基礎 | `acme-widgets` | WidgetNode 列舉、Builder DSL、Overlay 管理、視覺狀態 |
 | 文字編輯 | `acme-textinput` | 游標、選取、剪貼簿、IME 預編輯/提交、復原/重做 |
 | 排版 | `acme-layout` | 基於 Taffy 的 Flexbox 排版引擎 |
@@ -225,7 +225,7 @@ assert!(theme.validate().is_ok());
 | 核心框架 | ✅ **穩定** — 樹、排版、渲染、文字、主題、動畫、無障礙、Widget |
 | 文字輸入 + IME | ✅ **穩定** — 游標幾何與預編輯／提交自動化，注音仍待人工驗證 |
 | 資料元件 | 🧪 **實驗性** — Tree、Table、DataGrid、VirtualList 附 Gallery 即時展示 |
-| UI 元件庫 | 🧪 **實驗性** — 199 個原始碼模組（acme-ui），實作深度不一 |
+| UI 元件庫 | 🧪 **實驗性** — 200 個原始碼模組（acme-ui），實作深度不一 |
 | GPU 裝置遺失復原 | 🧪 **已接線** — 純測試狀態機 + `on_gpu_recovered` 鉤子；**手動驗證待完成** |
 | 繁體中文注音 IME | 🧪 **架構完成** — **手動驗證待完成** |
 | 螢幕截圖黃金測試 | 📋 **已搭建骨架** — 尚未納入 CI |
@@ -250,7 +250,7 @@ AcmeUI-Native/
 │   ├── acme-animation/     # 補間引擎
 │   ├── acme-style/         # 樣式抽象層
 │   ├── acme-widgets/       # WidgetNode 列舉 + Builder DSL
-│   ├── acme-ui/            # 199 個元件原始碼模組
+│   ├── acme-ui/            # 200 個元件原始碼模組
 │   ├── acme-accessibility/ # AccessKit 橋接
 │   └── acme-devtools/      # 檢查器、指標、除錯器
 ├── apps/
@@ -341,11 +341,11 @@ AcmeUI-Native/
 | `overlay/` | 15 | `overlay` | ✅ |
 | `desktop/` | 13 | `desktop` | — |
 | `charts/` | 20 | `charts` | — |
-| `mobile/` | 20 | `mobile` | — |
+| `mobile/` | 21 | `mobile` | — |
 | `browser/` | 16 | `browser` | — |
-| **總計** | **199** | 8 個功能分類 | 4 個預設 |
+| **總計** | **200** | 8 個功能分類 | 4 個預設 |
 
-以各分類下的 `*.rs` 檔案計算，不含 `mod.rs`；這不是可互動元件的數量。
+以八個分類 `mod.rs` 的公開元件模組宣告計算，不含測試／輔助模組；這不是可互動元件的數量。
 其中包含實驗性實作與佔位內容，數量不代表無障礙支援、Gallery 展示涵蓋率、
 視覺驗證或正式產品可用程度。驗證範圍與待辦請見 [STATUS](docs/status/STATUS.md)。
 

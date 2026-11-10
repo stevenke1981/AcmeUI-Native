@@ -24,7 +24,7 @@ It combines:
 - **Semantic design tokens** — light/dark/high-contrast themes
 - **AccessKit accessibility** — retained-ID tree bridge; manual screen-reader acceptance pending
 - **Animation engine** — tween/ease/bounce/yoyo/loop
-- **199 component source modules** — via `acme-ui` (shadcn/ui + Material UI + Ant Design inspired)
+- **200 component source modules** — via `acme-ui` (shadcn/ui + Material UI + Ant Design inspired)
 
 ### Default Template (acme-ui 0.2.0)
 
@@ -59,7 +59,7 @@ App → WidgetNode DSL → Retained Tree → Taffy Layout → Scene → wgpu →
 
 | Layer | Crate | Role |
 |-------|-------|------|
-| UI Components | `acme-ui` | 199 component source modules (Slider, Switch, DatePicker, Toast, Dock, Masonry, FileUpload, VideoPlayer, Heatmap, MobileCard …) |
+| UI Components | `acme-ui` | 200 component source modules (Slider, Switch, DatePicker, Toast, Dock, Masonry, FileUpload, VideoPlayer, Heatmap, MobileCard …) |
 | Widget Primitives | `acme-widgets` | WidgetNode enum, builder DSL, overlay manager, visual states |
 | Text Editing | `acme-textinput` | Cursor, selection, clipboard, IME preedit/commit, undo/redo |
 | Layout | `acme-layout` | Taffy-based flexbox layout engine |
@@ -264,7 +264,7 @@ component demonstrations.
 | Core framework | ✅ **Stable** — tree, layout, render, text, theme, animation, accessibility, widgets |
 | Text input + IME | ✅ **Stable** — Caret geometry and preedit/commit automation; manual 注音 acceptance pending |
 | Data components | 🧪 **Experimental** — Tree, Table, DataGrid, VirtualList with live Gallery demos |
-| UI component library | 🧪 **Experimental** — 199 source modules (acme-ui); implementation depth varies |
+| UI component library | 🧪 **Experimental** — 200 source modules (acme-ui); implementation depth varies |
 | GPU device-loss recovery | 🧪 **Wired** — pure-test state machine + `on_gpu_recovered` hook; **manual validation pending** |
 | Traditional Chinese 注音 IME | 🧪 **Architecture done** — **manual validation pending** |
 | Screenshot golden tests | 📋 **Scaffolded** — not yet in CI |
@@ -289,7 +289,7 @@ AcmeUI-Native/
 │   ├── acme-animation/     # Tween engine
 │   ├── acme-style/         # Styling abstraction layer
 │   ├── acme-widgets/       # WidgetNode enum + builder DSL
-│   ├── acme-ui/            # 199 component source modules
+│   ├── acme-ui/            # 200 component source modules
 │   ├── acme-accessibility/ # AccessKit bridge
 │   └── acme-devtools/      # Inspector, metrics, debugger
 ├── apps/
@@ -393,12 +393,12 @@ The `apps/gallery` (primary demo) has been fully converted from a 2593-line mono
 | `overlay/` | 15 | `overlay` | ✅ |
 | `desktop/` | 13 | `desktop` | — |
 | `charts/` | 20 | `charts` | — |
-| `mobile/` | 20 | `mobile` | — |
+| `mobile/` | 21 | `mobile` | — |
 | `browser/` | 16 | `browser` | — |
-| **Total** | **199** | 8 feature families | 4 default |
+| **Total** | **200** | 8 feature families | 4 default |
 
-Counted as category `*.rs` files excluding `mod.rs`, not distinct interactive
-widgets. This includes experimental implementations and placeholders; the count
+Counted as public component-module declarations in the eight category `mod.rs`
+files, excluding test/support modules; not distinct interactive widgets. This includes experimental implementations and placeholders; the count
 does not establish accessibility, Gallery coverage, visual validation, or
 production readiness. See [STATUS](docs/status/STATUS.md) for scope and pending checks.
 

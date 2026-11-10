@@ -34,6 +34,11 @@ macro_rules! contracts {
     };
 }
 contracts! {
+    swipe_actions: (super::swipe_actions::<()>("swipe",crate::label("Item")),Row,1,|b| {
+        assert_eq!(b.id.as_str(),"swipe");
+        assert!(!b.revealed && b.on_archive.is_none() && b.on_delete.is_none());
+        assert!(matches!(&b.child, WidgetNode::Label(label) if label.text=="Item"));
+    }),
     mobile_action: (super::mobile_action::<()>("Action"),Row,1,|b| {
         assert_eq!(b.id.as_str(),"mobile_action"); assert_eq!(b.label,"Action");
         assert!(b.icon.is_none() && !b.destructive && !b.disabled && b.on_press.is_none());
