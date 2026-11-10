@@ -50,7 +50,9 @@ impl Renderer {
         let suspended = self.status == SurfaceStatus::Suspended;
         let lost = is_device_lost(&self.device_lost_flag);
         let pre_acquire_action = resolve_surface_action(suspended, lost, AcquireOutcome::Success);
-        if pre_acquire_action != SurfaceAction::Rendered {
+        // Device recovery invalidates the application's atlas. A suspended
+        // surface with a healthy device must still consume one-shot uploads.
+        if lost {
             return pre_acquire_action;
         }
         let mut reconfigure_after_present = false;
@@ -71,6 +73,13 @@ impl Renderer {
         } else {
             100.0
         };
+
+        if pre_acquire_action != SurfaceAction::Rendered {
+            if atlas_bytes > 0 {
+                self.queue.submit([]);
+            }
+            return pre_acquire_action;
+        }
 
         // Glyph uploads are one-shot: the application atlas will hit next time.
         // Deliver them before a transient acquire failure can discard this Scene.
@@ -401,6 +410,7 @@ mod recovery_tests {
             wgpu::CurrentSurfaceTexture::Timeout,
             wgpu::CurrentSurfaceTexture::Occluded,
             wgpu::CurrentSurfaceTexture::Outdated,
+            wgpu::CurrentSurfaceTexture::Occluded, // zero-sized / suspended surface
         ]
         .into_iter()
         .enumerate()
@@ -429,8 +439,15 @@ mod recovery_tests {
             let mut first = Scene::new();
             first.push(DrawCommand::Text(text.clone()));
             let before = renderer.stats.bytes_uploaded;
+            let suspended = page == 3;
+            if suspended {
+                renderer.resize(0, 0, 1.0);
+            }
             assert!(matches!(
-                renderer.render_scene_with_acquire(&first, |_| outcome),
+                renderer.render_scene_with_acquire(&first, |_| {
+                    assert!(!suspended, "suspended renderer must not acquire a surface");
+                    outcome
+                }),
                 SurfaceAction::Skip | SurfaceAction::Reconfigure
             ));
             assert_eq!(
@@ -447,6 +464,9 @@ mod recovery_tests {
             text.uploads.clear(); // The application atlas hits on the next frame.
             let mut second = Scene::new();
             second.push(DrawCommand::Text(text));
+            if suspended {
+                renderer.resize(64, 64, 1.0);
+            }
             let action = renderer.render_scene(&second);
             assert!(
                 matches!(action, SurfaceAction::Rendered | SurfaceAction::Reconfigure),
