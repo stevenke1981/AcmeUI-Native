@@ -8,7 +8,7 @@
 //! Also provides [`scene_from_frame`] to bridge the legacy [`Frame`] format.
 
 use crate::Frame;
-use acme_core::{ClipStack, DrawCommand, GlyphFormat, Scene};
+use acme_core::{ClipStack, DrawCommand, GlyphFormat, Scene, SceneError};
 
 /// The GPU pipeline used to draw a batch.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -96,7 +96,23 @@ fn clip_as_rect(clip_stack: &ClipStack) -> Option<[f32; 4]> {
     ])
 }
 
+/// Compile a structurally valid scene in painter's order.
+///
+/// Invalid clip/layer stacks produce no batches and emit a warning. Call
+/// [`Scene::validate`] to obtain the structural error without logging.
 pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
+    match try_compile_scene(scene) {
+        Ok(batches) => batches,
+        Err(error) => {
+            tracing::warn!(?error, "rejected invalid scene during batch compilation");
+            Vec::new()
+        }
+    }
+}
+
+/// Validate before any renderer resource updates and return the reusable batches.
+pub(crate) fn try_compile_scene(scene: &Scene) -> Result<Vec<RenderBatch>, SceneError> {
+    scene.validate()?;
     let mut batches: Vec<RenderBatch> = Vec::new();
     let mut clip_stack = ClipStack::new();
     let mut layer_depth: u32 = 0;
@@ -110,7 +126,9 @@ pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
                 i += 1;
             }
             DrawCommand::PopClip => {
-                let _ = clip_stack.pop();
+                clip_stack
+                    .pop()
+                    .expect("scene preflight validated clip balance");
                 i += 1;
             }
             DrawCommand::BeginLayer(_) => {
@@ -118,7 +136,7 @@ pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
                 i += 1;
             }
             DrawCommand::EndLayer => {
-                layer_depth = layer_depth.saturating_sub(1);
+                layer_depth -= 1;
                 i += 1;
             }
             DrawCommand::Quad(_) => {
@@ -233,7 +251,7 @@ pub fn compile_scene(scene: &Scene) -> Vec<RenderBatch> {
         }
     }
 
-    batches
+    Ok(batches)
 }
 
 /// Convert a legacy [`Frame`] into a [`Scene`], preserving the current
@@ -428,6 +446,25 @@ mod tests {
         let scene = Scene::new();
         let batches = compile_scene(&scene);
         assert!(batches.is_empty(), "empty scene → no batches");
+    }
+
+    #[test]
+    fn malformed_scene_produces_no_partial_batches() {
+        for command in [
+            DrawCommand::PopClip,
+            DrawCommand::PushClip(Rect::new(0.0, 0.0, 10.0, 10.0)),
+            DrawCommand::EndLayer,
+            DrawCommand::BeginLayer(acme_core::LayerParams { opacity: 0.5 }),
+        ] {
+            let mut scene = Scene::new();
+            scene.push(make_quad(0.0, 0.0, 1.0, 1.0));
+            scene.push(command);
+            scene.push(make_quad(1.0, 1.0, 1.0, 1.0));
+            assert!(
+                compile_scene(&scene).is_empty(),
+                "malformed scene compiled partial batches: {scene:?}"
+            );
+        }
     }
 
     #[test]

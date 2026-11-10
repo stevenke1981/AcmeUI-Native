@@ -372,6 +372,10 @@ pub enum SceneError {
     ClipUnderflow,
     /// Unmatched `PushClip` commands remain at end of scene.
     ClipUnbalanced,
+    /// More `EndLayer` than `BeginLayer` encountered.
+    LayerUnderflow,
+    /// Unmatched `BeginLayer` commands remain at end of scene.
+    LayerUnbalanced,
 }
 
 /// An ordered display list with a clear colour.
@@ -425,23 +429,32 @@ impl Scene {
         self.commands.extend(cmd.into_draw_commands());
     }
 
-    /// Validate the scene's clip stack is balanced.
+    /// Validate that the scene's clip and layer stacks are balanced.
     ///
-    /// Returns `Ok(())` if every `PushClip` has a matching `PopClip` and no
-    /// `PopClip` appears without a preceding `PushClip`.
+    /// Each `PopClip` / `EndLayer` must have a preceding `PushClip` /
+    /// `BeginLayer`, and both stacks must be empty at the end. The two stacks
+    /// are independent; clips may span layer boundaries.
     pub fn validate(&self) -> Result<(), SceneError> {
         let mut clips = 0usize;
+        let mut layers = 0usize;
         for cmd in &self.commands {
             match cmd {
                 DrawCommand::PushClip(_) => clips += 1,
                 DrawCommand::PopClip => {
                     clips = clips.checked_sub(1).ok_or(SceneError::ClipUnderflow)?;
                 }
+                DrawCommand::BeginLayer(_) => layers += 1,
+                DrawCommand::EndLayer => {
+                    layers = layers.checked_sub(1).ok_or(SceneError::LayerUnderflow)?;
+                }
                 _ => {}
             }
         }
         if clips != 0 {
             return Err(SceneError::ClipUnbalanced);
+        }
+        if layers != 0 {
+            return Err(SceneError::LayerUnbalanced);
         }
         Ok(())
     }
@@ -681,6 +694,34 @@ mod tests {
     #[test]
     fn validate_empty_scene_ok() {
         let scene = Scene::new();
+        assert_eq!(scene.validate(), Ok(()));
+    }
+
+    #[test]
+    fn validate_layer_underflow_fails() {
+        let mut scene = Scene::new();
+        scene.push(DrawCommand::EndLayer);
+        assert_eq!(scene.validate(), Err(SceneError::LayerUnderflow));
+    }
+
+    #[test]
+    fn validate_layer_unbalanced_fails() {
+        let mut scene = Scene::new();
+        scene.push(DrawCommand::BeginLayer(LayerParams { opacity: 0.5 }));
+        assert_eq!(scene.validate(), Err(SceneError::LayerUnbalanced));
+    }
+
+    #[test]
+    fn validate_nested_layers_and_clips_ok() {
+        let mut scene = Scene::new();
+        scene.push(DrawCommand::PushClip(Rect::new(0.0, 0.0, 100.0, 100.0)));
+        scene.push(DrawCommand::BeginLayer(LayerParams { opacity: 0.5 }));
+        scene.push(DrawCommand::BeginLayer(LayerParams { opacity: 0.25 }));
+        scene.push(DrawCommand::PushClip(Rect::new(5.0, 5.0, 10.0, 10.0)));
+        scene.push(DrawCommand::PopClip);
+        scene.push(DrawCommand::EndLayer);
+        scene.push(DrawCommand::EndLayer);
+        scene.push(DrawCommand::PopClip);
         assert_eq!(scene.validate(), Ok(()));
     }
 

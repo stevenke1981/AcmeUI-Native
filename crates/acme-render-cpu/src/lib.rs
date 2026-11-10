@@ -4,7 +4,7 @@
 
 use acme_core::{
     ATLAS_MAX_PAGES, ATLAS_PAGE_EDGE, AtlasUpload, Color, DrawCommand, GlyphFormat, ImagePrimitive,
-    QuadPrimitive, Rect, Scene, TextPrimitive,
+    QuadPrimitive, Rect, Scene, SceneError, TextPrimitive,
 };
 
 mod coverage;
@@ -589,17 +589,11 @@ impl CpuRenderer {
     }
     fn validate_scene(&self, scene: &Scene) -> Result<(), CpuRenderError> {
         let mut layers = 0usize;
-        let mut clips = 0usize;
         let max_layers = MAX_LAYERS.min(MAX_LAYER_PIXELS / self.framebuffer.len().max(1));
-        // Preserve the original error order without allocating layers or copying atlases.
+        // Check CPU resource limits without allocating layers or copying atlases.
+        // Structural errors are owned by Scene::validate below.
         for cmd in scene.commands() {
             match cmd {
-                DrawCommand::PushClip(_) => clips += 1,
-                DrawCommand::PopClip => {
-                    clips = clips
-                        .checked_sub(1)
-                        .ok_or(CpuRenderError::InvalidScene("unmatched PopClip"))?;
-                }
                 DrawCommand::BeginLayer(_) => {
                     layers += 1;
                     if layers > max_layers {
@@ -609,22 +603,28 @@ impl CpuRenderer {
                     }
                 }
                 DrawCommand::EndLayer => {
-                    layers = layers
-                        .checked_sub(1)
-                        .ok_or(CpuRenderError::InvalidScene("unmatched EndLayer"))?;
+                    layers = layers.saturating_sub(1);
                 }
                 DrawCommand::Text(text) => {
                     for upload in &text.uploads {
                         GlyphAtlases::validate_upload(upload)?;
                     }
                 }
-                DrawCommand::Quad(_) | DrawCommand::Image(_) => {}
+                DrawCommand::Quad(_)
+                | DrawCommand::Image(_)
+                | DrawCommand::PushClip(_)
+                | DrawCommand::PopClip => {}
             }
         }
-        if layers != 0 || clips != 0 {
-            return Err(CpuRenderError::InvalidScene("unclosed clip or layer"));
-        }
-        Ok(())
+        scene.validate().map_err(|error| {
+            CpuRenderError::InvalidScene(match error {
+                SceneError::ClipUnderflow => "unmatched PopClip",
+                SceneError::LayerUnderflow => "unmatched EndLayer",
+                SceneError::ClipUnbalanced | SceneError::LayerUnbalanced => {
+                    "unclosed clip or layer"
+                }
+            })
+        })
     }
     /// Render a complete scene, preserving the last frame and glyph atlases on rejection.
     pub fn render_scene(&mut self, scene: &Scene) -> Result<(), CpuRenderError> {
