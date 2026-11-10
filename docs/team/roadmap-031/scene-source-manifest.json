@@ -1,0 +1,8 @@
+{
+  "code_sha": "9244e0c84e240245b0fa4e29df2a2c1f4117947c",
+  "source_files": {
+    "crates/acme-core/src/scene.rs": "4f3568b5339657c4497f4fc4223a9b5e768ec3a425f2bac2e27fe70273fb59d0",
+    "crates/acme-render-cpu/src/lib.rs": "c98d6f8fad1ff8be05228fee97a330721db8460e7ec227a7af7828cc2aca354c",
+    "crates/acme-render-wgpu/src/batch.rs": "4c4ec3e696746b429fc18c368f4034fca57d0619dfee5ab979e68941d2a362a0"
+  }
+}

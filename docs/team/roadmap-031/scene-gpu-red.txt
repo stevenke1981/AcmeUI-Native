@@ -1,0 +1,23 @@
+   Compiling acme-core v0.2.0 (D:\AcmeUI-Native\.worktrees\scene-031\crates\acme-core)
+   Compiling acme-render-wgpu v0.2.0 (D:\AcmeUI-Native\.worktrees\scene-031\crates\acme-render-wgpu)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.25s
+     Running unittests src\lib.rs (D:/AcmeUI-Native/target\debug\deps\acme_render_wgpu-efe76fcb3e2f13c1.exe)
+
+running 1 test
+test batch::tests::malformed_scene_produces_no_partial_batches ... FAILED
+
+failures:
+
+---- batch::tests::malformed_scene_produces_no_partial_batches stdout ----
+
+thread 'batch::tests::malformed_scene_produces_no_partial_batches' panicked at crates\acme-render-wgpu\src\batch.rs:445:13:
+malformed scene compiled partial batches: Scene { clear: Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }, commands: [Quad(QuadPrimitive { rect: Rect { origin: Point { x: 0.0, y: 0.0 }, size: Size { width: 1.0, height: 1.0 } }, color: Color { r: 1.0, g: 0.0, b: 0.0, a: 1.0 }, radius: 0.0, border_width: 0.0, border_color: Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 } }), PopClip, Quad(QuadPrimitive { rect: Rect { origin: Point { x: 1.0, y: 1.0 }, size: Size { width: 2.0, height: 2.0 } }, color: Color { r: 1.0, g: 0.0, b: 0.0, a: 1.0 }, radius: 0.0, border_width: 0.0, border_color: Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 } })] }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    batch::tests::malformed_scene_produces_no_partial_batches
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-render-wgpu --lib`

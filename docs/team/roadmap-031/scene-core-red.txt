@@ -1,0 +1,29 @@
+   Compiling acme-core v0.2.0 (D:\AcmeUI-Native\.worktrees\scene-031\crates\acme-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.58s
+     Running unittests src\lib.rs (D:/AcmeUI-Native/target\debug\deps\acme_core-e484b59fd780d9b5.exe)
+
+running 2 tests
+test scene::tests::validate_layer_underflow_fails ... FAILED
+test scene::tests::validate_layer_unbalanced_fails ... FAILED
+
+failures:
+
+---- scene::tests::validate_layer_underflow_fails stdout ----
+
+thread 'scene::tests::validate_layer_underflow_fails' panicked at crates\acme-core\src\scene.rs:691:9:
+assertion failed: scene.validate().is_err()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- scene::tests::validate_layer_unbalanced_fails stdout ----
+
+thread 'scene::tests::validate_layer_unbalanced_fails' panicked at crates\acme-core\src\scene.rs:698:9:
+assertion failed: scene.validate().is_err()
+
+
+failures:
+    scene::tests::validate_layer_unbalanced_fails
+    scene::tests::validate_layer_underflow_fails
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 42 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-core --lib`
