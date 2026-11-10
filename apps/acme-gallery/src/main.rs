@@ -1291,7 +1291,14 @@ impl Application for Gallery {
     }
 
     fn background_tick(&mut self) -> bool {
-        self.notification.expire(std::time::Instant::now())
+        if self.notification.expire(std::time::Instant::now()) {
+            // Removing a card changes hit indices while a pointer may be held.
+            self.pressed = None;
+            self.hovered = None;
+            true
+        } else {
+            false
+        }
     }
 
     fn frame(&mut self, context: FrameContext) -> acme_core::Scene {

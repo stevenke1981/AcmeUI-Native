@@ -127,6 +127,58 @@ fn host_deadline_boundaries_restart_and_manual_cancel_are_deterministic() {
     assert_eq!(demo.status, "dismissed");
     assert!(!demo.visible);
 }
+
+#[test]
+fn asynchronous_expiry_cancels_pointer_press_and_hover_before_rebuilding_hits() {
+    let mut gallery = Gallery::new();
+    activate(&mut gallery, GalleryMessage::MobileNotificationShow);
+    frame(&mut gallery);
+    let index = gallery
+        .button_info
+        .iter()
+        .position(|h| h.message == GalleryMessage::MobileNotificationDismiss)
+        .unwrap();
+    let r = gallery.button_info[index].rect;
+    let (x, y) = (r[0] + r[2] / 2.0, r[1] - gallery.scroll + r[3] / 2.0);
+    gallery.event(PlatformEvent::PointerMoved {
+        window: WindowId(1),
+        x,
+        y,
+    });
+    gallery.event(PlatformEvent::PointerButton {
+        window: WindowId(1),
+        pressed: true,
+        x,
+        y,
+        button: 0,
+        pointer: 0,
+        shift: false,
+        ctrl: false,
+        alt: false,
+    });
+    assert_eq!(gallery.pressed, Some(index));
+    gallery.notification.deadline =
+        Some(std::time::Instant::now() - std::time::Duration::from_millis(1));
+    assert!(gallery.background_tick());
+    assert!(
+        gallery.pressed.is_none(),
+        "removed notification must not leave a pressed index for another action"
+    );
+    assert!(gallery.hovered.is_none());
+    frame(&mut gallery);
+    gallery.event(PlatformEvent::PointerButton {
+        window: WindowId(1),
+        pressed: false,
+        x,
+        y,
+        button: 0,
+        pointer: 0,
+        shift: false,
+        ctrl: false,
+        alt: false,
+    });
+    assert_eq!(gallery.notification.status, "automatically dismissed");
+}
 #[test]
 fn notification_surface_text_and_actions_keep_themed_paint_order_and_scroll_clips() {
     let mut gallery = Gallery::new();

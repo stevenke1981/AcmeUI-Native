@@ -26,7 +26,7 @@ impl NotificationDemo {
         self.status = "dismissed";
     }
     pub(super) fn expire(&mut self, now: Instant) -> bool {
-        if !self.deadline.is_some_and(|deadline| now >= deadline) {
+        if self.deadline.is_none_or(|deadline| now < deadline) {
             return false;
         }
         self.visible = false;
