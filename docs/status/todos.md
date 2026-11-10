@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 034 — SwipeActions acceptance (2026-11-11)
+
+- [x] Add controlled mobile swipe_actions and backend-neutral horizontal threshold state, optional keyed Archive/Delete Buttons, layout/identity tests and a 21st public mobile default contract.
+- [x] Add Gallery pointer reveal/close, separate action/remove/restore, cancellation, pointer matching and F7/Enter/Delete/Escape alternative; preserve composition guard and visible-row scroll position. See [report](../team/roadmap-034/REPORT.md).
+- [ ] Continuous translation/animation, general gesture/capture integration and human Gallery, Windows 注音 IME, physical DPI/multitouch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 033 — Snackbar acceptance (2026-11-11)
 
 - [x] Extend existing toast with keyed typed action/dismiss, wrapping Unicode content, bounded real layout and retained identities; preserve duration metadata and tone icons.
@@ -326,7 +332,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 - [x] FloatingActionButton (FAB) — circular elevated button, mini/normal/extended; existing float_button builder, retained/layout/typed actions and native CPU Gallery evidence (ROADMAP 032). Viewport anchoring is host-owned; manual hardware acceptance remains NOT_RUN.
 - [x] Snackbar — existing overlay::toast with wrapping message, optional independent action/dismiss, and Gallery bottom placement/auto-dismiss (ROADMAP 033). Stateless builder; host owns visibility/deadlines. Manual hardware acceptance remains NOT_RUN.
-- [ ] SwipeActions — swipe-to-reveal delete/archive on list items
+- [x] SwipeActions — controlled swipe-to-reveal Delete/Archive on list content, threshold state and native CPU Gallery pointer/keyboard tests (ROADMAP 034). Actions require separate activation; host owns pointer routing. Continuous translation/animation and manual hardware acceptance remain open.
 - [ ] MobileTabBar — top scrollable tab strip with badge support
 - [ ] MobileDrawer — side navigation drawer with overlay scrim
 - [ ] MobileCarousel — horizontal paging with dot indicators
@@ -341,7 +347,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] Add Gallery "Mobile" page for all 15 P3 mobile_* builders — examples/evidence through ROADMAP 029; complete presence and retained-root inventory verified in ROADMAP 030. This does not claim demos or interaction acceptance for the five other legacy mobile composites.
 - [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
-- [x] Document source-module inventory in both READMEs (199 modules; excludes `mod.rs`, does not imply interactive completeness)
+- [x] Document public component-module inventory in both READMEs (200 after ROADMAP 034; counted from eight category mod.rs declarations, excluding test/support modules; does not imply interactive completeness). Historical pre-SwipeActions count was 199.
 
 ## P6 — shadcn/ui alignment (2026-07-21)
 

@@ -46,6 +46,8 @@ mod action_examples;
 mod fab;
 mod snackbar;
 use snackbar::SnackbarDemo;
+mod swipe_actions;
+use swipe_actions::SwipeDemo;
 #[path = "mobile_list_item.rs"]
 mod list_examples;
 
@@ -145,6 +147,10 @@ enum GalleryMessage {
     SnackbarShow(bool),
     SnackbarAction,
     SnackbarDismiss,
+    SwipeToggle,
+    SwipeRestore,
+    SwipeArchive,
+    SwipeDelete,
 }
 
 // ── Theme preference persistence ────────────────────────────────────────────
@@ -213,6 +219,7 @@ struct Gallery {
     list_details: bool,
     fab_status: &'static str,
     snackbar: SnackbarDemo,
+    swipe: SwipeDemo,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -256,6 +263,7 @@ impl Gallery {
             list_details: true,
             fab_status: "none",
             snackbar: SnackbarDemo::new(),
+            swipe: SwipeDemo::new(),
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -836,6 +844,7 @@ impl Gallery {
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
+            .child(self.page_section("Swipe Actions — reveal then choose", self.swipe_examples()))
             .child(self.page_section("Snackbar — timed bottom message", self.snackbar_examples()))
             .child(self.page_section("Floating Action Buttons — mini, normal, extended", self.fab_examples()))
             .child(self.page_section("Mobile Sheet Handles", self.sheet_handle_examples()))
@@ -1221,9 +1230,15 @@ impl Gallery {
                     self.list_focus = None;
                     self.search.blur();
                     self.search.rect = None;
+                    self.swipe.cancel_pointer();
+                    self.swipe.keyboard = false;
                 }
                 true
             }
+            message @ (GalleryMessage::SwipeToggle
+            | GalleryMessage::SwipeRestore
+            | GalleryMessage::SwipeArchive
+            | GalleryMessage::SwipeDelete) => self.dispatch_swipe(message),
             GalleryMessage::SnackbarShow(with_action) => {
                 self.snackbar.show(std::time::Instant::now(), with_action);
                 self.pressed = None;
@@ -1369,6 +1384,11 @@ impl Application for Gallery {
         if overlay_pointer && matches!(event, PlatformEvent::PointerButton { pressed: true, .. }) {
             self.search.blur();
         }
+        if self.selected_category == 7 && (!overlay_pointer || self.swipe.pointer.is_some()) {
+            if let Some(changed) = self.swipe_event(&event) {
+                return changed;
+            }
+        }
         if self.selected_category == 7 && !overlay_pointer {
             if let Some(changed) = self.list_item_event(&event) {
                 return changed;
@@ -1505,6 +1525,14 @@ impl Application for Gallery {
             .unwrap_or(0.0);
         self.scroll = self.scroll.clamp(0.0, self.max_scroll);
 
+        self.sync_swipe_bounds(
+            &description,
+            &root,
+            &snapshot,
+            snapshot
+                .get(ids.scroll_view)
+                .map(|r| [r.x, r.y, r.width, r.height]),
+        );
         let colors = theme.colors;
 
         // 10. Build frame
@@ -2647,3 +2675,6 @@ mod fab_tests;
 
 #[cfg(test)]
 mod snackbar_tests;
+
+#[cfg(test)]
+mod swipe_actions_tests;

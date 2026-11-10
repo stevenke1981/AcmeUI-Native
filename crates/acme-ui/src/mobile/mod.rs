@@ -22,6 +22,7 @@ pub mod mobile_stepper;
 pub mod mobile_toggle;
 pub mod pull_to_refresh;
 pub mod search_bar;
+pub mod swipe_actions;
 
 pub use action_sheet::*;
 pub use bottom_nav::*;
@@ -43,6 +44,7 @@ pub use mobile_stepper::*;
 pub use mobile_toggle::*;
 pub use pull_to_refresh::*;
 pub use search_bar::*;
+pub use swipe_actions::*;
 
 #[cfg(test)]
 mod mobile_contract_tests;

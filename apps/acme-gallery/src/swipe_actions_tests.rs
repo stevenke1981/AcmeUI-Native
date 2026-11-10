@@ -1,0 +1,232 @@
+use super::*;
+use acme_platform::PlatformKey;
+fn frame(g: &mut Gallery) {
+    g.frame(FrameContext {
+        window: WindowId(1),
+        logical_width: 1100.0,
+        logical_height: 1100.0,
+        scale_factor: 1.0,
+    });
+}
+fn button(g: &mut Gallery, x: f32, y: f32, pressed: bool, pointer: u64) {
+    g.event(PlatformEvent::PointerMoved {
+        window: WindowId(1),
+        x,
+        y,
+    });
+    g.event(PlatformEvent::PointerButton {
+        window: WindowId(1),
+        x,
+        y,
+        pressed,
+        pointer,
+        button: 0,
+        shift: false,
+        ctrl: false,
+        alt: false,
+    });
+}
+fn click(g: &mut Gallery, message: GalleryMessage) {
+    let hit = g.button_info.iter().find(|h| h.message == message).unwrap();
+    let r = hit.rect;
+    let scroll = if hit.scrolled { g.scroll } else { 0.0 };
+    let (x, y) = (r[0] + r[2] / 2.0, r[1] + r[3] / 2.0 - scroll);
+    button(g, x, y, true, 7);
+    button(g, x, y, false, 7);
+}
+fn drag(g: &mut Gallery, dx: f32, dy: f32) {
+    let r = g.swipe.rect.unwrap();
+    let (x, y) = (r[0] + 20.0, r[1] + 20.0 - g.scroll);
+    button(g, x, y, true, 7);
+    button(g, x + dx, y + dy, false, 7);
+}
+fn key(g: &mut Gallery, key: PlatformKey) {
+    g.event(PlatformEvent::Key {
+        window: WindowId(1),
+        key,
+        pressed: true,
+        shift: false,
+        ctrl: false,
+        alt: false,
+        meta: false,
+        repeat: false,
+        text: None,
+        character: None,
+    });
+}
+#[test]
+fn real_pointer_reveal_close_archive_delete_and_restore_never_fire_on_swipe() {
+    let mut g = Gallery::new();
+    frame(&mut g);
+    assert!(g.button_info.iter().all(|h| !matches!(
+        h.message,
+        GalleryMessage::SwipeArchive | GalleryMessage::SwipeDelete
+    )));
+    drag(&mut g, -80.0, 0.0);
+    assert!(g.swipe.state.revealed() && g.swipe.visible);
+    assert_eq!(g.swipe.status, "revealed");
+    frame(&mut g);
+    drag(&mut g, 80.0, 0.0);
+    assert!(!g.swipe.state.revealed());
+    frame(&mut g);
+    click(&mut g, GalleryMessage::SwipeToggle);
+    frame(&mut g);
+    click(&mut g, GalleryMessage::SwipeArchive);
+    assert!(!g.swipe.visible && g.swipe.status == "archived");
+    frame(&mut g);
+    assert!(g.swipe.rect.is_none());
+    click(&mut g, GalleryMessage::SwipeRestore);
+    frame(&mut g);
+    drag(&mut g, -80.0, 0.0);
+    frame(&mut g);
+    click(&mut g, GalleryMessage::SwipeDelete);
+    assert!(!g.swipe.visible && g.swipe.status == "deleted");
+    frame(&mut g);
+    assert!(g.button_info.iter().all(|h| !matches!(
+        h.message,
+        GalleryMessage::SwipeArchive | GalleryMessage::SwipeDelete
+    )));
+}
+#[test]
+fn vertical_cancel_and_unmatched_pointer_release_preserve_the_item() {
+    let mut g = Gallery::new();
+    frame(&mut g);
+    drag(&mut g, -80.0, 90.0);
+    assert!(!g.swipe.state.revealed());
+    for cancel in [
+        PlatformEvent::PointerLeft {
+            window: WindowId(1),
+        },
+        PlatformEvent::FocusChanged {
+            window: WindowId(1),
+            gained: false,
+            node_id: 0,
+        },
+        PlatformEvent::Scroll {
+            window: WindowId(1),
+            delta_x: 0.0,
+            delta_y: 0.0,
+            lines: false,
+            x: 400.0,
+            y: 300.0,
+        },
+    ] {
+        frame(&mut g);
+        let r = g.swipe.rect.unwrap();
+        let (x, y) = (r[0] + 100.0, r[1] + 20.0);
+        button(&mut g, x, y, true, 7);
+        g.event(PlatformEvent::PointerMoved {
+            window: WindowId(1),
+            x: x - 80.0,
+            y,
+        });
+        g.event(cancel);
+        button(&mut g, x - 80.0, y, false, 7);
+        assert!(g.swipe.pointer.is_none() && !g.swipe.state.revealed() && g.swipe.visible);
+        assert!(g.pressed.is_none());
+    }
+    let r = g.swipe.rect.unwrap();
+    let (x, y) = (r[0] + 100.0, r[1] + 20.0);
+    button(&mut g, x, y, true, 7);
+    button(&mut g, x - 80.0, y, false, 8);
+    assert_eq!(g.swipe.pointer, Some(7));
+    assert!(!g.swipe.state.revealed());
+    button(&mut g, x - 80.0, y, false, 7);
+    assert!(g.swipe.state.revealed());
+}
+#[test]
+fn keyboard_alternative_is_scoped_and_does_not_steal_composition() {
+    let mut g = Gallery::new();
+    frame(&mut g);
+    g.search.input.preedit = "注".into();
+    key(&mut g, PlatformKey::Function(7));
+    assert!(!g.swipe.state.revealed());
+    g.search.input.preedit.clear();
+    key(&mut g, PlatformKey::Function(7));
+    assert_eq!(g.scroll, 0.0, "visible row must not force a scroll");
+    assert!(g.swipe.state.revealed());
+    key(&mut g, PlatformKey::Escape);
+    assert!(!g.swipe.state.revealed());
+    key(&mut g, PlatformKey::Function(7));
+    key(&mut g, PlatformKey::Enter);
+    assert_eq!(g.swipe.status, "archived");
+    frame(&mut g);
+    click(&mut g, GalleryMessage::SwipeRestore);
+    frame(&mut g);
+    key(&mut g, PlatformKey::Function(7));
+    key(&mut g, PlatformKey::Delete);
+    assert_eq!(g.swipe.status, "deleted");
+}
+#[test]
+fn swipe_action_paint_indices_states_theme_and_clips_match_hits() {
+    let mut g = Gallery::new();
+    g.swipe.state.set_revealed(true);
+    for pack in ["default", "apple"] {
+        g.theme_pack = pack.into();
+        for dark in [false, true] {
+            g.dark = dark;
+            let theme = g.current_theme();
+            for scale in [1.0, 1.25, 2.0] {
+                let widget = column().width(520.0).child(g.swipe_examples()).build();
+                let context = WidgetLayoutContext {
+                    body_font_size: theme.typography.body,
+                    body_line_height: theme.typography.body * theme.typography.line_height,
+                    label_font_size: theme.typography.label,
+                    control_height: 36.0,
+                    scale_factor: scale,
+                };
+                let layout = widget.to_layout_with_context(NodeId::new(1), &context);
+                let snapshot = g
+                    .layout
+                    .compute_with_text(&layout, (520.0, 1000.0), &mut g.fonts, scale)
+                    .unwrap();
+                let mut hits = Vec::new();
+                collect_hit_regions(&widget, &layout, &snapshot, true, &mut hits);
+                assert_eq!(
+                    hits.iter().map(|h| h.message).collect::<Vec<_>>(),
+                    vec![
+                        GalleryMessage::SwipeToggle,
+                        GalleryMessage::SwipeRestore,
+                        GalleryMessage::SwipeArchive,
+                        GalleryMessage::SwipeDelete
+                    ]
+                );
+                let mut frame = Frame::default();
+                let mut index = 0;
+                let clip = [0.0, 8.0, 520.0, 800.0];
+                render_content(
+                    &mut frame,
+                    &widget,
+                    &layout,
+                    &snapshot,
+                    &theme,
+                    scale,
+                    5.0,
+                    clip,
+                    &mut index,
+                    Some(3),
+                    Some(2),
+                    &mut g.fonts,
+                    &mut g.atlas,
+                );
+                assert_eq!(index, 4);
+                assert!(frame.clipped_quads.iter().all(|q| q.clip == clip));
+                let actions: Vec<_> = frame
+                    .clipped_quads
+                    .iter()
+                    .filter(|q| q.quad.rect[2] == 72.0 && q.quad.rect[3] == 44.0)
+                    .collect();
+                assert_eq!(actions.len(), 2);
+                assert_eq!(actions[0].quad.color, rgba(theme.colors.ghost_pressed));
+                assert_eq!(actions[1].quad.color, rgba(theme.colors.danger_hover));
+                assert!(
+                    frame
+                        .text
+                        .iter()
+                        .all(|t| fab_tests::clip_within(t.clip, clip)
+                            && !t.prepared.glyphs.is_empty())
+                );
+            }
+        }
+    }
+}

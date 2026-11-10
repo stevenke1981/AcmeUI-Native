@@ -1,0 +1,86 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.57s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 62 tests
+test fab_tests::passive_buttons_never_acquire_hover_or_press_from_absent_hit_indices ... ok
+test mobile_avatar_tests::explicit_single_line_alignment_uses_existing_style_and_bounds_long_text ... ok
+test mobile_avatar_tests::avatars_paint_themed_circles_before_centered_clipped_initials ... ok
+test mobile_avatar_tests::mobile_page_has_all_avatar_sizes_placeholder_and_complete_binding ... ok
+test fab_tests::fab_examples_paint_live_shapes_elevation_clips_and_correct_action_indices ... ok
+test mobile_banner_tests::all_banner_tones_paint_before_text_with_theme_tokens_and_viewport_clips ... ok
+test mobile_card_tests::a_card_surface_is_painted_before_its_interactive_media ... ok
+test mobile_card_tests::mobile_page_has_all_card_variants_and_media_before_text ... ok
+test mobile_action_tests::action_paint_indices_semantic_label_colours_and_clips_follow_live_theme ... ok
+test mobile_action_tests::pointer_actions_dispatch_and_disabled_rows_have_no_hit ... ok
+test fab_tests::gallery_fab_pointer_press_release_and_cancel_dispatch_once ... ok
+test mobile_chip_tests::chip_surface_precedes_actions_and_keeps_theme_and_scroll_clips ... ok
+test mobile_card_tests::card_surfaces_use_theme_tokens_and_keep_the_viewport_clip_when_scrolled ... ok
+test mobile_list_item_tests::list_row_hits_and_paint_indices_preserve_following_buttons_theme_and_scroll_clips ... ok
+test mobile_loader_tests::gallery_label_paint_respects_existing_wrap_modes_and_line_height ... ok
+test mobile_loader_tests::loader_messages_paint_multiple_lines_with_themed_foreground_and_scroll_clips ... ok
+test mobile_list_item_tests::keyboard_scrolled_page_text_retains_the_viewport_clip_in_the_actual_scene ... ok
+test mobile_loader_tests::mobile_page_has_distinct_indicator_short_and_long_message_examples ... ok
+test mobile_notification_tests::host_deadline_boundaries_restart_and_manual_cancel_are_deterministic ... ok
+test mobile_contract_tests::all_fifteen_p3_builders_have_gallery_examples_with_stable_bound_roots ... ok
+test mobile_notification_tests::notification_surface_text_and_actions_keep_themed_paint_order_and_scroll_clips ... ok
+test mobile_progress_tests::mobile_page_exposes_empty_partial_and_complete_progress_with_readable_labels ... ok
+test mobile_progress_tests::progress_paints_track_before_fill_with_semantic_colours_and_viewport_clips ... ok
+test mobile_progress_tests::shaped_percentage_glyphs_stay_below_the_progress_track ... ok
+test mobile_progress_tests::stepper_activation_rebuilds_quantity_progress ... ok
+test mobile_banner_tests::banner_action_dismiss_and_restore_use_actual_pointer_dispatch_and_keep_other_tones ... ok
+test mobile_list_item_tests::gallery_list_keyboard_navigation_activation_reorder_and_composition_guard_use_real_events ... ok
+test mobile_notification_tests::asynchronous_expiry_cancels_pointer_press_and_hover_before_rebuilding_hits ... ok
+test mobile_chip_tests::chip_examples_have_complete_binding_and_filter_identity_survives_other_chip_removal ... ok
+test mobile_search_tests::search_action_labels_are_centered_inside_their_touch_targets ... ok
+test mobile_search_tests::preedit_blocks_submission_and_category_changes_blur_and_reject_late_commits ... ok
+test mobile_sheet_handle_tests::sheet_handles_paint_live_themed_rounded_bars_without_hits_or_index_drift ... ok
+test mobile_chip_tests::chip_tap_dismiss_restore_and_filter_use_actual_pointer_dispatch ... ok
+test mobile_search_tests::keyboard_focus_visits_input_search_clear_in_both_directions ... ok
+test retained_tests::actual_sidebar_keys_survive_insertion_and_reorder ... ok
+test retained_tests::category_replacement_keeps_chrome_ids_and_replaces_page_identity ... ok
+test retained_tests::duplicate_sidebar_key_falls_back_and_next_valid_frame_recovers ... ok
+test retained_tests::every_category_has_complete_binding_and_unique_retained_layout_ids ... ok
+test retained_tests::partial_binding_uses_sequential_ids_for_the_entire_layout ... ok
+test mobile_notification_tests::notification_actions_dismiss_show_and_expiry_clear_hits_without_replacing_other_cards ... ok
+test mobile_search_tests::tab_reveals_an_offscreen_search_field ... ok
+test snackbar_tests::snackbar_deadlines_restart_cancel_and_expire_once ... ok
+test retained_tests::repeated_frames_and_theme_pack_transitions_preserve_all_ids ... ok
+test mobile_search_tests::pointer_edit_submit_clear_and_undo_use_the_real_gallery_event_path ... ok
+test retained_tests::mobile_message_updates_keep_ids_and_disabled_button_out_of_hits ... ok
+test mobile_list_item_tests::list_rows_dispatch_pointer_taps_and_keep_identity_after_detail_changes_and_reordering ... ok
+test swipe_actions_tests::swipe_action_paint_indices_states_theme_and_clips_match_hits ... ok
+test retained_tests::real_frames_keep_hits_and_drawn_buttons_on_the_retained_geometry ... ok
+test tests::disabled_button_renders_without_consuming_hit_index ... ok
+test tests::interactive_button_consumes_hit_index ... ok
+test tests::mobile_controls_dispatch_and_rebuild_their_state ... ok
+test tests::mobile_stepper_limits_do_not_leave_ghost_hit_indices ... ok
+test swipe_actions_tests::keyboard_alternative_is_scoped_and_does_not_steal_composition ... FAILED
+test tests::mobile_toggle_frame_contains_themed_track_and_thumb ... ok
+test tests::mobile_toggle_paint_keeps_the_scroll_view_clip ... ok
+test tests::sidebar_ids_follow_category_catalog ... ok
+test swipe_actions_tests::vertical_cancel_and_unmatched_pointer_release_preserve_the_item ... ok
+test snackbar_tests::snackbar_pointer_action_plain_dismiss_and_async_expiry_use_real_host ... ok
+test swipe_actions_tests::real_pointer_reveal_close_archive_delete_and_restore_never_fire_on_swipe ... ok
+test retained_tests::retained_layout_preserves_computed_geometry_in_all_categories_and_modes ... ok
+test snackbar_tests::snackbar_is_bottom_fixed_clipped_above_page_and_blocks_click_through ... ok
+test mobile_search_tests::long_query_scrolls_and_paints_inside_viewport_across_themes_and_scales ... ok
+
+failures:
+
+---- swipe_actions_tests::keyboard_alternative_is_scoped_and_does_not_steal_composition stdout ----
+
+thread 'swipe_actions_tests::keyboard_alternative_is_scoped_and_does_not_steal_composition' panicked at apps/acme-gallery/src/swipe_actions_tests.rs:157:5:
+assertion `left == right` failed
+  left: "archived"
+ right: "deleted"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    swipe_actions_tests::keyboard_alternative_is_scoped_and_does_not_steal_composition
+
+test result: FAILED. 61 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.25s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`
