@@ -2521,3 +2521,6 @@ mod mobile_action_tests;
 
 #[cfg(test)]
 mod mobile_sheet_handle_tests;
+
+#[cfg(test)]
+mod mobile_contract_tests;
