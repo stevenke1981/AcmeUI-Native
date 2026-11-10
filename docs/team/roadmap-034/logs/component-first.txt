@@ -1,0 +1,14 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.66s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-085665444b7a57a5)
+
+running 6 tests
+test mobile::swipe_actions::tests::gestures_require_begin_dead_zone_and_directional_release_threshold ... ok
+test mobile::swipe_actions::tests::vertical_cancel_and_nonfinite_sequences_never_change_visibility ... ok
+test mobile::swipe_actions::tests::controlled_actions_are_optional_keyed_and_never_fire_on_reveal ... ok
+test mobile::mobile_contract_tests::swipe_actions ... ok
+test mobile::swipe_actions::tests::content_ids_survive_reveal_optional_actions_and_instance_reorder ... ok
+test mobile::swipe_actions::tests::wrapping_list_and_trailing_action_targets_fit_real_layouts ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 337 filtered out; finished in 0.20s
+
