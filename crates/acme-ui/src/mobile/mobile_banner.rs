@@ -1,7 +1,11 @@
 //! Mobile banner — full-width alert with icon, text, and optional action.
+//!
+//! Text wraps at character boundaries; tone surfaces resolve from the live theme.
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_layout::Length;
+use acme_widgets::style::{ColorToken, Styled};
 
 /// Tone for the banner alert.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -71,20 +75,51 @@ impl<M: Clone + 'static> MobileBannerBuilder<M> {
 
 impl<M: Clone + 'static> From<MobileBannerBuilder<M>> for WidgetNode<M> {
     fn from(b: MobileBannerBuilder<M>) -> Self {
-        let icon = crate::label(b.tone.icon_char());
+        let id = b.id.as_str();
+        let background = match b.tone {
+            MobileBannerTone::Info => ColorToken::InfoSoft,
+            MobileBannerTone::Success => ColorToken::SuccessSoft,
+            MobileBannerTone::Warning => ColorToken::WarningSoft,
+            MobileBannerTone::Danger => ColorToken::DangerSoft,
+        };
+        let icon = crate::label_builder(b.tone.icon_char())
+            .w(Length::px(20.0))
+            .flex_shrink(0.0)
+            .build();
         let mut row = crate::row::<M>()
-            .key(b.id)
+            .key(b.id.clone())
+            .w(Length::Percent(1.0))
+            .bg(background)
+            .rounded(8.0)
             .gap(8.0)
             .padding(12.0)
             .child(icon)
-            .child(crate::label(b.text));
+            .child(
+                crate::label_builder(b.text)
+                    .wrap(crate::LabelWrap::Character)
+                    .min_w(Length::px(0.0))
+                    .flex_1()
+                    .flex_shrink(1.0)
+                    .build(),
+            );
 
         if let (Some(label), Some(msg)) = (b.action_label, b.on_action) {
-            let btn = crate::button("banner_action", label).on_click(msg);
+            let btn = crate::button(format!("{id}__action"), label)
+                .variant(crate::ButtonVariant::Ghost)
+                .h(Length::px(44.0))
+                .min_h(Length::px(44.0))
+                .flex_shrink(0.0)
+                .on_click(msg);
             row = row.child(btn);
         }
         if let Some(msg) = b.on_dismiss {
-            let close = crate::button("banner_close", "✕").on_click(msg);
+            let close = crate::button(format!("{id}__dismiss"), "✕")
+                .variant(crate::ButtonVariant::Ghost)
+                .w(Length::px(44.0))
+                .h(Length::px(44.0))
+                .min_h(Length::px(44.0))
+                .flex_shrink(0.0)
+                .on_click(msg);
             row = row.child(close);
         }
         row.build()
@@ -92,40 +127,5 @@ impl<M: Clone + 'static> From<MobileBannerBuilder<M>> for WidgetNode<M> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Clone, Debug, PartialEq)]
-    enum Msg {
-        Act,
-        Close,
-    }
-
-    #[test]
-    fn mobile_banner_produces_row() {
-        let node: WidgetNode<Msg> = mobile_banner("Update available").into();
-        assert!(matches!(node, WidgetNode::Row(_)));
-    }
-
-    #[test]
-    fn mobile_banner_has_icon_and_text() {
-        let node: WidgetNode<Msg> = mobile_banner("Hello").into();
-        let WidgetNode::Row(r) = &node else {
-            panic!("expected Row");
-        };
-        assert_eq!(r.children.len(), 2);
-    }
-
-    #[test]
-    fn mobile_banner_with_action_and_dismiss() {
-        let node: WidgetNode<Msg> = mobile_banner("Err")
-            .tone(MobileBannerTone::Danger)
-            .action("Retry", Msg::Act)
-            .on_dismiss(Msg::Close)
-            .into();
-        let WidgetNode::Row(r) = &node else {
-            panic!("expected Row");
-        };
-        assert_eq!(r.children.len(), 4);
-    }
-}
+#[path = "mobile_banner_tests.rs"]
+mod tests;

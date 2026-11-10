@@ -1,0 +1,11 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.05s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 2 tests
+test mobile_banner_tests::all_banner_tones_paint_before_text_with_theme_tokens_and_viewport_clips ... ok
+test mobile_banner_tests::banner_action_dismiss_and_restore_use_actual_pointer_dispatch_and_keep_other_tones ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 38 filtered out; finished in 0.47s
+

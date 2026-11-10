@@ -1,0 +1,24 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.72s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_banner::tests::defaults_tones_and_public_optional_fields_preserve_separate_actions ... ok
+test mobile::mobile_banner::tests::retained_text_and_dismiss_survive_action_insertion_and_instance_reordering ... ok
+test mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions ... FAILED
+
+failures:
+
+---- mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions stdout ----
+
+thread 'mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions' panicked at crates/acme-ui/src/mobile/mobile_banner_tests.rs:119:21:
+assertion failed: rect.x >= root.x + 12.0 && rect.x + rect.width <= root.x + root.width - 11.0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 776 filtered out; finished in 0.08s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

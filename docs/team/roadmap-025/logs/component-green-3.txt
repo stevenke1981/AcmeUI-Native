@@ -1,0 +1,11 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.93s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_banner::tests::defaults_tones_and_public_optional_fields_preserve_separate_actions ... ok
+test mobile::mobile_banner::tests::retained_text_and_dismiss_survive_action_insertion_and_instance_reordering ... ok
+test mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 776 filtered out; finished in 0.06s
+
