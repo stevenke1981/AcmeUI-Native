@@ -1,5 +1,12 @@
 # Todos
 
+## ROADMAP 025 — mobile banner acceptance (2026-11-10)
+
+- [x] Add full-width semantic soft status surfaces, Unicode wrapping and separate instance-keyed 44 px action/dismiss buttons; preserve the builder API.
+- [x] Cover optional/public fields, four tones, narrow/wide real layout, retained IDs and Gallery pointer action/dismiss/restore; capture native CPU windows.
+- [x] Locked all-feature/mobile-only UI and Gallery tests, strict Clippy, actual CPU profile and workspace milestone gates; see [report](../team/roadmap-025/REPORT.md).
+- [ ] Manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 024 — mobile avatar acceptance (2026-11-09)
 
 - [x] Add circular themed avatars, 32/40/56 px sizes, centered Unicode initials and an empty-name placeholder without expanding the public API.
@@ -252,7 +259,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] mobile_segmented — selected N-segment row and on_select; ROADMAP 014 behavior/hit/accessibility/mutation evidence preserved, historical Clippy gate reverified PASS in ROADMAP 022. Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_chip — compact themed tag, selected marker and optional close action; separate tap/dismiss messages, retained/layout tests and native CPU Gallery evidence (ROADMAP 023). Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_avatar — circular themed initials / neutral empty-name placeholder, 32/40/56 px variants; retained/layout/paint tests and native CPU Gallery evidence (ROADMAP 024). Actual image loading is outside this builder; manual hardware acceptance remains NOT_RUN.
-- [ ] mobile_banner — full-width alert with icon + text + optional action
+- [x] mobile_banner — full-width themed soft alert with icon, wrapping text and optional independent action/dismiss; retained/layout/Gallery tests and native CPU evidence (ROADMAP 025). Manual hardware acceptance remains NOT_RUN.
 - [ ] mobile_notification — toast-style card with title + body + auto-dismiss hint
 - [ ] mobile_list_item — title + detail + optional trailing icon, on_tap
 - [ ] mobile_action — tappable action row with icon + label + destructive flag
@@ -270,6 +277,8 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [ ] MobileRefreshIndicator — pull-to-refresh spinner overlay (extend pull_to_refresh)
 
 ## P5 — Architecture & quality improvements (CBM audit)
+
+- [ ] Reconcile `Styled::w_full()` percentage units with `Length::Percent`: ROADMAP 025 observed 24000 px for a 240 px root; components use the layout engine's existing `Percent(1.0)` convention. General style helper migration is outside that slice.
 
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)

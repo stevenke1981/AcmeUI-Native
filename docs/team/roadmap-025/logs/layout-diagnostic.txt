@@ -1,0 +1,22 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.25s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 1 test
+test mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions ... FAILED
+
+failures:
+
+---- mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions stdout ----
+
+thread 'mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions' panicked at crates/acme-ui/src/mobile/mobile_banner_tests.rs:119:21:
+width=240, actions=false, text="正在更新資料，請稍候，完成後即可繼續使用應用程式。", root=LayoutRect { x: 0.0, y: 0.0, width: 240.0, height: 45.0 }, child=LayoutRect { x: 40.0, y: 12.0, width: 350.0, height: 21.0 }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 778 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

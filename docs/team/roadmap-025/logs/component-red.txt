@@ -1,0 +1,35 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.86s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_banner::tests::defaults_tones_and_public_optional_fields_preserve_separate_actions ... FAILED
+test mobile::mobile_banner::tests::retained_text_and_dismiss_survive_action_insertion_and_instance_reordering ... ok
+test mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions ... FAILED
+
+failures:
+
+---- mobile::mobile_banner::tests::defaults_tones_and_public_optional_fields_preserve_separate_actions stdout ----
+
+thread 'mobile::mobile_banner::tests::defaults_tones_and_public_optional_fields_preserve_separate_actions' panicked at crates/acme-ui/src/mobile/mobile_banner_tests.rs:47:21:
+assertion `left == right` failed
+  left: None
+ right: Some(InfoSoft)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions stdout ----
+
+thread 'mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions' panicked at crates/acme-ui/src/mobile/mobile_banner_tests.rs:86:17:
+assertion `left == right` failed
+  left: 36.0
+ right: 240.0
+
+
+failures:
+    mobile::mobile_banner::tests::defaults_tones_and_public_optional_fields_preserve_separate_actions
+    mobile::mobile_banner::tests::full_width_long_unicode_text_wraps_without_overlapping_actions
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 776 filtered out; finished in 1.36s
+
+error: test failed, to rerun pass `-p acme-ui --lib`
