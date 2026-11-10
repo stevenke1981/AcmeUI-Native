@@ -402,12 +402,13 @@
       },
       {
         "captured_at": "2026-11-10T17:19:12.290195+00:00",
-        "path": "docs/team/roadmap-032/gallery-mobile-fab-create.png",
+        "path": "docs/team/roadmap-032/gallery-mobile-fab-missed-click.png",
         "dimensions": [
           1100,
           1100
         ],
-        "sha256": "59289709b9a8e3976aa1c26eb2462368af3826b7d24c1acfada942b7b955932b"
+        "sha256": "59289709b9a8e3976aa1c26eb2462368af3826b7d24c1acfada942b7b955932b",
+        "original_path": "docs/team/roadmap-032/gallery-mobile-fab-create.png"
       }
     ],
     "environment": {
@@ -422,7 +423,8 @@
     "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "capture": "PIL.ImageGrab.grab(xdisplay=display)",
     "cwd": "/workspace/AcmeUI-Native/target/roadmap-032/native-cwd",
-    "original_log": "/workspace/AcmeUI-Native/target/roadmap-032/native-window.txt"
+    "original_log": "/workspace/AcmeUI-Native/target/roadmap-032/native-window.txt",
+    "visual_action_result": "NOT_ACCEPTED: click missed the button; no status change"
   },
   "native-window": {
     "script_argv": [
@@ -508,7 +510,8 @@
     "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "capture": "PIL.ImageGrab.grab(xdisplay=display)",
     "cwd": "/workspace/AcmeUI-Native/target/roadmap-032/native-cwd",
-    "original_log": "/workspace/AcmeUI-Native/target/roadmap-032/native-window.txt"
+    "original_log": "/workspace/AcmeUI-Native/target/roadmap-032/native-window.txt",
+    "visual_review": "Author image inspection PASS: status create; human sign-off NOT_RUN"
   },
   "cpu_profile": {
     "schema_version": 1,
