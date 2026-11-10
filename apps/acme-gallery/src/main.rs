@@ -1148,7 +1148,7 @@ impl Gallery {
         if let WidgetNode::Label(label) = &mut text {
             label.style.text_color = Some(acme_widgets::style::ColorToken::PrimaryForeground);
         }
-        column()
+        row()
             .key("full_sizing_parent")
             .w(Length::px(240.0))
             .h(Length::px(96.0))
@@ -1156,7 +1156,7 @@ impl Gallery {
             .bg_muted()
             .flex_shrink(0.0)
             .child(
-                column()
+                row()
                     .key("full_sizing_child")
                     .w_full()
                     .h_full()
