@@ -1,0 +1,42 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+warning: function `row_action` is never used
+ --> apps/acme-gallery/src/mobile_action.rs:3:15
+  |
+3 | pub(super) fn row_action(widget: &WidgetNode<GalleryMessage>) -> Option<GalleryMessage> {
+  |               ^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: `acme-ui-gallery` (bin "acme-ui-gallery" test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.83s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 2 tests
+test mobile_action_tests::action_paint_indices_semantic_label_colours_and_clips_follow_live_theme ... FAILED
+test mobile_action_tests::pointer_actions_dispatch_and_disabled_rows_have_no_hit ... FAILED
+
+failures:
+
+---- mobile_action_tests::action_paint_indices_semantic_label_colours_and_clips_follow_live_theme stdout ----
+
+thread 'mobile_action_tests::action_paint_indices_semantic_label_colours_and_clips_follow_live_theme' panicked at apps/acme-gallery/src/mobile_action_tests.rs:102:17:
+assertion `left == right` failed
+  left: 1
+ right: 3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile_action_tests::pointer_actions_dispatch_and_disabled_rows_have_no_hit stdout ----
+
+thread 'mobile_action_tests::pointer_actions_dispatch_and_disabled_rows_have_no_hit' panicked at apps/acme-gallery/src/mobile_action_tests.rs:14:5:
+assertion `left == right` failed
+  left: 0
+ right: 2
+
+
+failures:
+    mobile_action_tests::action_paint_indices_semantic_label_colours_and_clips_follow_live_theme
+    mobile_action_tests::pointer_actions_dispatch_and_disabled_rows_have_no_hit
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 48 filtered out; finished in 0.24s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

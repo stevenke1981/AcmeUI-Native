@@ -1,0 +1,11 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.45s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_action::tests::defaults_and_public_states_control_activation_and_semantic_colours ... ok
+test mobile::mobile_action::tests::keyed_label_identity_survives_icon_state_and_instance_reorder ... ok
+test mobile::mobile_action::tests::narrow_and_wide_real_layouts_wrap_without_icon_overlap ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 774 filtered out; finished in 0.06s
+

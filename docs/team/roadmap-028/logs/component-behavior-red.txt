@@ -1,0 +1,40 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.11s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_action::tests::defaults_and_public_states_control_activation_and_semantic_colours ... FAILED
+test mobile::mobile_action::tests::keyed_label_identity_survives_icon_state_and_instance_reorder ... FAILED
+test mobile::mobile_action::tests::narrow_and_wide_real_layouts_wrap_without_icon_overlap ... FAILED
+
+failures:
+
+---- mobile::mobile_action::tests::defaults_and_public_states_control_activation_and_semantic_colours stdout ----
+
+thread 'mobile::mobile_action::tests::defaults_and_public_states_control_activation_and_semantic_colours' panicked at crates/acme-ui/src/mobile/mobile_action_tests.rs:26:13:
+assertion `left == right` failed
+  left: None
+ right: Some(Surface)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile::mobile_action::tests::keyed_label_identity_survives_icon_state_and_instance_reorder stdout ----
+
+thread 'mobile::mobile_action::tests::keyed_label_identity_survives_icon_state_and_instance_reorder' panicked at crates/acme-ui/src/mobile/mobile_action_tests.rs:74:121:
+called `Option::unwrap()` on a `None` value
+
+---- mobile::mobile_action::tests::narrow_and_wide_real_layouts_wrap_without_icon_overlap stdout ----
+
+thread 'mobile::mobile_action::tests::narrow_and_wide_real_layouts_wrap_without_icon_overlap' panicked at crates/acme-ui/src/mobile/mobile_action_tests.rs:49:9:
+assertion `left == right` failed
+  left: 366.0
+ right: 180.0
+
+
+failures:
+    mobile::mobile_action::tests::defaults_and_public_states_control_activation_and_semantic_colours
+    mobile::mobile_action::tests::keyed_label_identity_survives_icon_state_and_instance_reorder
+    mobile::mobile_action::tests::narrow_and_wide_real_layouts_wrap_without_icon_overlap
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 774 filtered out; finished in 1.31s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

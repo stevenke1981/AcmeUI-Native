@@ -1,0 +1,13 @@
+   Compiling acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0609]: no field `key` on type `&mut acme_widgets::Label`
+   --> crates/acme-ui/src/mobile/mobile_action.rs:104:15
+    |
+104 |             l.key = Some(label_key.into());
+    |               ^^^ unknown field
+    |
+    = note: available fields are: `text`, `font_size`, `line_height`, `wrap`, `max_lines` ... and 3 others
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `acme-ui` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

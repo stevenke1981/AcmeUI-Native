@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 028 — mobile action acceptance (2026-11-10)
+
+- [x] Honour destructive/disabled states, bounded wrapping labels and stable identity; add themed Gallery actions and pointer/paint regressions.
+- [x] Locked UI/Gallery/mobile tests, strict Clippy, actual CPU profile, workspace milestone gates and native CPU captures; see [report](../team/roadmap-028/REPORT.md).
+- [ ] Generic retained Row focus/typed AccessKit actions remain open; manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 027 — mobile list item acceptance (2026-11-10)
 
 - [x] Add full-width themed rows, wrapping title/detail, fixed trailing icon and stable text keys; preserve existing public fields and Row on_tap messages.
@@ -277,7 +283,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] mobile_banner — full-width themed soft alert with icon, wrapping text and optional independent action/dismiss; retained/layout/Gallery tests and native CPU evidence (ROADMAP 025). Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_notification — themed toast-style card with wrapping title/body, separate actions and Gallery host-owned auto-dismiss/hint; retained/layout/timer tests and native CPU captures (ROADMAP 026). The stateless component schedules no timer itself; manual hardware acceptance remains NOT_RUN.
 - [x] mobile_list_item — responsive themed title/detail row with optional fixed trailing icon and on_tap; retained/layout/Gallery pointer/keyboard tests and native CPU evidence (ROADMAP 027). Framework-wide Row focus/typed semantics remain open; manual hardware acceptance is NOT_RUN.
-- [ ] mobile_action — tappable action row with icon + label + destructive flag
+- [x] mobile_action — themed tappable Row with bounded icon, wrapping stable label, destructive/disabled states and Gallery pointer evidence (ROADMAP 028). Generic Row focus/typed semantics and manual hardware acceptance remain open.
 - [ ] mobile_sheet_handle — drag indicator bar (fixed 36×4 rounded rect)
 - [ ] Unit tests for all 16 modules (layout kind, child count, builder defaults)
 
@@ -297,7 +303,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
-- [ ] Add Gallery "Mobile" page showcasing all mobile components — page exists; buttons, toggle, stepper, segmented, cards, progress, loader, search, chips, avatars, banners, notifications and list items are covered through ROADMAP 027; action and sheet-handle demos remain open.
+- [ ] Add Gallery "Mobile" page showcasing all mobile components — page exists; buttons, toggle, stepper, segmented, cards, progress, loader, search, chips, avatars, banners, notifications and list items are covered through ROADMAP 027; action is covered in ROADMAP 028; sheet-handle demo remains open.
 - [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
 - [x] Document source-module inventory in both READMEs (199 modules; excludes `mod.rs`, does not imply interactive completeness)

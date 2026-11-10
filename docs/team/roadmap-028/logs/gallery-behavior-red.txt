@@ -1,0 +1,12 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+error[E0599]: no function or associated item named `default` found for struct `acme_layout::WidgetLayoutContext` in the current scope
+  --> apps/acme-gallery/src/mobile_action_tests.rs:53:86
+   |
+53 |     let layout = widget.to_layout_with_context(NodeId::new(1), &WidgetLayoutContext::default());
+   |                                                                                      ^^^^^^^ function or associated item not found in `WidgetLayoutContext`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery" test) due to 1 previous error
