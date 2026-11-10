@@ -1,0 +1,10 @@
+use super::*;
+
+#[test]
+fn toast_message_wraps_instead_of_overlapping_its_actions() {
+    let node: WidgetNode<()> = toast("A long message · 這是一則需要換行的通知訊息").into();
+    let WidgetNode::Label(message) = &node.children()[0].children()[1] else {
+        panic!("message Label")
+    };
+    assert_eq!(message.wrap, crate::LabelWrap::Character);
+}

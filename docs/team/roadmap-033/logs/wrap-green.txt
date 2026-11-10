@@ -1,0 +1,13 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.55s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 5 tests
+test overlay::toast::tests::toast_default_tone ... ok
+test overlay::toast::tests::toast_default_duration ... ok
+test overlay::toast::acceptance_tests::toast_message_wraps_instead_of_overlapping_its_actions ... ok
+test overlay::toast::tests::toast_non_dismissible ... ok
+test overlay::toast::tests::toast_has_non_zero_layout_rect ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 793 filtered out; finished in 0.00s
+
