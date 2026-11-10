@@ -55,6 +55,7 @@ fn map_wrap(mode: TextWrapMode) -> TextWrap {
 pub enum Length {
     Auto,
     Px(f32),
+    /// Fraction of the containing block: `1.0` is 100%, `0.5` is 50%.
     Percent(f32),
 }
 impl Length {

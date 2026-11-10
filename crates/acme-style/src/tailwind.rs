@@ -135,11 +135,13 @@ pub mod w {
     }
     /// `w-full` — 100%
     pub const fn full() -> Length {
-        Length::Percent(100.0)
+        Length::Percent(1.0)
     }
-    /// `w-screen` — 100vw
+    /// Parent-relative full width, an alias for [`full`].
+    ///
+    /// AcmeUI has no viewport length unit; this does not mean CSS `100vw`.
     pub const fn screen() -> Length {
-        Length::Percent(100.0)
+        Length::Percent(1.0)
     }
     /// `w-auto`
     pub const fn auto() -> Length {
@@ -197,10 +199,11 @@ pub mod h {
         Length::Px(96.0)
     }
     pub const fn full() -> Length {
-        Length::Percent(100.0)
+        Length::Percent(1.0)
     }
+    /// Parent-relative full height, an alias for [`full`], not CSS `100vh`.
     pub const fn screen() -> Length {
-        Length::Percent(100.0)
+        Length::Percent(1.0)
     }
     pub const fn auto() -> Length {
         Length::Auto
@@ -289,6 +292,6 @@ mod tests {
 
     #[test]
     fn w_full_is_percent() {
-        assert_eq!(w::full(), Length::Percent(100.0));
+        assert_eq!(w::full(), Length::Percent(1.0));
     }
 }

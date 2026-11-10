@@ -595,7 +595,7 @@ impl<M> WidgetNode<M> {
                     ..Default::default()
                 };
                 if v.full_width {
-                    style.width = Length::Percent(100.0);
+                    style.width = Length::Percent(1.0);
                 }
                 v.style.clone().apply_to_layout(&mut style);
                 let font_size = v.style.font_size.unwrap_or(context.label_font_size);
@@ -945,6 +945,35 @@ mod tests {
         assert_eq!(layout.style.padding.left, 10.0);
         assert_eq!(layout.style.padding.right, 10.0);
         assert!(layout.measure.is_some(), "button labels must be measured");
+    }
+
+    #[test]
+    fn full_width_button_fills_the_parent_and_allows_an_explicit_override() {
+        use acme_style::Styled;
+        let context = WidgetLayoutContext {
+            body_font_size: 14.0,
+            body_line_height: 21.0,
+            label_font_size: 13.0,
+            control_height: 36.0,
+            scale_factor: 1.0,
+        };
+        for width in [240.0, 400.0] {
+            for explicit in [false, true] {
+                let mut button = button::<Msg>("full", "Save").full_width(true);
+                if explicit {
+                    button = button.w(Length::px(80.0));
+                }
+                let node = column().width(width).padding(12.0).child(button).build();
+                let layout = node.to_layout_with_context(NodeId::new(1), &context);
+                let snapshot = acme_layout::LayoutEngine::new()
+                    .compute(&layout, (800.0, 600.0))
+                    .unwrap();
+                assert_eq!(
+                    snapshot.get(layout.children[0].id).unwrap().width,
+                    if explicit { 80.0 } else { width - 24.0 }
+                );
+            }
+        }
     }
 
     #[test]

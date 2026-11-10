@@ -68,7 +68,7 @@ pub trait Styled: Sized {
 
     /// `width: 100%`
     fn w_full(self) -> Self {
-        self.w(Length::Percent(100.0))
+        self.w(Length::Percent(1.0))
     }
     /// `width: auto`
     fn w_auto(self) -> Self {
@@ -76,7 +76,7 @@ pub trait Styled: Sized {
     }
     /// `height: 100%`
     fn h_full(self) -> Self {
-        self.h(Length::Percent(100.0))
+        self.h(Length::Percent(1.0))
     }
     /// `height: auto`
     fn h_auto(self) -> Self {
