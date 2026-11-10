@@ -3,7 +3,7 @@
 2026-11-10, Asia/Taipei. Task MOBILE-LIST-ITEM-027, priority P2. Base
 `60b3d7e91094e40ff9ed09b1c234d021b07160c1`, fetched merge of PR #35 after all
 ten hosted checks PASS. Branch `sdk/roadmap-027-mobile-list-item`. Execution
-**single-agent-role-passes** (Lead, UI/UX, Verification), sole writer, author
+**single-agent-role-passes** (Lead, UI/UX, Rendering, Verification), sole writer, author
 self-review; independent review NOT_RUN. Owner authorizes merge after local
 checks, all hosted CI PASS and MERGEABLE. Third/final slice this session.
 
@@ -13,6 +13,13 @@ Gallery only collects Button hit areas, so no list-item on_tap example runs.
 Rows retain generic Group/nonfocusable framework semantics; this slice does not
 claim typed list accessibility or general focus integration. Those remain an
 explicit follow-up, alongside manual screen-reader validation.
+
+Native keyboard scrolling exposed a measured rendering defect: scene_from_frame
+drops TextRun.clip, so text paints over the toolbar despite correct layout and
+Frame clips. Extend the sole-writer lease to the Frame→Scene bridge, with a
+Rendering role pass (contract read). Preserve clips around each text command;
+add Scene/Gallery RED/GREEN and native toolbar pixel comparison. Include locked
+wgpu tests/strict Clippy in the touched-package checks. No Scene contract changes.
 
 Acceptance:
 1. Preserve constructor/public fields/Row root and optional on_tap message. Use
@@ -40,6 +47,7 @@ Exact sole-writer leases:
 - `apps/acme-gallery/src/main.rs` (shared, serialized)
 - `apps/acme-gallery/src/mobile_list_item.rs` (new private helper)
 - `apps/acme-gallery/src/mobile_list_item_tests.rs` (new)
+- `crates/acme-render-wgpu/src/batch.rs` (Frame→Scene clip conversion/tests)
 - `docs/status/todos.md`
 - `docs/agent-team/ROADMAP.md`
 - `docs/team/roadmap-027/BRIEF.md`

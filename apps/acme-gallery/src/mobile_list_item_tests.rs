@@ -70,6 +70,49 @@ fn key(gallery: &mut Gallery, key: acme_platform::PlatformKey, shift: bool) -> b
         character: None,
     })
 }
+
+#[test]
+fn keyboard_scrolled_page_text_retains_the_viewport_clip_in_the_actual_scene() {
+    let mut gallery = Gallery::new();
+    frame(&mut gallery);
+    key(&mut gallery, acme_platform::PlatformKey::Function(6), false);
+    key(&mut gallery, acme_platform::PlatformKey::ArrowDown, false);
+    let scene = gallery.frame(FrameContext {
+        window: WindowId(1),
+        logical_width: 1100.0,
+        logical_height: 1100.0,
+        scale_factor: 1.0,
+    });
+    let (layout, snapshot) = gallery.last_frame_layout.as_ref().unwrap();
+    let r = snapshot
+        .get(extract_gallery_ids(layout).scroll_view)
+        .unwrap();
+    let expected = acme_core::Rect::new(r.x, r.y, r.width, r.height);
+    assert_eq!(r.y, TOOLBAR_HEIGHT);
+    let mut clips = Vec::new();
+    let mut checked = 0;
+    for command in scene.commands() {
+        match command {
+            acme_core::DrawCommand::PushClip(r) => clips.push(*r),
+            acme_core::DrawCommand::PopClip => {
+                clips.pop().unwrap();
+            }
+            acme_core::DrawCommand::Text(t)
+                if t.origin.x.get() >= SIDEBAR_WIDTH && t.origin.y.get() < 0.0 =>
+            {
+                assert_eq!(
+                    clips.last(),
+                    Some(&expected),
+                    "offscreen content must not escape the scroll viewport"
+                );
+                checked += 1;
+            }
+            _ => {}
+        }
+    }
+    assert!(checked > 0);
+    assert!(clips.is_empty());
+}
 #[test]
 fn list_rows_dispatch_pointer_taps_and_keep_identity_after_detail_changes_and_reordering() {
     let mut gallery = Gallery::new();
