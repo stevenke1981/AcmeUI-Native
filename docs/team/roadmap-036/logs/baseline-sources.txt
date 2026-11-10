@@ -1,0 +1,2 @@
+Base 2ad3e8841fff1c591433f92fd7590542cddc5f9f; restored paper.rs from base; new paper_tests.rs unreferenced. All other acme-ui tracked files equal base.
+a59be80d16f54f5dc41e354795492f0553e7e154517688514262a5689af19f72  crates/acme-ui/src/layout/paper.rs

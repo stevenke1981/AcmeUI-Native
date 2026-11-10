@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - Paper square corners (ROADMAP 036, 2026-11-11)
+
+- `PaperBuilder::square(bool)` forces zero corner radius independently of the
+  existing elevation. Default false retains the previous radius, padding,
+  children and outlined/elevated variant. External `PaperBuilder` struct
+  literals must add `square: false` (or use `paper()` and setters); see ADR 0003.
+
 ## Unreleased - Full sizing percentage correction (ROADMAP 035, 2026-11-11)
 
 - `Styled::{w_full,h_full}`, Tailwind `{w,h}::{full,screen}` and
