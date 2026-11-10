@@ -199,14 +199,13 @@ impl<M> WidgetNode<M> {
             Self::Label(l) => {
                 let font_size = l.font_size.unwrap_or(16.0);
                 let line_height = (font_size * 1.5).ceil();
-                LayoutNode::leaf(
-                    id,
-                    LayoutStyle {
-                        min_height: Length::px(line_height),
-                        flex_shrink: 0.0,
-                        ..Default::default()
-                    },
-                )
+                let mut style = LayoutStyle {
+                    min_height: Length::px(line_height),
+                    flex_shrink: 0.0,
+                    ..Default::default()
+                };
+                l.style.clone().apply_to_layout(&mut style);
+                LayoutNode::leaf(id, style)
             }
             Self::TextInput(input) => {
                 let mut style = LayoutStyle {
@@ -572,15 +571,13 @@ impl<M> WidgetNode<M> {
                     wrap: crate::foundations::label::map_label_wrap(l.wrap),
                     max_lines: l.max_lines,
                 };
-                LayoutNode::text_leaf(
-                    id,
-                    LayoutStyle {
-                        min_height: Length::px(min_h),
-                        flex_shrink: 0.0,
-                        ..Default::default()
-                    },
-                    spec,
-                )
+                let mut style = LayoutStyle {
+                    min_height: Length::px(min_h),
+                    flex_shrink: 0.0,
+                    ..Default::default()
+                };
+                l.style.clone().apply_to_layout(&mut style);
+                LayoutNode::text_leaf(id, style, spec)
             }
             Self::TextInput(input) => {
                 let mut style = LayoutStyle {
@@ -1903,6 +1900,33 @@ mod text_input_style_tests {
             assert_eq!(layout.style.width, Length::px(125.0));
             assert_eq!(layout.style.min_height, Length::px(44.0));
             assert_eq!(layout.style.flex_grow, 1.0);
+        }
+    }
+}
+
+#[cfg(test)]
+mod label_style_tests {
+    use super::*;
+    use acme_style::prelude::*;
+    #[test]
+    fn label_dimensions_are_honoured_in_both_layout_paths() {
+        let label = label_builder::<()>("AB")
+            .w(Length::px(28.0))
+            .h(Length::px(28.0))
+            .build();
+        let context = WidgetLayoutContext {
+            body_font_size: 14.0,
+            body_line_height: 20.0,
+            label_font_size: 13.0,
+            control_height: 36.0,
+            scale_factor: 1.0,
+        };
+        for layout in [
+            label.to_layout(NodeId::new(1)),
+            label.to_layout_with_context(NodeId::new(1), &context),
+        ] {
+            assert_eq!(layout.style.width, Length::px(28.0));
+            assert_eq!(layout.style.height, Length::px(28.0));
         }
     }
 }

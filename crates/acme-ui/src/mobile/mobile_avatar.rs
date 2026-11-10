@@ -2,6 +2,9 @@
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_layout::Length;
+use acme_widgets::style::TextAlign;
+use acme_widgets::style::prelude::*;
 
 /// Size preset for mobile avatars.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -55,10 +58,32 @@ impl<M: Clone + 'static> MobileAvatarBuilder<M> {
 impl<M: Clone + 'static> From<MobileAvatarBuilder<M>> for WidgetNode<M> {
     fn from(b: MobileAvatarBuilder<M>) -> Self {
         let d = b.size.diameter();
+        // Keep the clipped text square inside the circular surface.
+        let inset = d * 0.15;
+        let inner = d - 2.0 * inset;
+        let text = if b.initials.trim().is_empty() {
+            "?".into()
+        } else {
+            b.initials
+        };
         crate::stack::<M>()
             .key(b.id)
             .size(d, d)
-            .child(crate::label(b.initials))
+            .min_w(Length::px(d))
+            .min_h(Length::px(d))
+            .flex_shrink(0.0)
+            .bg_muted()
+            .rounded(d / 2.0)
+            .padding(inset)
+            .child(
+                crate::label_builder(text)
+                    .font_size(d * 0.34)
+                    .line_height(inner)
+                    .w(Length::px(inner))
+                    .h(Length::px(inner))
+                    .text_align(TextAlign::Center)
+                    .build(),
+            )
             .build()
     }
 }
@@ -91,3 +116,7 @@ mod tests {
         assert_eq!(MobileAvatarSize::Lg.diameter(), 56.0);
     }
 }
+
+#[cfg(test)]
+#[path = "mobile_avatar_tests.rs"]
+mod acceptance_tests;

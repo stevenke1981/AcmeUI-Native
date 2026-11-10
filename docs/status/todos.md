@@ -1,5 +1,12 @@
 # Todos
 
+## ROADMAP 024 — mobile avatar acceptance (2026-11-09)
+
+- [x] Add circular themed avatars, 32/40/56 px sizes, centered Unicode initials and an empty-name placeholder without expanding the public API.
+- [x] Honour existing Label sizing and single-line alignment; paint Stack surfaces and bound aligned text to its content box. Add retained/layout/paint tests and native CPU Gallery evidence.
+- [x] Locked touched/mobile-only tests, strict Clippy, actual CPU verification and workspace milestone gates; see [report](../team/roadmap-024/REPORT.md).
+- [ ] Manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 023 — mobile chip acceptance (2026-11-09)
 
 - [x] Add rounded semantic chip surfaces and distinct child tap/dismiss actions with instance-derived keys; preserve the builder API.
@@ -244,7 +251,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] mobile_search — rounded themed TextInput + search icon/action + clear button; controlled query, input marker, retained/layout/host-event tests and native CPU Gallery evidence (ROADMAP 022). Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_segmented — selected N-segment row and on_select; ROADMAP 014 behavior/hit/accessibility/mutation evidence preserved, historical Clippy gate reverified PASS in ROADMAP 022. Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_chip — compact themed tag, selected marker and optional close action; separate tap/dismiss messages, retained/layout tests and native CPU Gallery evidence (ROADMAP 023). Manual hardware acceptance remains NOT_RUN.
-- [ ] mobile_avatar — circular initials or image placeholder, size variants
+- [x] mobile_avatar — circular themed initials / neutral empty-name placeholder, 32/40/56 px variants; retained/layout/paint tests and native CPU Gallery evidence (ROADMAP 024). Actual image loading is outside this builder; manual hardware acceptance remains NOT_RUN.
 - [ ] mobile_banner — full-width alert with icon + text + optional action
 - [ ] mobile_notification — toast-style card with title + body + auto-dismiss hint
 - [ ] mobile_list_item — title + detail + optional trailing icon, on_tap

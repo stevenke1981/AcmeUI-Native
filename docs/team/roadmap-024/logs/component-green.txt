@@ -1,0 +1,15 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.94s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 6 tests
+test mobile::mobile_avatar::tests::mobile_avatar_has_child_label ... ok
+test mobile::mobile_avatar::tests::mobile_avatar_size_diameter ... ok
+test mobile::mobile_avatar::acceptance_tests::circular_sizes_defaults_placeholder_and_public_edits_preserve_noninteractive_semantics ... ok
+test mobile::mobile_avatar::tests::mobile_avatar_produces_stack ... ok
+test mobile::mobile_avatar::acceptance_tests::avatar_and_initials_ids_survive_size_text_changes_and_keyed_reordering ... ok
+test mobile::mobile_avatar::acceptance_tests::actual_layout_keeps_exact_diameters_and_text_square_inside_the_circle ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 773 filtered out; finished in 0.04s
+
