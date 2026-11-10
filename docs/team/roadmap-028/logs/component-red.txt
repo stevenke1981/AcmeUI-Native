@@ -1,0 +1,23 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0382]: borrow of moved value: `message`
+  --> crates/acme-ui/src/mobile/mobile_action_tests.rs:22:55
+   |
+19 |         for message in [None, Some(Msg::Press)] { for icon in [None, Some(crate::IconName::Star)] {
+   |             -------                               ----------------------------------------------- inside of this loop
+   |             |
+   |             this reinitialization might get skipped
+   |             move occurs because `message` has type `Option<mobile::mobile_action::tests::Msg>`, which does not implement the `Copy` trait
+...
+22 |             b.destructive = destructive; b.on_press = message.clone(); b.icon = icon;
+   |                                                       ^^^^^^^ value borrowed here after move
+...
+25 |             assert_eq!(row.message, if disabled { None } else { message });
+   |                                                                 ------- value moved here, in previous iteration of loop
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+25 |             assert_eq!(row.message, if disabled { None } else { message.clone() });
+   |                                                                        ++++++++
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `acme-ui` (lib test) due to 1 previous error

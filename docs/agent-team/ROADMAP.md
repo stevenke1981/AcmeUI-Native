@@ -38,6 +38,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 027 | Lead + UI/UX + Rendering + Verification (single-agent role passes) | Responsive mobile list items, scoped Gallery pointer/keyboard host and Frame→Scene text clip preservation exposed by native scrolling | [Brief](../team/roadmap-027/BRIEF.md); [report](../team/roadmap-027/REPORT.md) with RED/GREEN, locked gates, native input captures and toolbar pixel check; generic Row focus/typed semantics and manual hardware acceptance remain open |
 
+| 028 | Lead + UI/UX + Verification (single-agent role passes) | Mobile action destructive/disabled states, bounded wrapping label identity, semantic Label colours and Gallery pointer acceptance | [Brief](../team/roadmap-028/BRIEF.md); [report](../team/roadmap-028/REPORT.md) with locked gates and native CPU captures; generic Row focus/typed semantics and manual acceptance remain open |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.
