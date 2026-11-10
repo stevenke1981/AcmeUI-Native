@@ -1,0 +1,25 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.82s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 1 test
+test mobile_sheet_handle_tests::sheet_handles_paint_live_themed_rounded_bars_without_hits_or_index_drift ... FAILED
+
+failures:
+
+---- mobile_sheet_handle_tests::sheet_handles_paint_live_themed_rounded_bars_without_hits_or_index_drift stdout ----
+
+thread 'mobile_sheet_handle_tests::sheet_handles_paint_live_themed_rounded_bars_without_hits_or_index_drift' panicked at apps/acme-gallery/src/mobile_sheet_handle_tests.rs:57:17:
+assertion `left == right` failed
+  left: 0
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile_sheet_handle_tests::sheet_handles_paint_live_themed_rounded_bars_without_hits_or_index_drift
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 50 filtered out; finished in 0.06s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

@@ -40,6 +40,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 028 | Lead + UI/UX + Verification (single-agent role passes) | Mobile action destructive/disabled states, bounded wrapping label identity, semantic Label colours and Gallery pointer acceptance | [Brief](../team/roadmap-028/BRIEF.md); [report](../team/roadmap-028/REPORT.md) with locked gates and native CPU captures; generic Row focus/typed semantics and manual acceptance remain open |
 
+| 029 | Lead + UI/UX + Verification (single-agent role passes) | Visible themed mobile sheet handle, finite fixed geometry and centered Gallery preview | [Brief](../team/roadmap-029/BRIEF.md); [report](../team/roadmap-029/REPORT.md) with locked gates and native CPU capture; actual dragging and manual acceptance remain open |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

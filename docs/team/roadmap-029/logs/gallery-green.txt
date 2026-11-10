@@ -1,0 +1,10 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.91s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 1 test
+test mobile_sheet_handle_tests::sheet_handles_paint_live_themed_rounded_bars_without_hits_or_index_drift ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 0.07s
+

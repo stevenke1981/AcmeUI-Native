@@ -22,8 +22,8 @@ use acme_ui::charts::{
 use acme_ui::mobile::{
     MobileAvatarSize, MobileBannerTone, MobileButtonSize, mobile_action, mobile_avatar,
     mobile_banner, mobile_button, mobile_card, mobile_chip, mobile_list_item, mobile_loader,
-    mobile_notification, mobile_progress, mobile_search, mobile_segmented, mobile_stepper,
-    mobile_toggle,
+    mobile_notification, mobile_progress, mobile_search, mobile_segmented, mobile_sheet_handle,
+    mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::style::{Styled, TextAlign};
@@ -779,6 +779,35 @@ impl Gallery {
             .build()
     }
 
+    fn sheet_handle_examples(&self) -> WidgetNode<GalleryMessage> {
+        column()
+            .key("gallery_sheet_handles")
+            .gap(12.0)
+            .child(
+                card()
+                    .key("gallery_sheet_preview")
+                    .w(Length::px(320.0))
+                    .padding(16.0)
+                    .gap(12.0)
+                    .child(
+                        row()
+                            .child(row().flex_1())
+                            .child(mobile_sheet_handle().key("gallery_handle_default"))
+                            .child(row().flex_1()),
+                    )
+                    .child(label("Options · 選項"))
+                    .child(label("Drag indicator · 拖曳提示")),
+            )
+            .child(
+                row().gap(12.0).child(label("Custom 48 × 4")).child(
+                    mobile_sheet_handle()
+                        .key("gallery_handle_custom")
+                        .width(48.0),
+                ),
+            )
+            .build()
+    }
+
     fn mobile_page(&self) -> WidgetNode<GalleryMessage> {
         let status = match self.last_mobile_press {
             Some(MobileButtonSize::Sm) => "Last action: Small button",
@@ -796,6 +825,7 @@ impl Gallery {
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
+            .child(self.page_section("Mobile Sheet Handles", self.sheet_handle_examples()))
             .child(self.page_section("Mobile Actions — normal, destructive and disabled", self.action_examples()))
             .child(self.page_section(
                 "Mobile List Items — content and navigation", self.list_item_examples(),
@@ -2488,3 +2518,6 @@ mod mobile_list_item_tests;
 
 #[cfg(test)]
 mod mobile_action_tests;
+
+#[cfg(test)]
+mod mobile_sheet_handle_tests;
