@@ -1,7 +1,12 @@
 //! Mobile action — tappable action row with icon, label, and destructive flag.
+//!
+//! Hosts dispatch the existing Row message; disabled rows expose no message.
+//! Generic retained focus and typed action accessibility are not provided by Row.
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_layout::Length;
+use acme_widgets::style::{ColorToken, Styled};
 
 /// Builder for a mobile action row.
 pub struct MobileActionBuilder<M> {
@@ -54,56 +59,63 @@ impl<M: Clone + 'static> MobileActionBuilder<M> {
 
 impl<M: Clone + 'static> From<MobileActionBuilder<M>> for WidgetNode<M> {
     fn from(b: MobileActionBuilder<M>) -> Self {
-        let mut row = crate::row::<M>().key(b.id).gap(12.0).padding(14.0);
-
-        if let Some(icon_name) = b.icon {
-            row = row.child(crate::icon::<M>(icon_name).build());
+        let background = if b.disabled {
+            ColorToken::DisabledBg
+        } else if b.destructive {
+            ColorToken::DangerSoft
+        } else {
+            ColorToken::Surface
+        };
+        let foreground = if b.disabled {
+            ColorToken::DisabledText
+        } else if b.destructive {
+            ColorToken::Danger
+        } else {
+            ColorToken::Foreground
+        };
+        let label_key = format!("{}__label", b.id.as_str());
+        let mut row = crate::row::<M>()
+            .key(b.id)
+            .w(Length::Percent(1.0))
+            .min_h(Length::px(44.0))
+            .bg(background)
+            .rounded(8.0)
+            .gap(12.0)
+            .padding(14.0);
+        if let Some(icon) = b.icon {
+            row = row.child(
+                crate::label_builder(icon.char())
+                    .font_size(16.0)
+                    .w(Length::px(20.0))
+                    .flex_shrink(0.0)
+                    .text_color(foreground)
+                    .build(),
+            );
         }
-        row = row.child(crate::label(b.label));
-
-        if let Some(msg) = b.on_press {
-            row = row.on_click(msg);
+        // The key keeps the label stable when a leading icon is inserted.
+        row = row.child(
+            crate::column::<M>()
+                .key(label_key)
+                .min_w(Length::px(0.0))
+                .flex_1()
+                .flex_shrink(1.0)
+                .child(
+                    crate::label_builder(b.label)
+                        .wrap(crate::LabelWrap::Character)
+                        .text_color(foreground)
+                        .build(),
+                )
+                .build(),
+        );
+        if !b.disabled {
+            if let Some(msg) = b.on_press {
+                row = row.on_click(msg);
+            }
         }
         row.build()
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Clone, Debug, PartialEq)]
-    enum Msg {
-        Pressed,
-    }
-
-    #[test]
-    fn mobile_action_produces_row() {
-        let node: WidgetNode<Msg> = mobile_action("Delete").into();
-        assert!(matches!(node, WidgetNode::Row(_)));
-    }
-
-    #[test]
-    fn mobile_action_with_icon() {
-        let node: WidgetNode<Msg> = mobile_action("Share").icon(crate::IconName::Star).into();
-        let WidgetNode::Row(r) = &node else {
-            panic!("expected Row");
-        };
-        assert_eq!(r.children.len(), 2);
-    }
-
-    #[test]
-    fn mobile_action_on_press() {
-        let node: WidgetNode<Msg> = mobile_action("Go").on_press(Msg::Pressed).into();
-        let WidgetNode::Row(r) = &node else {
-            panic!("expected Row");
-        };
-        assert_eq!(r.message, Some(Msg::Pressed));
-    }
-
-    #[test]
-    fn mobile_action_destructive_flag() {
-        let b = mobile_action::<Msg>("Remove").destructive(true);
-        assert!(b.destructive);
-    }
-}
+#[path = "mobile_action_tests.rs"]
+mod tests;

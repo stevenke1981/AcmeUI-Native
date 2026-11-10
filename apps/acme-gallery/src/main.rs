@@ -20,9 +20,10 @@ use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_ui::mobile::{
-    MobileAvatarSize, MobileBannerTone, MobileButtonSize, mobile_avatar, mobile_banner,
-    mobile_button, mobile_card, mobile_chip, mobile_list_item, mobile_loader, mobile_notification,
-    mobile_progress, mobile_search, mobile_segmented, mobile_stepper, mobile_toggle,
+    MobileAvatarSize, MobileBannerTone, MobileButtonSize, mobile_action, mobile_avatar,
+    mobile_banner, mobile_button, mobile_card, mobile_chip, mobile_list_item, mobile_loader,
+    mobile_notification, mobile_progress, mobile_search, mobile_segmented, mobile_stepper,
+    mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::style::{Styled, TextAlign};
@@ -40,6 +41,8 @@ mod banner_examples;
 #[path = "mobile_notification.rs"]
 mod notification_examples;
 use notification_examples::NotificationDemo;
+#[path = "mobile_action.rs"]
+mod action_examples;
 #[path = "mobile_list_item.rs"]
 mod list_examples;
 
@@ -128,6 +131,7 @@ enum GalleryMessage {
     MobileNotificationAction,
     MobileNotificationDismiss,
     MobileNotificationShow,
+    MobileActionPress(bool),
     MobileListItemTap(usize),
     MobileListItemReverse,
     MobileListItemDetails,
@@ -195,6 +199,7 @@ struct Gallery {
     banner_visible: bool,
     banner_action: &'static str,
     notification: NotificationDemo,
+    action_status: &'static str,
     list_focus: Option<usize>,
     last_list_tap: Option<usize>,
     list_reverse: bool,
@@ -235,6 +240,7 @@ impl Gallery {
             banner_visible: true,
             banner_action: "none",
             notification: NotificationDemo::new(),
+            action_status: "none",
             list_focus: None,
             last_list_tap: None,
             list_reverse: false,
@@ -790,6 +796,7 @@ impl Gallery {
             .child(label(
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
+            .child(self.page_section("Mobile Actions — normal, destructive and disabled", self.action_examples()))
             .child(self.page_section(
                 "Mobile List Items — content and navigation", self.list_item_examples(),
             ))
@@ -1167,6 +1174,14 @@ impl Gallery {
                     self.search.blur();
                     self.search.rect = None;
                 }
+                true
+            }
+            GalleryMessage::MobileActionPress(destructive) => {
+                self.action_status = if destructive {
+                    "delete requested"
+                } else {
+                    "share requested"
+                };
                 true
             }
             GalleryMessage::MobileListItemTap(index) => {
@@ -1810,7 +1825,7 @@ fn render_content(
     atlas: &mut GlyphAtlas,
 ) {
     let colors = theme.colors;
-    let row_index = list_examples::row_action(widget).and_then(|_| {
+    let row_index = action_examples::row_action(widget).and_then(|_| {
         snapshot.get(layout.id).map(|_| {
             let index = *btn_idx;
             *btn_idx += 1;
@@ -1823,8 +1838,20 @@ fn render_content(
             (container.style.background, snapshot.get(layout.id))
         {
             let fill = match row_index {
-                Some(index) if pressed == Some(index) => colors.ghost_pressed,
-                Some(index) if hovered == Some(index) => colors.ghost_hover,
+                Some(index) if pressed == Some(index) => {
+                    if background == acme_widgets::style::ColorToken::DangerSoft {
+                        colors.danger_soft
+                    } else {
+                        colors.ghost_pressed
+                    }
+                }
+                Some(index) if hovered == Some(index) => {
+                    if background == acme_widgets::style::ColorToken::DangerSoft {
+                        colors.danger_soft
+                    } else {
+                        colors.ghost_hover
+                    }
+                }
                 _ => background.resolve(theme),
             };
             frame.clipped_quads.push(ClippedQuad {
@@ -1844,7 +1871,12 @@ fn render_content(
             if let Some(rect) = snapshot.get(layout.id) {
                 let fs = l.font_size.unwrap_or(theme.typography.body);
                 let y_text = rect.y - scroll_y;
-                let text_color = l.color.unwrap_or(colors.foreground);
+                let text_color = l
+                    .style
+                    .text_color
+                    .map(|token| token.resolve(theme))
+                    .or(l.color)
+                    .unwrap_or(colors.foreground);
 
                 let mut display_text = l.text.as_str();
                 // Wrapped text must use the same content width as layout.
@@ -2076,7 +2108,7 @@ fn collect_hit_regions(
     scrolled: bool,
     result: &mut Vec<HitRegion>,
 ) {
-    if let Some(message) = list_examples::row_action(widget) {
+    if let Some(message) = action_examples::row_action(widget) {
         if let Some(rect) = snapshot.get(layout.id) {
             result.push(HitRegion {
                 rect: [rect.x, rect.y, rect.width, rect.height],
@@ -2453,3 +2485,6 @@ mod mobile_notification_tests;
 
 #[cfg(test)]
 mod mobile_list_item_tests;
+
+#[cfg(test)]
+mod mobile_action_tests;
