@@ -41,6 +41,11 @@ jobs:
         run: python scripts/check_changed_clippy.py
       - run: cargo test --locked --workspace
       - run: cargo test --locked -p acme-ui --all-features
+      - name: Test minimal UI feature dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cargo test --locked -p acme-ui --no-default-features --features inputs
+          cargo test --locked -p acme-ui --no-default-features --features layout
 
   sdk-consumer:
     # Builds the standalone external-consumer example against the SDK crates
