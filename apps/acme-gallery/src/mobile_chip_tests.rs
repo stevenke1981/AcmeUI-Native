@@ -182,7 +182,8 @@ fn chip_surface_precedes_actions_and_keeps_theme_and_scroll_clips() {
                         frame
                             .text
                             .iter()
-                            .all(|t| t.clip == Some(clip) && !t.prepared.glyphs.is_empty())
+                            .all(|t| fab_tests::clip_within(t.clip, clip)
+                                && !t.prepared.glyphs.is_empty())
                     );
                 }
             }

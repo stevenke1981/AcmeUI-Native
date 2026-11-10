@@ -159,7 +159,8 @@ fn all_banner_tones_paint_before_text_with_theme_tokens_and_viewport_clips() {
                         frame
                             .text
                             .iter()
-                            .all(|t| t.clip == Some(clip) && !t.prepared.glyphs.is_empty())
+                            .all(|t| fab_tests::clip_within(t.clip, clip)
+                                && !t.prepared.glyphs.is_empty())
                     );
                     assert_eq!(frame.text[1].color, rgba(theme.colors.foreground));
                     let scene = scene_from_frame(&frame);

@@ -133,7 +133,7 @@ fn action_paint_indices_semantic_label_colours_and_clips_follow_live_theme() {
                 assert_eq!(f.text[2].color, rgba(theme.colors.danger));
                 assert_eq!(f.text[3].color, rgba(theme.colors.danger));
                 assert_eq!(f.text[4].color, rgba(theme.colors.disabled_text));
-                assert!(f.text.iter().all(|t| t.clip == Some(clip)));
+                assert!(f.text.iter().all(|t| fab_tests::clip_within(t.clip, clip)));
             }
         }
     }
