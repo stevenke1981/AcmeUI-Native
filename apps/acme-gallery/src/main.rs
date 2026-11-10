@@ -20,8 +20,9 @@ use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
 use acme_ui::mobile::{
-    MobileAvatarSize, MobileButtonSize, mobile_avatar, mobile_button, mobile_card, mobile_chip,
-    mobile_loader, mobile_progress, mobile_search, mobile_segmented, mobile_stepper, mobile_toggle,
+    MobileAvatarSize, MobileBannerTone, MobileButtonSize, mobile_avatar, mobile_banner,
+    mobile_button, mobile_card, mobile_chip, mobile_loader, mobile_progress, mobile_search,
+    mobile_segmented, mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::style::{Styled, TextAlign};
@@ -34,6 +35,8 @@ use acme_widgets::{
 #[path = "mobile_search.rs"]
 mod mobile_search_host;
 use mobile_search_host::SearchDemo;
+#[path = "mobile_banner.rs"]
+mod banner_examples;
 
 fn main() -> Result<(), acme_platform::PlatformError> {
     acme_platform::run(Gallery::new())
@@ -82,6 +85,7 @@ const CATEGORIES: &[CategoryInfo] = &[
     CategoryInfo {
         name: "Mobile",
         pages: &[
+            "Banners",
             "Avatars",
             "Chips",
             "Search",
@@ -111,6 +115,9 @@ enum GalleryMessage {
     MobileChipTap,
     MobileChipDismiss,
     MobileChipRestore,
+    MobileBannerAction,
+    MobileBannerDismiss,
+    MobileBannerRestore,
     MobileSearchEdited,
     MobileSearchSubmit,
     MobileSearchClear,
@@ -172,6 +179,8 @@ struct Gallery {
     chip_selected: bool,
     chip_visible: bool,
     chip_action: &'static str,
+    banner_visible: bool,
+    banner_action: &'static str,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -205,6 +214,8 @@ impl Gallery {
             chip_selected: true,
             chip_visible: true,
             chip_action: "none",
+            banner_visible: true,
+            banner_action: "none",
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -757,6 +768,9 @@ impl Gallery {
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
             .child(self.page_section(
+                "Mobile Banners — status and actions", self.banner_examples(),
+            ))
+            .child(self.page_section(
                 "Mobile Avatars — initials and placeholder",
                 column().gap(8.0)
                     .child(row().gap(16.0)
@@ -1123,6 +1137,20 @@ impl Gallery {
                     self.search.blur();
                     self.search.rect = None;
                 }
+                true
+            }
+            GalleryMessage::MobileBannerAction => {
+                self.banner_action = "retry requested";
+                true
+            }
+            GalleryMessage::MobileBannerDismiss => {
+                self.banner_visible = false;
+                self.banner_action = "dismissed";
+                true
+            }
+            GalleryMessage::MobileBannerRestore => {
+                self.banner_visible = true;
+                self.banner_action = "restored";
                 true
             }
             GalleryMessage::MobileChipToggle => {
@@ -2319,3 +2347,6 @@ mod mobile_chip_tests;
 
 #[cfg(test)]
 mod mobile_avatar_tests;
+
+#[cfg(test)]
+mod mobile_banner_tests;
