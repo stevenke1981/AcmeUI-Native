@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 036 — Paper square corners (2026-11-11)
+
+- [x] Add independent square(bool), preserve default/elevation/outline behavior, cover all corner variants, real layout and retained IDs.
+- [x] Add themed/clipped Gallery comparison and automated native CPU evidence; see [report](../team/roadmap-036/REPORT.md) for exact verification/delivery status and public-field compatibility.
+- [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 035 — full sizing percentage correction (2026-11-11)
 
 - [x] Reproduce 24000 vs 240 px root width and padded child overflow; correct Styled/Tailwind full sizing and Button.full_width to the existing fractional Percent convention, preserving explicit overrides.
@@ -346,6 +352,8 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 ## P5 — Architecture & quality improvements (CBM audit)
 
+- [ ] Correct UI optional-feature dependencies: layout-only fails on IconName and form_message even with Paper restored to the ROADMAP 035 baseline (ROADMAP 036 evidence). Inputs also imports foundation IconName; audit/declaration and minimal-feature CI remain open.
+
 - [x] Reconcile `Styled::w_full()` and related full sizing helpers with fractional `Length::Percent(1.0)`; correct Button.full_width, regressions and Gallery evidence (ROADMAP 035). Engine units unchanged; screen helpers remain parent-relative.
 
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
@@ -578,7 +586,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [ ] SpeedDial directional expansion (up/down/left/right)
 - [ ] AppBar scroll-hide behavior
 - [ ] TextField input masking and adornments (leading/trailing icons)
-- [ ] Paper square variant (no border radius)
+- [x] Paper square variant (no border radius), independent of elevation; real layout/retained/Gallery checks and native CPU evidence (ROADMAP 036). Existing shadow approximation and manual acceptance remain separate.
 
 ## P9 — Radix UI alignment (2026-07-22)
 

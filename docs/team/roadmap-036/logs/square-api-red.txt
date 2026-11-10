@@ -1,0 +1,45 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0609]: no field `square` on type `PaperBuilder<()>`
+  --> crates/acme-ui/src/layout/paper_tests.rs:18:28
+   |
+18 |     assert!(!paper::<()>().square);
+   |                            ^^^^^^ unknown field
+   |
+   = note: available fields are: `id`, `elevation`, `outlined`, `children`
+
+error[E0599]: no method named `square` found for struct `PaperBuilder` in the current scope
+  --> crates/acme-ui/src/layout/paper_tests.rs:23:64
+   |
+23 |                 let mut builder = paper::<()>().key("surface").square(!square).elevation(elevation)
+   |                                                                ^^^^^^ method not found in `PaperBuilder<()>`
+   |
+  ::: crates/acme-ui/src/layout/paper.rs:35:1
+   |
+35 | pub struct PaperBuilder<M> {
+   | -------------------------- method `square` not found for this struct
+
+error[E0599]: no method named `square` found for struct `PaperBuilder` in the current scope
+  --> crates/acme-ui/src/layout/paper_tests.rs:38:70
+   |
+38 |     let node: WidgetNode<()> = paper().elevation(PaperElevation::E8).square(true).square(false).into();
+   |                                                                      ^^^^^^ method not found in `PaperBuilder<_>`
+   |
+  ::: crates/acme-ui/src/layout/paper.rs:35:1
+   |
+35 | pub struct PaperBuilder<M> {
+   | -------------------------- method `square` not found for this struct
+
+error[E0599]: no method named `square` found for struct `PaperBuilder` in the current scope
+  --> crates/acme-ui/src/layout/paper_tests.rs:49:59
+   |
+49 |         let node: WidgetNode<()> = paper().key("surface").square(square)
+   |                                                           ^^^^^^ method not found in `PaperBuilder<_>`
+   |
+  ::: crates/acme-ui/src/layout/paper.rs:35:1
+   |
+35 | pub struct PaperBuilder<M> {
+   | -------------------------- method `square` not found for this struct
+
+Some errors have detailed explanations: E0599, E0609.
+For more information about an error, try `rustc --explain E0599`.
+error: could not compile `acme-ui` (lib test) due to 4 previous errors

@@ -1,0 +1,11 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0433]: failed to resolve: could not find `form_message` in `inputs`
+   --> crates/acme-ui/src/layout/form.rs:125:42
+    |
+125 |                 let msg = crate::inputs::form_message::form_message()
+    |                                          ^^^^^^^^^^^^ could not find `form_message` in `inputs`
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `acme-ui` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `acme-ui` (lib test) due to 1 previous error

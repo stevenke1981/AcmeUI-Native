@@ -1,0 +1,14 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.14s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 6 tests
+test layout::paper::tests::paper_elevation_radius ... ok
+test layout::paper::tests::paper_outlined_variant ... ok
+test layout::paper::tests::paper_produces_card ... ok
+test layout::paper::paper_tests::square_is_independent_of_elevation_outline_and_setter_order ... ok
+test layout::paper::tests::paper_with_children ... ok
+test layout::paper::paper_tests::changing_corners_keeps_real_layout_and_retained_content_identity ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 803 filtered out; finished in 0.08s
+

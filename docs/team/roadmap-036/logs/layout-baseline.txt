@@ -1,0 +1,165 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0433]: failed to resolve: could not find `form_message` in `inputs`
+   --> crates/acme-ui/src/layout/form.rs:125:42
+    |
+125 |                 let msg = crate::inputs::form_message::form_message()
+    |                                          ^^^^^^^^^^^^ could not find `form_message` in `inputs`
+
+error[E0412]: cannot find type `IconName` in the crate root
+  --> crates/acme-ui/src/layout/bottom_navigation.rs:11:29
+   |
+11 |     pub icon: Option<crate::IconName>,
+   |                             ^^^^^^^^ not found in the crate root
+   |
+note: found an item that was configured out
+  --> crates/acme-ui/src/lib.rs:71:29
+   |
+71 | pub use foundations::icon::{IconName, icon};
+   |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+  --> crates/acme-ui/src/lib.rs:70:7
+   |
+70 | #[cfg(feature = "foundations")]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0412]: cannot find type `IconName` in the crate root
+  --> crates/acme-ui/src/layout/bottom_navigation.rs:22:41
+   |
+22 |     pub fn icon(mut self, value: crate::IconName) -> Self {
+   |                                         ^^^^^^^^ not found in the crate root
+   |
+note: found an item that was configured out
+  --> crates/acme-ui/src/lib.rs:71:29
+   |
+71 | pub use foundations::icon::{IconName, icon};
+   |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+  --> crates/acme-ui/src/lib.rs:70:7
+   |
+70 | #[cfg(feature = "foundations")]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0412]: cannot find type `IconName` in the crate root
+  --> crates/acme-ui/src/layout/sidebar.rs:28:29
+   |
+28 |     pub icon: Option<crate::IconName>,
+   |                             ^^^^^^^^ not found in the crate root
+   |
+note: found an item that was configured out
+  --> crates/acme-ui/src/lib.rs:71:29
+   |
+71 | pub use foundations::icon::{IconName, icon};
+   |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+  --> crates/acme-ui/src/lib.rs:70:7
+   |
+70 | #[cfg(feature = "foundations")]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0412]: cannot find type `IconName` in the crate root
+  --> crates/acme-ui/src/layout/sidebar.rs:41:41
+   |
+41 |     pub fn icon(mut self, value: crate::IconName) -> Self {
+   |                                         ^^^^^^^^ not found in the crate root
+   |
+note: found an item that was configured out
+  --> crates/acme-ui/src/lib.rs:71:29
+   |
+71 | pub use foundations::icon::{IconName, icon};
+   |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+  --> crates/acme-ui/src/lib.rs:70:7
+   |
+70 | #[cfg(feature = "foundations")]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0433]: failed to resolve: could not find `IconName` in the crate root
+   --> crates/acme-ui/src/layout/bottom_navigation.rs:125:69
+    |
+125 |             .action(BottomNavigationAction::new("Home").icon(crate::IconName::User))
+    |                                                                     ^^^^^^^^ could not find `IconName` in the crate root
+    |
+note: found an item that was configured out
+   --> crates/acme-ui/src/lib.rs:71:29
+    |
+71  | pub use foundations::icon::{IconName, icon};
+    |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+   --> crates/acme-ui/src/lib.rs:70:7
+    |
+70  | #[cfg(feature = "foundations")]
+    |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0433]: failed to resolve: could not find `IconName` in the crate root
+   --> crates/acme-ui/src/layout/bottom_navigation.rs:126:71
+    |
+126 |             .action(BottomNavigationAction::new("Search").icon(crate::IconName::Search))
+    |                                                                       ^^^^^^^^ could not find `IconName` in the crate root
+    |
+note: found an item that was configured out
+   --> crates/acme-ui/src/lib.rs:71:29
+    |
+71  | pub use foundations::icon::{IconName, icon};
+    |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+   --> crates/acme-ui/src/lib.rs:70:7
+    |
+70  | #[cfg(feature = "foundations")]
+    |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0433]: failed to resolve: could not find `IconName` in the crate root
+   --> crates/acme-ui/src/layout/bottom_navigation.rs:127:73
+    |
+127 |             .action(BottomNavigationAction::new("Settings").icon(crate::IconName::Settings))
+    |                                                                         ^^^^^^^^ could not find `IconName` in the crate root
+    |
+note: found an item that was configured out
+   --> crates/acme-ui/src/lib.rs:71:29
+    |
+71  | pub use foundations::icon::{IconName, icon};
+    |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+   --> crates/acme-ui/src/lib.rs:70:7
+    |
+70  | #[cfg(feature = "foundations")]
+    |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0433]: failed to resolve: could not find `IconName` in the crate root
+   --> crates/acme-ui/src/layout/sidebar.rs:174:56
+    |
+174 |             .item(SidebarItem::new("Home").icon(crate::IconName::User))
+    |                                                        ^^^^^^^^ could not find `IconName` in the crate root
+    |
+note: found an item that was configured out
+   --> crates/acme-ui/src/lib.rs:71:29
+    |
+71  | pub use foundations::icon::{IconName, icon};
+    |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+   --> crates/acme-ui/src/lib.rs:70:7
+    |
+70  | #[cfg(feature = "foundations")]
+    |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0433]: failed to resolve: could not find `IconName` in the crate root
+   --> crates/acme-ui/src/layout/sidebar.rs:175:60
+    |
+175 |             .item(SidebarItem::new("Settings").icon(crate::IconName::Settings))
+    |                                                            ^^^^^^^^ could not find `IconName` in the crate root
+    |
+note: found an item that was configured out
+   --> crates/acme-ui/src/lib.rs:71:29
+    |
+71  | pub use foundations::icon::{IconName, icon};
+    |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+   --> crates/acme-ui/src/lib.rs:70:7
+    |
+70  | #[cfg(feature = "foundations")]
+    |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+Some errors have detailed explanations: E0412, E0433.
+For more information about an error, try `rustc --explain E0412`.
+error: could not compile `acme-ui` (lib) due to 5 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `acme-ui` (lib test) due to 10 previous errors
