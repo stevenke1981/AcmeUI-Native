@@ -21,8 +21,8 @@ use acme_ui::charts::{
 };
 use acme_ui::mobile::{
     MobileAvatarSize, MobileBannerTone, MobileButtonSize, mobile_avatar, mobile_banner,
-    mobile_button, mobile_card, mobile_chip, mobile_loader, mobile_notification, mobile_progress,
-    mobile_search, mobile_segmented, mobile_stepper, mobile_toggle,
+    mobile_button, mobile_card, mobile_chip, mobile_list_item, mobile_loader, mobile_notification,
+    mobile_progress, mobile_search, mobile_segmented, mobile_stepper, mobile_toggle,
 };
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::style::{Styled, TextAlign};
@@ -40,6 +40,8 @@ mod banner_examples;
 #[path = "mobile_notification.rs"]
 mod notification_examples;
 use notification_examples::NotificationDemo;
+#[path = "mobile_list_item.rs"]
+mod list_examples;
 
 fn main() -> Result<(), acme_platform::PlatformError> {
     acme_platform::run(Gallery::new())
@@ -88,6 +90,7 @@ const CATEGORIES: &[CategoryInfo] = &[
     CategoryInfo {
         name: "Mobile",
         pages: &[
+            "List items",
             "Banners",
             "Notifications",
             "Avatars",
@@ -125,6 +128,9 @@ enum GalleryMessage {
     MobileNotificationAction,
     MobileNotificationDismiss,
     MobileNotificationShow,
+    MobileListItemTap(usize),
+    MobileListItemReverse,
+    MobileListItemDetails,
     MobileSearchEdited,
     MobileSearchSubmit,
     MobileSearchClear,
@@ -189,6 +195,10 @@ struct Gallery {
     banner_visible: bool,
     banner_action: &'static str,
     notification: NotificationDemo,
+    list_focus: Option<usize>,
+    last_list_tap: Option<usize>,
+    list_reverse: bool,
+    list_details: bool,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -225,6 +235,10 @@ impl Gallery {
             banner_visible: true,
             banner_action: "none",
             notification: NotificationDemo::new(),
+            list_focus: None,
+            last_list_tap: None,
+            list_reverse: false,
+            list_details: true,
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -777,6 +791,9 @@ impl Gallery {
                 "Full-width mobile controls reuse semantic theme states and accessible touch heights.",
             ))
             .child(self.page_section(
+                "Mobile List Items — content and navigation", self.list_item_examples(),
+            ))
+            .child(self.page_section(
                 "Mobile Notifications — content and lifetime", self.notification_examples(),
             ))
             .child(self.page_section(
@@ -1146,9 +1163,27 @@ impl Gallery {
                 self.selected_category = i;
                 if changed {
                     self.scroll = 0.0;
+                    self.list_focus = None;
                     self.search.blur();
                     self.search.rect = None;
                 }
+                true
+            }
+            GalleryMessage::MobileListItemTap(index) => {
+                self.last_list_tap = Some(index);
+                self.list_focus = Some(index);
+                true
+            }
+            GalleryMessage::MobileListItemReverse => {
+                self.list_reverse = !self.list_reverse;
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::MobileListItemDetails => {
+                self.list_details = !self.list_details;
+                self.pressed = None;
+                self.hovered = None;
                 true
             }
             GalleryMessage::MobileNotificationAction => {
@@ -1232,6 +1267,9 @@ impl Application for Gallery {
 
     fn event(&mut self, event: PlatformEvent) -> bool {
         if self.selected_category == 7 {
+            if let Some(changed) = self.list_item_event(&event) {
+                return changed;
+            }
             if let Some(changed) = self.search.event(&event, self.scroll) {
                 if matches!(
                     event,
@@ -1772,12 +1810,23 @@ fn render_content(
     atlas: &mut GlyphAtlas,
 ) {
     let colors = theme.colors;
+    let row_index = list_examples::row_action(widget).and_then(|_| {
+        snapshot.get(layout.id).map(|_| {
+            let index = *btn_idx;
+            *btn_idx += 1;
+            index
+        })
+    });
     // Styled rows and stacks include switch tracks, card media and avatars.
     if let WidgetNode::Row(container) | WidgetNode::Stack(container) = widget {
         if let (Some(background), Some(rect)) =
             (container.style.background, snapshot.get(layout.id))
         {
-            let fill = background.resolve(theme);
+            let fill = match row_index {
+                Some(index) if pressed == Some(index) => colors.ghost_pressed,
+                Some(index) if hovered == Some(index) => colors.ghost_hover,
+                _ => background.resolve(theme),
+            };
             frame.clipped_quads.push(ClippedQuad {
                 quad: quad_rect(
                     [rect.x, rect.y - scroll_y, rect.width, rect.height],
@@ -2027,6 +2076,15 @@ fn collect_hit_regions(
     scrolled: bool,
     result: &mut Vec<HitRegion>,
 ) {
+    if let Some(message) = list_examples::row_action(widget) {
+        if let Some(rect) = snapshot.get(layout.id) {
+            result.push(HitRegion {
+                rect: [rect.x, rect.y, rect.width, rect.height],
+                message,
+                scrolled,
+            });
+        }
+    }
     match widget {
         WidgetNode::Button(btn) => {
             if let Some(msg) = btn.activate() {
@@ -2392,3 +2450,6 @@ mod mobile_banner_tests;
 
 #[cfg(test)]
 mod mobile_notification_tests;
+
+#[cfg(test)]
+mod mobile_list_item_tests;
