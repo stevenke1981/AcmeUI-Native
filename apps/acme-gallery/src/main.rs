@@ -46,6 +46,7 @@ mod action_examples;
 mod fab;
 mod snackbar;
 use snackbar::SnackbarDemo;
+mod paper_examples;
 mod swipe_actions;
 use swipe_actions::SwipeDemo;
 #[path = "mobile_list_item.rs"]
@@ -547,6 +548,8 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Layout", 24.0))
             .child(separator())
+            .child(label("Paper: rounded, square elevated, square outlined"))
+            .child(self.paper_examples())
             .child(
                 self.page_section(
                     "Row & Column",

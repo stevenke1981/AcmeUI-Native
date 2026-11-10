@@ -36,6 +36,8 @@ pub struct PaperBuilder<M> {
     pub id: WidgetKey,
     pub elevation: PaperElevation,
     pub outlined: bool,
+    /// Force square corners independently of elevation.
+    pub square: bool,
     pub children: Vec<WidgetNode<M>>,
 }
 
@@ -45,6 +47,7 @@ pub fn paper<M: Clone + 'static>() -> PaperBuilder<M> {
         id: WidgetKey::from("paper"),
         elevation: PaperElevation::default(),
         outlined: false,
+        square: false,
         children: Vec::new(),
     }
 }
@@ -65,6 +68,12 @@ impl<M: Clone + 'static> PaperBuilder<M> {
         self
     }
 
+    /// Use square corners when true; false restores the elevation's radius.
+    pub fn square(mut self, value: bool) -> Self {
+        self.square = value;
+        self
+    }
+
     pub fn child(mut self, node: WidgetNode<M>) -> Self {
         self.children.push(node);
         self
@@ -81,7 +90,7 @@ impl<M: Clone + 'static> From<PaperBuilder<M>> for WidgetNode<M> {
         let mut card = crate::card::<M>()
             .key(b.id)
             .variant(variant)
-            .border_radius(b.elevation.radius())
+            .border_radius(if b.square { 0.0 } else { b.elevation.radius() })
             .padding(16.0);
         for child in b.children {
             card = card.child(child);
@@ -89,6 +98,10 @@ impl<M: Clone + 'static> From<PaperBuilder<M>> for WidgetNode<M> {
         card.build()
     }
 }
+
+#[cfg(test)]
+#[path = "paper_tests.rs"]
+mod paper_tests;
 
 #[cfg(test)]
 mod tests {
