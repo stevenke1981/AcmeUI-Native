@@ -1,0 +1,8 @@
+/workspace/AcmeUI-Native/target/roadmap-027/check-toolbar.py:7: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+  changed=sum(pixel != (0,0,0) for pixel in diff.getdata())
+Native CPU toolbar changed pixels after keyboard scrolling: 762 / 36000
+Traceback (most recent call last):
+  File "/workspace/AcmeUI-Native/target/roadmap-027/check-toolbar.py", line 9, in <module>
+    assert changed == 0, 'Scrolled page text must not paint over the toolbar'
+           ^^^^^^^^^^^^
+AssertionError: Scrolled page text must not paint over the toolbar

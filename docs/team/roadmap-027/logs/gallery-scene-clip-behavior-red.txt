@@ -1,0 +1,28 @@
+    Blocking waiting for file lock on build directory
+   Compiling acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+   Compiling acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.68s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 1 test
+test mobile_list_item_tests::keyboard_scrolled_page_text_retains_the_viewport_clip_in_the_actual_scene ... FAILED
+
+failures:
+
+---- mobile_list_item_tests::keyboard_scrolled_page_text_retains_the_viewport_clip_in_the_actual_scene stdout ----
+
+thread 'mobile_list_item_tests::keyboard_scrolled_page_text_retains_the_viewport_clip_in_the_actual_scene' panicked at apps/acme-gallery/src/mobile_list_item_tests.rs:101:17:
+assertion `left == right` failed: offscreen content must not escape the scroll viewport
+  left: None
+ right: Some(Rect { origin: Point { x: 200.0, y: 40.0 }, size: Size { width: 900.0, height: 1060.0 } })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile_list_item_tests::keyboard_scrolled_page_text_retains_the_viewport_clip_in_the_actual_scene
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.21s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

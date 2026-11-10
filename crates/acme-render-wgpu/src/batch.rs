@@ -356,12 +356,20 @@ pub fn scene_from_frame(frame: &Frame) -> Scene {
             });
         }
 
+        if let Some(clip) = run.clip {
+            scene.push(DrawCommand::PushClip(acme_core::Rect::new(
+                clip[0], clip[1], clip[2], clip[3],
+            )));
+        }
         scene.push(DrawCommand::Text(TextPrimitive {
             origin: acme_core::Point::new(run.origin[0], run.origin[1]),
             color: acme_core::Color::rgba(run.color[0], run.color[1], run.color[2], run.color[3]),
             glyphs,
             uploads,
         }));
+        if run.clip.is_some() {
+            scene.push(DrawCommand::PopClip);
+        }
     }
 
     scene
@@ -699,6 +707,49 @@ mod tests {
         let frame = Frame::default();
         let scene = scene_from_frame(&frame);
         assert!(scene.commands().is_empty(), "empty frame → empty scene");
+    }
+
+    #[test]
+    fn scene_from_frame_preserves_each_text_clip_without_leaking_to_unclipped_runs() {
+        let clips = [
+            Some([12.5, 40.0, 300.0, 200.0]),
+            None,
+            Some([0.0, 0.0, 0.0, 10.0]),
+        ];
+        let mut frame = Frame::default();
+        for (index, clip) in clips.into_iter().enumerate() {
+            frame.text.push(crate::TextRun {
+                prepared: acme_text::PreparedText {
+                    atlas_generation: 0,
+                    glyphs: vec![],
+                    uploads: vec![],
+                },
+                origin: [index as f32, 20.0],
+                color: [1.0; 4],
+                clip,
+            });
+        }
+        let scene = scene_from_frame(&frame);
+        let mut stack = Vec::new();
+        let mut index = 0;
+        for command in scene.commands() {
+            match command {
+                DrawCommand::PushClip(rect) => stack.push(*rect),
+                DrawCommand::PopClip => {
+                    stack.pop().expect("balanced text clips");
+                }
+                DrawCommand::Text(text) => {
+                    let expected = clips[index].map(|r| Rect::new(r[0], r[1], r[2], r[3]));
+                    assert_eq!(stack.last().copied(), expected);
+                    assert_eq!(text.origin.x.get(), index as f32);
+                    index += 1;
+                }
+                _ => panic!("only text and clip commands expected"),
+            }
+        }
+        assert_eq!(index, 3);
+        assert!(stack.is_empty());
+        assert!(scene.validate().is_ok());
     }
 
     #[test]

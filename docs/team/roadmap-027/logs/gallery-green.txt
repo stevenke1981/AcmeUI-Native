@@ -1,0 +1,11 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.23s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 3 tests
+test mobile_list_item_tests::list_row_hits_and_paint_indices_preserve_following_buttons_theme_and_scroll_clips ... ok
+test mobile_list_item_tests::gallery_list_keyboard_navigation_activation_reorder_and_composition_guard_use_real_events ... ok
+test mobile_list_item_tests::list_rows_dispatch_pointer_taps_and_keep_identity_after_detail_changes_and_reordering ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 44 filtered out; finished in 0.85s
+

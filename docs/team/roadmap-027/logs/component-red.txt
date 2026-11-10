@@ -1,0 +1,35 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.31s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_list_item::tests::defaults_public_fields_optional_detail_icon_and_tap_are_preserved ... FAILED
+test mobile::mobile_list_item::tests::retained_root_text_and_title_survive_optional_changes_tap_changes_and_keyed_reorder ... ok
+test mobile::mobile_list_item::tests::full_width_wrapped_text_and_fixed_trailing_icon_fit_real_narrow_layouts ... FAILED
+
+failures:
+
+---- mobile::mobile_list_item::tests::defaults_public_fields_optional_detail_icon_and_tap_are_preserved stdout ----
+
+thread 'mobile::mobile_list_item::tests::defaults_public_fields_optional_detail_icon_and_tap_are_preserved' panicked at crates/acme-ui/src/mobile/mobile_list_item_tests.rs:21:47:
+assertion `left == right` failed
+  left: None
+ right: Some(Surface)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile::mobile_list_item::tests::full_width_wrapped_text_and_fixed_trailing_icon_fit_real_narrow_layouts stdout ----
+
+thread 'mobile::mobile_list_item::tests::full_width_wrapped_text_and_fixed_trailing_icon_fit_real_narrow_layouts' panicked at crates/acme-ui/src/mobile/mobile_list_item_tests.rs:45:62:
+assertion `left == right` failed
+  left: 225.0
+ right: 180.0
+
+
+failures:
+    mobile::mobile_list_item::tests::defaults_public_fields_optional_detail_icon_and_tap_are_preserved
+    mobile::mobile_list_item::tests::full_width_wrapped_text_and_fixed_trailing_icon_fit_real_narrow_layouts
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 775 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p acme-ui --lib`
