@@ -1,0 +1,4 @@
+[PASS] cargo fmt -p acme-render-cpu -- --check
+[PASS] cargo test --locked -p acme-render-cpu
+[PASS] cargo clippy --locked -p acme-render-cpu --all-targets --no-deps -- -D warnings
+Evidence: /workspace/AcmeUI-Native/target/roadmap-026/cpu-final-accepted/report.json

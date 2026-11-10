@@ -1,0 +1,26 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.45s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_notification::tests::defaults_public_optional_fields_and_unicode_keep_distinct_actions ... ok
+test mobile::mobile_notification::tests::retained_title_content_and_dismiss_survive_optional_changes_and_keyed_reorder ... ok
+test mobile::mobile_notification::tests::long_title_and_body_fit_narrow_cards_and_actions_stay_below_text ... FAILED
+
+failures:
+
+---- mobile::mobile_notification::tests::long_title_and_body_fit_narrow_cards_and_actions_stay_below_text stdout ----
+
+thread 'mobile::mobile_notification::tests::long_title_and_body_fit_narrow_cards_and_actions_stay_below_text' panicked at crates/acme-ui/src/mobile/mobile_notification_tests.rs:111:13:
+assertion `left == right` failed
+  left: 179.0
+ right: 180.0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    mobile::mobile_notification::tests::long_title_and_body_fit_narrow_cards_and_actions_stay_below_text
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 776 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

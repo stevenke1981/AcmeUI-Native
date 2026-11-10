@@ -1,0 +1,25 @@
+    Checking acme-core v0.2.0 (/workspace/AcmeUI-Native/crates/acme-core)
+    Checking acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+    Checking acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+    Checking acme-theme v0.2.0 (/workspace/AcmeUI-Native/crates/acme-theme)
+    Checking acme-render-cpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-cpu)
+    Checking acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+    Checking acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+    Checking acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+    Checking acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+    Checking acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Checking acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+    Checking acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+error: this boolean expression can be simplified
+  --> apps/acme-gallery/src/mobile_notification.rs:29:12
+   |
+29 |         if !self.deadline.is_some_and(|deadline| now >= deadline) {
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `self.deadline.is_none_or(|deadline| now < deadline)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#nonminimal_bool
+   = note: `-D clippy::nonminimal-bool` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::nonminimal_bool)]`
+
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery" test) due to 1 previous error
