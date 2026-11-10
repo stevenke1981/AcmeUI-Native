@@ -1,0 +1,22 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "acme-render-wgpu",
+    "skipped_acquisition_preserves_one_shot_glyph_uploads",
+    "--",
+    "--ignored",
+    "--nocapture"
+  ],
+  "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+  "started_at": "2026-11-10T11:14:59.978529+00:00",
+  "status": "FAIL",
+  "exit_code": 101,
+  "log": "docs/team/roadmap-031/gpu-red-fresh.txt",
+  "finished_at": "2026-11-10T11:15:04.417981+00:00",
+  "duration_seconds": 4.439,
+  "log_sha256": "8377265abd357c55ddbfb781a88cd451bdc54d8cf8f8574c9b143fb0aaf4f597",
+  "original_log": "docs\\team\\roadmap-031\\gpu-red-fresh.log"
+}

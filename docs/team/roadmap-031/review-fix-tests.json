@@ -1,0 +1,19 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "acme-render-wgpu",
+    "-p",
+    "acme-platform"
+  ],
+  "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+  "started_at": "2026-11-10T11:28:10.418241+00:00",
+  "status": "PASS",
+  "exit_code": 0,
+  "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\docs\\team\\roadmap-031\\review-fix-tests.txt",
+  "finished_at": "2026-11-10T11:28:14.832697+00:00",
+  "duration_seconds": 4.414,
+  "log_sha256": "6ab8b6781da2176de7a94cfbd429be36d303a4afa21ea6b75a29721beedff25a"
+}

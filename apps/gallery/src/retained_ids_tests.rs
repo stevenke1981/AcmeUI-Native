@@ -233,3 +233,37 @@ fn accessibility_bounds_match_the_bound_layout_rects() {
         );
     }
 }
+
+#[test]
+fn all_gallery_frames_pass_shared_scene_preflight() {
+    let mut gallery = Gallery::new();
+    let pages = all_pages();
+    for dark in [false, true] {
+        gallery.dark = dark;
+        for &page in &pages {
+            select(&mut gallery, page);
+            // Include the cache-hit frame, where one-shot glyph uploads disappear.
+            for frame_index in 0..2 {
+                let scene = gallery.frame(FrameContext {
+                    window: acme_platform::WindowId(0),
+                    logical_width: VIEWPORT.0,
+                    logical_height: VIEWPORT.1,
+                    scale_factor: 1.0,
+                });
+                assert_eq!(
+                    scene.validate(),
+                    Ok(()),
+                    "page {page:?}, dark={dark}, frame={frame_index}"
+                );
+                assert!(
+                    !acme_render_wgpu::batch::compile_scene(&scene).is_empty(),
+                    "valid Gallery page must retain drawable batches: {page:?}"
+                );
+            }
+        }
+    }
+    eprintln!(
+        "Gallery evidence: {} pages x 2 themes x 2 frames passed scene preflight",
+        pages.len()
+    );
+}

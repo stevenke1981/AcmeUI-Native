@@ -1,5 +1,15 @@
 # Todos
 
+## ROADMAP 031 — render preflight and skipped-frame reliability (2026-11-10)
+
+- [x] Reproduce dropped one-shot glyph uploads on failed surface acquisition; upload before acquire and flush skipped-frame writes.
+- [x] Retry Skip/Reconfigure at a bounded deadline without requiring unrelated input; normalize background intervals and reschedule changes.
+- [x] Share clip/layer structural validation across CPU/GPU before resource mutation, preserving CPU allocation budgets.
+- [x] Windows real GPU/surface regression with injected Timeout/Occluded/Outdated and exact atlas readback; 275 targeted tests and strict four-crate Clippy pass.
+- [x] Gallery valid-scene evidence: 36 pages × two themes × two frames; see [batch report](../team/roadmap-031/REPORT.md).
+- [ ] Hosted CI and exact merged-SHA release build: current status in batch report / PR; do not infer completion from the implementation checkboxes.
+- [ ] Human IME/DPI/screen-reader validation NOT_RUN; desktop capture blocked by agent-desktop host DACL validation.
+
 ## ROADMAP 030 — mobile builder contract coverage (2026-11-10)
 
 - [x] Add named default/layout-kind/widget-and-layout-child-count contracts for all 20 public mobile modules, with a registry-driven inventory guard (historical P3 “16” count corrected: 15 mobile_* + five legacy modules).

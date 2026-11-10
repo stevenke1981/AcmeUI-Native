@@ -1,0 +1,20 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "acme-gallery",
+    "all_gallery_frames_pass_shared_scene_preflight",
+    "--",
+    "--nocapture"
+  ],
+  "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+  "started_at": "2026-11-10T11:18:50.138345+00:00",
+  "status": "PASS",
+  "exit_code": 0,
+  "log": "docs\\team\\roadmap-031\\gallery-frames.txt",
+  "finished_at": "2026-11-10T11:19:28.359754+00:00",
+  "duration_seconds": 38.221,
+  "log_sha256": "c9114152f86f089d82b10f6d9f579e91355f562f322df5de162681cc3dd9d301"
+}

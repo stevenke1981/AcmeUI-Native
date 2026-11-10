@@ -1,0 +1,15 @@
+    Checking slotmap v1.1.1
+    Checking acme-theme v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-theme)
+    Checking fontdb v0.16.2
+    Checking taffy v0.9.2
+    Checking cosmic-text v0.14.2
+    Checking acme-text v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-text)
+    Checking acme-layout v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-layout)
+    Checking acme-render-wgpu v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-render-wgpu)
+    Checking acme-style v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-style)
+    Checking acme-widgets v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-widgets)
+    Checking acme-platform v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-platform)
+    Checking acme-accessibility v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-accessibility)
+    Checking acme-textinput v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-textinput)
+    Checking acme-gallery v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\apps\gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.50s

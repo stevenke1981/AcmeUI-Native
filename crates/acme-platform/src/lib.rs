@@ -5,6 +5,8 @@
 mod backend;
 mod clipboard;
 mod keys;
+mod scheduling;
+use scheduling::{BackgroundPoll, FrameRetry};
 mod waker;
 pub use backend::RenderBackendPreference;
 use backend::{CPU_FEATURE_REQUIRED, RendererPlan, plan_renderer, resolve_render_backend_from_env};
@@ -343,7 +345,8 @@ pub trait Application: 'static {
 
     /// Optional polling interval for background-thread work such as global hotkeys.
     /// `None` keeps the runtime fully event-driven while `Some` schedules redraws
-    /// without forcing a busy `ControlFlow::Poll` loop.
+    /// without forcing a busy `ControlFlow::Poll` loop. Intervals are clamped
+    /// to 1 ms through 24 hours; changing an interval reschedules from now.
     fn background_poll_interval(&self) -> Option<std::time::Duration> {
         None
     }
@@ -580,6 +583,7 @@ struct WindowState {
     alt: bool,
     meta: bool,
     dirty: bool,
+    retry: FrameRetry,
     /// Last maximized state reported via `MaximizedChanged`; `None` until the first sync.
     maximized: Option<bool>,
 }
@@ -588,7 +592,7 @@ struct Runtime<A> {
     app: A,
     windows: HashMap<WinitWindowId, WindowState>,
     next_window_id: u64,
-    next_background_poll: Option<std::time::Instant>,
+    background_poll: BackgroundPoll,
     /// First unrecoverable error that stopped the loop; read back by [`run`].
     fatal: Option<PlatformError>,
 }
@@ -599,7 +603,7 @@ impl<A> Runtime<A> {
             app,
             windows: HashMap::new(),
             next_window_id: 0,
-            next_background_poll: None,
+            background_poll: BackgroundPoll::default(),
             fatal: None,
         }
     }
@@ -617,25 +621,24 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        let Some(interval) = self.app.background_poll_interval() else {
-            if self.next_background_poll.take().is_some() {
-                event_loop.set_control_flow(ControlFlow::Wait);
-            }
-            return;
-        };
         let now = std::time::Instant::now();
-        let deadline = self.next_background_poll.unwrap_or(now);
-        if now >= deadline {
-            if self.app.background_tick() {
-                for state in self.windows.values() {
-                    state.window.request_redraw();
-                }
+        if self
+            .background_poll
+            .advance(self.app.background_poll_interval(), now)
+            && self.app.background_tick()
+        {
+            for state in self.windows.values() {
+                state.window.request_redraw();
             }
-            self.next_background_poll = Some(now + interval);
         }
-        if let Some(next) = self.next_background_poll {
-            event_loop.set_control_flow(ControlFlow::WaitUntil(next));
+        let mut next = self.background_poll.deadline;
+        for state in self.windows.values_mut() {
+            if state.retry.take_due(now) {
+                state.window.request_redraw();
+            }
+            next = next.into_iter().chain(state.retry.deadline).min();
         }
+        event_loop.set_control_flow(next.map_or(ControlFlow::Wait, ControlFlow::WaitUntil));
     }
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
@@ -699,6 +702,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                             alt: false,
                             meta: false,
                             dirty: true,
+                            retry: FrameRetry::default(),
                             maximized: None,
                         },
                     );
@@ -1850,7 +1854,6 @@ fn handle_redraw(
     });
     let (action, cause) = state.renderer.render_scene(&scene);
     match action {
-        SurfaceAction::Reconfigure => state.window.request_redraw(),
         SurfaceAction::Exit => {
             let error = PlatformError::Renderer(exit_error_message(win_id, cause.as_deref()));
             stop_on_fatal(fatal, event_loop, error);
@@ -1873,7 +1876,7 @@ fn handle_redraw(
         }
         _ => {}
     }
-    state.dirty = false;
+    state.dirty = state.retry.after_frame(action, std::time::Instant::now());
 }
 
 /// Message for [`PlatformError::Renderer`] when a window's renderer requests exit.

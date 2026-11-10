@@ -23,6 +23,25 @@ impl Renderer {
     /// This is the primary render entry point.  The legacy [`render`](Self::render)
     /// method bridges to this via [`batch::scene_from_frame`].
     pub fn render_scene(&mut self, scene: &Scene) -> SurfaceAction {
+        self.render_scene_with_acquire(scene, |surface| surface.get_current_texture())
+    }
+
+    // The acquisition boundary is injectable so recovery tests exercise the same
+    // upload and submission path as real frames, with deterministic failures.
+    fn render_scene_with_acquire(
+        &mut self,
+        scene: &Scene,
+        acquire: impl FnOnce(&wgpu::Surface<'_>) -> wgpu::CurrentSurfaceTexture,
+    ) -> SurfaceAction {
+        // Reject malformed command structure before mutating CPU or GPU resources.
+        let batches = match batch::try_compile_scene(scene) {
+            Ok(batches) => batches,
+            Err(error) => {
+                tracing::error!(?error, "invalid scene");
+                return SurfaceAction::Exit;
+            }
+        };
+
         // Keep backend-neutral CPU image state current even when acquisition
         // immediately reports device loss. Recovery rebuilds only this live set.
         self.update_live_scene_images(scene);
@@ -31,11 +50,40 @@ impl Renderer {
         let suspended = self.status == SurfaceStatus::Suspended;
         let lost = is_device_lost(&self.device_lost_flag);
         let pre_acquire_action = resolve_surface_action(suspended, lost, AcquireOutcome::Success);
-        if pre_acquire_action != SurfaceAction::Rendered {
+        // Device recovery invalidates the application's atlas. A suspended
+        // surface with a healthy device must still consume one-shot uploads.
+        if lost {
             return pre_acquire_action;
         }
         let mut reconfigure_after_present = false;
-        let acquired = self.surface.get_current_texture();
+        // ---- atlas upload from scene ----
+        let mut uploaded_regions: HashSet<UploadKey> = HashSet::new();
+        let mut atlas_total = 0u64;
+        let mut atlas_skipped = 0u64;
+        let mut atlas_bytes = 0u64;
+        {
+            let (total, skipped, bytes) = self.upload_scene_atlas(scene, &mut uploaded_regions);
+            atlas_total += total;
+            atlas_skipped += skipped;
+            atlas_bytes += bytes;
+        }
+        self.stats.bytes_uploaded += atlas_bytes;
+        self.stats.atlas_hit_rate = if atlas_total > 0 {
+            (atlas_skipped as f64 / atlas_total as f64) * 100.0
+        } else {
+            100.0
+        };
+
+        if pre_acquire_action != SurfaceAction::Rendered {
+            if atlas_bytes > 0 {
+                self.queue.submit([]);
+            }
+            return pre_acquire_action;
+        }
+
+        // Glyph uploads are one-shot: the application atlas will hit next time.
+        // Deliver them before a transient acquire failure can discard this Scene.
+        let acquired = acquire(&self.surface);
         let lost = is_device_lost(&self.device_lost_flag);
         let outcome = match &acquired {
             wgpu::CurrentSurfaceTexture::Success(_) => AcquireOutcome::Success,
@@ -50,6 +98,11 @@ impl Renderer {
         };
         let action = resolve_surface_action(suspended, lost, outcome);
         if action != SurfaceAction::Rendered {
+            // write_texture stages data until submit. Flush on a skipped frame
+            // so repeated occlusion cannot accumulate staging allocations.
+            if atlas_bytes > 0 {
+                self.queue.submit([]);
+            }
             if outcome == AcquireOutcome::OutdatedOrLost {
                 self.status = SurfaceStatus::Recovering;
                 self.surface.configure(&self.device, &self.config);
@@ -70,26 +123,7 @@ impl Renderer {
 
         self.stats.bytes_uploaded += self.sync_scene_images();
 
-        // ---- atlas upload from scene ----
-        let mut uploaded_regions: HashSet<UploadKey> = HashSet::new();
-        let mut atlas_total = 0u64;
-        let mut atlas_skipped = 0u64;
-        let mut atlas_bytes = 0u64;
-        {
-            let (total, skipped, bytes) = self.upload_scene_atlas(scene, &mut uploaded_regions);
-            atlas_total += total;
-            atlas_skipped += skipped;
-            atlas_bytes += bytes;
-        }
-        self.stats.bytes_uploaded += atlas_bytes;
-        self.stats.atlas_hit_rate = if atlas_total > 0 {
-            (atlas_skipped as f64 / atlas_total as f64) * 100.0
-        } else {
-            100.0
-        };
-
         // ---- compile scene into ordered batches ----
-        let batches = batch::compile_scene(scene);
         let scale = self.scale_factor;
         let config_w = self.config.width;
         let config_h = self.config.height;
@@ -334,6 +368,156 @@ impl Renderer {
                 self.config.width as f32,
                 self.config.height as f32,
             ],
+        }
+    }
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod recovery_tests {
+    use super::*;
+    use acme_core::{AtlasUpload, Color, GlyphDraw, GlyphFormat, Point, TextPrimitive};
+    use std::sync::Arc;
+    use winit::event_loop::EventLoop;
+    use winit::platform::windows::EventLoopBuilderExtWindows;
+    use winit::window::Window;
+
+    #[test]
+    #[ignore = "requires a Windows window and real GPU; run explicitly"]
+    #[allow(deprecated)]
+    fn skipped_acquisition_preserves_one_shot_glyph_uploads() {
+        let event_loop = EventLoop::builder().with_any_thread(true).build().unwrap();
+        let window = Arc::new(
+            event_loop
+                .create_window(
+                    Window::default_attributes()
+                        .with_visible(false)
+                        .with_inner_size(winit::dpi::PhysicalSize::new(64, 64)),
+                )
+                .unwrap(),
+        );
+        let mut renderer = pollster::block_on(Renderer::new(window, 64, 64, 1.0)).unwrap();
+        let mut invalid = Scene::new();
+        invalid.push(DrawCommand::EndLayer);
+        assert_eq!(
+            renderer.render_scene_with_acquire(&invalid, |_| {
+                panic!("invalid scene must be rejected before surface acquisition")
+            }),
+            SurfaceAction::Exit
+        );
+        assert_eq!(renderer.stats.bytes_uploaded, 0);
+        assert!(renderer.live_images.is_empty());
+        for (page, outcome) in [
+            wgpu::CurrentSurfaceTexture::Timeout,
+            wgpu::CurrentSurfaceTexture::Occluded,
+            wgpu::CurrentSurfaceTexture::Outdated,
+            wgpu::CurrentSurfaceTexture::Occluded, // zero-sized / suspended surface
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut text = TextPrimitive {
+                origin: Point::new(0.0, 0.0),
+                color: Color::rgba(1.0, 1.0, 1.0, 1.0),
+                glyphs: vec![GlyphDraw {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 2.0,
+                    height: 2.0,
+                    atlas_x: 0,
+                    atlas_y: 0,
+                    atlas_page: page as u32,
+                    format: GlyphFormat::Alpha8,
+                }],
+                uploads: vec![AtlasUpload {
+                    page: page as u32,
+                    origin: [0, 0],
+                    size: [2, 2],
+                    format: GlyphFormat::Alpha8,
+                    pixels: vec![255; 4],
+                }],
+            };
+            let mut first = Scene::new();
+            first.push(DrawCommand::Text(text.clone()));
+            let before = renderer.stats.bytes_uploaded;
+            let suspended = page == 3;
+            if suspended {
+                renderer.resize(0, 0, 1.0);
+            }
+            assert!(matches!(
+                renderer.render_scene_with_acquire(&first, |_| {
+                    assert!(!suspended, "suspended renderer must not acquire a surface");
+                    outcome
+                }),
+                SurfaceAction::Skip | SurfaceAction::Reconfigure
+            ));
+            assert_eq!(
+                renderer.stats.bytes_uploaded - before,
+                4,
+                "one-shot upload must reach GPU even when acquisition skips"
+            );
+            assert!(
+                renderer
+                    .atlas_pages
+                    .get(GlyphFormat::Alpha8, page as u32)
+                    .is_some()
+            );
+            text.uploads.clear(); // The application atlas hits on the next frame.
+            let mut second = Scene::new();
+            second.push(DrawCommand::Text(text));
+            if suspended {
+                renderer.resize(64, 64, 1.0);
+            }
+            let action = renderer.render_scene(&second);
+            assert!(
+                matches!(action, SurfaceAction::Rendered | SurfaceAction::Reconfigure),
+                "real surface did not recover: {action:?}"
+            );
+            assert_eq!(renderer.stats.atlas_hit_rate, 100.0);
+            assert_eq!(renderer.stats.glyph_count, 1);
+            // Read real GPU atlas texels after recovery, not just upload counters.
+            let readback = renderer.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("glyph recovery readback"),
+                size: 512,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                mapped_at_creation: false,
+            });
+            let texture = &renderer
+                .atlas_pages
+                .get(GlyphFormat::Alpha8, page as u32)
+                .unwrap()
+                .texture;
+            let mut encoder = renderer.device.create_command_encoder(&Default::default());
+            encoder.copy_texture_to_buffer(
+                texture.as_image_copy(),
+                wgpu::TexelCopyBufferInfo {
+                    buffer: &readback,
+                    layout: wgpu::TexelCopyBufferLayout {
+                        offset: 0,
+                        bytes_per_row: Some(256),
+                        rows_per_image: Some(2),
+                    },
+                },
+                wgpu::Extent3d {
+                    width: 2,
+                    height: 2,
+                    depth_or_array_layers: 1,
+                },
+            );
+            renderer.queue.submit([encoder.finish()]);
+            let (tx, rx) = std::sync::mpsc::channel();
+            readback
+                .slice(..)
+                .map_async(wgpu::MapMode::Read, move |result| {
+                    tx.send(result).unwrap();
+                });
+            renderer
+                .device
+                .poll(wgpu::PollType::wait_indefinitely())
+                .unwrap();
+            rx.recv().unwrap().unwrap();
+            let bytes = readback.slice(..).get_mapped_range();
+            assert_eq!(&bytes[0..2], &[255, 255]);
+            assert_eq!(&bytes[256..258], &[255, 255]);
         }
     }
 }

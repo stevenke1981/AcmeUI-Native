@@ -1,0 +1,26 @@
+{
+  "command": [
+    "cargo",
+    "clippy",
+    "--locked",
+    "-p",
+    "acme-render-wgpu",
+    "-p",
+    "acme-platform",
+    "-p",
+    "acme-gallery",
+    "--all-targets",
+    "--no-deps",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+  "started_at": "2026-11-10T11:28:14.842305+00:00",
+  "status": "PASS",
+  "exit_code": 0,
+  "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\docs\\team\\roadmap-031\\review-fix-clippy.txt",
+  "finished_at": "2026-11-10T11:28:19.523197+00:00",
+  "duration_seconds": 4.681,
+  "log_sha256": "4c41a9d1c52da1c72a36df58c8d259e7dd331deb84b5e7a332fd8431e12dfa56"
+}

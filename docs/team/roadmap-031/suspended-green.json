@@ -1,0 +1,21 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "acme-render-wgpu",
+    "skipped_acquisition_preserves_one_shot_glyph_uploads",
+    "--",
+    "--ignored",
+    "--nocapture"
+  ],
+  "cwd": "D:\\AcmeUI-Native\\.worktrees\\hardening-031",
+  "started_at": "2026-11-10T11:28:07.596730+00:00",
+  "status": "PASS",
+  "exit_code": 0,
+  "log": "D:\\AcmeUI-Native\\.worktrees\\hardening-031\\docs\\team\\roadmap-031\\suspended-green.txt",
+  "finished_at": "2026-11-10T11:28:10.411077+00:00",
+  "duration_seconds": 2.814,
+  "log_sha256": "ec502828161feee1d46fa93bca8e908866428599bd6b84dabf771630445c2f86"
+}

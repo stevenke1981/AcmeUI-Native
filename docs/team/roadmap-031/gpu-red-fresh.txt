@@ -1,0 +1,21 @@
+   Compiling acme-render-wgpu v0.2.0 (D:\AcmeUI-Native\.worktrees\hardening-031\crates\acme-render-wgpu)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.45s
+     Running unittests src\lib.rs (D:/AcmeUI-Native/target\debug\deps\acme_render_wgpu-efe76fcb3e2f13c1.exe)
+
+running 1 test
+
+thread 'renderer::frame::recovery_tests::skipped_acquisition_preserves_one_shot_glyph_uploads' panicked at crates\acme-render-wgpu\src\renderer\frame.rs:387:13:
+assertion `left == right` failed: one-shot upload must reach GPU even when acquisition skips
+  left: 0
+ right: 4
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test renderer::frame::recovery_tests::skipped_acquisition_preserves_one_shot_glyph_uploads ... FAILED
+
+failures:
+
+failures:
+    renderer::frame::recovery_tests::skipped_acquisition_preserves_one_shot_glyph_uploads
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 74 filtered out; finished in 1.50s
+
+error: test failed, to rerun pass `-p acme-render-wgpu --lib`
