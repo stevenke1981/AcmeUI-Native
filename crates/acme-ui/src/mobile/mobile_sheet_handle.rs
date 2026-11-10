@@ -1,7 +1,11 @@
-//! Mobile sheet handle — drag indicator bar for bottom sheets.
+//! Mobile sheet handle — visual drag indicator bar for bottom sheets.
+//!
+//! This noninteractive decoration does not install a drag recognizer.
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_layout::Length;
+use acme_widgets::style::{ColorToken, Styled};
 
 /// Builder for a mobile sheet drag handle.
 pub struct MobileSheetHandleBuilder<M> {
@@ -33,36 +37,24 @@ impl<M: Clone + 'static> MobileSheetHandleBuilder<M> {
 
 impl<M: Clone + 'static> From<MobileSheetHandleBuilder<M>> for WidgetNode<M> {
     fn from(b: MobileSheetHandleBuilder<M>) -> Self {
+        let width = if b.width.is_finite() {
+            b.width.max(0.0)
+        } else {
+            36.0
+        };
         crate::row::<M>()
             .key(b.id)
-            .size(b.width, 4.0)
+            .size(width, 4.0)
+            .min_w(Length::px(width))
+            .min_h(Length::px(4.0))
+            .flex_shrink(0.0)
+            .bg(ColorToken::MutedForeground)
+            .rounded(2.0)
             .padding(0.0)
             .build()
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Clone, Debug, PartialEq)]
-    enum Msg {}
-
-    #[test]
-    fn mobile_sheet_handle_produces_row() {
-        let node: WidgetNode<Msg> = mobile_sheet_handle().into();
-        assert!(matches!(node, WidgetNode::Row(_)));
-    }
-
-    #[test]
-    fn mobile_sheet_handle_default_width() {
-        let b = mobile_sheet_handle::<Msg>();
-        assert_eq!(b.width, 36.0);
-    }
-
-    #[test]
-    fn mobile_sheet_handle_custom_width() {
-        let b = mobile_sheet_handle::<Msg>().width(48.0);
-        assert_eq!(b.width, 48.0);
-    }
-}
+#[path = "mobile_sheet_handle_tests.rs"]
+mod tests;
