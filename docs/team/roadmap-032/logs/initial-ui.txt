@@ -1,0 +1,16 @@
+   Compiling acme-core v0.2.0 (/workspace/AcmeUI-Native/crates/acme-core)
+   Compiling acme-theme v0.2.0 (/workspace/AcmeUI-Native/crates/acme-theme)
+   Compiling acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+   Compiling acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.49s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test overlay::float_button::tests::fab_surface_and_action_identity_survive_size_content_and_reorder ... ok
+test overlay::float_button::tests::fab_has_elevated_surface_and_one_typed_action ... ok
+test overlay::float_button::tests::fab_sizes_are_real_and_long_extended_labels_stay_bounded ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 794 filtered out; finished in 1.09s
+

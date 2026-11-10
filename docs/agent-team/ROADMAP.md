@@ -44,6 +44,10 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 030 | Lead + UI/UX + Verification (single-agent role passes) | Default/layout/child-count contracts and inventory guard for all 20 public mobile modules; retained Gallery presence for 15 P3 builders; historical count reconciliation | [Brief](../team/roadmap-030/BRIEF.md); [report](../team/roadmap-030/REPORT.md) with coverage matrix, locked gates and native CPU smoke; legacy interactions and manual acceptance remain open |
 
+| 031 | See original render-reliability report | Surface-acquisition glyph uploads, shared Scene validation and bounded frame retries | [Report](../team/roadmap-031/REPORT.md); merged separately in PR #40 before the resumed FAB batch |
+
+| 032 | Lead + UI/UX + Verification (single-agent role passes) | Resume FAB mini/normal/extended acceptance, themed elevation and typed actions | [Brief](../team/roadmap-032/BRIEF.md); [report](../team/roadmap-032/REPORT.md); viewport anchoring and manual hardware acceptance remain separate |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

@@ -1,0 +1,51 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+error[E0599]: no method named `x` found for reference `&acme_core::Rect<Logical>` in the current scope
+   --> apps/acme-gallery/src/mobile_list_item_tests.rs:105:49
+    |
+105 |                         clips.last().map(|c| [c.x(), c.y(), c.w(), c.h()]),
+    |                                                 ^ method not found in `&Rect<Logical>`
+
+error[E0599]: no method named `y` found for reference `&acme_core::Rect<Logical>` in the current scope
+   --> apps/acme-gallery/src/mobile_list_item_tests.rs:105:56
+    |
+105 |                         clips.last().map(|c| [c.x(), c.y(), c.w(), c.h()]),
+    |                                                        ^ method not found in `&Rect<Logical>`
+
+error[E0599]: no method named `w` found for reference `&acme_core::Rect<Logical>` in the current scope
+   --> apps/acme-gallery/src/mobile_list_item_tests.rs:105:63
+    |
+105 |                         clips.last().map(|c| [c.x(), c.y(), c.w(), c.h()]),
+    |                                                               ^ method not found in `&Rect<Logical>`
+
+error[E0599]: no method named `h` found for reference `&acme_core::Rect<Logical>` in the current scope
+   --> apps/acme-gallery/src/mobile_list_item_tests.rs:105:70
+    |
+105 |                         clips.last().map(|c| [c.x(), c.y(), c.w(), c.h()]),
+    |                                                                      ^ method not found in `&Rect<Logical>`
+
+error[E0599]: no method named `x` found for struct `acme_core::Rect` in the current scope
+   --> apps/acme-gallery/src/mobile_list_item_tests.rs:106:35
+    |
+106 |                         [expected.x(), expected.y(), expected.w(), expected.h()]
+    |                                   ^ method not found in `Rect<_>`
+
+error[E0599]: no method named `y` found for struct `acme_core::Rect` in the current scope
+   --> apps/acme-gallery/src/mobile_list_item_tests.rs:106:49
+    |
+106 |                         [expected.x(), expected.y(), expected.w(), expected.h()]
+    |                                                 ^ method not found in `Rect<_>`
+
+error[E0599]: no method named `w` found for struct `acme_core::Rect` in the current scope
+   --> apps/acme-gallery/src/mobile_list_item_tests.rs:106:63
+    |
+106 |                         [expected.x(), expected.y(), expected.w(), expected.h()]
+    |                                                               ^ method not found in `Rect<_>`
+
+error[E0599]: no method named `h` found for struct `acme_core::Rect` in the current scope
+   --> apps/acme-gallery/src/mobile_list_item_tests.rs:106:77
+    |
+106 |                         [expected.x(), expected.y(), expected.w(), expected.h()]
+    |                                                                             ^ method not found in `Rect<_>`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery" test) due to 8 previous errors

@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 032 — floating action button acceptance (2026-11-11)
+
+- [x] Resume interrupted FAB work without discarding changes; support mini/normal/extended sizes, themed elevated surfaces and one typed Button action.
+- [x] Add component layout/retained tests and Gallery theme/scale/clip/pointer regressions; see [report](../team/roadmap-032/REPORT.md) for verification and delivery status.
+- [ ] Viewport anchoring and expandable groups remain host/follow-up work; human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 031 — render preflight and skipped-frame reliability (2026-11-10)
 
 - [x] Reproduce dropped one-shot glyph uploads on failed surface acquisition; upload before acquire and flush skipped-frame writes.
@@ -312,7 +318,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 ## P4 — New mobile components (gap analysis)
 
-- [ ] FloatingActionButton (FAB) — circular elevated button, mini/normal/extended
+- [x] FloatingActionButton (FAB) — circular elevated button, mini/normal/extended; existing float_button builder, retained/layout/typed actions and native CPU Gallery evidence (ROADMAP 032). Viewport anchoring is host-owned; manual hardware acceptance remains NOT_RUN.
 - [ ] Snackbar — bottom transient message with optional action button
 - [ ] SwipeActions — swipe-to-reveal delete/archive on list items
 - [ ] MobileTabBar — top scrollable tab strip with badge support

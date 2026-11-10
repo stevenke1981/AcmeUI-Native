@@ -1,0 +1,52 @@
+   Compiling acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+   Compiling acme-render-cpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-cpu)
+   Compiling acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+   Compiling acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+error[E0609]: no field `a` on type `ThemeColor`
+    --> apps/acme-gallery/src/main.rs:2231:15
+     |
+2231 |         color.a /= 4.0;
+     |               ^ unknown field
+     |
+     = note: available fields are: `red`, `green`, `blue`, `alpha`
+
+error[E0609]: no field `a` on type `ThemeColor`
+  --> apps/acme-gallery/src/fab_tests.rs:80:30
+   |
+80 |                 shadow_color.a /= 4.0;
+   |                              ^ unknown field
+   |
+   = note: available fields are: `red`, `green`, `blue`, `alpha`
+
+error[E0063]: missing fields `alt`, `button`, `ctrl` and 4 other fields in initializer of `acme_platform::PlatformEvent`
+   --> apps/acme-gallery/src/fab_tests.rs:119:13
+    |
+119 |     g.event(PlatformEvent::PointerButton {
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `alt`, `button`, `ctrl` and 4 other fields
+
+error[E0063]: missing fields `alt`, `button`, `ctrl` and 4 other fields in initializer of `acme_platform::PlatformEvent`
+   --> apps/acme-gallery/src/fab_tests.rs:124:13
+    |
+124 |     g.event(PlatformEvent::PointerButton {
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `alt`, `button`, `ctrl` and 4 other fields
+
+error[E0063]: missing fields `alt`, `button`, `ctrl` and 4 other fields in initializer of `acme_platform::PlatformEvent`
+   --> apps/acme-gallery/src/fab_tests.rs:130:13
+    |
+130 |     g.event(PlatformEvent::PointerButton {
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `alt`, `button`, `ctrl` and 4 other fields
+
+error[E0063]: missing fields `alt`, `button`, `ctrl` and 4 other fields in initializer of `acme_platform::PlatformEvent`
+   --> apps/acme-gallery/src/fab_tests.rs:139:13
+    |
+139 |     g.event(PlatformEvent::PointerButton {
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `alt`, `button`, `ctrl` and 4 other fields
+
+Some errors have detailed explanations: E0063, E0609.
+For more information about an error, try `rustc --explain E0063`.
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery" test) due to 6 previous errors
