@@ -1,0 +1,1 @@
+Native CPU toolbar changed pixels after keyboard scrolling: 0 / 36000

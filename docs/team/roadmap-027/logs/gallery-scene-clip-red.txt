@@ -1,0 +1,34 @@
+   Compiling acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+   Compiling acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+error[E0369]: binary operation `>=` cannot be applied to type `Pixels<Logical>`
+   --> apps/acme-gallery/src/mobile_list_item_tests.rs:100:59
+    |
+100 |             acme_core::DrawCommand::Text(t) if t.origin.x >= SIDEBAR_WIDTH && t.origin.y < 0.0 => {
+    |                                                ---------- ^^ ------------- f32
+    |                                                |
+    |                                                Pixels<Logical>
+    |
+note: the foreign item type `Pixels<Logical>` doesn't implement `PartialOrd<f32>`
+   --> /workspace/AcmeUI-Native/crates/acme-core/src/geometry.rs:15:1
+    |
+15  | pub struct Pixels<U> {
+    | ^^^^^^^^^^^^^^^^^^^^ not implement `PartialOrd<f32>`
+
+error[E0369]: binary operation `<` cannot be applied to type `Pixels<Logical>`
+   --> apps/acme-gallery/src/mobile_list_item_tests.rs:100:90
+    |
+100 |             acme_core::DrawCommand::Text(t) if t.origin.x >= SIDEBAR_WIDTH && t.origin.y < 0.0 => {
+    |                                                                               ---------- ^ --- {float}
+    |                                                                               |
+    |                                                                               Pixels<Logical>
+    |
+note: the foreign item type `Pixels<Logical>` doesn't implement `PartialOrd<{float}>`
+   --> /workspace/AcmeUI-Native/crates/acme-core/src/geometry.rs:15:1
+    |
+15  | pub struct Pixels<U> {
+    | ^^^^^^^^^^^^^^^^^^^^ not implement `PartialOrd<{float}>`
+
+For more information about this error, try `rustc --explain E0369`.
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery" test) due to 2 previous errors

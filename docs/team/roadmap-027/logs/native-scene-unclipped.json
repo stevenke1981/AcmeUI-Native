@@ -1,0 +1,108 @@
+{
+  "script_argv": [
+    "target/roadmap-capture.py",
+    "027",
+    "list-items",
+    "list-opened:650:260",
+    "list-keyboard:key:F6,Down,space"
+  ],
+  "started_at": "2026-11-10T01:00:48.517310+00:00",
+  "source_sha": "a3e2af25a708832de64364db46cfb96fad5febab",
+  "git_status": "?? docs/team/roadmap-027/evidence.json\n?? docs/team/roadmap-027/gallery-mobile-list-items.png\n?? docs/team/roadmap-027/gallery-mobile-list-keyboard.png\n?? docs/team/roadmap-027/gallery-mobile-list-opened.png\n?? docs/team/roadmap-027/logs/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Automated X11 CPU Gallery window on isolated Xvfb; default light theme; Mobile page",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1100x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "1100"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "650",
+      "260",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "key",
+      "F6",
+      "Down",
+      "space"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-10T01:00:50.267942+00:00",
+      "path": "docs/team/roadmap-027/gallery-mobile-list-items.png",
+      "dimensions": [
+        1100,
+        1100
+      ],
+      "sha256": "a944fc8763a2b6c89e9f25f0ab3b2b6264dc16bd9692dfe5baae065dbd10859e"
+    },
+    {
+      "captured_at": "2026-11-10T01:00:51.044241+00:00",
+      "path": "docs/team/roadmap-027/gallery-mobile-list-opened.png",
+      "dimensions": [
+        1100,
+        1100
+      ],
+      "sha256": "2ee6b77f86e5c4ecee7c7a33fa9d26c4122c4002f832ee530f93a2c4368c8d4d"
+    },
+    {
+      "captured_at": "2026-11-10T01:00:51.754393+00:00",
+      "path": "docs/team/roadmap-027/gallery-mobile-list-keyboard.png",
+      "dimensions": [
+        1100,
+        1100
+      ],
+      "sha256": "0c13b568eebce45e6fff32a189ed0e64938b6340faea750041f3ffef7896d7ed"
+    }
+  ],
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "window_geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=1100\nSCREEN=0\n",
+  "status": "PASS",
+  "finished_at": "2026-11-10T01:00:51.793483+00:00",
+  "log": "/workspace/AcmeUI-Native/target/roadmap-027/native-window.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "capture": "PIL.ImageGrab.grab(xdisplay=display)",
+  "cwd": "/workspace/AcmeUI-Native/target/roadmap-027/native-cwd"
+}

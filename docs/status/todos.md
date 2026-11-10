@@ -1,5 +1,13 @@
 # Todos
 
+## ROADMAP 027 — mobile list item acceptance (2026-11-10)
+
+- [x] Add full-width themed rows, wrapping title/detail, fixed trailing icon and stable text keys; preserve existing public fields and Row on_tap messages.
+- [x] Add Gallery pointer and explicit F6 keyboard host, optional-detail/reorder demos, real-layout/retained/theme/paint-index regressions and native CPU pointer/keyboard captures.
+- [x] Fix Frame→Scene dropping TextRun clips, exposed by keyboard scrolling: Scene/Gallery RED/GREEN and native toolbar pixel comparison (762 changed pixels before, 0 after). Run locked touched/mobile tests, strict Clippy, actual CPU profile and workspace milestone gates; see [report](../team/roadmap-027/REPORT.md).
+- [ ] Framework-wide retained focus and typed AccessKit actions for the Row composition — open; keyboard handling in this slice is Gallery-specific.
+- [ ] Manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 026 — mobile notification acceptance (2026-11-10)
 
 - [x] Add responsive wrapping title/body, stable content/footer keys and separate 44 px actions; preserve the stateless builder API and semantic elevated Card.
@@ -268,7 +276,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] mobile_avatar — circular themed initials / neutral empty-name placeholder, 32/40/56 px variants; retained/layout/paint tests and native CPU Gallery evidence (ROADMAP 024). Actual image loading is outside this builder; manual hardware acceptance remains NOT_RUN.
 - [x] mobile_banner — full-width themed soft alert with icon, wrapping text and optional independent action/dismiss; retained/layout/Gallery tests and native CPU evidence (ROADMAP 025). Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_notification — themed toast-style card with wrapping title/body, separate actions and Gallery host-owned auto-dismiss/hint; retained/layout/timer tests and native CPU captures (ROADMAP 026). The stateless component schedules no timer itself; manual hardware acceptance remains NOT_RUN.
-- [ ] mobile_list_item — title + detail + optional trailing icon, on_tap
+- [x] mobile_list_item — responsive themed title/detail row with optional fixed trailing icon and on_tap; retained/layout/Gallery pointer/keyboard tests and native CPU evidence (ROADMAP 027). Framework-wide Row focus/typed semantics remain open; manual hardware acceptance is NOT_RUN.
 - [ ] mobile_action — tappable action row with icon + label + destructive flag
 - [ ] mobile_sheet_handle — drag indicator bar (fixed 36×4 rounded rect)
 - [ ] Unit tests for all 16 modules (layout kind, child count, builder defaults)
@@ -289,7 +297,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
-- [ ] Add Gallery "Mobile" page showcasing all mobile components — page exists; buttons, toggle, stepper, segmented, cards, progress and loader are covered through ROADMAP 021; remaining mobile demos are open.
+- [ ] Add Gallery "Mobile" page showcasing all mobile components — page exists; buttons, toggle, stepper, segmented, cards, progress, loader, search, chips, avatars, banners, notifications and list items are covered through ROADMAP 027; action and sheet-handle demos remain open.
 - [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
 - [x] Document source-module inventory in both READMEs (199 modules; excludes `mod.rs`, does not imply interactive completeness)

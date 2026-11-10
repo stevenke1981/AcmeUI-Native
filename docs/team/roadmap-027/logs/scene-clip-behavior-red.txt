@@ -1,0 +1,24 @@
+   Compiling acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.18s
+     Running unittests src/lib.rs (target/debug/deps/acme_render_wgpu-b305921de6f4740f)
+
+running 1 test
+test batch::tests::scene_from_frame_preserves_each_text_clip_without_leaking_to_unclipped_runs ... FAILED
+
+failures:
+
+---- batch::tests::scene_from_frame_preserves_each_text_clip_without_leaking_to_unclipped_runs stdout ----
+
+thread 'batch::tests::scene_from_frame_preserves_each_text_clip_without_leaking_to_unclipped_runs' panicked at crates/acme-render-wgpu/src/batch.rs:735:21:
+assertion `left == right` failed
+  left: None
+ right: Some(Rect { origin: Point { x: 12.5, y: 40.0 }, size: Size { width: 300.0, height: 200.0 } })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    batch::tests::scene_from_frame_preserves_each_text_clip_without_leaking_to_unclipped_runs
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-render-wgpu --lib`

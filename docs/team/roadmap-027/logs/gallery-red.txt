@@ -1,0 +1,41 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.20s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 3 tests
+test mobile_list_item_tests::list_row_hits_and_paint_indices_preserve_following_buttons_theme_and_scroll_clips ... FAILED
+test mobile_list_item_tests::gallery_list_keyboard_navigation_activation_reorder_and_composition_guard_use_real_events ... FAILED
+test mobile_list_item_tests::list_rows_dispatch_pointer_taps_and_keep_identity_after_detail_changes_and_reordering ... FAILED
+
+failures:
+
+---- mobile_list_item_tests::list_row_hits_and_paint_indices_preserve_following_buttons_theme_and_scroll_clips stdout ----
+
+thread 'mobile_list_item_tests::list_row_hits_and_paint_indices_preserve_following_buttons_theme_and_scroll_clips' panicked at apps/acme-gallery/src/mobile_list_item_tests.rs:227:17:
+assertion `left == right` failed
+  left: 1
+ right: 2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mobile_list_item_tests::gallery_list_keyboard_navigation_activation_reorder_and_composition_guard_use_real_events stdout ----
+
+thread 'mobile_list_item_tests::gallery_list_keyboard_navigation_activation_reorder_and_composition_guard_use_real_events' panicked at apps/acme-gallery/src/mobile_list_item_tests.rs:161:5:
+assertion failed: key(&mut gallery, Enter, false)
+
+---- mobile_list_item_tests::list_rows_dispatch_pointer_taps_and_keep_identity_after_detail_changes_and_reordering stdout ----
+
+thread 'mobile_list_item_tests::list_rows_dispatch_pointer_taps_and_keep_identity_after_detail_changes_and_reordering' panicked at apps/acme-gallery/src/mobile_list_item_tests.rs:19:10:
+action hit
+
+
+failures:
+    mobile_list_item_tests::gallery_list_keyboard_navigation_activation_reorder_and_composition_guard_use_real_events
+    mobile_list_item_tests::list_row_hits_and_paint_indices_preserve_following_buttons_theme_and_scroll_clips
+    mobile_list_item_tests::list_rows_dispatch_pointer_taps_and_keep_identity_after_detail_changes_and_reordering
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 44 filtered out; finished in 0.24s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

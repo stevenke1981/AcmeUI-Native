@@ -1,0 +1,11 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.86s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test mobile::mobile_list_item::tests::defaults_public_fields_optional_detail_icon_and_tap_are_preserved ... ok
+test mobile::mobile_list_item::tests::retained_root_text_and_title_survive_optional_changes_tap_changes_and_keyed_reorder ... ok
+test mobile::mobile_list_item::tests::full_width_wrapped_text_and_fixed_trailing_icon_fit_real_narrow_layouts ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 775 filtered out; finished in 0.18s
+
