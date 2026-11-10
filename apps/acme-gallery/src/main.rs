@@ -1001,6 +1001,8 @@ impl Gallery {
             .child(label_with_size("Design System", 24.0))
             .child(separator())
             .child(label("All semantic design tokens defined by the V2 theme."))
+            .child(label("Full sizing: 240 x 96 box, 12 px padding"))
+            .child(self.full_sizing_example())
             // ── Color Palette ────────────────────────────────────────────
             .child(
                 self.page_section(
@@ -1137,6 +1139,33 @@ impl Gallery {
                         ))
                         .build(),
                 ),
+            )
+            .build()
+    }
+
+    fn full_sizing_example(&self) -> WidgetNode<GalleryMessage> {
+        let mut text = label("w_full + h_full");
+        if let WidgetNode::Label(label) = &mut text {
+            label.style.text_color = Some(acme_widgets::style::ColorToken::PrimaryForeground);
+        }
+        row()
+            .key("full_sizing_parent")
+            .w(Length::px(240.0))
+            .h(Length::px(96.0))
+            .p(12.0)
+            .bg_muted()
+            .flex_shrink(0.0)
+            .child(
+                row()
+                    .key("full_sizing_child")
+                    .w_full()
+                    .h_full()
+                    .flex_shrink(0.0)
+                    .bg_primary()
+                    .rounded_lg()
+                    .p(8.0)
+                    .child(text)
+                    .build(),
             )
             .build()
     }
@@ -2678,3 +2707,6 @@ mod snackbar_tests;
 
 #[cfg(test)]
 mod swipe_actions_tests;
+
+#[cfg(test)]
+mod style_sizing_tests;

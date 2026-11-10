@@ -1,0 +1,33 @@
+   Compiling acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.79s
+     Running tests/full_sizing.rs (target/debug/deps/full_sizing-778e5e5fb97d5f65)
+
+running 2 tests
+test full_width_root_matches_the_viewport ... FAILED
+test full_helpers_fill_the_parent_content_box_in_both_dimensions ... FAILED
+
+failures:
+
+---- full_width_root_matches_the_viewport stdout ----
+
+thread 'full_width_root_matches_the_viewport' panicked at crates/acme-style/tests/full_sizing.rs:24:5:
+assertion `left == right` failed
+  left: 24000.0
+ right: 240.0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- full_helpers_fill_the_parent_content_box_in_both_dimensions stdout ----
+
+thread 'full_helpers_fill_the_parent_content_box_in_both_dimensions' panicked at crates/acme-style/tests/full_sizing.rs:51:13:
+assertion `left == right` failed
+  left: (21600.0, 9600.0)
+ right: (216.0, 96.0)
+
+
+failures:
+    full_helpers_fill_the_parent_content_box_in_both_dimensions
+    full_width_root_matches_the_viewport
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-style --test full_sizing`

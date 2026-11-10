@@ -52,6 +52,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 034 | Lead + UI/UX + Verification (single-agent role passes) | Controlled SwipeActions, backend-neutral threshold state and Gallery pointer/keyboard host; public module inventory 200 | [Brief](../team/roadmap-034/BRIEF.md); [report](../team/roadmap-034/REPORT.md); continuous translation/animation and manual hardware acceptance remain open |
 
+| 035 | Lead + Rust Core + UI/UX + Verification (single-agent-role-passes) | Correct fractional full sizing in Styled/Tailwind/Button, document parent-relative screen aliases, real layout and Gallery evidence | [Brief](../team/roadmap-035/BRIEF.md); [report](../team/roadmap-035/REPORT.md); manual hardware acceptance remains open |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

@@ -151,7 +151,11 @@ mod tests {
             };
             let layout = node.to_layout_with_context(NodeId::new(1), &context);
             assert_eq!(layout.style.height, Length::px(height));
-            assert_eq!(layout.style.width, Length::Percent(100.0));
+            let snapshot = acme_layout::LayoutEngine::new()
+                .compute(&layout, (240.0, 120.0))
+                .unwrap();
+            assert_eq!(snapshot.get(layout.id).unwrap().width, 240.0);
+            assert_eq!(layout.style.width, Length::Percent(1.0));
         }
     }
 }
