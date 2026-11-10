@@ -48,6 +48,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 032 | Lead + UI/UX + Verification (single-agent role passes) | Resume FAB mini/normal/extended acceptance, themed elevation and typed actions | [Brief](../team/roadmap-032/BRIEF.md); [report](../team/roadmap-032/REPORT.md); viewport anchoring and manual hardware acceptance remain separate |
 
+| 033 | Lead + UI/UX + Verification (single-agent role passes) | Existing toast Snackbar actions, wrapping and keyed identity; Gallery bottom placement, restartable expiry and click-through prevention | [Brief](../team/roadmap-033/BRIEF.md); [report](../team/roadmap-033/REPORT.md); manual hardware acceptance remains separate |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

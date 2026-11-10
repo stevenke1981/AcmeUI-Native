@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 033 — Snackbar acceptance (2026-11-11)
+
+- [x] Extend existing toast with keyed typed action/dismiss, wrapping Unicode content, bounded real layout and retained identities; preserve duration metadata and tone icons.
+- [x] Add Gallery bottom overlay with restartable expiry, independent Undo/dismiss, stale-press cancellation and click-through protection; see [report](../team/roadmap-033/REPORT.md) for local/hosted evidence.
+- [ ] Global timer/overlay management, live-region semantics and animation remain separate; human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 032 — floating action button acceptance (2026-11-11)
 
 - [x] Resume interrupted FAB work without discarding changes; support mini/normal/extended sizes, themed elevated surfaces and one typed Button action.
@@ -319,7 +325,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 ## P4 — New mobile components (gap analysis)
 
 - [x] FloatingActionButton (FAB) — circular elevated button, mini/normal/extended; existing float_button builder, retained/layout/typed actions and native CPU Gallery evidence (ROADMAP 032). Viewport anchoring is host-owned; manual hardware acceptance remains NOT_RUN.
-- [ ] Snackbar — bottom transient message with optional action button
+- [x] Snackbar — existing overlay::toast with wrapping message, optional independent action/dismiss, and Gallery bottom placement/auto-dismiss (ROADMAP 033). Stateless builder; host owns visibility/deadlines. Manual hardware acceptance remains NOT_RUN.
 - [ ] SwipeActions — swipe-to-reveal delete/archive on list items
 - [ ] MobileTabBar — top scrollable tab strip with badge support
 - [ ] MobileDrawer — side navigation drawer with overlay scrim

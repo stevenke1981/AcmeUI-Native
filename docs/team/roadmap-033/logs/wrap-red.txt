@@ -1,0 +1,24 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.56s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 1 test
+test overlay::toast::acceptance_tests::toast_message_wraps_instead_of_overlapping_its_actions ... FAILED
+
+failures:
+
+---- overlay::toast::acceptance_tests::toast_message_wraps_instead_of_overlapping_its_actions stdout ----
+
+thread 'overlay::toast::acceptance_tests::toast_message_wraps_instead_of_overlapping_its_actions' panicked at crates/acme-ui/src/overlay/toast_tests.rs:9:5:
+assertion `left == right` failed
+  left: None
+ right: Character
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    overlay::toast::acceptance_tests::toast_message_wraps_instead_of_overlapping_its_actions
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 797 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`
