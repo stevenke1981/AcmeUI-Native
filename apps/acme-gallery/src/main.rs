@@ -49,6 +49,7 @@ use snackbar::SnackbarDemo;
 mod data_list_examples;
 mod paper_examples;
 mod swipe_actions;
+mod theme_pack_examples;
 use swipe_actions::SwipeDemo;
 #[path = "mobile_list_item.rs"]
 mod list_examples;
@@ -1005,6 +1006,7 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Design System", 24.0))
             .child(separator())
+            .child(self.page_section("Theme packs", self.theme_pack_swatches()))
             .child(label("All semantic design tokens defined by the V2 theme."))
             .child(label("Full sizing: 240 x 96 box, 12 px padding"))
             .child(self.full_sizing_example())

@@ -60,6 +60,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 038 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | DataList compact/default/relaxed density with preserved defaults, real layout/retained regressions and six themed Gallery examples | [Brief](../team/roadmap-038/BRIEF.md); [report](../team/roadmap-038/REPORT.md); manual hardware acceptance remains separate |
 
+| 039 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Registry-driven Gallery theme-pack swatches, live light/dark mode, stable identities and bounded/clipped painting | [Brief](../team/roadmap-039/BRIEF.md); [report](../team/roadmap-039/REPORT.md); manual hardware acceptance remains separate |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

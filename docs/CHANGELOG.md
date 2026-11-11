@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - Gallery theme-pack previews (ROADMAP 039, 2026-11-11)
+
+- Design System now shows accent, surface, text and background swatches for
+  every registered theme pack. The existing toolbar light/dark toggle updates
+  all previews. Colors come directly from each pack; application theme cycling
+  and the SDK API are unchanged.
+
 ## Unreleased - DataList density (ROADMAP 038, 2026-11-11)
 
 - `data_list().density(DataListDensity::Compact | Default | Relaxed)` controls
