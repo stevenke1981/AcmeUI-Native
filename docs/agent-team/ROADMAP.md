@@ -76,6 +76,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 046 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Bound Tour conversion before navigation arithmetic; preserve valid typed actions and add host-controlled Gallery lifecycle | [Brief](../team/roadmap-046/BRIEF.md); [report](../team/roadmap-046/REPORT.md); target spotlight/full overlay/focus and manual hardware acceptance remain separate |
 
+| 047 | Lead + UI/UX + Rendering + Verification (single-agent-role-passes) | Investigate the Gallery toolbar clipping observation with original/new pixel comparisons and real-frame paint/glyph/pointer guards; no runtime defect reproduced | [Brief](../team/roadmap-047/BRIEF.md); [report](../team/roadmap-047/REPORT.md); manual hardware acceptance remains separate |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.
