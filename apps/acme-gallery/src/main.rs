@@ -46,6 +46,7 @@ mod about_dialog;
 mod action_examples;
 mod bottom_navigation;
 mod fab;
+mod page_header;
 mod speed_dial;
 use speed_dial::SpeedDialDemo;
 mod snackbar;
@@ -159,6 +160,9 @@ enum GalleryMessage {
     SpeedDialToggle,
     SpeedDialAction(usize),
     BottomNavigationSelect(usize),
+    HeaderSave,
+    HeaderReset,
+    HeaderToggleDescription,
     SnackbarShow(bool),
     SnackbarAction,
     SnackbarDismiss,
@@ -235,6 +239,8 @@ struct Gallery {
     fab_status: &'static str,
     speed_dial: SpeedDialDemo,
     bottom_selected: usize,
+    header_description: bool,
+    header_saves: usize,
     about_visible: bool,
     about_closes: usize,
     snackbar: SnackbarDemo,
@@ -284,6 +290,8 @@ impl Gallery {
             fab_status: "none",
             speed_dial: SpeedDialDemo::default(),
             bottom_selected: 0,
+            header_description: true,
+            header_saves: 0,
             about_visible: true,
             about_closes: 0,
             snackbar: SnackbarDemo::new(),
@@ -576,6 +584,7 @@ impl Gallery {
                 "BottomNavigation — typed selection",
                 self.bottom_navigation_examples(),
             ))
+            .child(self.page_section("PageHeader — retained actions", self.page_header_examples()))
             .child(label("Paper: rounded, square elevated, square outlined"))
             .child(self.paper_examples())
             .child(
@@ -1369,6 +1378,20 @@ impl Gallery {
                     return false;
                 }
                 self.bottom_selected = index;
+                true
+            }
+            GalleryMessage::HeaderSave => {
+                self.header_saves = self.header_saves.saturating_add(1);
+                true
+            }
+            GalleryMessage::HeaderReset => {
+                self.header_saves = 0;
+                true
+            }
+            GalleryMessage::HeaderToggleDescription => {
+                self.header_description = !self.header_description;
+                self.pressed = None;
+                self.hovered = None;
                 true
             }
             GalleryMessage::FabPress(index) => {
@@ -2808,3 +2831,6 @@ mod about_dialog_tests;
 
 #[cfg(test)]
 mod bottom_navigation_tests;
+
+#[cfg(test)]
+mod page_header_tests;

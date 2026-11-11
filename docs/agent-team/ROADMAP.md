@@ -72,6 +72,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 044 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Preserve BottomNavigation indexed selection messages after conversion, passive compatibility, retained focus eligibility and host-owned Gallery selection | [Brief](../team/roadmap-044/BRIEF.md); [report](../team/roadmap-044/REPORT.md); full navigation semantics and manual hardware acceptance remain separate |
 
+| 045 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Preserve PageHeader action Row/Button identity and focus through optional descriptions and keyed header reorders | [Brief](../team/roadmap-045/BRIEF.md); [report](../team/roadmap-045/REPORT.md); existing typography/color policy and manual hardware acceptance remain separate |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

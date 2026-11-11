@@ -1,0 +1,29 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 17.07s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 6 tests
+test layout::page_header::tests::page_header_builder_defaults ... ok
+test layout::page_header::conversion_tests::no_actions_and_passive_actions_preserve_existing_composition ... ok
+test layout::page_header::tests::page_header_has_non_zero_layout_rect ... ok
+test layout::page_header::tests::page_header_with_description ... ok
+test layout::page_header::tests::page_header_with_actions ... ok
+test layout::page_header::conversion_tests::description_changes_and_header_reorders_preserve_action_identity_and_focus ... FAILED
+
+failures:
+
+---- layout::page_header::conversion_tests::description_changes_and_header_reorders_preserve_action_identity_and_focus stdout ----
+
+thread 'layout::page_header::conversion_tests::description_changes_and_header_reorders_preserve_action_identity_and_focus' panicked at crates/acme-ui/src/layout/page_header_tests.rs:79:13:
+assertion `left == right` failed: subtitle updates must retain focus
+  left: None
+ right: Some(NodeId(17))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    layout::page_header::conversion_tests::description_changes_and_header_reorders_preserve_action_identity_and_focus
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 819 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`
