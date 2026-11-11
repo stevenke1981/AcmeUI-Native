@@ -12,6 +12,16 @@ pub enum DataListOrientation {
     Horizontal,
 }
 
+/// Spacing within and between data list items; typography is unchanged.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum DataListDensity {
+    Compact,
+    /// Preserve the original data list spacing.
+    #[default]
+    Default,
+    Relaxed,
+}
+
 /// A single data list item (key-value pair).
 #[derive(Clone, Debug)]
 pub struct DataListItem {
@@ -33,6 +43,7 @@ pub struct DataListBuilder<M> {
     pub id: WidgetKey,
     pub items: Vec<DataListItem>,
     pub orientation: DataListOrientation,
+    pub density: DataListDensity,
     _phantom: std::marker::PhantomData<M>,
 }
 
@@ -42,6 +53,7 @@ pub fn data_list<M: Clone + 'static>() -> DataListBuilder<M> {
         id: WidgetKey::from("data_list"),
         items: Vec::new(),
         orientation: DataListOrientation::default(),
+        density: DataListDensity::default(),
         _phantom: std::marker::PhantomData,
     }
 }
@@ -61,20 +73,31 @@ impl<M: Clone + 'static> DataListBuilder<M> {
         self.orientation = value;
         self
     }
+
+    /// Set content spacing independently of orientation.
+    pub fn density(mut self, value: DataListDensity) -> Self {
+        self.density = value;
+        self
+    }
 }
 
 impl<M: Clone + 'static> From<DataListBuilder<M>> for WidgetNode<M> {
     fn from(b: DataListBuilder<M>) -> Self {
-        let mut col = crate::column::<M>().key(b.id).gap(8.0).padding(4.0);
+        let (gap, padding, vertical_gap, horizontal_gap) = match b.density {
+            DataListDensity::Compact => (4.0, 2.0, 2.0, 8.0),
+            DataListDensity::Default => (8.0, 4.0, 2.0, 12.0),
+            DataListDensity::Relaxed => (12.0, 8.0, 4.0, 16.0),
+        };
+        let mut col = crate::column::<M>().key(b.id).gap(gap).padding(padding);
         for item in &b.items {
             let row = match b.orientation {
                 DataListOrientation::Horizontal => crate::row::<M>()
-                    .gap(12.0)
+                    .gap(horizontal_gap)
                     .child(crate::label(item.label.clone()))
                     .child(crate::label(item.value.clone()))
                     .build(),
                 DataListOrientation::Vertical => crate::column::<M>()
-                    .gap(2.0)
+                    .gap(vertical_gap)
                     .child(crate::label(item.label.clone()))
                     .child(crate::label(item.value.clone()))
                     .build(),
@@ -84,6 +107,10 @@ impl<M: Clone + 'static> From<DataListBuilder<M>> for WidgetNode<M> {
         col.build()
     }
 }
+
+#[cfg(test)]
+#[path = "data_list_tests.rs"]
+mod acceptance_tests;
 
 #[cfg(test)]
 mod tests {

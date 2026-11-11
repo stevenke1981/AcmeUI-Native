@@ -46,6 +46,7 @@ mod action_examples;
 mod fab;
 mod snackbar;
 use snackbar::SnackbarDemo;
+mod data_list_examples;
 mod paper_examples;
 mod swipe_actions;
 use swipe_actions::SwipeDemo;
@@ -626,6 +627,7 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Data", 24.0))
             .child(separator())
+            .child(self.page_section("DataList — density", self.data_list_examples()))
             .child(
                 self.page_section(
                     "Table",
