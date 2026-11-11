@@ -97,7 +97,12 @@ impl<M: Clone + 'static> From<AboutDialogBuilder<M>> for WidgetNode<M> {
             dialog_content = dialog_content.child(label(credits_text));
         }
 
-        dialog_content = dialog_content.child(button::<M>(close_key.as_str(), "Close"));
+        let close = button::<M>(close_key.as_str(), "Close");
+        let close = match b.on_close {
+            Some(message) => close.on_click(message),
+            None => close.into(),
+        };
+        dialog_content = dialog_content.child(close);
 
         // Wrap in a Card to give the dialog a container appearance
         card::<M>()
@@ -209,3 +214,7 @@ mod tests {
         assert_eq!(cred.text, "Credits text");
     }
 }
+
+#[cfg(test)]
+#[path = "about_dialog_tests.rs"]
+mod conversion_tests;

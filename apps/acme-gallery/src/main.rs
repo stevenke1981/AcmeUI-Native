@@ -41,6 +41,7 @@ mod banner_examples;
 #[path = "mobile_notification.rs"]
 mod notification_examples;
 use notification_examples::NotificationDemo;
+mod about_dialog;
 #[path = "mobile_action.rs"]
 mod action_examples;
 mod fab;
@@ -152,6 +153,8 @@ enum GalleryMessage {
     MobileSearchSubmit,
     MobileSearchClear,
     FabPress(usize),
+    AboutClose,
+    AboutShow,
     SpeedDialToggle,
     SpeedDialAction(usize),
     SnackbarShow(bool),
@@ -229,6 +232,8 @@ struct Gallery {
     list_details: bool,
     fab_status: &'static str,
     speed_dial: SpeedDialDemo,
+    about_visible: bool,
+    about_closes: usize,
     snackbar: SnackbarDemo,
     swipe: SwipeDemo,
     spinner: SpinnerDemo,
@@ -275,6 +280,8 @@ impl Gallery {
             list_details: true,
             fab_status: "none",
             speed_dial: SpeedDialDemo::default(),
+            about_visible: true,
+            about_closes: 0,
             snackbar: SnackbarDemo::new(),
             swipe: SwipeDemo::new(),
             spinner: SpinnerDemo::new(),
@@ -610,6 +617,7 @@ impl Gallery {
             .child(label_with_size("Overlay", 24.0))
             .child(separator())
             .child(self.page_section("SpeedDial — typed actions", self.speed_dial_examples()))
+            .child(self.page_section("About card — Close message", self.about_dialog_examples()))
             .child(
                 self.page_section(
                     "Tooltip",
@@ -1312,6 +1320,25 @@ impl Gallery {
                     } else {
                         "dismissed"
                     });
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::AboutClose => {
+                if !self.about_visible {
+                    return false;
+                }
+                self.about_visible = false;
+                self.about_closes = self.about_closes.saturating_add(1);
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::AboutShow => {
+                if self.about_visible {
+                    return false;
+                }
+                self.about_visible = true;
                 self.pressed = None;
                 self.hovered = None;
                 true
@@ -2760,3 +2787,6 @@ mod style_sizing_tests;
 
 #[cfg(test)]
 mod speed_dial_tests;
+
+#[cfg(test)]
+mod about_dialog_tests;
