@@ -1,5 +1,34 @@
 use super::*;
 
+#[test]
+fn tour_scroll_does_not_shrink_the_gallery_toolbar() {
+    let mut g = Gallery::new();
+    g.selected_category = 4;
+    for height in [760.0, 900.0] {
+        for finished in [false, true] {
+            g.tour.finished = finished;
+            g.scroll = f32::MAX;
+            g.frame(FrameContext {
+                window: WindowId(1),
+                logical_width: 1100.0,
+                logical_height: height,
+                scale_factor: 1.0,
+            });
+            let (root, snapshot) = g.last_frame_layout.as_ref().unwrap();
+            let ids = extract_gallery_ids(root);
+            let toolbar = snapshot.get(ids.toolbar).unwrap();
+            let viewport = snapshot.get(ids.scroll_view).unwrap();
+            assert_eq!(toolbar.y, 0.0);
+            assert_eq!(
+                toolbar.height, TOOLBAR_HEIGHT,
+                "long Tour page must retain toolbar controls"
+            );
+            assert_eq!(viewport.y, TOOLBAR_HEIGHT);
+            assert!((viewport.height - (height - TOOLBAR_HEIGHT)).abs() < 0.01);
+        }
+    }
+}
+
 fn frame(g: &mut Gallery) {
     g.frame(FrameContext {
         window: WindowId(1),
