@@ -29,6 +29,9 @@ loaded spec/plan/todos, workflow, ownership and role contracts. Exact leases:
 - apps/acme-gallery/src/main.rs
 - apps/acme-gallery/src/collapsible.rs
 - apps/acme-gallery/src/collapsible_tests.rs
+- apps/acme-gallery/src/retained_tests.rs (lease added after the milestone
+  exposed its background-Quad assumption for every action; retain button
+  guards and verify transparent Collapsible header glyph bounds instead)
 - docs/status/todos.md
 - docs/status/final.md
 - docs/agent-team/ROADMAP.md
