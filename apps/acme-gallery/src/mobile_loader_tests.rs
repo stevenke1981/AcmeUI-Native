@@ -1,4 +1,4 @@
-//! Automated Gallery evidence; no animation or human/device acceptance claims.
+//! Automated Gallery evidence; human/device acceptance remains separate.
 use super::*;
 use acme_ui::mobile::mobile_loader;
 use acme_widgets::LabelWrap;
@@ -64,6 +64,94 @@ fn mobile_page_has_distinct_indicator_short_and_long_message_examples() {
 }
 
 #[test]
+fn gallery_spinner_viewport_polling_pointer_policy_and_other_timers_are_independent() {
+    let mut g = Gallery::new();
+    let frame = |g: &mut Gallery| {
+        g.frame(FrameContext {
+            window: WindowId(1),
+            logical_width: 1100.0,
+            logical_height: 1100.0,
+            scale_factor: 1.0,
+        });
+    };
+    frame(&mut g);
+    assert!(!g.spinner.visible && g.background_poll_interval().is_none());
+    fn layout_find<'a>(
+        w: &WidgetNode<GalleryMessage>,
+        l: &'a LayoutNode,
+        key: &str,
+    ) -> Option<&'a LayoutNode> {
+        if w.key().is_some_and(|k| k.as_str() == key) {
+            return Some(l);
+        }
+        w.children()
+            .iter()
+            .zip(&l.children)
+            .find_map(|(w, l)| layout_find(w, l, key))
+    }
+    let description = g.description();
+    let (layout, snapshot) = g.last_frame_layout.as_ref().unwrap();
+    let loader = layout_find(&description, layout, "gallery_loader_indicator").unwrap();
+    let old_id = loader.id;
+    let rect = snapshot.get(loader.id).unwrap();
+    g.scroll = rect.y - 160.0;
+    println!("spinner native scenario scroll={}", g.scroll);
+    frame(&mut g);
+    assert!(g.spinner.visible);
+    assert_eq!(
+        g.background_poll_interval(),
+        Some(std::time::Duration::from_millis(33))
+    );
+    let index = g
+        .button_info
+        .iter()
+        .position(|h| h.message == GalleryMessage::ToggleReducedMotion)
+        .unwrap();
+    let hit = &g.button_info[index];
+    let x = hit.rect[0] + hit.rect[2] / 2.0;
+    let y = hit.rect[1] - g.scroll + hit.rect[3] / 2.0;
+    assert!(y > TOOLBAR_HEIGHT && y < 1100.0);
+    g.event(PlatformEvent::PointerMoved {
+        window: WindowId(1),
+        x,
+        y,
+    });
+    for pressed in [true, false] {
+        g.event(PlatformEvent::PointerButton {
+            window: WindowId(1),
+            x,
+            y,
+            pressed,
+            button: 0,
+            pointer: 0,
+            shift: false,
+            ctrl: false,
+            alt: false,
+        });
+    }
+    assert!(g.spinner.reduced_motion);
+    assert!(g.background_poll_interval().is_none());
+    assert!(!g.background_tick());
+    frame(&mut g);
+    let description = g.description();
+    let (layout, _) = g.last_frame_layout.as_ref().unwrap();
+    assert_eq!(
+        layout_find(&description, layout, "gallery_loader_indicator")
+            .unwrap()
+            .id,
+        old_id
+    );
+    g.notification.show_timed(std::time::Instant::now());
+    assert!(g.background_poll_interval().is_some());
+    g.notification.deadline = Some(std::time::Instant::now());
+    assert!(g.background_tick());
+    g.spinner.reduced_motion = false;
+    g.selected_category = 0;
+    frame(&mut g);
+    assert!(!g.spinner.visible && g.background_poll_interval().is_none());
+}
+
+#[test]
 fn loader_messages_paint_multiple_lines_with_themed_foreground_and_scroll_clips() {
     let mut gallery = Gallery::new();
     for pack in ["default", "apple"] {
@@ -99,8 +187,13 @@ fn loader_messages_paint_multiple_lines_with_themed_foreground_and_scroll_clips(
                         &mut gallery.fonts,
                         &mut gallery.atlas,
                     );
-                    assert!(frame.quads.is_empty() && frame.clipped_quads.is_empty());
-                    assert_eq!(frame.text.len(), 2);
+                    assert!(frame.quads.is_empty());
+                    assert_eq!(frame.clipped_quads.len(), 7);
+                    for dot in &frame.clipped_quads {
+                        assert_eq!(dot.clip, clip);
+                        assert_eq!(dot.quad.color, rgba(theme.colors.foreground));
+                    }
+                    assert_eq!(frame.text.len(), 1);
                     for run in &frame.text {
                         assert_eq!(run.color, rgba(theme.colors.foreground));
                         assert_eq!(run.clip, Some(clip));
