@@ -1,0 +1,24 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.86s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 1 test
+test overlay::fullscreen::conversion_tests::fullscreen_body_focus_survives_optional_close_header_and_current_close_updates ... FAILED
+
+failures:
+
+---- overlay::fullscreen::conversion_tests::fullscreen_body_focus_survives_optional_close_header_and_current_close_updates stdout ----
+
+thread 'overlay::fullscreen::conversion_tests::fullscreen_body_focus_survives_optional_close_header_and_current_close_updates' panicked at crates/acme-ui/src/overlay/fullscreen_tests.rs:61:13:
+assertion `left == right` failed: optional header must not remount body
+  left: [NodeId(8), NodeId(9)]
+ right: [NodeId(6), NodeId(7)]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    overlay::fullscreen::conversion_tests::fullscreen_body_focus_survives_optional_close_header_and_current_close_updates
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 830 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

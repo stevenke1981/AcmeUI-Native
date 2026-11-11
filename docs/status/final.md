@@ -1,5 +1,11 @@
 # Delivery Status
 
+## 2026-11-12 — ROADMAP 048 Fullscreen Close conversion
+
+- Configured Fullscreen Close now carries its typed message; passive Label and hidden-control behavior remain compatible. Stable header/body keys preserve body focus when the close header changes.
+- Added conversion/focus and Gallery close/reopen/stale-message/theme/scale/clip evidence. Exact tested source and checks: [report](../team/roadmap-048/REPORT.md).
+- Execution: single-agent-role-passes; author self-review. Viewport placement, backdrop painting and full overlay/focus-trap semantics remain separate. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen readers remain NOT_RUN.
+
 ## 2026-11-12 — ROADMAP 047 toolbar investigation
 
 - The stored ROADMAP 046 first/finished toolbar pixel regions are identical. Expanded layout/glyph probes and new light/dark X11 CPU captures do not reproduce the reported clipping difference; no runtime fix is claimed.

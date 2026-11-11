@@ -1,0 +1,35 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.50s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 8 tests
+test overlay::fullscreen::tests::fullscreen_clamps_opacity ... ok
+test overlay::fullscreen::tests::fullscreen_builder_defaults ... ok
+test overlay::fullscreen::conversion_tests::converted_fullscreen_close_respects_current_message_and_optional_control ... FAILED
+test overlay::fullscreen::conversion_tests::fullscreen_body_focus_survives_optional_close_header_and_current_close_updates ... FAILED
+test overlay::fullscreen::tests::fullscreen_no_close_button ... ok
+test overlay::fullscreen::tests::fullscreen_on_close_default_none ... ok
+test overlay::fullscreen::tests::fullscreen_with_content ... ok
+test overlay::fullscreen::tests::fullscreen_has_non_zero_layout_rect ... ok
+
+failures:
+
+---- overlay::fullscreen::conversion_tests::converted_fullscreen_close_respects_current_message_and_optional_control stdout ----
+
+thread 'overlay::fullscreen::conversion_tests::converted_fullscreen_close_respects_current_message_and_optional_control' panicked at crates/acme-ui/src/overlay/fullscreen_tests.rs:34:26:
+configured close must carry its message; passive close remains Label
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- overlay::fullscreen::conversion_tests::fullscreen_body_focus_survives_optional_close_header_and_current_close_updates stdout ----
+
+thread 'overlay::fullscreen::conversion_tests::fullscreen_body_focus_survives_optional_close_header_and_current_close_updates' panicked at crates/acme-ui/src/overlay/fullscreen_tests.rs:70:13:
+assertion failed: tree.get(id).unwrap().focusable
+
+
+failures:
+    overlay::fullscreen::conversion_tests::converted_fullscreen_close_respects_current_message_and_optional_control
+    overlay::fullscreen::conversion_tests::fullscreen_body_focus_survives_optional_close_header_and_current_close_updates
+
+test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 823 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`
