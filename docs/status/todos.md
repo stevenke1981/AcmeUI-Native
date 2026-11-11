@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 037 — UI minimal feature dependencies (2026-11-11)
+
+- [x] Reproduce no-default inputs/layout build failures; declare inputs → foundations and layout → inputs, with external-consumer icon activation/Form-validation regressions and hosted minimal-feature gates.
+- [x] Verify isolated inputs/layout/no-feature and full/default UI paths, Gallery and CPU evidence; see [report](../team/roadmap-037/REPORT.md) for exact source/checks and delivery status.
+- [ ] Other standalone optional-feature families are not certified by this slice; human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 036 — Paper square corners (2026-11-11)
 
 - [x] Add independent square(bool), preserve default/elevation/outline behavior, cover all corner variants, real layout and retained IDs.
@@ -352,7 +358,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 ## P5 — Architecture & quality improvements (CBM audit)
 
-- [ ] Correct UI optional-feature dependencies: layout-only fails on IconName and form_message even with Paper restored to the ROADMAP 035 baseline (ROADMAP 036 evidence). Inputs also imports foundation IconName; audit/declaration and minimal-feature CI remain open.
+- [x] Correct inputs/layout optional-feature dependencies (observed during ROADMAP 036): inputs now implies foundations, layout implies inputs; isolated feature suites, public consumer regressions and hosted CI added (ROADMAP 037). Other standalone feature families remain unaudited.
 
 - [x] Reconcile `Styled::w_full()` and related full sizing helpers with fractional `Length::Percent(1.0)`; correct Button.full_width, regressions and Gallery evidence (ROADMAP 035). Engine units unchanged; screen helpers remain parent-relative.
 

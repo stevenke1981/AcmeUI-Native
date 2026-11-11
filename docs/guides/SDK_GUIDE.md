@@ -175,8 +175,8 @@ From `crates/acme-ui/Cargo.toml`:
 |---------|---------|-------|
 | `default` | `foundations`, `inputs`, `layout`, `overlay` | |
 | `foundations` | `acme_ui::foundations` module | |
-| `inputs` | `acme_ui::inputs` module | |
-| `layout` | `acme_ui::layout` module | |
+| `inputs` | `acme_ui::inputs` module | Implies `foundations` for icon controls |
+| `layout` | `acme_ui::layout` module | Implies `inputs` (Form validation), transitively `foundations` |
 | `overlay` | `acme_ui::overlay` module | |
 | `charts` | `acme_ui::charts` module | |
 | `desktop` | `acme_ui::desktop` module | |
@@ -187,7 +187,7 @@ From `crates/acme-ui/Cargo.toml`:
 Example:
 
 ```toml
-acme-ui = { path = "crates/acme-ui", default-features = false, features = ["foundations", "inputs"] }
+acme-ui = { path = "crates/acme-ui", default-features = false, features = ["inputs"] }
 ```
 
 ## 6. Supported targets and verification status
