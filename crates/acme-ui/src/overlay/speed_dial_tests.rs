@@ -98,7 +98,14 @@ fn toggle_identity_survives_open_close_and_keyed_instance_reordering() {
 fn configured_actions_have_bounded_real_layout_at_narrow_and_wide_widths() {
     for width in [240.0, 600.0] {
         let node = dial("layout", true);
-        let layout = node.to_layout(acme_core::NodeId::new(1));
+        let context = acme_layout::WidgetLayoutContext {
+            body_font_size: 14.0,
+            body_line_height: 20.0,
+            label_font_size: 13.0,
+            control_height: 36.0,
+            scale_factor: 1.0,
+        };
+        let layout = node.to_layout_with_context(acme_core::NodeId::new(1), &context);
         let mut fonts = acme_text::FontSystem::new();
         let snapshot = acme_layout::LayoutEngine::new()
             .compute_with_text(&layout, (width, 400.0), &mut fonts, 1.0)
