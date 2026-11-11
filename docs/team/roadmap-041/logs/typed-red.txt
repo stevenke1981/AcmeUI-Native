@@ -1,0 +1,113 @@
+   Compiling wayland-client v0.31.14
+   Compiling zbus v5.18.0
+   Compiling calloop v0.13.0
+   Compiling acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+   Compiling tiny-xlib v0.2.5
+   Compiling arboard v3.6.1
+   Compiling acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+   Compiling wayland-protocols v0.32.13
+   Compiling wayland-cursor v0.31.14
+   Compiling calloop-wayland-source v0.3.0
+   Compiling acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+   Compiling softbuffer v0.4.8
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling atspi-common v0.9.0
+   Compiling wayland-protocols-wlr v0.3.12
+   Compiling wayland-protocols-plasma v0.3.12
+   Compiling smithay-client-toolkit v0.19.2
+   Compiling sctk-adwaita v0.10.1
+   Compiling atspi-proxies v0.9.0
+   Compiling winit v0.30.13
+   Compiling accesskit_atspi_common v0.14.2
+   Compiling atspi-connection v0.9.0
+   Compiling atspi v0.25.0
+   Compiling accesskit_unix v0.17.2
+   Compiling acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+   Compiling accesskit_winit v0.29.2
+   Compiling acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+   Compiling acme-accessibility v0.2.0 (/workspace/AcmeUI-Native/crates/acme-accessibility)
+error[E0599]: no function or associated item named `default` found for struct `WidgetLayoutContext` in the current scope
+  --> crates/acme-accessibility/src/tests_container_actions.rs:27:77
+   |
+27 |     let layout = root.to_layout_with_binding(&binding,&WidgetLayoutContext::default());
+   |                                                                             ^^^^^^^ function or associated item not found in `WidgetLayoutContext`
+
+error[E0599]: no method named `activation_message` found for enum `AccessibilityAction` in the current scope
+  --> crates/acme-accessibility/src/tests_container_actions.rs:49:73
+   |
+49 |         assert_eq!(AccessibilityAction::from_request(&request).unwrap().activation_message(root,&binding),Some(message));
+   |                                                                         ^^^^^^^^^^^^^^^^^^ method not found in `AccessibilityAction`
+   |
+  ::: crates/acme-accessibility/src/lib.rs:58:1
+   |
+58 | pub enum AccessibilityAction {
+   | ---------------------------- method `activation_message` not found for this enum
+
+error[E0599]: no method named `activation_message` found for enum `AccessibilityAction` in the current scope
+  --> crates/acme-accessibility/src/tests_container_actions.rs:50:54
+   |
+50 |         assert_eq!(AccessibilityAction::Activate(id).activation_message(root,&binding),Some(message));
+   |                                                      ^^^^^^^^^^^^^^^^^^ method not found in `AccessibilityAction`
+   |
+  ::: crates/acme-accessibility/src/lib.rs:58:1
+   |
+58 | pub enum AccessibilityAction {
+   | ---------------------------- method `activation_message` not found for this enum
+
+error[E0599]: no method named `activation_message` found for enum `AccessibilityAction` in the current scope
+  --> crates/acme-accessibility/src/tests_container_actions.rs:57:51
+   |
+57 |         assert_eq!(AccessibilityAction::Click(id).activation_message(root,&binding),None);
+   |                                                   ^^^^^^^^^^^^^^^^^^ method not found in `AccessibilityAction`
+   |
+  ::: crates/acme-accessibility/src/lib.rs:58:1
+   |
+58 | pub enum AccessibilityAction {
+   | ---------------------------- method `activation_message` not found for this enum
+
+error[E0599]: no method named `activation_message` found for enum `AccessibilityAction` in the current scope
+  --> crates/acme-accessibility/src/tests_container_actions.rs:82:63
+   |
+82 |         assert_eq!(AccessibilityAction::Click(saved.unwrap()).activation_message(&roots[0],&binding),handler);
+   |                                                               ^^^^^^^^^^^^^^^^^^ method not found in `AccessibilityAction`
+   |
+  ::: crates/acme-accessibility/src/lib.rs:58:1
+   |
+58 | pub enum AccessibilityAction {
+   | ---------------------------- method `activation_message` not found for this enum
+
+error[E0599]: no method named `activation_message` found for enum `AccessibilityAction` in the current scope
+  --> crates/acme-accessibility/src/tests_container_actions.rs:95:27
+   |
+95 |         assert_eq!(action.activation_message(&roots[0],&binding),None);
+   |                           ^^^^^^^^^^^^^^^^^^ method not found in `AccessibilityAction`
+   |
+  ::: crates/acme-accessibility/src/lib.rs:58:1
+   |
+58 | pub enum AccessibilityAction {
+   | ---------------------------- method `activation_message` not found for this enum
+
+error[E0599]: no method named `activation_message` found for enum `AccessibilityAction` in the current scope
+  --> crates/acme-accessibility/src/tests_container_actions.rs:98:47
+   |
+98 |     assert_eq!(AccessibilityAction::Click(id).activation_message(&foreign,&binding),None);
+   |                                               ^^^^^^^^^^^^^^^^^^ method not found in `AccessibilityAction`
+   |
+  ::: crates/acme-accessibility/src/lib.rs:58:1
+   |
+58 | pub enum AccessibilityAction {
+   | ---------------------------- method `activation_message` not found for this enum
+
+error[E0599]: no method named `activation_message` found for enum `AccessibilityAction` in the current scope
+   --> crates/acme-accessibility/src/tests_container_actions.rs:102:60
+    |
+102 |     assert_eq!(AccessibilityAction::Click(tree.roots()[0]).activation_message(&other_roots[0],&partial),None);
+    |                                                            ^^^^^^^^^^^^^^^^^^ method not found in `AccessibilityAction`
+    |
+   ::: crates/acme-accessibility/src/lib.rs:58:1
+    |
+58  | pub enum AccessibilityAction {
+    | ---------------------------- method `activation_message` not found for this enum
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `acme-accessibility` (lib test) due to 8 previous errors

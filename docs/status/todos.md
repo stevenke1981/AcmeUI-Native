@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 041 — Retained container focus and typed activation (2026-11-11)
+
+- [x] Register existing Row/Column/Stack handlers in retained focus; expose named AccessKit Button/Focus/Click semantics and resolve exact current typed messages without coordinate synthesis or parent/child fallback.
+- [x] Preserve keyed reorder/current-handler behavior and reject passive, disabled Button, missing/synthetic/foreign/partial-binding targets; add the original Gallery Focus demo with keyboard, independent child pointer, theme/scale/clip and unique hit-index regressions. See [report](../team/roadmap-041/REPORT.md) for exact verification and delivery status.
+- [ ] Real platform AccessKit adapter, human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 040 — Spinner rotation and reduced motion (2026-11-11)
 
 - [x] Replace the static foundation glyph with a themed fixed-size rotating dot composition; forward host elapsed time/reduced-motion policy through mobile_loader, retaining existing builder signatures and IDs.
@@ -69,7 +75,7 @@
 
 - [x] Add named default/layout-kind/widget-and-layout-child-count contracts for all 20 public mobile modules, with a registry-driven inventory guard (historical P3 “16” count corrected: 15 mobile_* + five legacy modules).
 - [x] Verify all 15 P3 Gallery examples and stable bound roots across themes/scales; run locked touched/mobile tests, strict Clippy, actual CPU profile, workspace milestone gates and native CPU smoke; see [coverage/report](../team/roadmap-030/REPORT.md).
-- [ ] Legacy composite interaction/theme/runtime gaps, generic Row focus/typed AccessKit actions and actual sheet dragging remain open; spinner motion implemented in ROADMAP 040.
+- [ ] Legacy composite interaction/theme/runtime gaps and actual sheet dragging remain open; spinner motion implemented in ROADMAP 040, generic retained container focus/typed AccessKit activation in ROADMAP 041.
 - [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
 
 ## ROADMAP 029 — mobile sheet handle acceptance (2026-11-10)
@@ -82,14 +88,14 @@
 
 - [x] Honour destructive/disabled states, bounded wrapping labels and stable identity; add themed Gallery actions and pointer/paint regressions.
 - [x] Locked UI/Gallery/mobile tests, strict Clippy, actual CPU profile, workspace milestone gates and native CPU captures; see [report](../team/roadmap-028/REPORT.md).
-- [ ] Generic retained Row focus/typed AccessKit actions remain open; manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+- [x] Generic retained Row focus and exact typed AccessKit activation implemented in ROADMAP 041. Manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance remain NOT_RUN.
 
 ## ROADMAP 027 — mobile list item acceptance (2026-11-10)
 
 - [x] Add full-width themed rows, wrapping title/detail, fixed trailing icon and stable text keys; preserve existing public fields and Row on_tap messages.
 - [x] Add Gallery pointer and explicit F6 keyboard host, optional-detail/reorder demos, real-layout/retained/theme/paint-index regressions and native CPU pointer/keyboard captures.
 - [x] Fix Frame→Scene dropping TextRun clips, exposed by keyboard scrolling: Scene/Gallery RED/GREEN and native toolbar pixel comparison (762 changed pixels before, 0 after). Run locked touched/mobile tests, strict Clippy, actual CPU profile and workspace milestone gates; see [report](../team/roadmap-027/REPORT.md).
-- [ ] Framework-wide retained focus and typed AccessKit actions for the Row composition — open; keyboard handling in this slice is Gallery-specific.
+- [x] Generic retained container focus and typed AccessKit activation implemented in ROADMAP 041; the Mobile page keyboard host remains Gallery-specific, and a real platform AccessKit adapter remains open.
 - [ ] Manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
 
 ## ROADMAP 026 — mobile notification acceptance (2026-11-10)

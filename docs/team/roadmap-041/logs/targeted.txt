@@ -1,0 +1,198 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-accessibility v0.2.0 (/workspace/AcmeUI-Native/crates/acme-accessibility)
+   Compiling acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 22.20s
+     Running unittests src/lib.rs (target/debug/deps/acme_accessibility-7701f96af3ef4845)
+
+running 127 tests
+test structure::tests::label_override_renames_tree_items_and_column_headers ... ok
+test structure::tests::control_in_a_cell_keeps_its_role_inside_its_row ... ok
+test structure::tests::data_grid_groups_cells_into_rows_with_the_same_index_convention ... ok
+test structure::tests::collapsed_branch_children_are_absent ... ok
+test structure::tests::data_grid_selected_cell_is_marked ... ok
+test structure::tests::rows_changed_after_build_fall_back_to_flat_cells ... ok
+test structure::tests::retained_path_ids_are_stable_across_two_frames ... ok
+test structure::tests::sequential_path_ids_are_deterministic_and_unique ... ok
+test structure::tests::table_in_cell_mode_states_false_on_unselected_cells ... ok
+test structure::tests::table_row_bounds_are_clipped_to_the_table_rect ... ok
+test structure::tests::table_in_none_mode_states_no_selection_on_rows_or_cells ... ok
+test structure::tests::table_groups_cells_into_rows_under_a_column_header_row ... ok
+test structure::tests::table_without_columns_falls_back_to_flat_cells ... ok
+test structure::tests::table_selected_row_and_selected_cell_are_marked ... ok
+test structure::tests::tree_item_bounds_are_clipped_to_the_tree_rect ... ok
+test structure::tests::tree_has_one_tree_item_per_visible_row_in_visible_order ... ok
+test structure::tests::tree_item_bounds_follow_depth_indent_and_row_height ... ok
+test structure::tests::tree_items_have_no_bounds_without_a_tree_rect ... ok
+test structure::tests::tree_items_mark_only_the_selected_key_as_selected ... ok
+test structure::tests::tree_item_name_falls_back_to_first_label_inside_its_content ... ok
+test structure::tests::tree_items_report_expansion_only_when_they_have_children ... ok
+test structure::tests::retained_path_virtual_ids_are_not_layout_keys_and_tree_items_read_their_layout_rows ... ok
+test structure::tests::tree_items_report_position_and_size_among_visible_siblings ... ok
+test structure::tests::unselected_cells_state_false_when_the_grid_selects_cells ... ok
+test structure::tests::table_rows_and_headers_have_the_bounds_of_the_layout_rows ... ok
+test structure::tests::table_rows_and_headers_have_no_bounds_without_a_table_rect ... ok
+test structure::tests::virtual_nodes_use_synthetic_ids_and_widgets_keep_retained_ids ... ok
+test structure::tests_layout_ids::tail_after_a_dialog_reads_its_own_layout_rect_on_all_paths ... ok
+test structure::tests_layout_ids::ragged_rows_group_by_their_actual_cells_on_both_paths ... ok
+test structure::tests_layout_ids::tail_after_a_virtual_list_reads_its_own_layout_rect_on_all_paths ... ok
+test structure::tests_layout_ids::tail_after_a_popover_reads_its_own_layout_rect_on_all_paths ... ok
+test structure::tests_layout_ids::table_without_columns_reads_its_cell_leaves_and_tail_on_all_paths ... ok
+test structure::tests_layout_ids::every_tree_item_row_header_cell_and_widget_reads_its_layout_rect_on_both_paths ... ok
+test structure::tests_layout_ids::retained_cell_widget_keeps_its_retained_id_and_reads_its_cell_leaf_rect ... ok
+test structure::tests_tree_actions::click_on_a_tree_item_selects_its_row_on_both_paths ... ok
+test structure::tests_layout_ids::unbound_widget_after_a_tree_and_a_table_reads_its_own_layout_rect ... ok
+test structure::tests_tree_actions::every_tree_item_supports_focus_and_click ... ok
+test structure::tests_tree_actions::expand_and_collapse_select_the_row_then_press_the_arrow_key ... ok
+test structure::tests_tree_actions::only_items_with_children_expose_expand_or_collapse ... ok
+test structure::tests_tree_actions::plain_text_tree_adds_only_the_actions ... ok
+test tests::activate_produces_exactly_two_events ... ok
+test structure::tests_layout_ids::tooltip_in_a_table_cell_reads_its_cell_leaf_on_all_paths ... ok
+test structure::tests_tree_actions::content_root_reads_its_row_rect_and_ids_are_unique ... ok
+test tests::activate_resolves_node_center_from_snapshot ... ok
+test structure::tests_tree_actions::widgets_in_item_content_become_children_of_the_item ... ok
+test tests::adapter_activate_produces_focus_then_pointer ... ok
+test tests::adapter_build_tree_update_returns_none_without_update ... ok
+test tests::adapter_build_tree_update_defaults_to_root_focus ... ok
+test tests::adapter_build_tree_update_includes_focus ... ok
+test tests::adapter_creates_tree_from_widget_tree ... ok
+test tests::adapter_node_roles_after_update ... ok
+test structure::tests_tree_actions::walking_item_content_keeps_the_layout_id_order ... ok
+test tests::adapter_routes_click_action ... ok
+test tests::adapter_routes_focus_action ... ok
+test tests::adapter_routes_set_value_action ... ok
+test tests::adapter_scroll_into_view_returns_event ... ok
+test tests::bound_update_uses_binding_ids_for_every_node ... ok
+test tests::all_bounds_are_present_after_layout ... ok
+test tests::bounds_are_mapped_from_snapshot ... ok
+test tests::button_in_a_table_cell_keeps_its_button_role_and_click ... ok
+test tests::button_node_carries_label ... ok
+test tests::button_uses_button_role ... ok
+test tests::button_supports_focus_and_click_actions ... ok
+test tests::clear_widget_focus_returns_focus_to_the_root ... ok
+test tests::click_falls_back_to_zero_for_missing_node_in_snapshot ... ok
+test tests::click_falls_back_to_zero_without_snapshot ... ok
+test tests::click_produces_exactly_two_events ... ok
+test tests::click_resolves_node_center_from_snapshot ... ok
+test tests::click_resolves_center_from_snapshot_keyed_by_retained_id ... ok
+test tests::container_has_correct_child_ids ... ok
+test tests::containers_use_group_role ... ok
+test tests::data_grid_cells_have_cell_role ... ok
+test tests::disabled_button_has_disabled_flag ... ok
+test tests::disabled_button_keeps_focus_but_has_no_click ... ok
+test tests::disabled_tab_is_disabled_and_not_clickable ... ok
+test tests::disabled_text_input_is_disabled_focusable_and_not_settable ... ok
+test tests::editable_text_input_supports_focus_and_set_value ... ok
+test tests::focus_is_root_when_no_focus_id_provided ... ok
+test tests::focus_is_mapped_from_node_id ... ok
+test tests::focus_is_unaffected_by_snapshot_absence ... ok
+test tests::focus_produces_exactly_one_event ... ok
+test tests::initial_tree_has_window_role ... ok
+test tests::free_bound_build_matches_focus_and_node_count ... ok
+test tests::initial_tree_uses_default_bounds ... ok
+test tests::input_without_validation_message_has_no_description_or_invalid_state ... ok
+test tests::invalid_flag_alone_marks_input_invalid_without_a_description ... ok
+test tests::invalid_text_input_is_marked_invalid_and_valid_one_is_not ... ok
+test tests::label_node_carries_text ... ok
+test tests::label_override_replaces_label_text ... ok
+test tests::label_override_still_renames_label_only_tabs ... ok
+test tests::label_uses_label_role ... ok
+test tests::modal_dialog_is_marked_modal_and_modeless_is_not ... ok
+test tests::password_input_uses_password_role ... ok
+test tests::only_the_selected_tab_is_marked_selected ... ok
+test tests::password_value_never_appears_in_any_node_property ... ok
+test tests::read_only_text_input_is_read_only_and_not_settable ... ok
+test tests::route_action_is_deterministic ... ok
+test tests::scroll_into_view_produces_exactly_one_event ... ok
+test tests::retained_binding_path_applies_the_same_control_semantics ... ok
+test tests::scroll_view_uses_scroll_view_role ... ok
+test tests::selected_nav_item_is_selected_and_named_without_decoration ... ok
+test tests::separator_uses_splitter_role ... ok
+test tests::set_value_produces_exactly_one_event ... ok
+test tests::tab_children_have_tab_role_inside_the_tab_list ... ok
+test tests::tab_is_named_by_its_label_without_visual_decoration ... ok
+test tests::tab_semantics_are_dropped_when_tabs_and_children_diverge ... ok
+test tests::table_cells_have_cell_role_and_are_the_row_children ... ok
+test tests::table_cells_have_cell_role_on_the_retained_path ... ok
+test tests::text_input_exposes_its_value_when_not_a_password ... ok
+test tests::text_input_is_named_by_its_label_before_its_placeholder ... ok
+test tests::text_input_without_label_is_named_by_its_placeholder ... ok
+test tests::text_input_with_neither_label_nor_placeholder_has_no_name ... ok
+test tests::tooltip_node_reads_its_child_rectangle_as_layout_does ... ok
+test tests::validation_message_marks_input_invalid_and_is_its_description ... ok
+test tests::validation_message_reaches_the_retained_binding_path ... ok
+test tests::widgets_missing_from_binding_take_synthetic_ids ... ok
+test tests::widget_keeps_accessibility_id_when_keyed_sibling_is_inserted_before_it ... ok
+test tests_requests::access_id_round_trips_including_virtual_ids ... ok
+test tests_container_actions::typed_activation_rejects_partial_foreign_missing_synthetic_and_nonactivation_targets ... ok
+test tests_requests::handle_request_composes_mapping_and_routing ... ok
+test tests_container_actions::typed_activation_uses_current_handlers_and_ids_after_reorder_removal_and_passivation ... ok
+test tests_container_actions::active_containers_have_named_button_semantics_and_independent_child_actions ... ok
+test tests_requests::ordinary_button_click_still_presses_the_centre ... ok
+test tests_requests::requests_map_to_actions_with_the_exact_target ... ok
+test tests_requests::set_value_needs_a_string_and_unsupported_actions_are_none ... ok
+test tests::retained_ids_focus_and_bounds_survive_reorder_insert_and_remove ... ok
+test tests_requests::tree_item_press_is_at_the_trailing_edge_not_the_centre_or_leading_content ... ok
+
+test result: ok. 127 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running unittests src/main.rs (target/debug/deps/acme_gallery-a1b1c51f799883e7)
+
+running 39 tests
+test container_actions_tests::all_container_and_child_rings_follow_theme_scale_and_scroll_clip ... FAILED
+test dpi_tests::measure_drift_report ... ignored, measurement report; run with --ignored --nocapture
+test container_actions_tests::focus_demo_keyboard_resolves_current_typed_action_instead_of_cached_hit_message ... ok
+test container_actions_tests::container_focus_ring_and_following_button_use_the_actual_hit_indices ... ok
+test events::dispatch::tests::gallery_forwards_the_platform_preedit_cursor ... ok
+test events::dispatch::tests::text_edit_history_flows_through_gallery_key_dispatch ... ok
+test focus::tests::clamps_previous_index_when_the_target_is_gone ... ok
+test focus::tests::empty_regions_resolve_to_zero_without_target ... ok
+test focus::tests::message_fallback_when_the_node_is_gone ... ok
+test focus::tests::no_target_keeps_an_in_range_previous_index ... ok
+test focus::tests::non_synthetic_node_match_wins_even_when_the_index_moved ... ok
+test focus::tests::shared_node_is_disambiguated_by_message ... ok
+test focus::tests::synthetic_node_is_not_identity_so_message_decides ... ok
+test focus::tests::target_at_is_none_out_of_range ... ok
+test events::ime::tests::unscrolled_anchor_is_unchanged_by_the_clamp ... ok
+test events::ime::tests::wide_composition_keeps_the_candidate_anchor_inside_the_field ... ok
+test focus_tests::enter_with_a_stale_focus_index_and_no_regions_is_ignored ... ok
+test focus_tests::accessibility_focus_follows_keyboard_focus ... ok
+test focus_tests::sidebar_focus_stays_on_its_button_when_the_category_changes ... ok
+test focus_tests::space_activates_the_focused_region_like_enter ... ok
+test dpi_tests::ime_caret_stays_inside_the_field_when_text_overflows ... ok
+test hover_press_tests::hover_after_a_page_switch_is_the_region_under_the_pointer ... ok
+test dpi_tests::ime_caret_bottom_edge_stays_inside_the_text_input_at_every_scale ... ok
+test hover_press_tests::press_and_release_on_the_same_region_across_a_frame_still_activates ... ok
+test focus_tests::tab_and_shift_tab_wrap_around_a_page ... ok
+test dpi_tests::ime_caret_left_and_top_edges_stay_inside_the_focused_text_input_at_every_scale ... ok
+test hover_press_tests::release_after_a_page_switch_does_not_activate_the_new_page ... ok
+test retained_ids_tests::bound_layout_ids_are_unique_on_every_page ... ok
+test focus_tests::enter_after_switching_to_a_smaller_page_does_not_panic ... ok
+test retained_ids_tests::every_page_reconciles_and_binds_without_mismatch ... ok
+test retained_ids_tests::repeated_frame_keeps_every_layout_id ... ok
+test retained_ids_tests::sidebar_keeps_its_ids_when_the_category_changes ... ok
+test retained_ids_tests::frame_uses_retained_ids_for_layout_and_accessibility ... ok
+test retained_ids_tests::accessibility_bounds_match_the_bound_layout_rects ... ok
+test retained_ids_tests::bound_layout_has_the_same_shape_as_sequential_layout_on_every_page ... ok
+test dpi_tests::logical_layout_is_scale_invariant_on_every_page ... ok
+test retained_ids_tests::all_gallery_frames_pass_shared_scene_preflight ... ok
+test dpi_tests::every_page_lays_out_finite_rects_at_every_scale ... ok
+test focus_tests::reported_accessibility_focus_is_always_a_tree_node ... ok
+
+failures:
+
+---- container_actions_tests::all_container_and_child_rings_follow_theme_scale_and_scroll_clip stdout ----
+
+thread 'container_actions_tests::all_container_and_child_rings_follow_theme_scale_and_scroll_clip' panicked at apps/gallery/src/container_actions_tests.rs:149:13:
+assertion `left == right` failed: three active containers, child and following Button; passive row is skipped
+  left: 8
+ right: 5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    container_actions_tests::all_container_and_child_rings_follow_theme_scale_and_scroll_clip
+
+test result: FAILED. 37 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 17.11s
+
+error: test failed, to rerun pass `-p acme-gallery --bin acme-gallery`

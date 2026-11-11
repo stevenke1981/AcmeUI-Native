@@ -1,0 +1,9 @@
+   Compiling acme-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.91s
+     Running unittests src/main.rs (target/debug/deps/acme_gallery-a1b1c51f799883e7)
+
+running 1 test
+test container_actions_tests::container_focus_ring_and_following_button_use_the_actual_hit_indices ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.24s
+
