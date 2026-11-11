@@ -1,0 +1,90 @@
+   Compiling syn v2.0.119
+   Compiling wayland-sys v0.31.11
+   Compiling wayland-scanner v0.31.10
+   Compiling syn v3.0.2
+   Compiling tracing-core v0.1.36
+   Compiling xkbcommon-dl v0.4.2
+   Compiling wayland-backend v0.3.15
+   Compiling wayland-csd-frame v0.3.0
+   Compiling wayland-client v0.31.14
+   Compiling wayland-protocols v0.32.13
+   Compiling wayland-cursor v0.31.14
+   Compiling thiserror-impl v2.0.19
+   Compiling thiserror v2.0.19
+   Compiling gpu-allocator v0.28.0
+   Compiling bytemuck_derive v1.11.0
+   Compiling zerocopy-derive v0.8.54
+   Compiling thiserror-impl v1.0.69
+   Compiling tracing-attributes v0.1.31
+   Compiling wayland-protocols-wlr v0.3.12
+   Compiling wayland-protocols-plasma v0.3.12
+   Compiling thiserror v1.0.69
+   Compiling calloop v0.13.0
+   Compiling calloop-wayland-source v0.3.0
+   Compiling bytemuck v1.25.2
+   Compiling smithay-client-toolkit v0.19.2
+   Compiling font-types v0.12.1
+   Compiling rustybuzz v0.14.1
+   Compiling read-fonts v0.41.0
+   Compiling wgpu-types v29.0.4
+   Compiling zerocopy v0.8.54
+   Compiling tracing v0.1.44
+   Compiling tiny-skia-path v0.11.4
+   Compiling tiny-xlib v0.2.5
+   Compiling tiny-skia v0.11.4
+   Compiling drm v0.14.1
+   Compiling half v2.7.1
+   Compiling ahash v0.8.12
+   Compiling sctk-adwaita v0.10.1
+   Compiling naga v29.0.4
+   Compiling winit v0.30.13
+   Compiling skrifa v0.44.0
+   Compiling image v0.25.10
+   Compiling softbuffer v0.4.8
+   Compiling swash v0.2.10
+   Compiling arboard v3.6.1
+   Compiling cosmic-text v0.14.2
+   Compiling wgpu-naga-bridge v29.0.4
+   Compiling acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+   Compiling wgpu-hal v29.0.4
+   Compiling wgpu-core-deps-windows-linux-android v29.0.4
+   Compiling wgpu-core v29.0.4
+   Compiling acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+   Compiling acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling wgpu v29.0.4
+   Compiling acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+   Compiling acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 09s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 2 tests
+test speed_dial_tests::speed_dial_gallery_paint_and_hit_slots_match_across_theme_scale_and_open_state ... FAILED
+test speed_dial_tests::gallery_speed_dial_opens_selects_independent_actions_and_rejects_closed_stale_actions ... FAILED
+
+failures:
+
+---- speed_dial_tests::speed_dial_gallery_paint_and_hit_slots_match_across_theme_scale_and_open_state stdout ----
+
+thread 'speed_dial_tests::speed_dial_gallery_paint_and_hit_slots_match_across_theme_scale_and_open_state' panicked at apps/acme-gallery/src/speed_dial_tests.rs:101:17:
+assertion `left == right` failed
+  left: 1
+ right: 3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- speed_dial_tests::gallery_speed_dial_opens_selects_independent_actions_and_rejects_closed_stale_actions stdout ----
+
+thread 'speed_dial_tests::gallery_speed_dial_opens_selects_independent_actions_and_rejects_closed_stale_actions' panicked at apps/acme-gallery/src/speed_dial_tests.rs:12:67:
+called `Option::unwrap()` on a `None` value
+
+
+failures:
+    speed_dial_tests::gallery_speed_dial_opens_selects_independent_actions_and_rejects_closed_stale_actions
+    speed_dial_tests::speed_dial_gallery_paint_and_hit_slots_match_across_theme_scale_and_open_state
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.16s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

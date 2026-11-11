@@ -44,6 +44,8 @@ use notification_examples::NotificationDemo;
 #[path = "mobile_action.rs"]
 mod action_examples;
 mod fab;
+mod speed_dial;
+use speed_dial::SpeedDialDemo;
 mod snackbar;
 use snackbar::SnackbarDemo;
 mod data_list_examples;
@@ -150,6 +152,8 @@ enum GalleryMessage {
     MobileSearchSubmit,
     MobileSearchClear,
     FabPress(usize),
+    SpeedDialToggle,
+    SpeedDialAction(usize),
     SnackbarShow(bool),
     SnackbarAction,
     SnackbarDismiss,
@@ -224,6 +228,7 @@ struct Gallery {
     list_reverse: bool,
     list_details: bool,
     fab_status: &'static str,
+    speed_dial: SpeedDialDemo,
     snackbar: SnackbarDemo,
     swipe: SwipeDemo,
     spinner: SpinnerDemo,
@@ -269,6 +274,7 @@ impl Gallery {
             list_reverse: false,
             list_details: true,
             fab_status: "none",
+            speed_dial: SpeedDialDemo::default(),
             snackbar: SnackbarDemo::new(),
             swipe: SwipeDemo::new(),
             spinner: SpinnerDemo::new(),
@@ -603,6 +609,7 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Overlay", 24.0))
             .child(separator())
+            .child(self.page_section("SpeedDial — typed actions", self.speed_dial_examples()))
             .child(
                 self.page_section(
                     "Tooltip",
@@ -1307,6 +1314,19 @@ impl Gallery {
                     });
                 self.pressed = None;
                 self.hovered = None;
+                true
+            }
+            GalleryMessage::SpeedDialToggle => {
+                self.speed_dial.open = !self.speed_dial.open;
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::SpeedDialAction(index) => {
+                if !self.speed_dial.open || index > 1 {
+                    return false;
+                }
+                self.speed_dial.last_action = Some(index);
                 true
             }
             GalleryMessage::FabPress(index) => {
@@ -2737,3 +2757,6 @@ mod swipe_actions_tests;
 
 #[cfg(test)]
 mod style_sizing_tests;
+
+#[cfg(test)]
+mod speed_dial_tests;

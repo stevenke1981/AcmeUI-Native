@@ -1,0 +1,58 @@
+    Checking log v0.4.33
+    Checking bytemuck v1.25.2
+    Checking zerocopy v0.8.54
+    Checking acme-core v0.2.0 (/workspace/AcmeUI-Native/crates/acme-core)
+    Checking thiserror v2.0.19
+    Checking thiserror v1.0.69
+    Checking tracing-core v0.1.36
+    Checking wayland-sys v0.31.11
+    Checking fontdb v0.16.2
+    Checking gpu-allocator v0.28.0
+    Checking calloop v0.13.0
+    Checking acme-theme v0.2.0 (/workspace/AcmeUI-Native/crates/acme-theme)
+    Checking font-types v0.12.1
+    Checking wayland-backend v0.3.15
+    Checking rustybuzz v0.14.1
+    Checking wgpu-types v29.0.4
+    Checking tracing v0.1.44
+    Checking tiny-skia-path v0.11.4
+    Checking read-fonts v0.41.0
+    Checking xkbcommon-dl v0.4.2
+    Checking tiny-xlib v0.2.5
+    Checking image v0.25.10
+    Checking drm v0.14.1
+    Checking tiny-skia v0.11.4
+    Checking wayland-client v0.31.14
+    Checking wayland-csd-frame v0.3.0
+    Checking acme-render-cpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-cpu)
+    Checking wayland-protocols v0.32.13
+    Checking wayland-cursor v0.31.14
+    Checking calloop-wayland-source v0.3.0
+    Checking softbuffer v0.4.8
+    Checking arboard v3.6.1
+    Checking half v2.7.1
+    Checking ahash v0.8.12
+    Checking naga v29.0.4
+    Checking skrifa v0.44.0
+    Checking wayland-protocols-wlr v0.3.12
+    Checking wayland-protocols-plasma v0.3.12
+    Checking smithay-client-toolkit v0.19.2
+    Checking swash v0.2.10
+    Checking sctk-adwaita v0.10.1
+    Checking winit v0.30.13
+    Checking cosmic-text v0.14.2
+    Checking acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+    Checking wgpu-naga-bridge v29.0.4
+    Checking acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+    Checking wgpu-hal v29.0.4
+    Checking acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+    Checking acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+    Checking acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Checking wgpu-core-deps-windows-linux-android v29.0.4
+    Checking wgpu-core v29.0.4
+    Checking wgpu v29.0.4
+    Checking acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+    Checking acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+    Checking acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+    Checking acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 23.97s

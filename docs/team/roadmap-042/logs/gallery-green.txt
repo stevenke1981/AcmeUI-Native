@@ -1,0 +1,11 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.84s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 2 tests
+test speed_dial_tests::speed_dial_gallery_paint_and_hit_slots_match_across_theme_scale_and_open_state ... ok
+test speed_dial_tests::gallery_speed_dial_opens_selects_independent_actions_and_rejects_closed_stale_actions ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.22s
+

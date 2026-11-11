@@ -1,0 +1,56 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling once_cell v1.21.4
+   Compiling quote v1.0.47
+   Compiling bitflags v2.13.1
+   Compiling log v0.4.33
+   Compiling smallvec v1.15.2
+   Compiling smol_str v0.2.2
+   Compiling fontdb v0.16.2
+   Compiling syn v2.0.119
+   Compiling bytemuck_derive v1.11.0
+   Compiling bytemuck v1.25.2
+   Compiling font-types v0.12.1
+   Compiling rustybuzz v0.14.1
+   Compiling read-fonts v0.41.0
+   Compiling skrifa v0.44.0
+   Compiling swash v0.2.10
+   Compiling cosmic-text v0.14.2
+   Compiling acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+   Compiling acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+   Compiling acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 46.95s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 8 tests
+test overlay::speed_dial::conversion_tests::missing_callback_preserves_passive_action_labels ... ok
+test overlay::speed_dial::tests::speed_dial_on_action_emits_action_with_index ... ok
+test overlay::speed_dial::tests::speed_dial_closed_shows_only_fab ... ok
+test overlay::speed_dial::tests::speed_dial_on_toggle ... ok
+test overlay::speed_dial::conversion_tests::converted_actions_carry_indexed_messages_icons_and_toggle_independently ... FAILED
+test overlay::speed_dial::conversion_tests::toggle_identity_survives_open_close_and_keyed_instance_reordering ... ok
+test overlay::speed_dial::tests::speed_dial_open_shows_actions_and_fab ... ok
+test overlay::speed_dial::conversion_tests::configured_actions_have_bounded_real_layout_at_narrow_and_wide_widths ... FAILED
+
+failures:
+
+---- overlay::speed_dial::conversion_tests::converted_actions_carry_indexed_messages_icons_and_toggle_independently stdout ----
+
+thread 'overlay::speed_dial::conversion_tests::converted_actions_carry_indexed_messages_icons_and_toggle_independently' panicked at crates/acme-ui/src/overlay/speed_dial_tests.rs:27:13:
+configured SpeedDial action must be a Button
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- overlay::speed_dial::conversion_tests::configured_actions_have_bounded_real_layout_at_narrow_and_wide_widths stdout ----
+
+thread 'overlay::speed_dial::conversion_tests::configured_actions_have_bounded_real_layout_at_narrow_and_wide_widths' panicked at crates/acme-ui/src/overlay/speed_dial_tests.rs:108:13:
+assertion failed: r.width > 0.0 && r.height > 0.0
+
+
+failures:
+    overlay::speed_dial::conversion_tests::configured_actions_have_bounded_real_layout_at_narrow_and_wide_widths
+    overlay::speed_dial::conversion_tests::converted_actions_carry_indexed_messages_icons_and_toggle_independently
+
+test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 809 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`
