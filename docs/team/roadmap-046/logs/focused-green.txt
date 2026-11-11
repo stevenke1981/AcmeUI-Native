@@ -1,0 +1,31 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 17.37s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-dd0e4f5925247279)
+
+running 8 tests
+test overlay::tour::conversion_tests::maximum_current_does_not_overflow_or_expose_navigation ... ok
+test overlay::tour::conversion_tests::empty_and_out_of_range_steps_have_no_phantom_previous_or_finish_actions ... ok
+test overlay::tour::tests::tour_last_step_shows_finish ... ok
+test overlay::tour::conversion_tests::valid_steps_preserve_content_and_current_typed_navigation_messages ... ok
+test overlay::tour::tests::tour_on_next_and_on_prev_store_messages ... ok
+test overlay::tour::tests::tour_produces_card ... ok
+test overlay::tour::tests::tour_shows_step_content ... ok
+test overlay::tour::conversion_tests::keyed_card_identity_and_finite_layout_survive_valid_invalid_transitions ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 821 filtered out; finished in 0.07s
+
+     Running tests/minimal_features.rs (target/debug/deps/minimal_features-c1646e20032ab906)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 2 tests
+test tour_tests::tour_gallery_keeps_themed_clipped_paint_and_hit_slots_for_every_stage ... ok
+test tour_tests::gallery_tour_pointer_previous_next_finish_restart_and_stale_messages_are_controlled ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 77 filtered out; finished in 0.31s
+

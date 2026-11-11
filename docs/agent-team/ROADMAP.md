@@ -74,6 +74,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 045 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Preserve PageHeader action Row/Button identity and focus through optional descriptions and keyed header reorders | [Brief](../team/roadmap-045/BRIEF.md); [report](../team/roadmap-045/REPORT.md); existing typography/color policy and manual hardware acceptance remain separate |
 
+| 046 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Bound Tour conversion before navigation arithmetic; preserve valid typed actions and add host-controlled Gallery lifecycle | [Brief](../team/roadmap-046/BRIEF.md); [report](../team/roadmap-046/REPORT.md); target spotlight/full overlay/focus and manual hardware acceptance remain separate |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

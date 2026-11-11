@@ -47,6 +47,8 @@ mod action_examples;
 mod bottom_navigation;
 mod fab;
 mod page_header;
+mod tour;
+use tour::TourDemo;
 mod speed_dial;
 use speed_dial::SpeedDialDemo;
 mod snackbar;
@@ -163,6 +165,10 @@ enum GalleryMessage {
     HeaderSave,
     HeaderReset,
     HeaderToggleDescription,
+    TourPrevious,
+    TourNext,
+    TourFinish,
+    TourRestart,
     SnackbarShow(bool),
     SnackbarAction,
     SnackbarDismiss,
@@ -241,6 +247,7 @@ struct Gallery {
     bottom_selected: usize,
     header_description: bool,
     header_saves: usize,
+    tour: TourDemo,
     about_visible: bool,
     about_closes: usize,
     snackbar: SnackbarDemo,
@@ -292,6 +299,7 @@ impl Gallery {
             bottom_selected: 0,
             header_description: true,
             header_saves: 0,
+            tour: TourDemo::default(),
             about_visible: true,
             about_closes: 0,
             snackbar: SnackbarDemo::new(),
@@ -635,6 +643,7 @@ impl Gallery {
             .child(separator())
             .child(self.page_section("SpeedDial — typed actions", self.speed_dial_examples()))
             .child(self.page_section("About card — Close message", self.about_dialog_examples()))
+            .child(self.page_section("Tour — controlled steps", self.tour_examples()))
             .child(
                 self.page_section(
                     "Tooltip",
@@ -1390,6 +1399,17 @@ impl Gallery {
             }
             GalleryMessage::HeaderToggleDescription => {
                 self.header_description = !self.header_description;
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            message @ (GalleryMessage::TourPrevious
+            | GalleryMessage::TourNext
+            | GalleryMessage::TourFinish
+            | GalleryMessage::TourRestart) => {
+                if !self.tour.apply(message) {
+                    return false;
+                }
                 self.pressed = None;
                 self.hovered = None;
                 true
@@ -2834,3 +2854,6 @@ mod bottom_navigation_tests;
 
 #[cfg(test)]
 mod page_header_tests;
+
+#[cfg(test)]
+mod tour_tests;

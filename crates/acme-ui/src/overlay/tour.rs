@@ -65,6 +65,8 @@ impl<M: Clone + 'static> TourBuilder<M> {
         self
     }
 
+    /// Select a zero-based step. An out-of-range index renders an empty card
+    /// without navigation; the host can supply a valid step on a later build.
     pub fn current(mut self, index: usize) -> Self {
         self.current = index;
         self
@@ -88,23 +90,23 @@ impl<M: Clone + 'static> TourBuilder<M> {
 
 impl<M: Clone + 'static> From<TourBuilder<M>> for WidgetNode<M> {
     fn from(b: TourBuilder<M>) -> Self {
-        let step = b.steps.get(b.current);
         let mut card = crate::card::<M>()
             .key(b.id)
             .variant(acme_widgets::CardVariant::Elevated)
             .padding(16.0)
             .gap(8.0);
 
-        if let Some(step) = step {
-            card = card.child(crate::label(format!(
-                "Step {}/{}",
-                b.current + 1,
-                b.steps.len()
-            )));
-            card = card.child(crate::label(step.title.clone()));
-            if let Some(desc) = &step.description {
-                card = card.child(crate::label(desc.clone()));
-            }
+        let Some(step) = b.steps.get(b.current) else {
+            return card.build();
+        };
+        card = card.child(crate::label(format!(
+            "Step {}/{}",
+            b.current + 1,
+            b.steps.len()
+        )));
+        card = card.child(crate::label(step.title.clone()));
+        if let Some(desc) = &step.description {
+            card = card.child(crate::label(desc.clone()));
         }
 
         // Navigation buttons
@@ -114,7 +116,7 @@ impl<M: Clone + 'static> From<TourBuilder<M>> for WidgetNode<M> {
                 nav_row = nav_row.child(crate::button("tour_prev", "Previous").on_click(msg));
             }
         }
-        let is_last = b.current + 1 >= b.steps.len();
+        let is_last = b.current == b.steps.len() - 1;
         if is_last {
             if let Some(msg) = b.on_finish {
                 nav_row = nav_row.child(
@@ -130,6 +132,10 @@ impl<M: Clone + 'static> From<TourBuilder<M>> for WidgetNode<M> {
         card.build()
     }
 }
+
+#[cfg(test)]
+#[path = "tour_tests.rs"]
+mod conversion_tests;
 
 #[cfg(test)]
 mod tests {

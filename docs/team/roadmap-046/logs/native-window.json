@@ -1,0 +1,152 @@
+{
+  "started_at": "2026-11-11T12:51:36.447478+00:00",
+  "source_sha": "46adf080f027f01e5c392a07c14c337811e5d4b5",
+  "git_status": " M docs/agent-team/ROADMAP.md\n M docs/status/todos.md\n?? docs/team/roadmap-046/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Newer Gallery Overlay/Tour: real pointer scrolls, selects Next twice and Finish; no human sign-off",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1000x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "900"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "238",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "800",
+      "click",
+      "--repeat",
+      "3",
+      "--delay",
+      "150",
+      "5"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "264",
+      "632",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "345",
+      "632",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "345",
+      "632",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T12:51:39.627093+00:00",
+      "path": "docs/team/roadmap-046/gallery-tour-first.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "dac113ce97170cb18078c58ec4eb2583f8f3c535a1caa2ca84f0d6c4c10a8417"
+    },
+    {
+      "captured_at": "2026-11-11T12:51:42.391727+00:00",
+      "path": "docs/team/roadmap-046/gallery-tour-finished.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "25b465ccc939da429897bfbb500f647c61ba695f8abc3434ab0c7f20dcb33fae"
+    }
+  ],
+  "visual_observation": "Scrolled first-step capture shows clipped Gallery toolbar text; finished-state capture shows normal toolbar text. Real-frame toolbar geometry is 40 px in both states. Paint difference unresolved; whole-window visual acceptance NOT_RUN.",
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=900\nSCREEN=0\n",
+  "click_coordinates": [
+    264,
+    632,
+    345,
+    632,
+    345,
+    632
+  ],
+  "status": "PASS",
+  "finished_at": "2026-11-11T12:51:42.410791+00:00",
+  "log": "logs/native-window.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

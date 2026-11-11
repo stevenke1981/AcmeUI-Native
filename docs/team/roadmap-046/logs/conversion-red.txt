@@ -1,0 +1,41 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.38s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 8 tests
+test overlay::tour::tests::tour_on_next_and_on_prev_store_messages ... ok
+test overlay::tour::tests::tour_last_step_shows_finish ... ok
+test overlay::tour::conversion_tests::maximum_current_does_not_overflow_or_expose_navigation ... FAILED
+test overlay::tour::conversion_tests::empty_and_out_of_range_steps_have_no_phantom_previous_or_finish_actions ... FAILED
+test overlay::tour::tests::tour_produces_card ... ok
+test overlay::tour::conversion_tests::valid_steps_preserve_content_and_current_typed_navigation_messages ... ok
+test overlay::tour::tests::tour_shows_step_content ... ok
+test overlay::tour::conversion_tests::keyed_card_identity_and_finite_layout_survive_valid_invalid_transitions ... FAILED
+
+failures:
+
+---- overlay::tour::conversion_tests::maximum_current_does_not_overflow_or_expose_navigation stdout ----
+
+thread 'overlay::tour::conversion_tests::maximum_current_does_not_overflow_or_expose_navigation' panicked at crates/acme-ui/src/overlay/tour.rs:117:23:
+attempt to add with overflow
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- overlay::tour::conversion_tests::empty_and_out_of_range_steps_have_no_phantom_previous_or_finish_actions stdout ----
+
+thread 'overlay::tour::conversion_tests::empty_and_out_of_range_steps_have_no_phantom_previous_or_finish_actions' panicked at crates/acme-ui/src/overlay/tour_tests.rs:40:9:
+assertion failed: empty.children().is_empty()
+
+---- overlay::tour::conversion_tests::keyed_card_identity_and_finite_layout_survive_valid_invalid_transitions stdout ----
+
+thread 'overlay::tour::conversion_tests::keyed_card_identity_and_finite_layout_survive_valid_invalid_transitions' panicked at crates/acme-ui/src/overlay/tour.rs:117:23:
+attempt to add with overflow
+
+
+failures:
+    overlay::tour::conversion_tests::empty_and_out_of_range_steps_have_no_phantom_previous_or_finish_actions
+    overlay::tour::conversion_tests::keyed_card_identity_and_finite_layout_survive_valid_invalid_transitions
+    overlay::tour::conversion_tests::maximum_current_does_not_overflow_or_expose_navigation
+
+test result: FAILED. 5 passed; 3 failed; 0 ignored; 0 measured; 821 filtered out; finished in 0.07s
+
+error: test failed, to rerun pass `-p acme-ui --lib`
