@@ -2857,3 +2857,6 @@ mod page_header_tests;
 
 #[cfg(test)]
 mod tour_tests;
+
+#[cfg(test)]
+mod toolbar_tests;
