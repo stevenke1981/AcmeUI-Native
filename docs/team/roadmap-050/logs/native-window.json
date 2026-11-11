@@ -1,0 +1,138 @@
+{
+  "started_at": "2026-11-11T22:13:48.531269+00:00",
+  "source_sha": "daa980336a7e2a502adaa68496d6317d8a4ff6ad",
+  "git_status": " M docs/agent-team/ROADMAP.md\n M docs/status/final.md\n M docs/status/todos.md\n?? docs/team/roadmap-050/REPORT.md\n?? docs/team/roadmap-050/evidence.json\n?? docs/team/roadmap-050/logs/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Foundations Collapsible: actual pointer open then disable then attempt disabled header; host-controlled state, no human sign-off",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1000x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "900"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "114",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "300",
+      "218",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "650",
+      "280",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "300",
+      "218",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T22:13:53.179252+00:00",
+      "path": "docs/team/roadmap-050/gallery-collapsible-closed.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "d296051b6f6e7526cfdcea75d1e00a624d990f675fb2d372b7f06eb02d051907"
+    },
+    {
+      "captured_at": "2026-11-11T22:14:12.101136+00:00",
+      "path": "docs/team/roadmap-050/gallery-collapsible-disabled.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "3cf69990bdb9ccbbe23285bc8870c8c7587698c8874adc8cd6d7e4e476807f0e"
+    }
+  ],
+  "binary_sha256": "9f8942e3542e774c96c132a9a67fa5979e352edc0c025b92e09e039e3862938a",
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=900\nSCREEN=0\n",
+  "click_coordinates": [
+    300,
+    218,
+    650,
+    280,
+    300,
+    218
+  ],
+  "status": "PASS",
+  "finished_at": "2026-11-11T22:14:12.136058+00:00",
+  "log": "logs/native-window.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
