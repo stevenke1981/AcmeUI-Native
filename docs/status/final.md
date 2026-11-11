@@ -1,5 +1,11 @@
 # Delivery Status
 
+## 2026-11-12 — ROADMAP 049 Anchor typed navigation
+
+- Configured Anchor links now carry the current href message; passive Label text, active marker and host-owned state remain compatible. Instance/path keys preserve focused action identity through active href/callback updates and keyed instance reorder.
+- Added conversion/focus and Gallery pointer/theme/scale/clip/layout evidence. Exact tested source and checks: [report](../team/roadmap-049/REPORT.md).
+- Execution: single-agent-role-passes; author self-review. Automatic scrolling, deeper nesting and generic navigation hosting remain separate. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen readers remain NOT_RUN.
+
 ## 2026-11-12 — ROADMAP 048 Fullscreen Close conversion
 
 - Configured Fullscreen Close now carries its typed message; passive Label and hidden-control behavior remain compatible. Stable header/body keys preserve body focus when the close header changes.

@@ -1,0 +1,22 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 22.78s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 1 test
+test layout::anchor::conversion_tests::converted_anchor_links_emit_current_hrefs_and_preserve_passive_text ... FAILED
+
+failures:
+
+---- layout::anchor::conversion_tests::converted_anchor_links_emit_current_hrefs_and_preserve_passive_text stdout ----
+
+thread 'layout::anchor::conversion_tests::converted_anchor_links_emit_current_hrefs_and_preserve_passive_text' panicked at crates/acme-ui/src/layout/anchor_tests.rs:39:17:
+configured rendered links must be Buttons
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    layout::anchor::conversion_tests::converted_anchor_links_emit_current_hrefs_and_preserve_passive_text
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 832 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

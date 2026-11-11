@@ -1,0 +1,84 @@
+{
+  "started_at": "2026-11-11T19:14:47.336660+00:00",
+  "source_sha": "96e3dfd5061ead4a8bd62eca682d463b796a4401",
+  "git_status": " M docs/agent-team/ROADMAP.md\n M docs/status/final.md\n M docs/status/todos.md\n?? docs/team/roadmap-049/REPORT.md\n?? docs/team/roadmap-049/evidence.json\n?? docs/team/roadmap-049/logs/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Layout Anchor: actual pointer API then GET then Introduction; controlled messages only, no automatic scrolling or human sign-off",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1000x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "900"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "198",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T19:14:50.442186+00:00",
+      "path": "docs/team/roadmap-049/gallery-anchor-before.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "d994cbe8edd05a9d32e9d3891b980e5e778d1f0d663620aa3b60de15c14901d9"
+    }
+  ],
+  "binary_sha256": "a93c4a7059adb28922266d40798f5832a287b18edc4249c682803e8ad8028774",
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=900\nSCREEN=0\n",
+  "status": "FAIL",
+  "reason": "EOF when reading a line",
+  "finished_at": "2026-11-11T19:14:50.511657+00:00",
+  "log": "logs/native-initial.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

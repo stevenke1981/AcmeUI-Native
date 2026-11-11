@@ -44,6 +44,7 @@ use notification_examples::NotificationDemo;
 mod about_dialog;
 #[path = "mobile_action.rs"]
 mod action_examples;
+mod anchor;
 mod bottom_navigation;
 mod fab;
 mod fullscreen;
@@ -162,6 +163,7 @@ enum GalleryMessage {
     AboutShow,
     FullscreenClose,
     FullscreenShow,
+    AnchorNavigate(usize),
     SpeedDialToggle,
     SpeedDialAction(usize),
     BottomNavigationSelect(usize),
@@ -255,6 +257,8 @@ struct Gallery {
     about_closes: usize,
     fullscreen_visible: bool,
     fullscreen_closes: usize,
+    anchor_selected: usize,
+    anchor_navigations: usize,
     snackbar: SnackbarDemo,
     swipe: SwipeDemo,
     spinner: SpinnerDemo,
@@ -309,6 +313,8 @@ impl Gallery {
             about_closes: 0,
             fullscreen_visible: true,
             fullscreen_closes: 0,
+            anchor_selected: 0,
+            anchor_navigations: 0,
             snackbar: SnackbarDemo::new(),
             swipe: SwipeDemo::new(),
             spinner: SpinnerDemo::new(),
@@ -595,6 +601,7 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Layout", 24.0))
             .child(separator())
+            .child(self.page_section("Anchor — typed navigation", self.anchor_examples()))
             .child(self.page_section(
                 "BottomNavigation — typed selection",
                 self.bottom_navigation_examples(),
@@ -1356,6 +1363,14 @@ impl Gallery {
                     });
                 self.pressed = None;
                 self.hovered = None;
+                true
+            }
+            GalleryMessage::AnchorNavigate(index) => {
+                if index >= anchor::HREFS.len() {
+                    return false;
+                }
+                self.anchor_selected = index;
+                self.anchor_navigations = self.anchor_navigations.saturating_add(1);
                 true
             }
             GalleryMessage::FullscreenClose => {
@@ -2890,3 +2905,6 @@ mod toolbar_tests;
 
 #[cfg(test)]
 mod fullscreen_tests;
+
+#[cfg(test)]
+mod anchor_tests;
