@@ -1,0 +1,109 @@
+{
+  "started_at": "2026-11-11T10:56:17.095573+00:00",
+  "source_sha": "eca0da8fcfb17faf4ea9eecf71c964dff627cacf",
+  "git_status": " M docs/agent-team/ROADMAP.md\n M docs/status/todos.md\n?? docs/team/roadmap-043/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Newer Gallery Overlay/About card: pointer category selection, Close message hides the card and increments the host counter",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1000x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "900"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "238",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "400",
+      "532",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T10:56:19.166407+00:00",
+      "path": "docs/team/roadmap-043/gallery-about-open.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "56b59a04e6fc09e97f1ccac55019f66130bd9e7253302a9b42ebc92c12f65ec7"
+    },
+    {
+      "captured_at": "2026-11-11T10:56:19.958962+00:00",
+      "path": "docs/team/roadmap-043/gallery-about-closed.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "428bb7c7013d55edca961af0289d3c4b492e0d137479eb6ab37b8ed598884ebd"
+    }
+  ],
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=900\nSCREEN=0\n",
+  "status": "PASS",
+  "finished_at": "2026-11-11T10:56:20.055042+00:00",
+  "log": "logs/native-window.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
