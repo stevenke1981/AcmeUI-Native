@@ -1,0 +1,10 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.18s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 1 test
+test toolbar_tests::gallery_toolbar_controls_and_glyphs_stay_inside_toolbar_after_tour_changes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 80 filtered out; finished in 1.13s
+

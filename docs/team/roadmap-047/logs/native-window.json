@@ -1,0 +1,352 @@
+{
+  "started_at": "2026-11-11T18:34:39.002989+00:00",
+  "source_sha": "8b8df69d60623ad4a3c5aee2731ec3b63adf9e82",
+  "git_status": " M docs/agent-team/ROADMAP.md\n M docs/status/final.md\n M docs/status/todos.md\n?? docs/team/roadmap-047/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "binary_sha256": "134abdb443e44689c8618a5ebd278a4d711c4b99bfd82c4e3cca0c35f70a5b5d",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Start on Mobile, select Overlay, scroll, Next/Next/Finish in light and dark CPU windows",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1000x24",
+      "-nolisten",
+      "tcp"
+    ],
+    {
+      "argv": [
+        "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+      ],
+      "cwd": "/workspace/AcmeUI-Native/target/roadmap-047/native-light",
+      "mode": "light"
+    },
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "900"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "238",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "800",
+      "click",
+      "--repeat",
+      "3",
+      "--delay",
+      "150",
+      "5"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "264",
+      "632",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "345",
+      "632",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "345",
+      "632",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ],
+    {
+      "argv": [
+        "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+      ],
+      "cwd": "/workspace/AcmeUI-Native/target/roadmap-047/native-dark",
+      "mode": "dark"
+    },
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "900"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "238",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "800",
+      "click",
+      "--repeat",
+      "3",
+      "--delay",
+      "150",
+      "5"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "264",
+      "632",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "345",
+      "632",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "345",
+      "632",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T18:34:42.704962+00:00",
+      "path": "docs/team/roadmap-047/gallery-toolbar-light-first.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "dac113ce97170cb18078c58ec4eb2583f8f3c535a1caa2ca84f0d6c4c10a8417"
+    },
+    {
+      "captured_at": "2026-11-11T18:34:45.205145+00:00",
+      "path": "docs/team/roadmap-047/gallery-toolbar-light-finished.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "25b465ccc939da429897bfbb500f647c61ba695f8abc3434ab0c7f20dcb33fae"
+    },
+    {
+      "path": "docs/team/roadmap-047/gallery-toolbar-light-detail.png",
+      "dimensions": [
+        900,
+        40
+      ],
+      "sha256": "d80acc454a938c5f031f58841128e098738966a751c0094b976fa21ee1f3fa23",
+      "derived_from": "docs/team/roadmap-047/gallery-toolbar-light-first.png",
+      "region_xyxy": [
+        200,
+        0,
+        1100,
+        40
+      ]
+    },
+    {
+      "captured_at": "2026-11-11T18:34:48.564965+00:00",
+      "path": "docs/team/roadmap-047/gallery-toolbar-dark-first.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "34800ae73f7b3977ba5d459046e5f7d8ee5ed56484465c8f2b7b7ad718b33747"
+    },
+    {
+      "captured_at": "2026-11-11T18:34:51.053063+00:00",
+      "path": "docs/team/roadmap-047/gallery-toolbar-dark-finished.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "a4b51f6951c9bab42e77cbc891ccd4fa186c558e39b7a4bd3c0f6cad536b4a38"
+    },
+    {
+      "path": "docs/team/roadmap-047/gallery-toolbar-dark-detail.png",
+      "dimensions": [
+        900,
+        40
+      ],
+      "sha256": "76e365629903e9b6c2d1accaf8ad9c82956eac6e6a0eb10f89d73759808c3462",
+      "derived_from": "docs/team/roadmap-047/gallery-toolbar-dark-first.png",
+      "region_xyxy": [
+        200,
+        0,
+        1100,
+        40
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "paths": [
+        "docs/team/roadmap-047/gallery-toolbar-light-first.png",
+        "docs/team/roadmap-047/gallery-toolbar-light-finished.png"
+      ],
+      "region_xyxy": [
+        200,
+        0,
+        1100,
+        40
+      ],
+      "identical": true,
+      "difference_bounds": null,
+      "pixel_sha256": [
+        "d9cade02a1359385bb519838b2addd3484177a8c1715d1a350464775d56f59ba",
+        "d9cade02a1359385bb519838b2addd3484177a8c1715d1a350464775d56f59ba"
+      ]
+    },
+    {
+      "paths": [
+        "docs/team/roadmap-047/gallery-toolbar-dark-first.png",
+        "docs/team/roadmap-047/gallery-toolbar-dark-finished.png"
+      ],
+      "region_xyxy": [
+        200,
+        0,
+        1100,
+        40
+      ],
+      "identical": true,
+      "difference_bounds": null,
+      "pixel_sha256": [
+        "703c077c2725c6a9c41efccbb3597d1317713e04613920e8456b12a98ea9ddcf",
+        "703c077c2725c6a9c41efccbb3597d1317713e04613920e8456b12a98ea9ddcf"
+      ]
+    },
+    {
+      "paths": [
+        "docs/team/roadmap-046/gallery-tour-first.png",
+        "docs/team/roadmap-046/gallery-tour-finished.png"
+      ],
+      "region_xyxy": [
+        200,
+        0,
+        1100,
+        40
+      ],
+      "identical": true,
+      "difference_bounds": null,
+      "pixel_sha256": [
+        "d9cade02a1359385bb519838b2addd3484177a8c1715d1a350464775d56f59ba",
+        "d9cade02a1359385bb519838b2addd3484177a8c1715d1a350464775d56f59ba"
+      ]
+    }
+  ],
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": {
+    "light": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=900\nSCREEN=0\n",
+    "dark": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=900\nSCREEN=0\n"
+  },
+  "status": "PASS",
+  "finished_at": "2026-11-11T18:34:51.137145+00:00",
+  "log": "logs/native-window.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

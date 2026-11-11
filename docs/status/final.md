@@ -1,5 +1,11 @@
 # Delivery Status
 
+## 2026-11-12 — ROADMAP 047 toolbar investigation
+
+- The stored ROADMAP 046 first/finished toolbar pixel regions are identical. Expanded layout/glyph probes and new light/dark X11 CPU captures do not reproduce the reported clipping difference; no runtime fix is claimed.
+- Added real-frame toolbar paint-invariance and pointer-slot guards across scroll/Tour changes, themes, scales and viewport heights. Exact tested source, checks and captures: [report](../team/roadmap-047/REPORT.md).
+- Execution: single-agent-role-passes; author self-review. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen readers remain NOT_RUN. Tour full overlay/focus/spotlight behavior remains separate.
+
 ## 2026-07-23 — AcmeUI design Skill scope
 
 ### Completed

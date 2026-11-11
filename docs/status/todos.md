@@ -1,10 +1,17 @@
 # Todos
 
+## ROADMAP 047 — Gallery toolbar paint investigation (2026-11-12)
+
+- [x] Investigate the ROADMAP 046 toolbar clipping observation: the original first/finished PNG toolbar regions are byte-identical; expanded real-frame layout/glyph and new X11 CPU pixel comparisons do not reproduce clipping. No runtime fix is claimed.
+- [x] Add toolbar paint-invariance and pointer-slot regressions through page/scroll/Tour transitions, both modes, three scales and two heights; exact local verification and native evidence in [report](../team/roadmap-047/REPORT.md).
+- [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance remain NOT_RUN; Tour spotlight/full overlay/focus behavior remains separate.
+
 ## ROADMAP 046 — Tour conversion bounds (2026-11-11)
 
 - [x] Reject empty/invalid current steps before arithmetic or navigation conversion, retaining the keyed Elevated Card; preserve valid step content, optional callbacks and typed Previous/Next/Finish messages.
 - [x] Add overflow/phantom-action, valid conversion, retained-root/layout and Gallery pointer lifecycle/theme/scale/clip regressions plus native CPU evidence; exact source/checks in [report](../team/roadmap-046/REPORT.md).
-- [ ] Investigate Gallery toolbar text clipping in the scrolled first-step capture (finished-state toolbar is normal; 40 px geometry probe passes). Target spotlight/scroll placement, full overlay/focus behavior and human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance remain separate / NOT_RUN.
+- [x] Investigate Gallery toolbar text clipping: ROADMAP 047 pixel comparison finds identical original toolbar regions and no clipping reproduction; added paint/glyph/pointer and native CPU guards. The previous differing-toolbar description is unsupported by those stored pixels; see [report](../team/roadmap-047/REPORT.md).
+- [ ] Target spotlight/scroll placement, full overlay/focus behavior and human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance remain separate / NOT_RUN.
 
 ## ROADMAP 045 — PageHeader action identity (2026-11-11)
 
