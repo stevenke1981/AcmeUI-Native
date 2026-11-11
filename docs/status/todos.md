@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 038 — DataList density (2026-11-11)
+
+- [x] Add Compact/Default/Relaxed spacing in both orientations, preserving default geometry/content/colors; cover real layout and retained IDs across density changes and keyed instance reorders.
+- [x] Add six themed Gallery comparisons, paint/clip tests and native CPU evidence; locked touched tests, strict Clippy, actual CPU profile and workspace milestone checks pass. See [report](../team/roadmap-038/REPORT.md) for exact source and delivery status.
+- [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 037 — UI minimal feature dependencies (2026-11-11)
 
 - [x] Reproduce no-default inputs/layout build failures; declare inputs → foundations and layout → inputs, with external-consumer icon activation/Form-validation regressions and hosted minimal-feature gates.
@@ -658,7 +664,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 ### Remaining enhancements
 - [ ] Wire VisuallyHidden/LiveRegion into acme-accessibility tree builder
 - [ ] CheckboxCards/RadioCards keyboard navigation (arrow keys)
-- [ ] DataList density variants (compact/relaxed)
+- [x] DataList density variants (compact/default/relaxed), both orientations with default compatibility, real layout/retained regressions and Gallery comparisons (ROADMAP 038).
 - [ ] Code syntax highlighting integration
 - [ ] Inset clip variants (rounded corners matching parent)
 

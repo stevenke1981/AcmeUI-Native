@@ -1,0 +1,106 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0412]: cannot find type `DataListDensity` in this scope
+ --> crates/acme-ui/src/foundations/data_list_tests.rs:6:54
+  |
+6 | fn sample(orientation: DataListOrientation, density: DataListDensity) -> WidgetNode<()> {
+  |                                                      ^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0599]: no method named `density` found for struct `DataListBuilder` in the current scope
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:10:10
+   |
+7  | /     data_list()
+8  | |         .key("profile")
+9  | |         .orientation(orientation)
+10 | |         .density(density)
+   | |         -^^^^^^^ method not found in `DataListBuilder<_>`
+   | |_________|
+   |
+   |
+  ::: crates/acme-ui/src/foundations/data_list.rs:32:1
+   |
+32 |   pub struct DataListBuilder<M> {
+   |   ----------------------------- method `density` not found for this struct
+
+error[E0609]: no field `density` on type `DataListBuilder<()>`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:28:34
+   |
+28 |     assert_eq!(data_list::<()>().density, DataListDensity::Default);
+   |                                  ^^^^^^^ unknown field
+   |
+   = note: available fields are: `id`, `items`, `orientation`, `_phantom`
+
+error[E0433]: failed to resolve: use of undeclared type `DataListDensity`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:28:43
+   |
+28 |     assert_eq!(data_list::<()>().density, DataListDensity::Default);
+   |                                           ^^^^^^^^^^^^^^^ use of undeclared type `DataListDensity`
+
+error[E0433]: failed to resolve: use of undeclared type `DataListDensity`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:30:40
+   |
+30 |         let node = sample(orientation, DataListDensity::Default);
+   |                                        ^^^^^^^^^^^^^^^ use of undeclared type `DataListDensity`
+
+error[E0599]: no method named `density` found for struct `DataListBuilder` in the current scope
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:49:41
+   |
+49 |     let mut builder = data_list::<()>().density(DataListDensity::Relaxed);
+   |                                         ^^^^^^^ method not found in `DataListBuilder<()>`
+   |
+  ::: crates/acme-ui/src/foundations/data_list.rs:32:1
+   |
+32 | pub struct DataListBuilder<M> {
+   | ----------------------------- method `density` not found for this struct
+
+error[E0433]: failed to resolve: use of undeclared type `DataListDensity`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:49:49
+   |
+49 |     let mut builder = data_list::<()>().density(DataListDensity::Relaxed);
+   |                                                 ^^^^^^^^^^^^^^^ use of undeclared type `DataListDensity`
+
+error[E0433]: failed to resolve: use of undeclared type `DataListDensity`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:50:23
+   |
+50 |     builder.density = DataListDensity::Compact;
+   |                       ^^^^^^^^^^^^^^^ use of undeclared type `DataListDensity`
+
+error[E0433]: failed to resolve: use of undeclared type `DataListDensity`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:65:33
+   |
+65 |                 for density in [DataListDensity::Compact, DataListDensity::Default, DataListDensity::Relaxed] {
+   |                                 ^^^^^^^^^^^^^^^ use of undeclared type `DataListDensity`
+
+error[E0433]: failed to resolve: use of undeclared type `DataListDensity`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:65:59
+   |
+65 |                 for density in [DataListDensity::Compact, DataListDensity::Default, DataListDensity::Relaxed] {
+   |                                                           ^^^^^^^^^^^^^^^ use of undeclared type `DataListDensity`
+
+error[E0433]: failed to resolve: use of undeclared type `DataListDensity`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:65:85
+   |
+65 |                 for density in [DataListDensity::Compact, DataListDensity::Default, DataListDensity::Relaxed] {
+   |                                                                                     ^^^^^^^^^^^^^^^ use of undeclared type `DataListDensity`
+
+error[E0433]: failed to resolve: use of undeclared type `DataListDensity`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:97:37
+   |
+97 |         for (density, reverse) in [(DataListDensity::Default, false), (DataListDensity::Compact, true), (DataListDensity::Relaxed, false)] {
+   |                                     ^^^^^^^^^^^^^^^ use of undeclared type `DataListDensity`
+
+error[E0433]: failed to resolve: use of undeclared type `DataListDensity`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:97:72
+   |
+97 |         for (density, reverse) in [(DataListDensity::Default, false), (DataListDensity::Compact, true), (DataListDensity::Relaxed, false)] {
+   |                                                                        ^^^^^^^^^^^^^^^ use of undeclared type `DataListDensity`
+
+error[E0433]: failed to resolve: use of undeclared type `DataListDensity`
+  --> crates/acme-ui/src/foundations/data_list_tests.rs:97:106
+   |
+97 |         for (density, reverse) in [(DataListDensity::Default, false), (DataListDensity::Compact, true), (DataListDensity::Relaxed, false)] {
+   |                                                                                                          ^^^^^^^^^^^^^^^ use of undeclared type `DataListDensity`
+
+Some errors have detailed explanations: E0412, E0433, E0599, E0609.
+For more information about an error, try `rustc --explain E0412`.
+error: could not compile `acme-ui` (lib test) due to 14 previous errors
+warning: build failed, waiting for other jobs to finish...
