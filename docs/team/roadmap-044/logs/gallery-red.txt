@@ -1,0 +1,32 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.87s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 2 tests
+test bottom_navigation_tests::bottom_navigation_gallery_paint_and_hits_match_across_theme_scale_and_selection ... FAILED
+test bottom_navigation_tests::gallery_bottom_navigation_pointer_selects_and_preserves_controlled_selection ... FAILED
+
+failures:
+
+---- bottom_navigation_tests::bottom_navigation_gallery_paint_and_hits_match_across_theme_scale_and_selection stdout ----
+
+thread 'bottom_navigation_tests::bottom_navigation_gallery_paint_and_hits_match_across_theme_scale_and_selection' panicked at apps/acme-gallery/src/bottom_navigation_tests.rs:90:17:
+assertion `left == right` failed
+  left: 0
+ right: 3
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- bottom_navigation_tests::gallery_bottom_navigation_pointer_selects_and_preserves_controlled_selection stdout ----
+
+thread 'bottom_navigation_tests::gallery_bottom_navigation_pointer_selects_and_preserves_controlled_selection' panicked at apps/acme-gallery/src/bottom_navigation_tests.rs:23:14:
+configured navigation action hit
+
+
+failures:
+    bottom_navigation_tests::bottom_navigation_gallery_paint_and_hits_match_across_theme_scale_and_selection
+    bottom_navigation_tests::gallery_bottom_navigation_pointer_selects_and_preserves_controlled_selection
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.09s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

@@ -1,0 +1,31 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 28.27s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-dd0e4f5925247279)
+
+running 8 tests
+test layout::bottom_navigation::tests::bottom_navigation_child_count ... ok
+test layout::bottom_navigation::tests::bottom_navigation_selected_index ... ok
+test layout::bottom_navigation::conversion_tests::converted_actions_carry_current_indexed_messages_and_preserve_display_text ... ok
+test layout::bottom_navigation::tests::bottom_navigation_produces_row ... ok
+test layout::bottom_navigation::tests::bottom_navigation_on_select_emits_selected_with_index ... ok
+test layout::bottom_navigation::conversion_tests::missing_callback_preserves_passive_labels_and_empty_actions_stay_empty ... ok
+test layout::bottom_navigation::conversion_tests::action_identity_and_focus_survive_selection_label_changes_and_instance_reordering ... ok
+test layout::bottom_navigation::conversion_tests::configured_navigation_has_finite_nonoverlapping_real_layout ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 815 filtered out; finished in 0.22s
+
+     Running tests/minimal_features.rs (target/debug/deps/minimal_features-c1646e20032ab906)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 2 tests
+test bottom_navigation_tests::gallery_bottom_navigation_pointer_selects_and_preserves_controlled_selection ... ok
+test bottom_navigation_tests::bottom_navigation_gallery_paint_and_hits_match_across_theme_scale_and_selection ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.17s
+

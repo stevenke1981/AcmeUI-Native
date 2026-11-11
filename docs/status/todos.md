@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 044 — BottomNavigation typed selection conversion (2026-11-11)
+
+- [x] Bind the existing on_select callback to instance-keyed action Buttons, preserving passive labels, selected/icon text, host-owned selection and public fields/signatures.
+- [x] Cover current typed messages, retained identity/focus eligibility, real layout and Gallery pointer/theme/scale/clip behavior; exact local verification and CPU-window evidence in [report](../team/roadmap-044/REPORT.md).
+- [ ] Full navigation accessibility semantics, generic keyboard host and viewport anchoring remain separate; human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 043 — AboutDialog Close message conversion (2026-11-11)
 
 - [x] Cover converted AboutDialog controls and bind the existing on_close message to the Close Button; retain passive fallback, card/label structure, public fields/signatures and Close identity through optional-content changes.
@@ -402,7 +408,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
 - [x] Add Gallery "Mobile" page for all 15 P3 mobile_* builders — examples/evidence through ROADMAP 029; complete presence and retained-root inventory verified in ROADMAP 030. This does not claim demos or interaction acceptance for the five other legacy mobile composites.
-- [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions — SpeedDial converted action messages, retained toggle and real layout covered in ROADMAP 042; AboutDialog typed Close messages and optional-content identity covered in ROADMAP 043. Other builders remain separate.
+- [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions — SpeedDial converted action messages, retained toggle and real layout covered in ROADMAP 042; AboutDialog typed Close messages and optional-content identity covered in ROADMAP 043. BottomNavigation indexed typed selection and retained focus eligibility covered in ROADMAP 044. Other builders remain separate.
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
 - [x] Document public component-module inventory in both READMEs (200 after ROADMAP 034; counted from eight category mod.rs declarations, excluding test/support modules; does not imply interactive completeness). Historical pre-SwipeActions count was 199.
 
