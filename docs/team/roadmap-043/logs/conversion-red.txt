@@ -1,0 +1,38 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.98s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 7 tests
+test overlay::about_dialog::tests::about_dialog_shows_close_button ... ok
+test overlay::about_dialog::tests::about_dialog_shows_description_and_credits ... ok
+test overlay::about_dialog::tests::about_dialog_builder_defaults ... ok
+test overlay::about_dialog::tests::about_dialog_shows_app_name_and_version ... ok
+test overlay::about_dialog::tests::about_dialog_has_non_zero_layout_rect ... ok
+test overlay::about_dialog::conversion_tests::converted_close_carries_current_message_and_preserves_passive_fallback ... FAILED
+test overlay::about_dialog::conversion_tests::close_identity_survives_optional_description_and_credits_changes ... FAILED
+
+failures:
+
+---- overlay::about_dialog::conversion_tests::converted_close_carries_current_message_and_preserves_passive_fallback stdout ----
+
+thread 'overlay::about_dialog::conversion_tests::converted_close_carries_current_message_and_preserves_passive_fallback' panicked at crates/acme-ui/src/overlay/about_dialog_tests.rs:28:9:
+assertion `left == right` failed
+  left: None
+ right: Some(7)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- overlay::about_dialog::conversion_tests::close_identity_survives_optional_description_and_credits_changes stdout ----
+
+thread 'overlay::about_dialog::conversion_tests::close_identity_survives_optional_description_and_credits_changes' panicked at crates/acme-ui/src/overlay/about_dialog_tests.rs:56:9:
+assertion `left == right` failed
+  left: None
+ right: Some(1)
+
+
+failures:
+    overlay::about_dialog::conversion_tests::close_identity_survives_optional_description_and_credits_changes
+    overlay::about_dialog::conversion_tests::converted_close_carries_current_message_and_preserves_passive_fallback
+
+test result: FAILED. 5 passed; 2 failed; 0 ignored; 0 measured; 812 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-ui --lib`
