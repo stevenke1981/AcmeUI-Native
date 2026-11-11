@@ -1,0 +1,111 @@
+{
+  "started_at": "2026-11-11T10:44:02.261181+00:00",
+  "source_sha": "5e3981d690fc2479a2dbf117d93fa16035f0df5e",
+  "git_status": " M docs/agent-team/ROADMAP.md\n M docs/status/todos.md\n?? docs/team/roadmap-042/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Newer Gallery Overlay/SpeedDial: pointer category selection, expand toggle, select Share action; host keeps the dial open",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x800x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "238",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "250",
+      "230",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "300",
+      "273",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T10:44:05.433527+00:00",
+      "path": "docs/team/roadmap-042/gallery-speed-dial-open.png",
+      "dimensions": [
+        1100,
+        800
+      ],
+      "sha256": "f19039c82b861f5eaaacecba5b3122659d541cfb10c238aa5c1308310242e39c"
+    },
+    {
+      "captured_at": "2026-11-11T10:44:06.188375+00:00",
+      "path": "docs/team/roadmap-042/gallery-speed-dial-action.png",
+      "dimensions": [
+        1100,
+        800
+      ],
+      "sha256": "28960034eaf286a7e2692f52a9ea3c284c8fdf87cec1c45f1f944d92120e1d9b"
+    }
+  ],
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=700\nSCREEN=0\n",
+  "status": "PASS",
+  "finished_at": "2026-11-11T10:44:06.230331+00:00",
+  "log": "logs/native-window.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

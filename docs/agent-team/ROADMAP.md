@@ -66,6 +66,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 041 | Lead + Architecture + Rust Core + Accessibility + UI/UX + Verification (single-agent-role-passes) | Retained active-container focus and exact typed activation; original Gallery demo, unique hit/paint slots and clipped themed focus rings | [Brief](../team/roadmap-041/BRIEF.md); [report](../team/roadmap-041/REPORT.md); real platform adapter and manual hardware acceptance remain separate |
 
+| 042 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Cover and repair SpeedDial typed action conversion, preserving passive labels and host-controlled state | [Brief](../team/roadmap-042/BRIEF.md); [report](../team/roadmap-042/REPORT.md); directional expansion and manual hardware acceptance remain separate |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 042 — SpeedDial typed action conversion (2026-11-11)
+
+- [x] Cover the converted SpeedDial tree and fix the existing ignored on_action callback: open configured actions become instance-keyed Buttons carrying indexed messages; passive labels, root/toggle identity and host-controlled state remain compatible.
+- [x] Add Gallery open/select/close and stale-action rejection, theme/scale/clip/hit regressions and actual CPU window evidence. Exact source and checks: [report](../team/roadmap-042/REPORT.md).
+- [ ] Directional expansion, animation/global overlay placement and human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance remain separate / NOT_RUN.
+
 ## ROADMAP 041 — Retained container focus and typed activation (2026-11-11)
 
 - [x] Register existing Row/Column/Stack handlers in retained focus; expose named AccessKit Button/Focus/Click semantics and resolve exact current typed messages without coordinate synthesis or parent/child fallback.
@@ -390,7 +396,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
 - [x] Add Gallery "Mobile" page for all 15 P3 mobile_* builders — examples/evidence through ROADMAP 029; complete presence and retained-root inventory verified in ROADMAP 030. This does not claim demos or interaction acceptance for the five other legacy mobile composites.
-- [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions
+- [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions — SpeedDial converted action messages, retained toggle and real layout covered in ROADMAP 042; other builders remain separate.
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
 - [x] Document public component-module inventory in both READMEs (200 after ROADMAP 034; counted from eight category mod.rs declarations, excluding test/support modules; does not imply interactive completeness). Historical pre-SwipeActions count was 199.
 

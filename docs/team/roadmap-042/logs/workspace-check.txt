@@ -1,0 +1,10 @@
+    Checking acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+    Checking acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+    Checking acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Checking acme-accessibility v0.2.0 (/workspace/AcmeUI-Native/crates/acme-accessibility)
+    Checking acme-devtools v0.2.0 (/workspace/AcmeUI-Native/crates/acme-devtools)
+    Checking acme-playground v0.2.0 (/workspace/AcmeUI-Native/apps/playground)
+    Checking acme-benchmark v0.2.0 (/workspace/AcmeUI-Native/apps/benchmark)
+    Checking acme-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/gallery)
+    Checking acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.39s
