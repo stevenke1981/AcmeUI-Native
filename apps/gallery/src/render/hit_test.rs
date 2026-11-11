@@ -186,32 +186,6 @@ pub fn collect_data_widget_hits(
                 vlist_viewport,
             );
         }
-        WidgetNode::Row(v) | WidgetNode::Column(v) | WidgetNode::Stack(v) => {
-            if let Some(msg) = &v.message
-                && let Some(rect) = snapshot.get(layout.id)
-            {
-                result.push(HitRegion {
-                    rect: [rect.x, rect.y, rect.width, rect.height],
-                    message: *msg,
-                    scrolled: true,
-                    node: layout.id,
-                });
-            }
-            let wc = widget.children();
-            for (w, l) in wc.iter().zip(layout.children.iter()) {
-                collect_data_widget_hits(
-                    w,
-                    l,
-                    snapshot,
-                    table_sort_col,
-                    table_sort_asc,
-                    result,
-                    tree_viewport,
-                    table_viewport,
-                    vlist_viewport,
-                );
-            }
-        }
         _ => {
             let wc = widget.children();
             for (w, l) in wc.iter().zip(layout.children.iter()) {

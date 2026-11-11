@@ -3,7 +3,7 @@
 //! All functions are pure with respect to `Gallery` — state is passed explicitly
 //! via [`RenderCtx`] so that rendering logic is decoupled from app state.
 
-use acme_core::{DrawCommand, NodeId, Scene};
+use acme_core::{DrawCommand, NodeId, Rect, Scene};
 use acme_layout::{LayoutNode, LayoutSnapshot, WidgetLayoutContext};
 use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::{TextInputState, render_text_input};
@@ -207,10 +207,17 @@ pub fn render_page_content(ctx: &mut RenderCtx) {
     if let Some(sv_rect) = ctx.snapshot.get(ctx.ids.scroll_view) {
         let clip = [sv_rect.x, sv_rect.y, sv_rect.width, sv_rect.height];
         let mut btn_idx = 11;
+        // Chrome was already painted above. Start at the scroll subtree,
+        // matching the first content hit slot, and clip every primitive.
+        let scroll_widget = &ctx.description.children()[1].children()[1];
+        let scroll_layout = &ctx.root.children[1].children[1];
+        ctx.scene.push(DrawCommand::PushClip(Rect::new(
+            clip[0], clip[1], clip[2], clip[3],
+        )));
         render_content(
             ctx.scene,
-            ctx.description,
-            ctx.root,
+            scroll_widget,
+            scroll_layout,
             ctx.snapshot,
             ctx.theme,
             ctx.scale,
@@ -224,6 +231,7 @@ pub fn render_page_content(ctx: &mut RenderCtx) {
             ctx.atlas,
             ctx.show_focus_rings,
         );
+        ctx.scene.push(DrawCommand::PopClip);
     }
 }
 

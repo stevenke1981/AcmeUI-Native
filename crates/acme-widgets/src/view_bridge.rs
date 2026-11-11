@@ -1,9 +1,8 @@
 //! Bridge from [`WidgetNode`] to [`ViewNode`] for the runtime shadow tree.
 //!
-//! This module converts the declarative widget tree into a flat `Vec<ViewNode>`
-//! forest that can be fed to [`acme_core::RetainedTree::reconcile_roots`] for diagnostics.
-//! It is purely diagnostic (Phase 1) — no functional changes to layout,
-//! paint, hit-testing, or accessibility.
+//! Converts descriptions into a `Vec<ViewNode>` forest for reconciliation.
+//! Retained binding shares its stable identities with layout and accessibility;
+//! focus eligibility includes containers carrying activation messages.
 
 use acme_core::ViewNode;
 use acme_core::WidgetKey;
@@ -41,14 +40,15 @@ pub fn widget_to_views<M>(roots: &[WidgetNode<M>]) -> Vec<ViewNode> {
 fn widget_to_view<M>(widget: &WidgetNode<M>, parent_path: &str, index: usize) -> ViewNode {
     match widget {
         // ── Containers ──────────────────────────────────────────────────────
-        WidgetNode::Row(v) => {
-            container_view(v.key.as_ref(), "row", &v.children, parent_path, index)
-        }
-        WidgetNode::Column(v) => {
-            container_view(v.key.as_ref(), "column", &v.children, parent_path, index)
-        }
-        WidgetNode::Stack(v) => {
-            container_view(v.key.as_ref(), "stack", &v.children, parent_path, index)
+        WidgetNode::Row(v) | WidgetNode::Column(v) | WidgetNode::Stack(v) => {
+            let kind = match widget {
+                WidgetNode::Row(_) => "row",
+                WidgetNode::Column(_) => "column",
+                _ => "stack",
+            };
+            let mut view = container_view(v.key.as_ref(), kind, &v.children, parent_path, index);
+            view.focusable = v.message.is_some();
+            view
         }
         WidgetNode::Card(v) => {
             container_view(v.key.as_ref(), "card", &v.children, parent_path, index)
@@ -374,3 +374,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "container_focus_tests.rs"]
+mod container_focus_tests;
