@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 049 — Anchor typed navigation conversion (2026-11-12)
+
+- [x] Bind existing on_navigate to instance/path-keyed Buttons for rendered parent/child links, preserving passive Label text, active marker, composition and host-owned state without public API expansion.
+- [x] Add current typed-message, retained-focus/instance-reorder and Gallery pointer/theme/scale/clip/layout regressions plus native CPU evidence; exact source/checks in [report](../team/roadmap-049/REPORT.md).
+- [ ] Automatic target scrolling, deeper nesting, navigation semantics and generic keyboard hosting remain separate; human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 048 — Fullscreen Close conversion (2026-11-12)
 
 - [x] Preserve configured Close messages in instance-keyed Buttons, passive Label fallback and close_button(false); key header/body to retain body identity/focus through optional header changes, without API expansion.
@@ -433,7 +439,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
 - [x] Add Gallery "Mobile" page for all 15 P3 mobile_* builders — examples/evidence through ROADMAP 029; complete presence and retained-root inventory verified in ROADMAP 030. This does not claim demos or interaction acceptance for the five other legacy mobile composites.
-- [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions — SpeedDial converted action messages, retained toggle and real layout covered in ROADMAP 042; AboutDialog typed Close messages and optional-content identity covered in ROADMAP 043. BottomNavigation indexed typed selection and retained focus eligibility covered in ROADMAP 044. PageHeader action identity/focus through optional descriptions covered in ROADMAP 045. Tour invalid-step bounds, valid typed navigation and keyed-root layout covered in ROADMAP 046. Fullscreen Close messages, passive/hidden controls and body focus through optional header changes covered in ROADMAP 048. Other builders remain separate.
+- [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions — SpeedDial converted action messages, retained toggle and real layout covered in ROADMAP 042; AboutDialog typed Close messages and optional-content identity covered in ROADMAP 043. BottomNavigation indexed typed selection and retained focus eligibility covered in ROADMAP 044. PageHeader action identity/focus through optional descriptions covered in ROADMAP 045. Tour invalid-step bounds, valid typed navigation and keyed-root layout covered in ROADMAP 046. Fullscreen Close messages, passive/hidden controls and body focus through optional header changes covered in ROADMAP 048. Anchor rendered parent/child href messages and retained focus covered in ROADMAP 049. Other builders remain separate.
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
 - [x] Document public component-module inventory in both READMEs (200 after ROADMAP 034; counted from eight category mod.rs declarations, excluding test/support modules; does not imply interactive completeness). Historical pre-SwipeActions count was 199.
 
