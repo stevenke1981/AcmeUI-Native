@@ -1,0 +1,57 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0432]: unresolved import `crate::IconName`
+  --> crates/acme-ui/src/inputs/icon_button.rs:6:26
+   |
+6  | use crate::{ControlSize, IconName};
+   |                          ^^^^^^^^ no `IconName` in the root
+   |
+note: found an item that was configured out
+  --> crates/acme-ui/src/lib.rs:71:29
+   |
+71 | pub use foundations::icon::{IconName, icon};
+   |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+  --> crates/acme-ui/src/lib.rs:70:7
+   |
+70 | #[cfg(feature = "foundations")]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0432]: unresolved import `crate::IconName`
+  --> crates/acme-ui/src/inputs/toggle_button.rs:6:26
+   |
+6  | use crate::{ControlSize, IconName};
+   |                          ^^^^^^^^ no `IconName` in the root
+   |
+note: found an item that was configured out
+  --> crates/acme-ui/src/lib.rs:71:29
+   |
+71 | pub use foundations::icon::{IconName, icon};
+   |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+  --> crates/acme-ui/src/lib.rs:70:7
+   |
+70 | #[cfg(feature = "foundations")]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0432]: unresolved import `crate::IconName`
+  --> crates/acme-ui/src/inputs/toggle_button.rs:6:26
+   |
+6  | use crate::{ControlSize, IconName};
+   |                          ^^^^^^^^ no `IconName` in the root
+   |
+   = note: unresolved item `crate::inputs::icon_button::tests::IconName` exists but is inaccessible
+note: found an item that was configured out
+  --> crates/acme-ui/src/lib.rs:71:29
+   |
+71 | pub use foundations::icon::{IconName, icon};
+   |                             ^^^^^^^^
+note: the item is gated behind the `foundations` feature
+  --> crates/acme-ui/src/lib.rs:70:7
+   |
+70 | #[cfg(feature = "foundations")]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `acme-ui` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `acme-ui` (lib test) due to 2 previous errors

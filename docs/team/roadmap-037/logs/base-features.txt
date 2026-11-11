@@ -1,0 +1,29 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.41s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-6fde1597b1b08030)
+
+running 9 tests
+test native::tests::apple_shortcuts_use_command_and_other_desktops_use_control ... ok
+test native::tests::invalid_scale_factor_falls_back_to_one ... ok
+test native::tests::native_button_applies_profile_geometry ... ok
+test template::tests::native_template_uses_explicit_profile_and_stable_key ... ok
+test native::tests::touch_profiles_enforce_touch_sized_controls ... ok
+test native::tests::every_profile_produces_valid_light_and_dark_themes ... ok
+test template::tests::platform_templates_have_stable_keys ... ok
+test template::tests::platform_templates_use_different_native_geometry ... ok
+test template::tests::template_has_stable_root_and_content ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/minimal_features.rs (target/debug/deps/minimal_features-0d86265f2779a374)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests acme_ui
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

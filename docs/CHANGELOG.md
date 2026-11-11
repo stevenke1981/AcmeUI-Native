@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - Minimal UI feature dependencies (ROADMAP 037, 2026-11-11)
+
+- `acme-ui` now declares `inputs → foundations` and `layout → inputs`.
+  Selecting either `inputs` or `layout` with `default-features = false` now
+  brings in its required icon/Form-validation modules and compiles. The default
+  and full feature sets are unchanged. CI tests both minimal selections using
+  existing suites and external consumer regressions.
+
 ## Unreleased - Paper square corners (ROADMAP 036, 2026-11-11)
 
 - `PaperBuilder::square(bool)` forces zero corner radius independently of the
