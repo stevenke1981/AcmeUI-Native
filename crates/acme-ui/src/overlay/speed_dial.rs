@@ -66,6 +66,8 @@ impl<M: Clone + 'static> SpeedDialBuilder<M> {
         self
     }
 
+    /// Build each open action's typed message from its zero-based index.
+    /// Without this callback, actions remain passive labels.
     pub fn on_action(mut self, f: fn(usize) -> M) -> Self {
         self.on_action = Some(f);
         self
@@ -74,15 +76,24 @@ impl<M: Clone + 'static> SpeedDialBuilder<M> {
 
 impl<M: Clone + 'static> From<SpeedDialBuilder<M>> for WidgetNode<M> {
     fn from(b: SpeedDialBuilder<M>) -> Self {
+        let action_prefix = b.id.as_str().to_owned();
         let mut col = crate::column::<M>().key(b.id).gap(8.0).padding(8.0);
 
         if b.open {
-            for action in &b.actions {
+            for (index, action) in b.actions.iter().enumerate() {
                 let icon_str = action
                     .icon
                     .map(|i| format!("{} ", i.char()))
                     .unwrap_or_default();
-                col = col.child(crate::label(format!("{}{}", icon_str, action.label)));
+                let label = format!("{}{}", icon_str, action.label);
+                let child = if let Some(message) = b.on_action {
+                    crate::button(format!("{action_prefix}:action:{index}"), label)
+                        .full_width(true)
+                        .on_click(message(index))
+                } else {
+                    crate::label(label)
+                };
+                col = col.child(child);
             }
         }
 
@@ -155,3 +166,7 @@ mod tests {
         assert_eq!(b.on_action.map(|f| f(1)), Some(Msg::Action(1)));
     }
 }
+
+#[cfg(test)]
+#[path = "speed_dial_tests.rs"]
+mod conversion_tests;
