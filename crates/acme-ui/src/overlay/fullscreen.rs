@@ -1,9 +1,8 @@
 //! Fullscreen overlay component — a full-viewport overlay for displaying
 //! images, videos, or maximized content with a close control.
 //!
-//! Renders as a full-area plain Card with centered content and an optional
-//! top-right close button. Suitable for image lightbox, video player,
-//! or presentation mode.
+//! Composes a plain Card with content and an optional close control.
+//! The host owns viewport placement, backdrop painting and dismissal state.
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
@@ -37,7 +36,8 @@ impl<M: Clone + 'static> FullscreenBuilder<M> {
         self
     }
 
-    /// Set the backdrop darkness (0.0 = transparent, 1.0 = solid black).
+    /// Set backdrop opacity metadata (0.0 = transparent, 1.0 = solid black).
+    /// The host paints the backdrop; `build` does not apply this opacity.
     pub fn background_opacity(mut self, value: f32) -> Self {
         self.background_opacity = value.clamp(0.0, 1.0);
         self
@@ -59,17 +59,25 @@ impl<M: Clone + 'static> FullscreenBuilder<M> {
     pub fn build(self) -> WidgetNode<M> {
         let mut content = crate::column::<M>().key(self.id.clone()).gap(12.0);
 
-        // Optional close button row (top-right aligned)
+        // Optional close control; preserve the passive Label without a callback.
         if self.close_button {
+            let close = if let Some(message) = self.on_close {
+                crate::button(format!("{}_close", self.id.as_str()), "✕").on_click(message)
+            } else {
+                crate::label::<M>("✕")
+            };
             let header = crate::row::<M>()
+                .key(format!("{}_header", self.id.as_str()))
                 .child(crate::row::<M>().build())
-                .child(crate::label::<M>("✕"))
+                .child(close)
                 .build();
             content = content.child(header);
         }
 
-        // Centered body content
-        let mut body = crate::column::<M>().gap(8.0);
+        // Keep body identity when the optional close header is removed.
+        let mut body = crate::column::<M>()
+            .key(format!("{}_body", self.id.as_str()))
+            .gap(8.0);
         for child in self.children {
             body = body.child(child);
         }
@@ -175,3 +183,7 @@ mod tests {
         assert!(f.on_close.is_none());
     }
 }
+
+#[cfg(test)]
+#[path = "fullscreen_tests.rs"]
+mod conversion_tests;

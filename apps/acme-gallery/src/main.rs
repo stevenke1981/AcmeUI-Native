@@ -46,6 +46,7 @@ mod about_dialog;
 mod action_examples;
 mod bottom_navigation;
 mod fab;
+mod fullscreen;
 mod page_header;
 mod tour;
 use tour::TourDemo;
@@ -159,6 +160,8 @@ enum GalleryMessage {
     FabPress(usize),
     AboutClose,
     AboutShow,
+    FullscreenClose,
+    FullscreenShow,
     SpeedDialToggle,
     SpeedDialAction(usize),
     BottomNavigationSelect(usize),
@@ -250,6 +253,8 @@ struct Gallery {
     tour: TourDemo,
     about_visible: bool,
     about_closes: usize,
+    fullscreen_visible: bool,
+    fullscreen_closes: usize,
     snackbar: SnackbarDemo,
     swipe: SwipeDemo,
     spinner: SpinnerDemo,
@@ -302,6 +307,8 @@ impl Gallery {
             tour: TourDemo::default(),
             about_visible: true,
             about_closes: 0,
+            fullscreen_visible: true,
+            fullscreen_closes: 0,
             snackbar: SnackbarDemo::new(),
             swipe: SwipeDemo::new(),
             spinner: SpinnerDemo::new(),
@@ -641,6 +648,7 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Overlay", 24.0))
             .child(separator())
+            .child(self.page_section("Fullscreen — Close message", self.fullscreen_examples()))
             .child(self.page_section("SpeedDial — typed actions", self.speed_dial_examples()))
             .child(self.page_section("About card — Close message", self.about_dialog_examples()))
             .child(self.page_section("Tour — controlled steps", self.tour_examples()))
@@ -1346,6 +1354,25 @@ impl Gallery {
                     } else {
                         "dismissed"
                     });
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::FullscreenClose => {
+                if !self.fullscreen_visible {
+                    return false;
+                }
+                self.fullscreen_visible = false;
+                self.fullscreen_closes = self.fullscreen_closes.saturating_add(1);
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::FullscreenShow => {
+                if self.fullscreen_visible {
+                    return false;
+                }
+                self.fullscreen_visible = true;
                 self.pressed = None;
                 self.hovered = None;
                 true
@@ -2860,3 +2887,6 @@ mod tour_tests;
 
 #[cfg(test)]
 mod toolbar_tests;
+
+#[cfg(test)]
+mod fullscreen_tests;
