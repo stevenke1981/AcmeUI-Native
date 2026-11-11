@@ -1,0 +1,20 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.86s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-c264bdb46d87ff6f)
+
+running 6 tests
+test foundations::data_list::acceptance_tests::default_density_preserves_existing_content_spacing_and_empty_behavior ... ok
+test foundations::data_list::tests::data_list_child_count ... ok
+test foundations::data_list::tests::data_list_horizontal_orientation ... ok
+test foundations::data_list::tests::data_list_produces_column ... ok
+test foundations::data_list::acceptance_tests::density_changes_and_keyed_instance_reorders_keep_all_retained_ids ... ok
+test foundations::data_list::acceptance_tests::densities_change_real_extent_without_overlapping_or_losing_content ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 197 filtered out; finished in 0.43s
+
+     Running tests/minimal_features.rs (target/debug/deps/minimal_features-7f414d1abd7a17e8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

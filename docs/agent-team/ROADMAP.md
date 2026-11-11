@@ -58,6 +58,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 037 | Lead + Architecture + Rust Core + Verification (single-agent-role-passes) | Declare UI inputs/layout feature dependency closure, isolated consumer regressions and minimal-feature CI | [Brief](../team/roadmap-037/BRIEF.md); [report](../team/roadmap-037/REPORT.md); other feature families and manual acceptance remain separate |
 
+| 038 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | DataList compact/default/relaxed density with preserved defaults, real layout/retained regressions and six themed Gallery examples | [Brief](../team/roadmap-038/BRIEF.md); [report](../team/roadmap-038/REPORT.md); manual hardware acceptance remains separate |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

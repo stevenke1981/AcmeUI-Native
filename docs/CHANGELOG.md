@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - DataList density (ROADMAP 038, 2026-11-11)
+
+- `data_list().density(DataListDensity::Compact | Default | Relaxed)` controls
+  item and label/value spacing in both orientations. Default preserves the
+  original geometry; typography, content and keys are unchanged. Gallery's
+  Data page compares all six variants. See ADR 0004 for exact spacing values.
+
 ## Unreleased - Minimal UI feature dependencies (ROADMAP 037, 2026-11-11)
 
 - `acme-ui` now declares `inputs → foundations` and `layout → inputs`.
