@@ -236,6 +236,20 @@ pub fn render_content(
                 let y = rect.y - scroll_y;
                 let r = [rect.x, y, rect.width, rect.height];
                 push_widget_style(scene, style, r, theme);
+                // Consume the same pre-order slot as collect_hit_regions,
+                // before walking any independently actionable children.
+                if matches!(widget,
+                    WidgetNode::Row(c) | WidgetNode::Column(c) | WidgetNode::Stack(c)
+                        if c.message.is_some())
+                {
+                    let idx = *btn_idx;
+                    *btn_idx += 1;
+                    if focused == idx && show_focus_rings {
+                        let mut ring = quad_rect(r, colors.ring, theme.radii.md, 2.0, colors.ring);
+                        ring.color = acme_core::Color::TRANSPARENT;
+                        scene.push(DrawCommand::Quad(ring));
+                    }
+                }
             }
             let wc = widget.children();
             for (w, l) in wc.iter().zip(layout.children.iter()) {

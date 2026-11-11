@@ -243,6 +243,20 @@ impl Gallery {
             .build()
     }
 
+    /// Resolve against a fresh description; cached hit messages are not the
+    /// action source for the retained-container demo.
+    fn focused_activation_message(&mut self) -> Option<GalleryMessage> {
+        let target = self.focused_target?.node;
+        let description = self.description();
+        self.retained.reconcile(&description).ok()?;
+        let binding = bind_retained(std::slice::from_ref(&description), self.retained.tree());
+        if !self.retained.accept_binding(binding.mismatches()) {
+            return None;
+        }
+        acme_accessibility::AccessibilityAction::Activate(target)
+            .activation_message(&description, &binding)
+    }
+
     // ── Page Dispatcher (defined in pages/mod.rs via impl Gallery) ──────────
     // render_page, component_page, build_component_page, page_section
     // are in pages/component.rs
@@ -359,7 +373,11 @@ impl Application for Gallery {
                 ..
             } => {
                 if !self.text_input.focused {
-                    let act_ctx = ActivationCtx {
+                    let typed_demo = self.selected_category == 6 && self.selected_page == 0;
+                    let message = typed_demo
+                        .then(|| self.focused_activation_message())
+                        .flatten();
+                    let mut act_ctx = ActivationCtx {
                         dark: &mut self.dark,
                         density: &mut self.density,
                         show_focus_rings: &mut self.show_focus_rings,
@@ -375,12 +393,16 @@ impl Application for Gallery {
                         table_sort_asc: &mut self.table_sort_asc,
                         table_selected_row: &mut self.table_selected_row,
                     };
-                    handle_enter_space_key(
-                        &self.text_input,
-                        &self.button_info,
-                        self.focused,
-                        act_ctx,
-                    )
+                    if typed_demo {
+                        message.is_some_and(|message| events::handle_message(&mut act_ctx, message))
+                    } else {
+                        handle_enter_space_key(
+                            &self.text_input,
+                            &self.button_info,
+                            self.focused,
+                            act_ctx,
+                        )
+                    }
                 } else {
                     false
                 }
@@ -651,3 +673,6 @@ impl Application for Gallery {
         scene
     }
 }
+
+#[cfg(test)]
+mod container_actions_tests;

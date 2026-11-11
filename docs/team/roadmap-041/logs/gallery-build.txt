@@ -1,0 +1,2 @@
+   Compiling acme-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.89s

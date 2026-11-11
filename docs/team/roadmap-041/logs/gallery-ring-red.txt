@@ -1,0 +1,35 @@
+   Compiling fontdb v0.16.2
+   Compiling cosmic-text v0.14.2
+   Compiling acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+   Compiling acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+   Compiling acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+   Compiling acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+   Compiling acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+   Compiling acme-accessibility v0.2.0 (/workspace/AcmeUI-Native/crates/acme-accessibility)
+   Compiling acme-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/gallery)
+error[E0433]: failed to resolve: use of undeclared type `DrawCommand`
+  --> apps/gallery/src/container_actions_tests.rs:24:9
+   |
+24 | ...   DrawCommand::Quad(q) if q.rect == Rect::new(target.rect[0],target.rect[1]-g.scroll,target.rect[2],target.rect[3]) && q.border_width...
+   |       ^^^^^^^^^^^ use of undeclared type `DrawCommand`
+   |
+help: consider importing this enum
+   |
+1  + use acme_core::DrawCommand;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Rect`
+  --> apps/gallery/src/container_actions_tests.rs:24:43
+   |
+24 | ...   DrawCommand::Quad(q) if q.rect == Rect::new(target.rect[0],target.rect[1]-g.scroll,target.rect[2],target.rect[3]) && q.border_width...
+   |                                         ^^^^ use of undeclared type `Rect`
+   |
+help: consider importing this struct
+   |
+1  + use acme_core::Rect;
+   |
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `acme-gallery` (bin "acme-gallery" test) due to 2 previous errors

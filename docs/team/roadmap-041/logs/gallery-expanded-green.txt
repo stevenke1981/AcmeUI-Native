@@ -1,0 +1,26 @@
+   Compiling acme-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.96s
+     Running unittests src/main.rs (target/debug/deps/acme_gallery-a1b1c51f799883e7)
+
+running 3 tests
+test container_actions_tests::all_container_and_child_rings_follow_theme_scale_and_scroll_clip ... FAILED
+test container_actions_tests::focus_demo_keyboard_resolves_current_typed_action_instead_of_cached_hit_message ... ok
+test container_actions_tests::container_focus_ring_and_following_button_use_the_actual_hit_indices ... ok
+
+failures:
+
+---- container_actions_tests::all_container_and_child_rings_follow_theme_scale_and_scroll_clip stdout ----
+
+thread 'container_actions_tests::all_container_and_child_rings_follow_theme_scale_and_scroll_clip' panicked at apps/gallery/src/container_actions_tests.rs:149:13:
+assertion `left == right` failed: three active containers, child and following Button; passive row is skipped
+  left: 8
+ right: 5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    container_actions_tests::all_container_and_child_rings_follow_theme_scale_and_scroll_clip
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.29s
+
+error: test failed, to rerun pass `-p acme-gallery --bin acme-gallery`

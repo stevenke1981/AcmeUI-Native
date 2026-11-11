@@ -1,0 +1,12 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-accessibility v0.2.0 (/workspace/AcmeUI-Native/crates/acme-accessibility)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.77s
+     Running unittests src/lib.rs (target/debug/deps/acme_accessibility-a338dfb805290928)
+
+running 3 tests
+test tests_container_actions::typed_activation_rejects_partial_foreign_missing_synthetic_and_nonactivation_targets ... ok
+test tests_container_actions::typed_activation_uses_current_handlers_and_ids_after_reorder_removal_and_passivation ... ok
+test tests_container_actions::active_containers_have_named_button_semantics_and_independent_child_actions ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 124 filtered out; finished in 0.00s
+

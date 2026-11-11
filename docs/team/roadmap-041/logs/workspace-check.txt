@@ -1,0 +1,23 @@
+    Checking acme-core v0.2.0 (/workspace/AcmeUI-Native/crates/acme-core)
+   Compiling slotmap v1.1.1
+    Checking acme-theme v0.2.0 (/workspace/AcmeUI-Native/crates/acme-theme)
+    Checking acme-render-cpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-cpu)
+    Checking fontdb v0.16.2
+    Checking taffy v0.9.2
+    Checking acme-animation v0.2.0 (/workspace/AcmeUI-Native/crates/acme-animation)
+    Checking cosmic-text v0.14.2
+    Checking acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+    Checking acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+    Checking acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+    Checking acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+    Checking acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+    Checking acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+    Checking acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Checking acme-benchmark v0.2.0 (/workspace/AcmeUI-Native/apps/benchmark)
+    Checking acme-devtools v0.2.0 (/workspace/AcmeUI-Native/crates/acme-devtools)
+    Checking acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+    Checking acme-accessibility v0.2.0 (/workspace/AcmeUI-Native/crates/acme-accessibility)
+    Checking acme-playground v0.2.0 (/workspace/AcmeUI-Native/apps/playground)
+    Checking acme-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/gallery)
+    Checking acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 7.19s

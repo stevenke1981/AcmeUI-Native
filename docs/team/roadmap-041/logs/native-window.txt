@@ -1,0 +1,4 @@
+2026-11-11T10:22:57.120831Z  WARN error setting XSETTINGS; Xft options won't reload automatically
+2026-11-11T10:22:57.155715Z  WARN XRandR reported that the display's 0mm in size, which is certifiably insane
+2026-11-11T10:22:57.155828Z  INFO Guessed window scale factor: 1
+2026-11-11T10:22:57.156289Z  INFO Using forced CPU software renderer

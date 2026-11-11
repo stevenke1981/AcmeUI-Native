@@ -1,0 +1,22 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.80s
+     Running unittests src/lib.rs (target/debug/deps/acme_widgets-c3795d61fecc6e3b)
+
+running 1 test
+test view_bridge::container_focus_tests::container_handlers_join_retained_focus_order_and_survive_reorders ... FAILED
+
+failures:
+
+---- view_bridge::container_focus_tests::container_handlers_join_retained_focus_order_and_survive_reorders stdout ----
+
+thread 'view_bridge::container_focus_tests::container_handlers_join_retained_focus_order_and_survive_reorders' panicked at crates/acme-widgets/src/container_focus_tests.rs:22:9:
+assertion failed: tree.get(ids[1]).unwrap().focusable
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    view_bridge::container_focus_tests::container_handlers_join_retained_focus_order_and_survive_reorders
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 149 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-widgets --lib`

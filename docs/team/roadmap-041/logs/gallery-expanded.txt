@@ -1,0 +1,62 @@
+   Compiling acme-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/gallery)
+error[E0382]: use of moved value: `context`
+   --> apps/gallery/src/container_actions_tests.rs:160:29
+    |
+136 |             let context = FrameContext {
+    |                 ------- move occurs because `context` has type `acme_platform::FrameContext`, which does not implement the `Copy` trait
+...
+142 |             g.frame(context);
+    |                     ------- value moved here
+...
+160 |                     g.frame(context);
+    |                             ^^^^^^^ value used here after move
+    |
+help: consider cloning the value if the performance cost is acceptable
+    |
+142 |             g.frame(context.clone());
+    |                            ++++++++
+
+error[E0382]: use of moved value: `context`
+   --> apps/gallery/src/container_actions_tests.rs:199:25
+    |
+136 |             let context = FrameContext {
+    |                 ------- move occurs because `context` has type `acme_platform::FrameContext`, which does not implement the `Copy` trait
+...
+154 |             for target in targets {
+    |             --------------------- inside of this loop
+...
+163 |                 let scene = g.frame(context);
+    |                                     ------- value moved here
+...
+199 |                 g.frame(context);
+    |                         ^^^^^^^ value used here after move
+    |
+note: verify that your loop breaking logic is correct
+   --> apps/gallery/src/container_actions_tests.rs:157:25
+    |
+130 |     for dark in [false, true] {
+    |     -------------------------
+131 |         for scale in [1.0, 1.25, 2.0] {
+    |         -----------------------------
+...
+154 |             for target in targets {
+    |             ---------------------
+...
+157 |                         break;
+    |                         ^^^^^ this `break` exits the loop at line 155
+help: consider moving the expression out of the loop so it is only moved once
+    |
+154 ~             let mut value = g.frame(context);
+155 ~             for target in targets {
+156 |                 for _ in 0..g.button_info.len() {
+...
+163 |                 g.scroll = 60.0;
+164 ~                 let scene = value;
+    |
+help: consider cloning the value if the performance cost is acceptable
+    |
+163 |                 let scene = g.frame(context.clone());
+    |                                            ++++++++
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `acme-gallery` (bin "acme-gallery" test) due to 2 previous errors

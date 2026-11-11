@@ -1,0 +1,113 @@
+{
+  "started_at": "2026-11-11T10:22:56.731213+00:00",
+  "source_sha": "0175b05c80aafe8915621cd390c7ec762bfa1475",
+  "git_status": "?? docs/team/roadmap-041/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Original Gallery Accessibility/Focus: pointer category selection, five reverse Tabs to Row, Enter changes density, two Tabs to Column, Space changes theme",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1280x800x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-gallery"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "4194306"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "4194306"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "4194306",
+      "90",
+      "332",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "4194306",
+      "1200",
+      "750"
+    ],
+    [
+      "xdotool",
+      "key",
+      "--repeat",
+      "5",
+      "--delay",
+      "120",
+      "shift+Tab"
+    ],
+    [
+      "xdotool",
+      "key",
+      "Return"
+    ],
+    [
+      "xdotool",
+      "key",
+      "Tab",
+      "Tab",
+      "space"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T10:23:00.637075+00:00",
+      "path": "docs/team/roadmap-041/gallery-container-focus.png",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "6861cd06c827610d60a21a50252804db0f84a2bd6e35191127268c69342b97ca"
+    },
+    {
+      "captured_at": "2026-11-11T10:23:01.290752+00:00",
+      "path": "docs/team/roadmap-041/gallery-container-activated.png",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "694e0f89940b8cd7723697f01bff840d473357de7bc79521ea4fd288a0b003bd"
+    },
+    {
+      "captured_at": "2026-11-11T10:23:01.970455+00:00",
+      "path": "docs/team/roadmap-041/gallery-container-dark.png",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "861b5754a4971b52c3c5d18c1fe6eb8ba3b52f49934c85b9d81716e427807982"
+    }
+  ],
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": "WINDOW=4194306\nX=0\nY=0\nWIDTH=1280\nHEIGHT=800\nSCREEN=0\n",
+  "status": "PASS",
+  "finished_at": "2026-11-11T10:23:02.009792+00:00",
+  "log": "logs/native-window.txt",
+  "log_sha256": "0ea0fbb665185032814bae009e36f60461e5dc3da66ce16c3204f96c60033ad8"
+}

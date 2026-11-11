@@ -20,6 +20,7 @@ use acme_widgets::{TextInput, WidgetNode};
 mod structure;
 #[cfg(test)]
 mod tests_requests;
+mod typed_actions;
 
 /// Re-export AccessKit types used in the public API.
 pub use accesskit::{Node as AccNode, NodeId as AccNodeId};
@@ -725,6 +726,11 @@ fn child_lowering<M>(parent: &WidgetNode<M>, index: usize, lowering: Lowering) -
 /// The AccessKit role of a widget, before any parent-specific override.
 fn widget_role<M>(node: &WidgetNode<M>) -> Role {
     match node {
+        WidgetNode::Row(c) | WidgetNode::Column(c) | WidgetNode::Stack(c)
+            if c.message.is_some() =>
+        {
+            Role::Button
+        }
         WidgetNode::Row(_) | WidgetNode::Column(_) | WidgetNode::Stack(_) | WidgetNode::Card(_) => {
             Role::Group
         }
@@ -952,6 +958,15 @@ fn node_label<M>(node: &WidgetNode<M>, slot: Slot<'_>, label_override: Option<&s
         (_, WidgetNode::Label(l)) => l.text.clone(),
         (_, WidgetNode::Button(b)) => b.label.clone(),
         (_, WidgetNode::TextInput(input)) => text_input_name(input).to_string(),
+        (_, WidgetNode::Row(c) | WidgetNode::Column(c) | WidgetNode::Stack(c))
+            if c.message.is_some() =>
+        {
+            let mut name = String::new();
+            for child in &c.children {
+                typed_actions::append_passive_labels(child, label_override, &mut name);
+            }
+            name
+        }
         _ => String::new(),
     }
 }
@@ -970,6 +985,12 @@ fn non_empty(text: Option<&str>) -> Option<&str> {
 /// Adds the state and actions that `node` exposes beyond its name and role.
 fn apply_widget_state<M>(access_node: &mut AccessNode, node: &WidgetNode<M>, slot: Slot<'_>) {
     match node {
+        WidgetNode::Row(c) | WidgetNode::Column(c) | WidgetNode::Stack(c)
+            if c.message.is_some() =>
+        {
+            access_node.add_action(Action::Focus);
+            access_node.add_action(Action::Click);
+        }
         WidgetNode::Button(button) => {
             if button.disabled {
                 access_node.set_disabled();
@@ -2625,3 +2646,6 @@ mod tests {
         assert!(delete.supports_action(Action::Click));
     }
 }
+
+#[cfg(test)]
+mod tests_container_actions;
