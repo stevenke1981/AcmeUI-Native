@@ -77,6 +77,7 @@ impl<M: Clone + 'static> PageHeaderBuilder<M> {
 
 impl<M: Clone + 'static> From<PageHeaderBuilder<M>> for crate::WidgetNode<M> {
     fn from(b: PageHeaderBuilder<M>) -> Self {
+        let actions_key = format!("{}:actions", b.id.as_str());
         let mut col = crate::column::<M>().key(b.id).gap(4.0);
 
         // Title
@@ -99,7 +100,7 @@ impl<M: Clone + 'static> From<PageHeaderBuilder<M>> for crate::WidgetNode<M> {
 
         // Actions
         if !b.actions.is_empty() {
-            let mut action_row = crate::row::<M>().gap(8.0);
+            let mut action_row = crate::row::<M>().key(actions_key).gap(8.0);
             for action in b.actions {
                 let btn = crate::button(action.key, action.label);
                 let btn = if action.primary {
@@ -120,6 +121,10 @@ impl<M: Clone + 'static> From<PageHeaderBuilder<M>> for crate::WidgetNode<M> {
         col.build()
     }
 }
+
+#[cfg(test)]
+#[path = "page_header_tests.rs"]
+mod conversion_tests;
 
 #[cfg(test)]
 mod tests {
