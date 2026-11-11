@@ -48,8 +48,10 @@ mod snackbar;
 use snackbar::SnackbarDemo;
 mod data_list_examples;
 mod paper_examples;
+mod spinner_motion;
 mod swipe_actions;
 mod theme_pack_examples;
+use spinner_motion::SpinnerDemo;
 use swipe_actions::SwipeDemo;
 #[path = "mobile_list_item.rs"]
 mod list_examples;
@@ -125,6 +127,7 @@ enum GalleryMessage {
     ToggleTheme,
     CycleTheme,
     DpiInfo,
+    ToggleReducedMotion,
     MobilePressed(MobileButtonSize),
     MobileToggle(bool),
     MobileValue(i64),
@@ -223,6 +226,7 @@ struct Gallery {
     fab_status: &'static str,
     snackbar: SnackbarDemo,
     swipe: SwipeDemo,
+    spinner: SpinnerDemo,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -267,6 +271,7 @@ impl Gallery {
             fab_status: "none",
             snackbar: SnackbarDemo::new(),
             swipe: SwipeDemo::new(),
+            spinner: SpinnerDemo::new(),
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -893,18 +898,23 @@ impl Gallery {
                     .build(),
             ))
             .child(self.page_section(
-                "Mobile Loader — indicator and messages",
+                "Mobile Loader — rotation and reduced motion",
                 column()
                     .gap(12.0)
+                    .child(button("spinner_motion", if self.spinner.reduced_motion { "Reduced motion: on" } else { "Reduced motion: off" })
+                        .on_click(GalleryMessage::ToggleReducedMotion))
                     .child(mobile_loader()
-                        .key("gallery_loader_indicator"))
+                        .key("gallery_loader_indicator")
+                        .animation(self.spinner.elapsed, self.spinner.reduced_motion))
                     .child(mobile_loader()
                         .key("gallery_loader_message")
+                        .animation(self.spinner.elapsed, self.spinner.reduced_motion)
                         .message("Loading · 載入中…"))
                     .child(column()
                         .width(240.0)
                         .child(mobile_loader()
                             .key("gallery_loader_long")
+                            .animation(self.spinner.elapsed, self.spinner.reduced_motion)
                             .message("Loading the next page. Please wait while the request finishes. 正在準備資料，請稍候。")))
                     .build(),
             ))
@@ -1263,6 +1273,7 @@ impl Gallery {
                 self.selected_category = i;
                 if changed {
                     self.scroll = 0.0;
+                    self.spinner.visible = false;
                     self.list_focus = None;
                     self.search.blur();
                     self.search.rect = None;
@@ -1381,6 +1392,10 @@ impl Gallery {
             GalleryMessage::MobileSearchClear => self.search.clear(),
             GalleryMessage::MobileSearchEdited => true,
             GalleryMessage::DpiInfo => true,
+            GalleryMessage::ToggleReducedMotion => {
+                self.spinner.reduced_motion = !self.spinner.reduced_motion;
+                true
+            }
             GalleryMessage::MobilePressed(size) => {
                 self.last_mobile_press = Some(size);
                 true
@@ -1488,6 +1503,7 @@ impl Application for Gallery {
             .poll_interval()
             .into_iter()
             .chain(self.snackbar.poll_interval())
+            .chain(self.spinner.poll_interval())
             .min()
     }
 
@@ -1495,13 +1511,14 @@ impl Application for Gallery {
         let now = std::time::Instant::now();
         let notification_changed = self.notification.expire(now);
         let snackbar_changed = self.snackbar.expire(now);
+        let spinner_changed = self.spinner.tick(now);
         if notification_changed || snackbar_changed {
             // Removing a card changes hit indices while a pointer may be held.
             self.pressed = None;
             self.hovered = None;
             true
         } else {
-            false
+            spinner_changed
         }
     }
 
@@ -1540,6 +1557,9 @@ impl Application for Gallery {
                 context.scale_factor,
             )
             .expect("finite gallery viewport");
+
+        self.spinner.visible = self.selected_category == 7
+            && spinner_motion::visible(&description, &root, &snapshot, self.scroll, height);
 
         #[cfg(test)]
         {

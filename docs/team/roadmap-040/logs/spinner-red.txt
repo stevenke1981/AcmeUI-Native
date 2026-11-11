@@ -1,0 +1,71 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0433]: failed to resolve: use of undeclared type `Duration`
+ --> crates/acme-ui/src/foundations/spinner_tests.rs:7:57
+  |
+7 |     let build = |ms, reduced| spinner::<()>().animation(Duration::from_millis(ms), reduced).build();
+  |                                                         ^^^^^^^^ use of undeclared type `Duration`
+  |
+help: consider importing this struct
+  |
+1 + use std::time::Duration;
+  |
+
+error[E0433]: failed to resolve: use of undeclared type `Duration`
+  --> crates/acme-ui/src/foundations/spinner_tests.rs:12:51
+   |
+12 |     assert_eq!(initial, spinner::<()>().animation(Duration::MAX, true).build());
+   |                                                   ^^^^^^^^ use of undeclared type `Duration`
+   |
+help: consider importing this struct
+   |
+1  + use std::time::Duration;
+   |
+
+error[E0433]: failed to resolve: use of undeclared type `Duration`
+  --> crates/acme-ui/src/foundations/spinner_tests.rs:24:63
+   |
+24 |             let widget = spinner::<()>().size(size).animation(Duration::from_millis(ms), false).build();
+   |                                                               ^^^^^^^^ use of undeclared type `Duration`
+   |
+help: consider importing this struct
+   |
+1  + use std::time::Duration;
+   |
+
+error[E0599]: no method named `animation` found for struct `SpinnerBuilder` in the current scope
+ --> crates/acme-ui/src/foundations/spinner_tests.rs:7:47
+  |
+7 |     let build = |ms, reduced| spinner::<()>().animation(Duration::from_millis(ms), reduced).build();
+  |                                               ^^^^^^^^^ method not found in `SpinnerBuilder<()>`
+  |
+ ::: crates/acme-ui/src/foundations/spinner.rs:6:1
+  |
+6 | pub struct SpinnerBuilder<M> {
+  | ---------------------------- method `animation` not found for this struct
+
+error[E0599]: no method named `animation` found for struct `SpinnerBuilder` in the current scope
+  --> crates/acme-ui/src/foundations/spinner_tests.rs:12:41
+   |
+12 |     assert_eq!(initial, spinner::<()>().animation(Duration::MAX, true).build());
+   |                                         ^^^^^^^^^ method not found in `SpinnerBuilder<()>`
+   |
+  ::: crates/acme-ui/src/foundations/spinner.rs:6:1
+   |
+6  | pub struct SpinnerBuilder<M> {
+   | ---------------------------- method `animation` not found for this struct
+
+error[E0599]: no method named `animation` found for struct `SpinnerBuilder` in the current scope
+  --> crates/acme-ui/src/foundations/spinner_tests.rs:24:53
+   |
+24 |             let widget = spinner::<()>().size(size).animation(Duration::from_millis(ms), false).build();
+   |                                                     ^^^^^^^^^ method not found in `SpinnerBuilder<()>`
+   |
+  ::: crates/acme-ui/src/foundations/spinner.rs:6:1
+   |
+6  | pub struct SpinnerBuilder<M> {
+   | ---------------------------- method `animation` not found for this struct
+
+Some errors have detailed explanations: E0433, E0599.
+For more information about an error, try `rustc --explain E0433`.
+error: could not compile `acme-ui` (lib test) due to 6 previous errors
+warning: build failed, waiting for other jobs to finish...

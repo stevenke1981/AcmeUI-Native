@@ -27,12 +27,12 @@ fn defaults_optional_messages_and_public_field_edits_preserve_the_indicator() {
         assert!(column.message.is_none());
         assert!(column.style.background.is_none());
         assert_eq!(column.children.len(), 1 + usize::from(message.is_some()));
-        let WidgetNode::Label(indicator) = &column.children[0] else {
+        let WidgetNode::Stack(indicator) = &column.children[0] else {
             panic!("expected foundation spinner indicator");
         };
-        assert_eq!(indicator.text, "⟳");
-        assert!(indicator.font_size.is_some_and(|size| size > 0.0));
-        assert!(indicator.color.is_none());
+        assert_eq!(indicator.children.len(), 7);
+        assert!(indicator.width.is_some_and(|size| size > 0.0));
+        assert!(indicator.message.is_none());
         if let Some(text) = message {
             let WidgetNode::Label(label) = &column.children[1] else {
                 panic!("message must follow the indicator");
@@ -108,7 +108,10 @@ fn omission_and_message_changes_keep_loader_and_indicator_identity_when_reordere
         if let Some(text) = message {
             first = first.message(text);
         }
-        let first = WidgetNode::from(first);
+        let first = WidgetNode::from(first.animation(
+            Duration::from_millis(if reverse { 250 } else { 0 }),
+            message.is_none(),
+        ));
         let second = WidgetNode::from(mobile_loader::<Msg>().key("second").message("Waiting"));
         let roots = if reverse {
             vec![second, first]
@@ -123,10 +126,17 @@ fn omission_and_message_changes_keep_loader_and_indicator_identity_when_reordere
                 .iter()
                 .find(|n| n.key().unwrap().as_str() == key)
                 .unwrap();
-            [
-                binding.id_for(node).unwrap(),
-                binding.id_for(&node.children()[0]).unwrap(),
-            ]
+            std::iter::once(binding.id_for(node).unwrap())
+                .chain(std::iter::once(
+                    binding.id_for(&node.children()[0]).unwrap(),
+                ))
+                .chain(
+                    node.children()[0]
+                        .children()
+                        .iter()
+                        .map(|dot| binding.id_for(dot).unwrap()),
+                )
+                .collect::<Vec<_>>()
         });
         assert_ne!(ids[0][0], ids[1][0]);
         assert_ne!(ids[0][1], ids[1][1]);

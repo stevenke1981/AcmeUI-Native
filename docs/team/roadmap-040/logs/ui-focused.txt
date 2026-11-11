@@ -1,0 +1,18 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.02s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 4 tests
+test mobile::mobile_contract_tests::mobile_loader ... ok
+test mobile::mobile_loader::tests::defaults_optional_messages_and_public_field_edits_preserve_the_indicator ... ok
+test mobile::mobile_loader::tests::omission_and_message_changes_keep_loader_and_indicator_identity_when_reordered ... ok
+test mobile::mobile_loader::tests::long_messages_wrap_inside_the_loader_at_narrow_and_wide_widths ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 809 filtered out; finished in 0.06s
+
+     Running tests/minimal_features.rs (target/debug/deps/minimal_features-9dd9d1750bec4c47)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+

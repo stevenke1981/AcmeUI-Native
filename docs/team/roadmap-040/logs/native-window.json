@@ -1,0 +1,125 @@
+{
+  "script_argv": [
+    "docs/team/roadmap-040/logs/capture.py",
+    "040",
+    "spinner",
+    "spinner-reduced:650:160"
+  ],
+  "started_at": "2026-11-11T04:21:41.100678+00:00",
+  "source_sha": "938ab0e0d7aa612e71370ca63b0ec27a766afae1",
+  "git_status": " M docs/agent-team/ROADMAP.md\n M docs/status/todos.md\n?? docs/team/roadmap-040/REPORT.md\n?? docs/team/roadmap-040/evidence.json\n?? docs/team/roadmap-040/gallery-spinner.png\n?? docs/team/roadmap-040/logs/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Automated X11 CPU Gallery window on isolated Xvfb; default light theme; Spinner normal and reduced-motion poses; actual scroll and pointer toggle",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1100x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "1100"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "700",
+      "500",
+      "click",
+      "--repeat",
+      "50",
+      "--delay",
+      "25",
+      "5"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "650",
+      "160",
+      "click",
+      "1"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T04:21:44.909460+00:00",
+      "path": "docs/team/roadmap-040/gallery-spinner.png",
+      "dimensions": [
+        1100,
+        1100
+      ],
+      "sha256": "e1cd12e021635be1c6664d385f9606ea855e936590c815ab86d2f253d4afc49b"
+    },
+    {
+      "captured_at": "2026-11-11T04:21:45.179269+00:00",
+      "path": "docs/team/roadmap-040/gallery-spinner-next.png",
+      "dimensions": [
+        1100,
+        1100
+      ],
+      "sha256": "65b0f7c8b909059345b8274d4315583f0d439f8f183a14e717981ff9012ec763"
+    },
+    {
+      "captured_at": "2026-11-11T04:21:45.922771+00:00",
+      "path": "docs/team/roadmap-040/gallery-spinner-reduced.png",
+      "dimensions": [
+        1100,
+        1100
+      ],
+      "sha256": "971e44f1ebaa9faea2b687f368a35050e9c36f1ca19e488e4319a876a5a45dce"
+    },
+    {
+      "captured_at": "2026-11-11T04:21:46.183683+00:00",
+      "path": "docs/team/roadmap-040/gallery-spinner-reduced-still.png",
+      "dimensions": [
+        1100,
+        1100
+      ],
+      "sha256": "971e44f1ebaa9faea2b687f368a35050e9c36f1ca19e488e4319a876a5a45dce"
+    }
+  ],
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "window_geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=1100\nSCREEN=0\n",
+  "spinner_region": [
+    248,
+    214,
+    275,
+    241
+  ],
+  "normal_changed_pixels": 180,
+  "reduced_changed_pixels": 0,
+  "status": "PASS",
+  "finished_at": "2026-11-11T04:21:46.230481+00:00",
+  "log": "/workspace/AcmeUI-Native/target/roadmap-040/native-window.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "capture": "PIL.ImageGrab.grab(xdisplay=display)",
+  "cwd": "/workspace/AcmeUI-Native/target/roadmap-040/native-cwd"
+}
