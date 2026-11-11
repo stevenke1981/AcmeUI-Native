@@ -1,0 +1,13 @@
+    Checking acme-core v0.2.0 (/workspace/AcmeUI-Native/crates/acme-core)
+    Checking acme-text v0.2.0 (/workspace/AcmeUI-Native/crates/acme-text)
+    Checking acme-theme v0.2.0 (/workspace/AcmeUI-Native/crates/acme-theme)
+    Checking acme-render-cpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-cpu)
+    Checking acme-layout v0.2.0 (/workspace/AcmeUI-Native/crates/acme-layout)
+    Checking acme-render-wgpu v0.2.0 (/workspace/AcmeUI-Native/crates/acme-render-wgpu)
+    Checking acme-style v0.2.0 (/workspace/AcmeUI-Native/crates/acme-style)
+    Checking acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+    Checking acme-platform v0.2.0 (/workspace/AcmeUI-Native/crates/acme-platform)
+    Checking acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Checking acme-textinput v0.2.0 (/workspace/AcmeUI-Native/crates/acme-textinput)
+    Checking acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.91s

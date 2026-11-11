@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 039 — Gallery theme-pack swatches (2026-11-11)
+
+- [x] Show all registered pack palettes in Design System using registry colors and existing light/dark toolbar state, preserving read-only composition and stable keyed identities.
+- [x] Cover registry inventory, real 360/800 px layout, mode/host-theme colors, clips and retained IDs; locked Gallery tests, strict Clippy, actual CPU profile and workspace milestone checks pass. Native light/dark evidence and exact source in [report](../team/roadmap-039/REPORT.md).
+- [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN; high-contrast packs and theme JSON import/export remain separate.
+
 ## ROADMAP 038 — DataList density (2026-11-11)
 
 - [x] Add Compact/Default/Relaxed spacing in both orientations, preserving default geometry/content/colors; cover real layout and retained IDs across density changes and keyed instance reorders.
@@ -772,5 +778,5 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 ### Remaining enhancements
 - [ ] High-contrast accessibility theme variants
 - [ ] Theme pack JSON import/export (user-defined themes)
-- [ ] Gallery: render theme pack swatches in Design System page
+- [x] Gallery: render every registered theme pack's accent/surface/text/background swatches in Design System, live light/dark with layout/identity/paint tests and native CPU captures (ROADMAP 039).
 - [ ] Skill: add runnable copy-paste examples per component category

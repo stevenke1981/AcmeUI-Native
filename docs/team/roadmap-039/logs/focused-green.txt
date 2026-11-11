@@ -1,0 +1,10 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.03s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 2 tests
+test theme_pack_examples::tests::preview_contains_every_registered_pack_and_no_interactive_controls ... ok
+test theme_pack_examples::tests::palette_paint_uses_each_pack_mode_and_keeps_bounds_clips_and_retained_ids ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 12.69s
+
