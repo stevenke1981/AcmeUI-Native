@@ -66,6 +66,9 @@ impl<M: Clone + 'static> BottomNavigationBuilder<M> {
         self
     }
 
+    /// Build each action's selection message from its zero-based index.
+    /// Without this callback, actions remain passive labels. The host owns
+    /// `selected_index`; dispatching a message does not change it here.
     pub fn on_select(mut self, f: fn(usize) -> M) -> Self {
         self.on_select = Some(f);
         self
@@ -74,6 +77,7 @@ impl<M: Clone + 'static> BottomNavigationBuilder<M> {
 
 impl<M: Clone + 'static> From<BottomNavigationBuilder<M>> for WidgetNode<M> {
     fn from(b: BottomNavigationBuilder<M>) -> Self {
+        let action_prefix = b.id.as_str().to_owned();
         let mut row = crate::row::<M>()
             .key(b.id)
             .gap(8.0)
@@ -92,11 +96,20 @@ impl<M: Clone + 'static> From<BottomNavigationBuilder<M>> for WidgetNode<M> {
             } else {
                 icon_str
             };
-            row = row.child(crate::label(text));
+            let child = if let Some(message) = b.on_select {
+                crate::button(format!("{action_prefix}:action:{i}"), text).on_click(message(i))
+            } else {
+                crate::label(text)
+            };
+            row = row.child(child);
         }
         row.build()
     }
 }
+
+#[cfg(test)]
+#[path = "bottom_navigation_tests.rs"]
+mod conversion_tests;
 
 #[cfg(test)]
 mod tests {

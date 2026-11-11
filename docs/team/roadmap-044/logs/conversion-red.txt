@@ -1,0 +1,35 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 33.02s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 8 tests
+test layout::bottom_navigation::tests::bottom_navigation_child_count ... ok
+test layout::bottom_navigation::tests::bottom_navigation_on_select_emits_selected_with_index ... ok
+test layout::bottom_navigation::tests::bottom_navigation_selected_index ... ok
+test layout::bottom_navigation::conversion_tests::missing_callback_preserves_passive_labels_and_empty_actions_stay_empty ... ok
+test layout::bottom_navigation::tests::bottom_navigation_produces_row ... ok
+test layout::bottom_navigation::conversion_tests::converted_actions_carry_current_indexed_messages_and_preserve_display_text ... FAILED
+test layout::bottom_navigation::conversion_tests::action_identity_and_focus_survive_selection_label_changes_and_instance_reordering ... FAILED
+test layout::bottom_navigation::conversion_tests::configured_navigation_has_finite_nonoverlapping_real_layout ... ok
+
+failures:
+
+---- layout::bottom_navigation::conversion_tests::converted_actions_carry_current_indexed_messages_and_preserve_display_text stdout ----
+
+thread 'layout::bottom_navigation::conversion_tests::converted_actions_carry_current_indexed_messages_and_preserve_display_text' panicked at crates/acme-ui/src/layout/bottom_navigation_tests.rs:30:25:
+configured navigation action must be a Button
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- layout::bottom_navigation::conversion_tests::action_identity_and_focus_survive_selection_label_changes_and_instance_reordering stdout ----
+
+thread 'layout::bottom_navigation::conversion_tests::action_identity_and_focus_survive_selection_label_changes_and_instance_reordering' panicked at crates/acme-ui/src/layout/bottom_navigation_tests.rs:77:36:
+assertion failed: tree.get(id).unwrap().focusable
+
+
+failures:
+    layout::bottom_navigation::conversion_tests::action_identity_and_focus_survive_selection_label_changes_and_instance_reordering
+    layout::bottom_navigation::conversion_tests::converted_actions_carry_current_indexed_messages_and_preserve_display_text
+
+test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 815 filtered out; finished in 0.49s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

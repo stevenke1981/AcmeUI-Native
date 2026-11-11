@@ -70,6 +70,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 043 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Preserve AboutDialog Close messages after conversion; host-controlled Gallery close/restore and optional-content identity | [Brief](../team/roadmap-043/BRIEF.md); [report](../team/roadmap-043/REPORT.md); legacy visibility metadata, full modal behavior and manual hardware acceptance remain separate |
 
+| 044 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Preserve BottomNavigation indexed selection messages after conversion, passive compatibility, retained focus eligibility and host-owned Gallery selection | [Brief](../team/roadmap-044/BRIEF.md); [report](../team/roadmap-044/REPORT.md); full navigation semantics and manual hardware acceptance remain separate |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

@@ -44,6 +44,7 @@ use notification_examples::NotificationDemo;
 mod about_dialog;
 #[path = "mobile_action.rs"]
 mod action_examples;
+mod bottom_navigation;
 mod fab;
 mod speed_dial;
 use speed_dial::SpeedDialDemo;
@@ -157,6 +158,7 @@ enum GalleryMessage {
     AboutShow,
     SpeedDialToggle,
     SpeedDialAction(usize),
+    BottomNavigationSelect(usize),
     SnackbarShow(bool),
     SnackbarAction,
     SnackbarDismiss,
@@ -232,6 +234,7 @@ struct Gallery {
     list_details: bool,
     fab_status: &'static str,
     speed_dial: SpeedDialDemo,
+    bottom_selected: usize,
     about_visible: bool,
     about_closes: usize,
     snackbar: SnackbarDemo,
@@ -280,6 +283,7 @@ impl Gallery {
             list_details: true,
             fab_status: "none",
             speed_dial: SpeedDialDemo::default(),
+            bottom_selected: 0,
             about_visible: true,
             about_closes: 0,
             snackbar: SnackbarDemo::new(),
@@ -568,6 +572,10 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Layout", 24.0))
             .child(separator())
+            .child(self.page_section(
+                "BottomNavigation — typed selection",
+                self.bottom_navigation_examples(),
+            ))
             .child(label("Paper: rounded, square elevated, square outlined"))
             .child(self.paper_examples())
             .child(
@@ -1354,6 +1362,13 @@ impl Gallery {
                     return false;
                 }
                 self.speed_dial.last_action = Some(index);
+                true
+            }
+            GalleryMessage::BottomNavigationSelect(index) => {
+                if index >= 3 {
+                    return false;
+                }
+                self.bottom_selected = index;
                 true
             }
             GalleryMessage::FabPress(index) => {
@@ -2790,3 +2805,6 @@ mod speed_dial_tests;
 
 #[cfg(test)]
 mod about_dialog_tests;
+
+#[cfg(test)]
+mod bottom_navigation_tests;
