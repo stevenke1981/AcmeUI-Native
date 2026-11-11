@@ -1,0 +1,32 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.30s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-dd0e4f5925247279)
+
+running 9 tests
+test foundations::collapsible::tests::collapsible_builder_defaults ... ok
+test foundations::collapsible::tests::collapsible_closed_uses_right_chevron ... ok
+test foundations::collapsible::tests::collapsible_closed_hides_child ... ok
+test foundations::collapsible::tests::collapsible_header_has_chevron_and_title ... ok
+test foundations::collapsible::tests::collapsible_open_shows_child ... ok
+test layout::section::tests::section_collapsible_flag ... ok
+test foundations::collapsible::tests::collapsible_has_non_zero_layout_rect ... ok
+test foundations::collapsible::conversion_tests::converted_collapsible_header_binds_current_message_only_when_enabled ... ok
+test foundations::collapsible::conversion_tests::collapsible_header_retains_focus_through_updates_and_loses_eligibility_when_disabled ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 826 filtered out; finished in 0.00s
+
+     Running tests/minimal_features.rs (target/debug/deps/minimal_features-c1646e20032ab906)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 2 tests
+test collapsible_tests::collapsible_pointer_toggles_once_and_disabled_header_rejects_stale_actions ... ok
+test collapsible_tests::collapsible_demo_layout_paint_and_hit_slots_follow_enabled_state_theme_and_scale ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.17s
+

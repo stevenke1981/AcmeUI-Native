@@ -46,6 +46,7 @@ mod about_dialog;
 mod action_examples;
 mod anchor;
 mod bottom_navigation;
+mod collapsible;
 mod fab;
 mod fullscreen;
 mod page_header;
@@ -164,6 +165,8 @@ enum GalleryMessage {
     FullscreenClose,
     FullscreenShow,
     AnchorNavigate(usize),
+    CollapsibleToggle,
+    CollapsibleDisable,
     SpeedDialToggle,
     SpeedDialAction(usize),
     BottomNavigationSelect(usize),
@@ -259,6 +262,9 @@ struct Gallery {
     fullscreen_closes: usize,
     anchor_selected: usize,
     anchor_navigations: usize,
+    collapsible_open: bool,
+    collapsible_disabled: bool,
+    collapsible_toggles: usize,
     snackbar: SnackbarDemo,
     swipe: SwipeDemo,
     spinner: SpinnerDemo,
@@ -315,6 +321,9 @@ impl Gallery {
             fullscreen_closes: 0,
             anchor_selected: 0,
             anchor_navigations: 0,
+            collapsible_open: false,
+            collapsible_disabled: false,
+            collapsible_toggles: 0,
             snackbar: SnackbarDemo::new(),
             swipe: SwipeDemo::new(),
             spinner: SpinnerDemo::new(),
@@ -433,6 +442,7 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Foundations", 24.0))
             .child(separator())
+            .child(self.page_section("Collapsible — typed toggle", self.collapsible_examples()))
             .child(
                 self.page_section(
                     "Typography",
@@ -1365,6 +1375,20 @@ impl Gallery {
                 self.hovered = None;
                 true
             }
+            GalleryMessage::CollapsibleToggle => {
+                if self.collapsible_disabled {
+                    return false;
+                }
+                self.collapsible_open = !self.collapsible_open;
+                self.collapsible_toggles = self.collapsible_toggles.saturating_add(1);
+                true
+            }
+            GalleryMessage::CollapsibleDisable => {
+                self.collapsible_disabled = !self.collapsible_disabled;
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
             GalleryMessage::AnchorNavigate(index) => {
                 if index >= anchor::HREFS.len() {
                     return false;
@@ -2152,7 +2176,7 @@ fn render_content(
     atlas: &mut GlyphAtlas,
 ) {
     let colors = theme.colors;
-    let row_index = action_examples::row_action(widget).and_then(|_| {
+    let row_index = collapsible::row_action(widget).and_then(|_| {
         snapshot.get(layout.id).map(|_| {
             let index = *btn_idx;
             *btn_idx += 1;
@@ -2444,7 +2468,7 @@ fn collect_hit_regions(
     scrolled: bool,
     result: &mut Vec<HitRegion>,
 ) {
-    if let Some(message) = action_examples::row_action(widget) {
+    if let Some(message) = collapsible::row_action(widget) {
         if let Some(rect) = snapshot.get(layout.id) {
             result.push(HitRegion {
                 rect: [rect.x, rect.y, rect.width, rect.height],
@@ -2908,3 +2932,6 @@ mod fullscreen_tests;
 
 #[cfg(test)]
 mod anchor_tests;
+
+#[cfg(test)]
+mod collapsible_tests;

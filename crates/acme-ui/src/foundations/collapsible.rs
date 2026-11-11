@@ -34,19 +34,21 @@ impl<M: Clone + 'static> CollapsibleBuilder<M> {
         self
     }
 
-    /// Set whether the collapsible is initially open.
+    /// Set whether the child content is visible. The host owns this state.
     pub fn open(mut self, value: bool) -> Self {
         self.open = value;
         self
     }
 
-    /// Set whether the collapsible is disabled.
+    /// Suppress header activation and focus eligibility while disabled.
+    /// This does not change the host-controlled content visibility.
     pub fn disabled(mut self, value: bool) -> Self {
         self.disabled = value;
         self
     }
 
-    /// Set the message dispatched when the header is toggled.
+    /// Set the message dispatched by an enabled header. The host updates
+    /// `open` after receiving it; an unconfigured header remains passive.
     pub fn on_toggle(mut self, msg: M) -> Self {
         self.on_toggle = Some(msg);
         self
@@ -69,11 +71,18 @@ impl<M: Clone + 'static> From<CollapsibleBuilder<M>> for WidgetNode<M> {
         };
 
         // Header row: [chevron] + [title label]
-        let header = row::<M>()
+        let mut header = row::<M>()
+            .key(format!("{}_header", b.id.as_str()))
             .gap(6.0)
             .padding(4.0)
             .child(chevron.size(14.0))
             .child(label::<M>(b.title));
+
+        if !b.disabled
+            && let Some(message) = b.on_toggle
+        {
+            header = header.on_click(message);
+        }
 
         let mut col = column::<M>().key(b.id).gap(0.0).child(header);
 
@@ -87,6 +96,10 @@ impl<M: Clone + 'static> From<CollapsibleBuilder<M>> for WidgetNode<M> {
         col.build()
     }
 }
+
+#[cfg(test)]
+#[path = "collapsible_tests.rs"]
+mod conversion_tests;
 
 // ---------------------------------------------------------------------------
 // Tests

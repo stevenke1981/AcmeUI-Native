@@ -371,6 +371,34 @@ fn real_frames_keep_hits_and_drawn_buttons_on_the_retained_geometry() {
                 y -= gallery.scroll;
             }
             let rect = acme_core::Rect::new(x, y, width, height);
+            if expected.message == GalleryMessage::CollapsibleToggle {
+                // This header preserves a transparent Row: the chevron and
+                // title are its paint evidence, rather than a button surface.
+                let text: Vec<_> = scene
+                    .commands()
+                    .iter()
+                    .filter_map(|command| match command {
+                        acme_core::DrawCommand::Text(text)
+                            if (x..x + width).contains(&text.origin.x.get())
+                                && (y..y + height).contains(&text.origin.y.get()) =>
+                        {
+                            Some(text)
+                        }
+                        _ => None,
+                    })
+                    .collect();
+                assert_eq!(text.len(), 2, "header chevron and title must be painted");
+                for text in text {
+                    assert!(!text.glyphs.is_empty());
+                    for glyph in &text.glyphs {
+                        let left = text.origin.x.get() * 1.25 + glyph.x;
+                        let top = text.origin.y.get() * 1.25 + glyph.y;
+                        assert!(left >= x * 1.25 && left + glyph.width <= (x + width) * 1.25);
+                        assert!(top >= y * 1.25 && top + glyph.height <= (y + height) * 1.25);
+                    }
+                }
+                continue;
+            }
             assert!(
                 scene.commands().iter().any(|command| matches!(command,
                     acme_core::DrawCommand::Quad(quad) if quad.rect == rect

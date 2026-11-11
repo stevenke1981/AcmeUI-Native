@@ -1,5 +1,11 @@
 # Delivery Status
 
+## 2026-11-12 — ROADMAP 050 Collapsible typed toggle
+
+- Enabled Collapsible headers now carry the current typed toggle message; disabled and unconfigured headers remain passive. Existing Row/chevron/title/body composition and host-owned visibility are preserved. Header identity/focus survives open/title/message updates and keyed instance reorder; disabled headers lose focus eligibility.
+- Added conversion/focus and controlled Gallery pointer/disabled-stale-action/theme/scale/clip/layout evidence. Exact tested source and checks: [report](../team/roadmap-050/REPORT.md).
+- Execution: single-agent-role-passes; author self-review. Disclosure roles, animation and generic keyboard hosting remain separate. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen readers remain NOT_RUN.
+
 ## 2026-11-12 — ROADMAP 049 Anchor typed navigation
 
 - Configured Anchor links now carry the current href message; passive Label text, active marker and host-owned state remain compatible. Instance/path keys preserve focused action identity through active href/callback updates and keyed instance reorder.

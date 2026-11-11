@@ -82,6 +82,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 049 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Preserve Anchor rendered parent/child typed href messages and retained action focus; controlled Gallery selection/count | [Brief](../team/roadmap-049/BRIEF.md); [report](../team/roadmap-049/REPORT.md); scrolling/deeper nesting and manual hardware acceptance remain separate |
 
+| 050 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Bind Collapsible typed toggle messages to enabled keyed headers, preserve retained focus and add controlled Gallery open/close/disabled-stale-action checks | [Brief](../team/roadmap-050/BRIEF.md); [report](../team/roadmap-050/REPORT.md); disclosure roles/animation and manual hardware acceptance remain separate |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.
