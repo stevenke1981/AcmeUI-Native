@@ -1,0 +1,79 @@
+{
+  "script_argv": [
+    "docs/team/roadmap-040/logs/capture.py",
+    "040",
+    "spinner"
+  ],
+  "started_at": "2026-11-11T04:20:42.827001+00:00",
+  "source_sha": "938ab0e0d7aa612e71370ca63b0ec27a766afae1",
+  "git_status": " M docs/agent-team/ROADMAP.md\n M docs/status/todos.md\n?? docs/team/roadmap-040/evidence.json\n?? docs/team/roadmap-040/logs/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Automated X11 CPU Gallery window on isolated Xvfb; default light theme; Spinner normal and reduced-motion poses; actual scroll and pointer toggle",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1100x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "1100"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "700",
+      "500",
+      "click",
+      "--repeat",
+      "34",
+      "--delay",
+      "25",
+      "5"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T04:20:46.278179+00:00",
+      "path": "docs/team/roadmap-040/gallery-spinner.png",
+      "dimensions": [
+        1100,
+        1100
+      ],
+      "sha256": "aad012591b829f447dc0f3adf25c6e3fee0255e4c40e270ea507b0aa0d81c5ef"
+    }
+  ],
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "window_geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=1100\nSCREEN=0\n",
+  "status": "PASS",
+  "finished_at": "2026-11-11T04:20:46.289301+00:00",
+  "log": "/workspace/AcmeUI-Native/target/roadmap-040/native-window.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "capture": "PIL.ImageGrab.grab(xdisplay=display)",
+  "cwd": "/workspace/AcmeUI-Native/target/roadmap-040/native-cwd"
+}

@@ -1,0 +1,13 @@
+   Compiling acme-ui-gallery v0.2.0 (/workspace/AcmeUI-Native/apps/acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.67s
+     Running unittests src/main.rs (target/debug/deps/acme_ui_gallery-bfa5b974cb06702a)
+
+running 4 tests
+test mobile_loader_tests::gallery_label_paint_respects_existing_wrap_modes_and_line_height ... ok
+test mobile_loader_tests::loader_messages_paint_multiple_lines_with_themed_foreground_and_scroll_clips ... ok
+test mobile_loader_tests::mobile_page_has_distinct_indicator_short_and_long_message_examples ... ok
+spinner native scenario scroll=3229
+test mobile_loader_tests::gallery_spinner_viewport_polling_pointer_policy_and_other_timers_are_independent ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 6.56s
+

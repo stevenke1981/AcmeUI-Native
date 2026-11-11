@@ -26,7 +26,9 @@ Exact serialized leases: `crates/acme-ui/src/foundations/spinner.rs`,
 `apps/acme-gallery/src/mobile_loader_tests.rs`, `docs/adr/0005-spinner-motion.md`,
 `docs/status/todos.md`, `docs/agent-team/ROADMAP.md`,
 `docs/team/roadmap-040/{BRIEF.md,REPORT.md,evidence.json,gallery-spinner.png,gallery-spinner-reduced.png}`
-and generated `logs/*` enumerated in evidence.
+`docs/team/roadmap-040/gallery-spinner-next.png`,
+`docs/team/roadmap-040/gallery-spinner-reduced-still.png` and generated `logs/*`
+enumerated in evidence.
 
 Read dependencies: spec/plan/todos, 014 mobile and 019–021/037–039 reports,
 team contracts, primitives/style/layout/retained/paint paths, polling and CI.

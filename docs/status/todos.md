@@ -1,5 +1,12 @@
 # Todos
 
+## ROADMAP 040 — Spinner rotation and reduced motion (2026-11-11)
+
+- [x] Replace the static foundation glyph with a themed fixed-size rotating dot composition; forward host elapsed time/reduced-motion policy through mobile_loader, retaining existing builder signatures and IDs.
+- [x] Add Gallery viewport-gated scheduling and a reduced-motion toggle, preserving other timers; layout/identity/theme/clip/host-event regressions and actual CPU evidence. See [report](../team/roadmap-040/REPORT.md) for exact checks and delivery status.
+- [ ] OS motion-preference detection, human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
+
 ## ROADMAP 039 — Gallery theme-pack swatches (2026-11-11)
 
 - [x] Show all registered pack palettes in Design System using registry colors and existing light/dark toolbar state, preserving read-only composition and stable keyed identities.
@@ -62,7 +69,7 @@
 
 - [x] Add named default/layout-kind/widget-and-layout-child-count contracts for all 20 public mobile modules, with a registry-driven inventory guard (historical P3 “16” count corrected: 15 mobile_* + five legacy modules).
 - [x] Verify all 15 P3 Gallery examples and stable bound roots across themes/scales; run locked touched/mobile tests, strict Clippy, actual CPU profile, workspace milestone gates and native CPU smoke; see [coverage/report](../team/roadmap-030/REPORT.md).
-- [ ] Legacy composite interaction/theme/runtime gaps, generic Row focus/typed AccessKit actions, spinner animation and actual sheet dragging remain open.
+- [ ] Legacy composite interaction/theme/runtime gaps, generic Row focus/typed AccessKit actions and actual sheet dragging remain open; spinner motion implemented in ROADMAP 040.
 - [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
 
 ## ROADMAP 029 — mobile sheet handle acceptance (2026-11-10)
@@ -126,7 +133,7 @@
 - [x] Audit the existing foundation spinner + optional message composition; preserve API/defaults and verify retained IDs, message omission/changes and keyed instance reorder.
 - [x] Wrap long loader messages at character boundaries; make Gallery honour Label wrap/width/line-height and preserve each prepared text line's baseline offset.
 - [x] Add indicator-only, short-message and narrow long-message Gallery examples, automated native CPU capture, targeted tests/strict Clippy and workspace milestone checks; see [batch report](../team/roadmap-021/REPORT.md).
-- [ ] Animate the foundation spinner / mobile loader through runtime scheduling and reduced-motion policy — static glyph only in this batch.
+- [x] Animate the foundation spinner / mobile loader through host-driven elapsed time and reduced-motion policy — completed in ROADMAP 040 with Gallery viewport scheduling; OS preference detection remains separate.
 - [ ] Manual human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
 
 ## ROADMAP 020 — mobile determinate progress (2026-11-09)
@@ -346,7 +353,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] mobile_toggle — switch track + thumb, checked state, on_change; ROADMAP 014 behavior/hit/accessibility/mutation evidence preserved, historical Clippy gate reverified PASS in ROADMAP 022. Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_stepper — minus/plus buttons, value and min/max clamp; ROADMAP 014 behavior/hit/accessibility/mutation evidence preserved, historical Clippy gate reverified PASS in ROADMAP 022. Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_progress — responsive determinate bar (value/total) + optional label; numeric boundaries, retained IDs and Gallery demos/tests (ROADMAP 020). Manual hardware acceptance remains NOT_RUN.
-- [x] mobile_loader — existing static foundation spinner indicator + optional wrapping message; retained-ID/layout/paint tests and Gallery demos (ROADMAP 021). Rotation/runtime scheduling remains a separate unchecked follow-up; manual hardware acceptance is NOT_RUN.
+- [x] mobile_loader — foundation spinner + optional wrapping message; retained-ID/layout/paint tests and Gallery demos (ROADMAP 021), clock-driven rotation/reduced-motion policy and Gallery viewport scheduling (ROADMAP 040); manual hardware acceptance is NOT_RUN.
 - [x] mobile_search — rounded themed TextInput + search icon/action + clear button; controlled query, input marker, retained/layout/host-event tests and native CPU Gallery evidence (ROADMAP 022). Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_segmented — selected N-segment row and on_select; ROADMAP 014 behavior/hit/accessibility/mutation evidence preserved, historical Clippy gate reverified PASS in ROADMAP 022. Manual hardware acceptance remains NOT_RUN.
 - [x] mobile_chip — compact themed tag, selected marker and optional close action; separate tap/dismiss messages, retained/layout tests and native CPU Gallery evidence (ROADMAP 023). Manual hardware acceptance remains NOT_RUN.

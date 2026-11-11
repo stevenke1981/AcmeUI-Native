@@ -1,0 +1,17 @@
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.03s
+     Running unittests src/lib.rs (target/debug/deps/acme_ui-92e45358f15ca310)
+
+running 3 tests
+test inputs::time_picker::tests::time_picker_open_renders_row_with_three_spinners ... ok
+test foundations::spinner::tests::spinner_rotates_periodically_and_reduced_motion_has_a_fixed_pose ... ok
+test foundations::spinner::tests::spinner_dots_stay_inside_fixed_bounds_at_every_size_and_phase ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 809 filtered out; finished in 0.00s
+
+     Running tests/minimal_features.rs (target/debug/deps/minimal_features-9dd9d1750bec4c47)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
