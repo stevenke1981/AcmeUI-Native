@@ -1,0 +1,138 @@
+{
+  "started_at": "2026-11-11T18:45:29.192358+00:00",
+  "source_sha": "ee15fb94022b7598e9c86227b224f928b7cc79e5",
+  "git_status": " M docs/agent-team/ROADMAP.md\n M docs/status/final.md\n M docs/status/todos.md\n?? docs/team/roadmap-048/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Overlay Fullscreen: actual pointer Close then Reopen then Close; inline preview only, no human sign-off",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1000x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "900"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "238",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "255",
+      "237",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "400",
+      "221",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "255",
+      "237",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T18:45:31.951569+00:00",
+      "path": "docs/team/roadmap-048/gallery-fullscreen-open.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "fce8695a52e3fa98c105ba81006203b40e3141adefccca40d7141f67a7ca47db"
+    },
+    {
+      "captured_at": "2026-11-11T18:45:57.153738+00:00",
+      "path": "docs/team/roadmap-048/gallery-fullscreen-closed.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "d03aae950b98816789b1714657d4abe059629b9f290dff5c6488bebffc7cff7d"
+    }
+  ],
+  "binary_sha256": "c9e453f838c88ad2ffb222343be7944d04f46da6f3a41267af561d3a12d0beea",
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=900\nSCREEN=0\n",
+  "click_coordinates": [
+    255,
+    237,
+    400,
+    221,
+    255,
+    237
+  ],
+  "status": "PASS",
+  "finished_at": "2026-11-11T18:45:57.224911+00:00",
+  "log": "logs/native-window.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
