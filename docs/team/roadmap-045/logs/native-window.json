@@ -1,0 +1,119 @@
+{
+  "started_at": "2026-11-11T11:27:26.342403+00:00",
+  "source_sha": "105f0d8edebb8c952a05f8bb954bb488036eb44d",
+  "git_status": " M docs/agent-team/ROADMAP.md\n M docs/status/todos.md\n?? docs/team/roadmap-045/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "manual_validation": "NOT_RUN",
+  "scenario": "Newer Gallery Layout/PageHeader: real pointer saves once, then removes the optional description while preserving the host save count",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1000x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "--sync",
+      "2097154",
+      "1100",
+      "900"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "200",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "255",
+      "438",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "280",
+      "482",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1000",
+      "750"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-11T11:27:28.237949+00:00",
+      "path": "docs/team/roadmap-045/gallery-page-header-description.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "bb1c2ad1f5b15437b022925458e13e240252b048703847a4224102935bb552f4"
+    },
+    {
+      "captured_at": "2026-11-11T11:27:29.382893+00:00",
+      "path": "docs/team/roadmap-045/gallery-page-header-no-description.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "eb0840311bd2394c5c3ff2c4f1a15c724143659836bb095804ccc8150715ea77"
+    }
+  ],
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=900\nSCREEN=0\n",
+  "status": "PASS",
+  "finished_at": "2026-11-11T11:27:29.393567+00:00",
+  "log": "logs/native-window.txt",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
