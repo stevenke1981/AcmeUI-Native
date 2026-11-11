@@ -61,6 +61,9 @@ impl<M: Clone + 'static> AnchorBuilder<M> {
         self
     }
 
+    /// Build a navigation message from each rendered link's href. Without
+    /// this callback links remain passive labels. The host owns active_href
+    /// and target scrolling; this conversion only binds typed messages.
     pub fn on_navigate(mut self, f: fn(&str) -> M) -> Self {
         self.on_navigate = Some(f);
         self
@@ -69,21 +72,40 @@ impl<M: Clone + 'static> AnchorBuilder<M> {
 
 impl<M: Clone + 'static> From<AnchorBuilder<M>> for WidgetNode<M> {
     fn from(b: AnchorBuilder<M>) -> Self {
+        let action_prefix = b.id.as_str().to_owned();
         let mut col = crate::column::<M>().key(b.id).gap(4.0).padding(8.0);
-        for item in &b.items {
-            let prefix = if b.active_href.as_deref() == Some(&item.href) {
+        for (index, item) in b.items.iter().enumerate() {
+            let marker = if b.active_href.as_deref() == Some(&item.href) {
                 "▸ "
             } else {
                 "  "
             };
-            col = col.child(crate::label(format!("{}{}", prefix, item.title)));
-            for child in &item.children {
-                col = col.child(crate::label(format!("    · {}", child.title)));
+            let text = format!("{}{}", marker, item.title);
+            let key = format!("{action_prefix}:link:{index}");
+            let link = if let Some(navigate) = b.on_navigate {
+                crate::button(key, text).on_click(navigate(&item.href))
+            } else {
+                crate::label(text)
+            };
+            col = col.child(link);
+            for (child_index, child) in item.children.iter().enumerate() {
+                let text = format!("    · {}", child.title);
+                let link = if let Some(navigate) = b.on_navigate {
+                    crate::button(format!("{action_prefix}:link:{index}:{child_index}"), text)
+                        .on_click(navigate(&child.href))
+                } else {
+                    crate::label(text)
+                };
+                col = col.child(link);
             }
         }
         col.build()
     }
 }
+
+#[cfg(test)]
+#[path = "anchor_tests.rs"]
+mod conversion_tests;
 
 #[cfg(test)]
 mod tests {
