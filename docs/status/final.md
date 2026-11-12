@@ -1,5 +1,11 @@
 # Delivery Status
 
+## 2026-11-13 — ROADMAP 051 Notification typed action/Close identity
+
+- Regression-first investigation found current typed messages, scoped retained identities/reorder and optional-sibling continuity already green. Added guards; production conversion and public API remain unchanged.
+- Added host-controlled Overlay Gallery action/Close/restore preview with stale-message rejection and pointer/theme/scale/layout tests. [Report](../team/roadmap-051/REPORT.md); reviewer-run gates PASS.
+- Execution: Codex CLI single writer + author review. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU, screen reader and native X11 CPU-window capture NOT_RUN.
+
 ## 2026-11-12 — ROADMAP 050 Collapsible typed toggle
 
 - Enabled Collapsible headers now carry the current typed toggle message; disabled and unconfigured headers remain passive. Existing Row/chevron/title/body composition and host-owned visibility are preserved. Header identity/focus survives open/title/message updates and keyed instance reorder; disabled headers lose focus eligibility.

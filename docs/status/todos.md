@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 051 — Notification typed action/Close identity (2026-11-13)
+
+- [x] Investigate current typed messages, distinct retained control identity/keyed reorder and optional-sibling continuity regression-first: already GREEN; preserve production conversion and existing four tests.
+- [x] Add controlled Overlay Gallery action/Close/restore and stale-action guards, pointer/theme/scale/layout tests; [report](../team/roadmap-051/REPORT.md). Execution: Codex CLI single writer + author review.
+- [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU, screen reader and native X11 CPU-window capture NOT_RUN.
+
 ## ROADMAP 050 — Collapsible typed toggle conversion (2026-11-12)
 
 - [x] Bind current on_toggle messages to keyed header Rows only while enabled, preserving composition and host-owned open state; passive/disabled headers are excluded from retained focus without public API expansion.

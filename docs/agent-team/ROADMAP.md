@@ -84,6 +84,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 050 | Lead + Architecture + UI/UX + Verification (single-agent-role-passes) | Bind Collapsible typed toggle messages to enabled keyed headers, preserve retained focus and add controlled Gallery open/close/disabled-stale-action checks | [Brief](../team/roadmap-050/BRIEF.md); [report](../team/roadmap-050/REPORT.md); disclosure roles/animation and manual hardware acceptance remain separate |
 
+| 051 | Codex CLI single writer + author review | Notification typed action/Close identity investigation; controlled desktop Gallery | Already-green retained/message/optional-control guards; pointer/theme/scale/layout tests; [report](../team/roadmap-051/REPORT.md); manual/native acceptance NOT_RUN |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.
