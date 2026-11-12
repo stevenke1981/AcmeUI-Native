@@ -140,7 +140,7 @@ impl AccessibilityAdapter {
     ///
     /// Walks `root` in DFS order, taking the IDs that [`WidgetNode::to_layout`]
     /// takes, so each widget that layout lowers keeps its layout ID and reads
-    /// its layout rectangle. Tooltip and Popover wrappers, Dialog content,
+    /// its layout rectangle. Tooltip and Popover wrappers,
     /// VirtualList children, the non-first children of a Popover, and grid cell
     /// content have no layout node of their own. They take IDs at or above
     /// 2^56, which never match a layout ID, and have no rectangle. Tree items,
@@ -447,8 +447,8 @@ impl AccessibilityAdapter {
 /// node's rectangle. A retained walk keeps each widget's retained ID and gives
 /// tree items, grid rows, column headers and grid cell content a virtual ID,
 /// which never collides with a layout ID, while each still reads the rectangle
-/// of its layout node. Widgets that layout does not number (dialog content,
-/// the cell content of a grid, the non-first children of a popover) take a
+/// of its layout node. Widgets that layout does not number (the cell content
+/// of a grid, the non-first children of a popover) take a
 /// virtual ID and have no rectangle. A grid whose cells match its rows is
 /// grouped by each row's own cells, even when the rows differ in length. A
 /// grid whose cells do not match its rows, or that has no columns, keeps its
@@ -711,10 +711,8 @@ fn child_slot<M>(parent: &WidgetNode<M>, index: usize) -> Slot<'_> {
 /// How layout treats child `index` of `parent`, when `parent` is `lowering`.
 fn child_lowering<M>(parent: &WidgetNode<M>, index: usize, lowering: Lowering) -> Lowering {
     match (lowering, parent) {
-        // A Dialog's content and a VirtualList's children are not laid out.
-        (Lowering::Lowered, WidgetNode::Dialog(_) | WidgetNode::VirtualList(_)) => {
-            Lowering::Unlowered
-        }
+        // A VirtualList's children are not laid out.
+        (Lowering::Lowered, WidgetNode::VirtualList(_)) => Lowering::Unlowered,
         // A Popover lays out only its first child, in its own place.
         (Lowering::Lowered, WidgetNode::Popover(_)) if index > 0 => Lowering::Unlowered,
         (Lowering::Lowered, _) => Lowering::Lowered,
@@ -2452,6 +2450,26 @@ mod tests {
 
         assert!(only_node_with_role(&nodes_of(&modal), Role::Dialog).is_modal());
         assert!(!only_node_with_role(&nodes_of(&modeless), Role::Dialog).is_modal());
+    }
+
+    #[test]
+    fn dialog_content_and_following_sibling_read_their_layout_bounds() {
+        let root = column::<TestMsg>()
+            .child(dialog("confirm", button("save", "Save")).open(true))
+            .child(button("after", "After"))
+            .build();
+        let snapshot = compute_snapshot(&root, 1, (800.0, 600.0));
+        let update = build_tree_update(&root, &snapshot, None, None);
+        for id in 1..=4 {
+            let node = node_with_id(&update.nodes, AccessNodeId::from(id));
+            let rect = snapshot.get(NodeId::new(id)).unwrap();
+            let bounds = node
+                .bounds()
+                .expect("dialog descendants have layout bounds");
+            assert_eq!(bounds.x0, f64::from(rect.x));
+            assert_eq!(bounds.y0, f64::from(rect.y));
+            assert_eq!(bounds.height(), f64::from(rect.height));
+        }
     }
 
     // --- Retained binding path -----------------------------------------

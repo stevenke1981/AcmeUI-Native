@@ -250,13 +250,15 @@ impl<M> WidgetNode<M> {
                     ..Default::default()
                 },
             ),
-            Self::Dialog(v) => LayoutNode::leaf(
+            Self::Dialog(v) => LayoutNode::container(
                 id,
                 LayoutStyle {
+                    kind: LayoutKind::Column,
                     width: v.width,
                     height: v.height,
                     ..Default::default()
                 },
+                vec![v.content.to_layout_alloc(next)],
             ),
             Self::Separator(v) => LayoutNode::leaf(
                 id,
@@ -633,13 +635,15 @@ impl<M> WidgetNode<M> {
                     ..Default::default()
                 },
             ),
-            Self::Dialog(v) => LayoutNode::leaf(
+            Self::Dialog(v) => LayoutNode::container(
                 id,
                 LayoutStyle {
+                    kind: LayoutKind::Column,
                     width: v.width,
                     height: v.height,
                     ..Default::default()
                 },
+                vec![v.content.to_layout_alloc_with_context(ids, context)],
             ),
             Self::Separator(v) => LayoutNode::leaf(
                 id,
@@ -1317,7 +1321,7 @@ mod tests {
         let layout = d.to_layout(NodeId::new(1));
         assert_eq!(layout.style.width, Length::px(400.0));
         assert_eq!(layout.style.height, Length::px(300.0));
-        assert_eq!(layout.style.kind, LayoutKind::Leaf);
+        assert_eq!(layout.style.kind, LayoutKind::Column);
     }
 
     #[test]

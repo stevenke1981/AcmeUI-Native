@@ -1,5 +1,11 @@
 # Delivery Status
 
+## 2026-11-13 — ROADMAP 052 ConfirmDialog typed Confirm/Cancel reachability
+
+- RED guards prove Dialog omitted content from layout. Both paths now include content, preserving Length/public API and retained binding; accessibility numbering follows the new layout.
+- Typed/passive messages and retained Confirm focus were already green. Added geometry, child/ID alignment, Length and accessibility bounds guards. Four old Leaf assertions updated; optional Gallery preview skipped. [Report](../team/roadmap-052/REPORT.md); Reviewer-run gates PASS (incl. workspace tests).
+- Execution: Codex CLI single writer + author review. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU, screen reader, native X11 capture and SDK CPU profile NOT_RUN.
+
 ## 2026-11-13 — ROADMAP 051 Notification typed action/Close identity
 
 - Regression-first investigation found current typed messages, scoped retained identities/reorder and optional-sibling continuity already green. Added guards; production conversion and public API remain unchanged.
