@@ -554,3 +554,43 @@ fn popover_layout_node_carries_anchor_retained_id() {
     let layout = roots[0].to_layout_with_binding(&binding, &layout_context());
     assert_eq!(layout.id, anchor_id);
 }
+
+#[test]
+fn dialog_content_and_following_sibling_keep_layout_id_alignment_and_lengths() {
+    for (width, height) in [
+        (acme_layout::Length::px(320.0), acme_layout::Length::Auto),
+        (
+            acme_layout::Length::Percent(0.5),
+            acme_layout::Length::px(180.0),
+        ),
+    ] {
+        let mut dialog = dialog::<Msg>("dialog", button("inside", "Save").on_click(Msg::Save));
+        dialog.width = width;
+        dialog.height = height;
+        let roots = [column()
+            .child(dialog)
+            .child(button("after", "After"))
+            .build()];
+        let tree = reconciled(&roots);
+        let binding = bind_retained(&roots, &tree);
+        assert_eq!(binding.mismatches(), 0);
+        let plain = roots[0].to_layout(NodeId::new(1));
+        let sequential = roots[0].to_layout_with_context(NodeId::new(1), &layout_context());
+        let bound = roots[0].to_layout_with_binding(&binding, &layout_context());
+        assert_same_shape_ignoring_ids(&bound, &sequential, "dialog");
+        for layout in [&plain, &sequential, &bound] {
+            assert_eq!(layout.children[0].style.width, width);
+            assert_eq!(layout.children[0].style.height, height);
+            assert_eq!(layout.children[0].children.len(), 1);
+        }
+        assert_eq!(all_layout_ids(&plain), all_layout_ids(&sequential));
+        assert_eq!(
+            all_layout_ids(&bound).into_iter().collect::<HashSet<_>>(),
+            retained_ids(&tree)
+        );
+        assert_eq!(
+            Some(bound.children[1].id),
+            binding.id_for(&roots[0].children()[1])
+        );
+    }
+}

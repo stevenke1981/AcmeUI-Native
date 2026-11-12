@@ -86,6 +86,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 051 | Codex CLI single writer + author review | Notification typed action/Close identity investigation; controlled desktop Gallery | Already-green retained/message/optional-control guards; pointer/theme/scale/layout tests; [report](../team/roadmap-051/REPORT.md); manual/native acceptance NOT_RUN |
 
+| 052 | Codex CLI single writer + author review | ConfirmDialog typed Confirm/Cancel reachability; regression-first Dialog content layout and accessibility ID alignment | RED content omission reproduced; geometry/message/focus/Length guards; [brief](../team/roadmap-052/BRIEF.md); [report](../team/roadmap-052/REPORT.md); reviewer gates PASS, manual/native/SDK CPU NOT_RUN |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

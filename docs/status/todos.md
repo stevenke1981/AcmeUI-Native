@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 052 — ConfirmDialog typed Confirm/Cancel reachability (2026-11-13)
+
+- [x] Prove missing Dialog content layout regression-first; include content in both layout paths and align accessibility IDs without public API changes.
+- [x] Add current typed/passive control, retained focus, real geometry, Length and sibling-ID guards; [report](../team/roadmap-052/REPORT.md). Execution: Codex CLI single writer + author review. Optional Gallery preview skipped.
+- [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU, screen reader, native X11 capture and SDK CPU profile NOT_RUN.
+
 ## ROADMAP 051 — Notification typed action/Close identity (2026-11-13)
 
 - [x] Investigate current typed messages, distinct retained control identity/keyed reorder and optional-sibling continuity regression-first: already GREEN; preserve production conversion and existing four tests.
