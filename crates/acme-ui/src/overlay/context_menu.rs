@@ -66,14 +66,28 @@ impl<M: Clone + 'static> From<ContextMenuBuilder<M>> for WidgetNode<M> {
 
         // Open: render a Stack with anchor + dropdown Card of items
         let anchor = b.anchor.unwrap_or_else(|| label::<M>(""));
+        let menu_id = b.id.as_str().to_string();
 
-        let mut dropdown = card::<M>().variant(CardVariant::Outlined);
-        for item in &b.items {
+        let mut dropdown = card::<M>()
+            .key(format!("{menu_id}_dropdown"))
+            .variant(CardVariant::Outlined);
+        for (i, item) in b.items.iter().enumerate() {
             if item.separator {
                 dropdown = dropdown.child(separator::<M>());
-            } else {
-                dropdown = dropdown.child(label::<M>(&item.label));
+                continue;
             }
+            if !item.disabled {
+                if let Some(message) = item.message.clone() {
+                    let key = if item.key.as_str().is_empty() {
+                        format!("{menu_id}_item_{i}")
+                    } else {
+                        format!("{menu_id}_{}", item.key.as_str())
+                    };
+                    dropdown = dropdown.child(button(key, &item.label).on_click(message));
+                    continue;
+                }
+            }
+            dropdown = dropdown.child(label::<M>(&item.label));
         }
 
         stack::<M>()
@@ -186,3 +200,7 @@ mod tests {
         assert_eq!(layout.children.len(), 2);
     }
 }
+
+#[cfg(test)]
+#[path = "context_menu_tests.rs"]
+mod context_menu_tests;
