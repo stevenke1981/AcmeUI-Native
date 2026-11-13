@@ -1,5 +1,11 @@
 # Delivery Status
 
+## 2026-11-13 — ROADMAP 053 Modal typed Close conversion
+
+- RED guards prove Modal ignored `on_close` and rendered an unkeyed ✕ Label. Closable modals now emit an instance-keyed Button with the current message; a missing callback stays a passive Label and `closable(false)` hides the control. Title/body/footer keys preserve identity through optional close and footer changes.
+- Added conversion/focus/geometry guards and a host-controlled Overlay Gallery close/restore preview with stale-message rejection and pointer/theme/scale/layout tests. [Report](../team/roadmap-053/REPORT.md); Reviewer-run gates PASS (incl. workspace tests).
+- Execution: Codex CLI (OpenRouter nvidia/nemotron-3-ultra-550b-a55b:free) single writer + author review. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU, screen reader, native X11 capture and SDK CPU profile NOT_RUN.
+
 ## 2026-11-13 — ROADMAP 052 ConfirmDialog typed Confirm/Cancel reachability
 
 - RED guards prove Dialog omitted content from layout. Both paths now include content, preserving Length/public API and retained binding; accessibility numbering follows the new layout.

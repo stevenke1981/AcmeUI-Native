@@ -49,6 +49,7 @@ mod bottom_navigation;
 mod collapsible;
 mod fab;
 mod fullscreen;
+mod modal;
 mod notification;
 mod page_header;
 mod tour;
@@ -168,6 +169,8 @@ enum GalleryMessage {
     NotificationShow,
     FullscreenClose,
     FullscreenShow,
+    ModalClose,
+    ModalShow,
     AnchorNavigate(usize),
     CollapsibleToggle,
     CollapsibleDisable,
@@ -267,6 +270,8 @@ struct Gallery {
     notification_closes: usize,
     fullscreen_visible: bool,
     fullscreen_closes: usize,
+    modal_visible: bool,
+    modal_closes: usize,
     anchor_selected: usize,
     anchor_navigations: usize,
     collapsible_open: bool,
@@ -329,6 +334,8 @@ impl Gallery {
             notification_closes: 0,
             fullscreen_visible: true,
             fullscreen_closes: 0,
+            modal_visible: true,
+            modal_closes: 0,
             anchor_selected: 0,
             anchor_navigations: 0,
             collapsible_open: false,
@@ -681,6 +688,7 @@ impl Gallery {
             ))
             .child(self.page_section("Fullscreen — Close message", self.fullscreen_examples()))
             .child(self.page_section("SpeedDial — typed actions", self.speed_dial_examples()))
+            .child(self.page_section("Modal — typed Close conversion", self.modal_examples()))
             .child(self.page_section("About card — Close message", self.about_dialog_examples()))
             .child(self.page_section("Tour — controlled steps", self.tour_examples()))
             .child(
@@ -1452,6 +1460,25 @@ impl Gallery {
                     return false;
                 }
                 self.fullscreen_visible = true;
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::ModalClose => {
+                if !self.modal_visible {
+                    return false;
+                }
+                self.modal_visible = false;
+                self.modal_closes = self.modal_closes.saturating_add(1);
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::ModalShow => {
+                if self.modal_visible {
+                    return false;
+                }
+                self.modal_visible = true;
                 self.pressed = None;
                 self.hovered = None;
                 true
@@ -2969,6 +2996,9 @@ mod toolbar_tests;
 
 #[cfg(test)]
 mod fullscreen_tests;
+
+#[cfg(test)]
+mod modal_tests;
 
 #[cfg(test)]
 mod anchor_tests;
