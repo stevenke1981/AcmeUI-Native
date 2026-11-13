@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - Close-request veto hook (2026-11-13)
+
+- `Application::close_requested(&mut self, WindowId) -> bool` (default `true`) is
+  consulted after `PlatformEvent::WindowCloseRequested` is delivered. Returning
+  `false` keeps the window open (title-bar close, Alt+F4, taskbar close) so an
+  application can confirm unsaved changes and close later with
+  `WindowRequest::Close`. Existing applications are unaffected.
+
 ## Unreleased - Gallery theme-pack previews (ROADMAP 039, 2026-11-11)
 
 - Design System now shows accent, surface, text and background swatches for
