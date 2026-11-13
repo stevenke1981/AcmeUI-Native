@@ -88,6 +88,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 052 | Codex CLI single writer + author review | ConfirmDialog typed Confirm/Cancel reachability; regression-first Dialog content layout and accessibility ID alignment | RED content omission reproduced; geometry/message/focus/Length guards; [brief](../team/roadmap-052/BRIEF.md); [report](../team/roadmap-052/REPORT.md); reviewer gates PASS, manual/native/SDK CPU NOT_RUN |
 
+| 053 | Codex CLI (OpenRouter nemotron-3-ultra-550b-a55b:free) single writer + author review | Modal typed Close conversion; controlled Overlay Gallery close/restore | RED ignored on_close / unkeyed Label reproduced; message/passive/identity/geometry guards; [brief](../team/roadmap-053/BRIEF.md); [report](../team/roadmap-053/REPORT.md); reviewer gates PASS, manual/native/SDK CPU NOT_RUN |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.
