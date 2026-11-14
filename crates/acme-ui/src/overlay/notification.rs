@@ -179,3 +179,7 @@ mod tests {
         assert_eq!(NotificationType::Error.icon_char(), "✗");
     }
 }
+
+#[cfg(test)]
+#[path = "notification_tests.rs"]
+mod conversion_tests;

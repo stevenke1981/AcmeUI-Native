@@ -49,6 +49,7 @@ mod bottom_navigation;
 mod collapsible;
 mod fab;
 mod fullscreen;
+mod notification;
 mod page_header;
 mod tour;
 use tour::TourDemo;
@@ -162,6 +163,9 @@ enum GalleryMessage {
     FabPress(usize),
     AboutClose,
     AboutShow,
+    NotificationAction,
+    NotificationClose,
+    NotificationShow,
     FullscreenClose,
     FullscreenShow,
     AnchorNavigate(usize),
@@ -258,6 +262,9 @@ struct Gallery {
     tour: TourDemo,
     about_visible: bool,
     about_closes: usize,
+    notification_visible: bool,
+    notification_actions: usize,
+    notification_closes: usize,
     fullscreen_visible: bool,
     fullscreen_closes: usize,
     anchor_selected: usize,
@@ -317,6 +324,9 @@ impl Gallery {
             tour: TourDemo::default(),
             about_visible: true,
             about_closes: 0,
+            notification_visible: true,
+            notification_actions: 0,
+            notification_closes: 0,
             fullscreen_visible: true,
             fullscreen_closes: 0,
             anchor_selected: 0,
@@ -665,6 +675,10 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Overlay", 24.0))
             .child(separator())
+            .child(self.page_section(
+                "Notification — controlled actions",
+                self.desktop_notification_examples(),
+            ))
             .child(self.page_section("Fullscreen — Close message", self.fullscreen_examples()))
             .child(self.page_section("SpeedDial — typed actions", self.speed_dial_examples()))
             .child(self.page_section("About card — Close message", self.about_dialog_examples()))
@@ -1395,6 +1409,32 @@ impl Gallery {
                 }
                 self.anchor_selected = index;
                 self.anchor_navigations = self.anchor_navigations.saturating_add(1);
+                true
+            }
+            GalleryMessage::NotificationAction => {
+                if !self.notification_visible {
+                    return false;
+                }
+                self.notification_actions = self.notification_actions.saturating_add(1);
+                true
+            }
+            GalleryMessage::NotificationClose => {
+                if !self.notification_visible {
+                    return false;
+                }
+                self.notification_visible = false;
+                self.notification_closes = self.notification_closes.saturating_add(1);
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::NotificationShow => {
+                if self.notification_visible {
+                    return false;
+                }
+                self.notification_visible = true;
+                self.pressed = None;
+                self.hovered = None;
                 true
             }
             GalleryMessage::FullscreenClose => {
@@ -2935,3 +2975,6 @@ mod anchor_tests;
 
 #[cfg(test)]
 mod collapsible_tests;
+
+#[cfg(test)]
+mod notification_tests;
