@@ -343,6 +343,17 @@ pub trait Application: 'static {
     /// invalidate them here so the next frame repopulates the new GPU resources.
     fn on_gpu_recovered(&mut self, _window: WindowId) {}
 
+    /// Decide whether a user close request (title-bar close button, Alt+F4, taskbar
+    /// close) actually closes `window`.
+    ///
+    /// Called after [`PlatformEvent::WindowCloseRequested`] has been delivered through
+    /// [`Application::event`]. Returning `false` keeps the window open so the
+    /// application can confirm unsaved changes and close later with
+    /// [`WindowRequest::Close`]. The default `true` preserves the previous behaviour.
+    fn close_requested(&mut self, _window: WindowId) -> bool {
+        true
+    }
+
     /// Optional polling interval for background-thread work such as global hotkeys.
     /// `None` keeps the runtime fully event-driven while `Some` schedules redraws
     /// without forcing a busy `ControlFlow::Poll` loop. Intervals are clamped
@@ -1115,6 +1126,53 @@ mod tests {
     }
 
     #[test]
+    fn close_requested_defaults_to_closing_after_the_event_is_delivered() {
+        struct DefaultApp {
+            events: usize,
+        }
+        impl Application for DefaultApp {
+            fn event(&mut self, event: PlatformEvent) -> bool {
+                if matches!(event, PlatformEvent::WindowCloseRequested(_)) {
+                    self.events += 1;
+                }
+                false
+            }
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
+            }
+        }
+        let mut app = DefaultApp { events: 0 };
+        assert!(notify_close_requested(&mut app, WindowId(3)));
+        assert_eq!(app.events, 1);
+    }
+
+    #[test]
+    fn close_requested_can_veto_and_sees_the_event_first() {
+        struct VetoApp {
+            log: Vec<&'static str>,
+        }
+        impl Application for VetoApp {
+            fn event(&mut self, event: PlatformEvent) -> bool {
+                if matches!(event, PlatformEvent::WindowCloseRequested(_)) {
+                    self.log.push("event");
+                }
+                false
+            }
+            fn close_requested(&mut self, window: WindowId) -> bool {
+                assert_eq!(window, WindowId(7));
+                self.log.push("decide");
+                false
+            }
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
+            }
+        }
+        let mut app = VetoApp { log: Vec::new() };
+        assert!(!notify_close_requested(&mut app, WindowId(7)));
+        assert_eq!(app.log, vec!["event", "decide"]);
+    }
+
+    #[test]
     fn on_gpu_recovered_default_is_noop_and_overridable() {
         struct RecoveryApp {
             recovered: Vec<WindowId>,
@@ -1328,13 +1386,24 @@ fn handle_window_lifecycle(
     if !destroy {
         let win_id = windows.get(&id).map(|s| s.id);
         if let Some(win_id) = win_id {
-            let _ = app.event(PlatformEvent::WindowCloseRequested(win_id));
+            if !notify_close_requested(app, win_id) {
+                if let Some(state) = windows.get(&id) {
+                    state.window.request_redraw();
+                }
+                return;
+            }
         }
     }
     windows.remove(&id);
     if windows.is_empty() {
         event_loop.exit();
     }
+}
+
+/// Deliver a close request to `app` and return whether the window should close.
+pub(crate) fn notify_close_requested(app: &mut dyn Application, window: WindowId) -> bool {
+    let _ = app.event(PlatformEvent::WindowCloseRequested(window));
+    app.close_requested(window)
 }
 
 /// Return `true` when the renderer's configured physical dimensions or scale
