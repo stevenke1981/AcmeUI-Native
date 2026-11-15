@@ -7,8 +7,12 @@
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+/// Pure Rust JSON serialization and parsing for [`Theme`].
+pub mod json;
 /// Curated brand theme packs (Apple, Windows, Ubuntu, Material, editor themes).
 pub mod packs;
+
+pub use json::ThemeJsonError;
 
 /// The built-in appearance variants.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -471,6 +475,41 @@ impl Theme {
         if !color_fields.into_iter().all(ThemeColor::is_valid) {
             return Err(ThemeValidationError::InvalidColor);
         }
+        let s = &self.spacing;
+        if [
+            s.half, s.px, s.px1, s.px2, s.px3, s.px4, s.px5, s.px6, s.px8, s.px10,
+        ]
+        .into_iter()
+        .any(|v| !v.is_finite() || v < 0.0)
+        {
+            return Err(ThemeValidationError::InvalidSpacing);
+        }
+        let r = &self.radii;
+        if [r.none, r.sm, r.md, r.lg, r.xl, r.full]
+            .into_iter()
+            .any(|v| !v.is_finite() || v < 0.0)
+        {
+            return Err(ThemeValidationError::InvalidRadius);
+        }
+        let t = &self.typography;
+        if [
+            t.h1,
+            t.h2,
+            t.h3,
+            t.h4,
+            t.body,
+            t.body_sm,
+            t.label,
+            t.caption,
+            t.small,
+            t.code,
+            t.line_height,
+        ]
+        .into_iter()
+        .any(|v| !v.is_finite() || v <= 0.0)
+        {
+            return Err(ThemeValidationError::InvalidTypography);
+        }
         Ok(())
     }
 
@@ -797,6 +836,32 @@ mod tests {
         let mut t = Theme::light();
         t.colors.primary.alpha = 1.5;
         assert_eq!(t.validate(), Err(ThemeValidationError::InvalidColor));
+
+        let mut bad_spacing = Theme::light();
+        bad_spacing.spacing.px4 = -1.0;
+        assert_eq!(
+            bad_spacing.validate(),
+            Err(ThemeValidationError::InvalidSpacing)
+        );
+        bad_spacing.spacing.px4 = f32::NAN;
+        assert_eq!(
+            bad_spacing.validate(),
+            Err(ThemeValidationError::InvalidSpacing)
+        );
+
+        let mut bad_radius = Theme::light();
+        bad_radius.radii.md = -2.0;
+        assert_eq!(
+            bad_radius.validate(),
+            Err(ThemeValidationError::InvalidRadius)
+        );
+
+        let mut bad_type = Theme::light();
+        bad_type.typography.body = 0.0;
+        assert_eq!(
+            bad_type.validate(),
+            Err(ThemeValidationError::InvalidTypography)
+        );
     }
 
     #[test]

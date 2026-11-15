@@ -260,6 +260,128 @@ pub enum PlatformEvent {
     },
 }
 
+/// Platform-agnostic keyboard modifier flags.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct KeyModifiers {
+    pub shift: bool,
+    pub control: bool,
+    pub alt: bool,
+    pub meta: bool,
+}
+
+impl KeyModifiers {
+    /// Returns `true` when no modifier keys are held.
+    pub fn is_empty(&self) -> bool {
+        !(self.shift || self.control || self.alt || self.meta)
+    }
+
+    /// Returns `true` when at least one modifier key is held.
+    pub fn any(&self) -> bool {
+        !self.is_empty()
+    }
+
+    /// Returns `true` when the platform's primary shortcut modifier is held
+    /// (`Command` / `meta` on macOS/iOS, `Ctrl` / `control` elsewhere).
+    pub fn primary_shortcut(&self) -> bool {
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        {
+            self.meta
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+        {
+            self.control
+        }
+    }
+
+    /// Returns `true` when the primary shortcut modifier is held for the given
+    /// target convention (`meta` when `macos` is `true`, `control` otherwise).
+    pub fn primary_shortcut_for_macos(&self, macos: bool) -> bool {
+        if macos { self.meta } else { self.control }
+    }
+}
+
+/// Structured view of a [`PlatformEvent::Key`] event with grouped modifiers.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct KeyInput {
+    pub window: WindowId,
+    pub key: PlatformKey,
+    pub pressed: bool,
+    pub modifiers: KeyModifiers,
+    pub repeat: bool,
+    pub text: Option<String>,
+    pub character: Option<String>,
+}
+
+impl KeyInput {
+    /// Returns `true` if this is a pressed key event matching `key` with the
+    /// platform's [`KeyModifiers::primary_shortcut`] modifier active.
+    pub fn is_primary_shortcut(&self, key: PlatformKey) -> bool {
+        self.pressed && self.key == key && self.modifiers.primary_shortcut()
+    }
+}
+
+impl PlatformEvent {
+    /// Extract keyboard modifiers from [`PlatformEvent::Key`] or
+    /// [`PlatformEvent::PointerButton`], returning `None` for other variants.
+    pub fn key_modifiers(&self) -> Option<KeyModifiers> {
+        match self {
+            Self::Key {
+                shift,
+                ctrl,
+                alt,
+                meta,
+                ..
+            } => Some(KeyModifiers {
+                shift: *shift,
+                control: *ctrl,
+                alt: *alt,
+                meta: *meta,
+            }),
+            Self::PointerButton {
+                shift, ctrl, alt, ..
+            } => Some(KeyModifiers {
+                shift: *shift,
+                control: *ctrl,
+                alt: *alt,
+                meta: false,
+            }),
+            _ => None,
+        }
+    }
+
+    /// Extract a [`KeyInput`] view if this event is [`PlatformEvent::Key`].
+    pub fn key_input(&self) -> Option<KeyInput> {
+        match self {
+            Self::Key {
+                window,
+                key,
+                pressed,
+                shift,
+                ctrl,
+                alt,
+                meta,
+                repeat,
+                text,
+                character,
+            } => Some(KeyInput {
+                window: *window,
+                key: *key,
+                pressed: *pressed,
+                modifiers: KeyModifiers {
+                    shift: *shift,
+                    control: *ctrl,
+                    alt: *alt,
+                    meta: *meta,
+                },
+                repeat: *repeat,
+                text: text.clone(),
+                character: character.clone(),
+            }),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct FrameContext {
     pub window: WindowId,
@@ -1369,6 +1491,146 @@ mod tests {
             text,
             "unrecoverable renderer failure: GPU device recovery failed (x)"
         );
+    }
+
+    #[test]
+    fn key_modifiers_flags_and_primary_shortcut_work() {
+        let empty = KeyModifiers::default();
+        assert!(empty.is_empty());
+        assert!(!empty.any());
+        assert!(!empty.primary_shortcut());
+        assert!(!empty.primary_shortcut_for_macos(true));
+        assert!(!empty.primary_shortcut_for_macos(false));
+
+        let ctrl_only = KeyModifiers {
+            control: true,
+            ..Default::default()
+        };
+        assert!(!ctrl_only.is_empty());
+        assert!(ctrl_only.any());
+        assert!(ctrl_only.primary_shortcut_for_macos(false));
+        assert!(!ctrl_only.primary_shortcut_for_macos(true));
+
+        let meta_only = KeyModifiers {
+            meta: true,
+            ..Default::default()
+        };
+        assert!(meta_only.any());
+        assert!(meta_only.primary_shortcut_for_macos(true));
+        assert!(!meta_only.primary_shortcut_for_macos(false));
+
+        let expected_platform_primary = if cfg!(any(target_os = "macos", target_os = "ios")) {
+            meta_only.primary_shortcut() && !ctrl_only.primary_shortcut()
+        } else {
+            ctrl_only.primary_shortcut() && !meta_only.primary_shortcut()
+        };
+        assert!(expected_platform_primary);
+    }
+
+    #[test]
+    fn platform_event_key_modifiers_and_key_input_extract_fields() {
+        let key_event = PlatformEvent::Key {
+            window: WindowId(7),
+            key: PlatformKey::Enter,
+            pressed: true,
+            shift: true,
+            ctrl: true,
+            alt: false,
+            meta: false,
+            repeat: true,
+            text: Some("\r".into()),
+            character: None,
+        };
+        let expected_mods = KeyModifiers {
+            shift: true,
+            control: true,
+            alt: false,
+            meta: false,
+        };
+        assert_eq!(key_event.key_modifiers(), Some(expected_mods));
+        let input = key_event.key_input().expect("Key event yields KeyInput");
+        assert_eq!(
+            input,
+            KeyInput {
+                window: WindowId(7),
+                key: PlatformKey::Enter,
+                pressed: true,
+                modifiers: expected_mods,
+                repeat: true,
+                text: Some("\r".into()),
+                character: None,
+            }
+        );
+
+        let pointer_event = PlatformEvent::PointerButton {
+            window: WindowId(7),
+            pressed: true,
+            x: 10.0,
+            y: 20.0,
+            button: 0,
+            pointer: 0,
+            shift: false,
+            ctrl: true,
+            alt: true,
+        };
+        assert_eq!(
+            pointer_event.key_modifiers(),
+            Some(KeyModifiers {
+                shift: false,
+                control: true,
+                alt: true,
+                meta: false,
+            })
+        );
+        assert_eq!(pointer_event.key_input(), None);
+
+        let resize_event = PlatformEvent::Resized {
+            window: WindowId(7),
+            logical_width: 800.0,
+            logical_height: 600.0,
+            scale_factor: 1.0,
+        };
+        assert_eq!(resize_event.key_modifiers(), None);
+        assert_eq!(resize_event.key_input(), None);
+    }
+
+    #[test]
+    fn key_input_is_primary_shortcut_checks_pressed_key_and_platform_modifier() {
+        let primary_mods = if cfg!(any(target_os = "macos", target_os = "ios")) {
+            KeyModifiers {
+                meta: true,
+                ..Default::default()
+            }
+        } else {
+            KeyModifiers {
+                control: true,
+                ..Default::default()
+            }
+        };
+
+        let pressed_match = KeyInput {
+            window: WindowId(1),
+            key: PlatformKey::Enter,
+            pressed: true,
+            modifiers: primary_mods,
+            repeat: false,
+            text: None,
+            character: None,
+        };
+        assert!(pressed_match.is_primary_shortcut(PlatformKey::Enter));
+        assert!(!pressed_match.is_primary_shortcut(PlatformKey::Tab));
+
+        let released = KeyInput {
+            pressed: false,
+            ..pressed_match.clone()
+        };
+        assert!(!released.is_primary_shortcut(PlatformKey::Enter));
+
+        let no_mods = KeyInput {
+            modifiers: KeyModifiers::default(),
+            ..pressed_match
+        };
+        assert!(!no_mods.is_primary_shortcut(PlatformKey::Enter));
     }
 }
 

@@ -4,22 +4,31 @@
 //! navigation, CJK/emoji rendering, and real-time state display.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
-use acme_core::{NodeId, RetainedTree};
+use std::time::Instant;
+
+use acme_core::{
+    AtlasUpload, ClickDetector, CursorHint, GlyphDraw, GlyphFormat, HitRegionSpec, HitTestLayer,
+    NodeId, Painter, Point, PointerOutcome, Rect, RetainedTree, Scene, TextPrimitive,
+};
 use acme_layout::{Edges, LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
 use acme_platform::{
-    Application, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
+    Application, CursorIcon, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
+    WindowRequest,
 };
-use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun, scene_from_frame};
-use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
-use acme_theme::{Theme, ThemeColor};
+use acme_text::{AtlasFormat, FontSystem, GlyphAtlas, TextConstraints, TextStyle};
+use acme_theme::packs::theme_by_name;
+use acme_theme::{Theme, ThemeColor, ThemeMode};
+use acme_widgets::painter_bridge::{layout_rect_to_logical, paint_canvas_with_theme, theme_color};
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::view_bridge::widget_to_views;
 use acme_widgets::{
-    ButtonState, ButtonVariant, WidgetNode, button, card, column, label, row, separator,
+    ButtonState, ButtonVariant, WidgetNode, button, canvas, card, column, label, row, separator,
 };
 
 #[cfg(test)]
 mod retained_tests;
+
+const INTERACTIVE_COUNT: usize = 9;
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -44,6 +53,7 @@ enum PlaygroundMessage {
     IncrementCounter,
     ResetCounter,
     ToggleDangerMode,
+    ToggleHighContrast,
 }
 
 // ---------------------------------------------------------------------------
@@ -52,14 +62,23 @@ enum PlaygroundMessage {
 
 struct Playground {
     dark: bool,
-    hovered: Option<usize>,
-    pressed: Option<usize>,
+    high_contrast: bool,
     focused: usize,
     cursor: (f32, f32),
     scroll: f32,
     max_scroll: f32,
-    /// Position rectangles for the 8 interactive buttons.
-    buttons: [[f32; 4]; 8],
+    /// Interactive node IDs emitted in `frame()`: 8 buttons + 1 interactive canvas.
+    interactive_ids: [NodeId; INTERACTIVE_COUNT],
+    /// Spatial hit-testing layer built each frame (fixed header + scroll-clipped viewport).
+    hit_layer: HitTestLayer,
+    /// Stateful click/hover/drag recognizer bound to `hit_layer`.
+    click_detector: ClickDetector,
+    /// Last applied pointer cursor hint to deduplicate host requests.
+    cursor_hint: CursorHint,
+    /// Pending host window requests drained by `Application::take_window_requests`.
+    pending_window_requests: Vec<WindowRequest>,
+    /// Application start timestamp for multi-click timing.
+    started_at: Instant,
     /// Number of times the counter button has been clicked.
     click_count: u32,
     /// Whether danger mode is active.
@@ -77,13 +96,17 @@ impl Playground {
     fn new() -> Self {
         Self {
             dark: false,
-            hovered: None,
-            pressed: None,
+            high_contrast: false,
             focused: 0,
             cursor: (0.0, 0.0),
             scroll: 0.0,
             max_scroll: 0.0,
-            buttons: [[0.0; 4]; 8],
+            interactive_ids: [NodeId::new(1); INTERACTIVE_COUNT],
+            hit_layer: HitTestLayer::new(),
+            click_detector: ClickDetector::new(),
+            cursor_hint: CursorHint::Default,
+            pending_window_requests: Vec::new(),
+            started_at: Instant::now(),
             click_count: 0,
             danger_mode: false,
             fonts: FontSystem::new(),
@@ -94,6 +117,97 @@ impl Playground {
             #[cfg(test)]
             last_frame_layout: None,
         }
+    }
+
+    fn current_theme(&self) -> Theme {
+        let mode = if self.dark {
+            ThemeMode::Dark
+        } else {
+            ThemeMode::Light
+        };
+        if self.high_contrast {
+            theme_by_name("high-contrast", mode).unwrap_or_else(|| {
+                if self.dark {
+                    Theme::dark()
+                } else {
+                    Theme::light()
+                }
+            })
+        } else if self.dark {
+            Theme::dark()
+        } else {
+            Theme::light()
+        }
+    }
+
+    fn contrast_canvas(high_contrast: bool, danger_mode: bool) -> WidgetNode<PlaygroundMessage> {
+        canvas()
+            .key("contrast-canvas")
+            .size(320.0, 56.0)
+            .accessible_label(if high_contrast {
+                "High Contrast Canvas Toggle (ON)"
+            } else {
+                "High Contrast Canvas Toggle (OFF)"
+            })
+            .cursor(CursorHint::Pointer)
+            .on_click(PlaygroundMessage::ToggleHighContrast)
+            .paint(move |painter, rect, theme| {
+                let colors = theme.colors;
+                let bg = theme_color(if high_contrast {
+                    colors.surface_elevated
+                } else {
+                    colors.surface
+                });
+                let border = theme_color(if danger_mode {
+                    colors.danger
+                } else if high_contrast {
+                    colors.ring
+                } else {
+                    colors.border
+                });
+                painter.rounded_rect_bordered(rect, theme.radii.md, bg, 1.5, border);
+
+                let rx = rect.origin.x.get();
+                let ry = rect.origin.y.get();
+                let rw = rect.size.width.get();
+                let rh = rect.size.height.get();
+                if rw < 48.0 || rh < 24.0 {
+                    return;
+                }
+
+                // Semantic palette swatches rendered directly through immediate Painter calls.
+                let swatches = [
+                    colors.primary,
+                    colors.secondary,
+                    colors.success,
+                    colors.warning,
+                    colors.danger,
+                    colors.accent,
+                ];
+                let bar_w = 18.0;
+                let bar_gap = 6.0;
+                let base_x = rx + 14.0;
+                let center_y = ry + rh * 0.5;
+                for (i, swatch) in swatches.iter().enumerate() {
+                    let bx = base_x + i as f32 * (bar_w + bar_gap);
+                    if bx + bar_w > rx + rw - 16.0 {
+                        break;
+                    }
+                    let bar_h = 16.0 + ((i + usize::from(high_contrast)) % 3) as f32 * 6.0;
+                    painter.rounded_rect(
+                        Rect::new(bx, center_y - bar_h * 0.5, bar_w, bar_h),
+                        theme.radii.sm,
+                        theme_color(*swatch),
+                    );
+                }
+                let indicator = theme_color(if high_contrast {
+                    colors.success
+                } else {
+                    colors.primary
+                });
+                painter.circle(Point::new(rx + rw - 24.0, center_y), 7.0, indicator);
+            })
+            .build()
     }
 
     // -----------------------------------------------------------------------
@@ -236,7 +350,10 @@ impl Playground {
                         } else {
                             "✓ OFF"
                         },
-                    ))),
+                    )))
+                    // ── Section 5: Canvas & High Contrast ──
+                    .child(label("▸ Canvas & High Contrast"))
+                    .child(Self::contrast_canvas(self.high_contrast, self.danger_mode)),
             )
             .build()
     }
@@ -276,13 +393,33 @@ impl Playground {
     // Hit testing
     // -----------------------------------------------------------------------
 
+    #[cfg(test)]
     fn hit(&self) -> Option<usize> {
-        self.buttons.iter().position(|rect| {
-            self.cursor.0 >= rect[0]
-                && self.cursor.0 <= rect[0] + rect[2]
-                && self.cursor.1 >= rect[1]
-                && self.cursor.1 <= rect[1] + rect[3]
-        })
+        let hit = self
+            .hit_layer
+            .hit_test(Point::new(self.cursor.0, self.cursor.1))?;
+        usize::try_from(hit.tag)
+            .ok()
+            .filter(|&index| index < INTERACTIVE_COUNT)
+    }
+
+    fn interactive_index_of(&self, id: NodeId) -> Option<usize> {
+        self.interactive_ids
+            .iter()
+            .position(|&node_id| node_id == id)
+    }
+
+    fn elapsed_secs(&self) -> f64 {
+        self.started_at.elapsed().as_secs_f64()
+    }
+
+    fn sync_cursor(&mut self) {
+        let next = self.click_detector.cursor();
+        if next != self.cursor_hint {
+            self.cursor_hint = next;
+            self.pending_window_requests
+                .push(WindowRequest::SetCursor(map_cursor_hint(next)));
+        }
     }
 
     fn activate(&mut self, index: usize) -> bool {
@@ -295,6 +432,7 @@ impl Playground {
                 self.click_count = 0;
                 self.danger_mode = false;
             }
+            8 => self.high_contrast = !self.high_contrast,
             _ => return false,
         }
         true
@@ -307,13 +445,12 @@ impl Playground {
     #[allow(clippy::too_many_arguments)]
     fn add_text(
         &mut self,
-        frame: &mut Frame,
+        painter: &mut Painter<'_>,
         text: &str,
         origin: [f32; 2],
         font_size: f32,
         color: ThemeColor,
         scale: f32,
-        clip: Option<[f32; 4]>,
     ) {
         let style = TextStyle {
             font_size,
@@ -324,11 +461,38 @@ impl Playground {
             .fonts
             .shape(text, &style, TextConstraints::default(), scale);
         let prepared = self.fonts.prepare(&layout, &mut self.atlas);
-        frame.text.push(TextRun {
-            prepared,
-            origin,
-            color: rgba(color),
-            clip,
+
+        let uploads = prepared
+            .uploads
+            .into_iter()
+            .map(|region| AtlasUpload {
+                page: region.page,
+                origin: [region.x, region.y],
+                size: [region.width, region.height],
+                format: map_atlas_format(region.format),
+                pixels: region.pixels,
+            })
+            .collect();
+        let glyphs = prepared
+            .glyphs
+            .into_iter()
+            .map(|glyph| GlyphDraw {
+                x: glyph.x as f32,
+                y: glyph.y as f32,
+                width: glyph.width as f32,
+                height: glyph.height as f32,
+                atlas_x: glyph.atlas_x,
+                atlas_y: glyph.atlas_y,
+                atlas_page: glyph.atlas_page,
+                format: map_atlas_format(glyph.format),
+            })
+            .collect();
+
+        painter.text_primitive(TextPrimitive {
+            origin: Point::new(origin[0], origin[1]),
+            color: theme_color(color),
+            glyphs,
+            uploads,
         });
     }
 }
@@ -343,7 +507,10 @@ fn assign_retained_ids(
     let children = match widget {
         WidgetNode::Row(container) | WidgetNode::Column(container) => &container.children[..],
         WidgetNode::Card(card) => &card.children[..],
-        WidgetNode::Button(_) | WidgetNode::Label(_) | WidgetNode::Separator(_) => &[],
+        WidgetNode::Button(_)
+        | WidgetNode::Label(_)
+        | WidgetNode::Separator(_)
+        | WidgetNode::Canvas(_) => &[],
         _ => return false,
     };
     let Some(id) = binding.id_for(widget) else {
@@ -404,7 +571,9 @@ fn apply_playground_styles(root: &mut LayoutNode, width: f32, height: f32) {
     root.children[4].style = LayoutStyle {
         kind: LayoutKind::Column,
         width: Length::px(body_width),
+        min_height: Length::px(0.0),
         flex_grow: 1.0,
+        flex_shrink: 1.0,
         overflow: Overflow::Scroll,
         gap: 12.0,
         ..LayoutStyle::default()
@@ -487,6 +656,18 @@ fn apply_playground_styles(root: &mut LayoutNode, width: f32, height: f32) {
     if content.children.len() > 13 {
         content.children[13].style.width = Length::px(body_width);
     }
+
+    // Canvas section header (child 14) & interactive Canvas (child 15)
+    if content.children.len() > 14 {
+        content.children[14].style.width = Length::px(body_width);
+    }
+    if content.children.len() > 15 {
+        content.children[15].style = LayoutStyle {
+            width: Length::px(body_width),
+            height: Length::px(56.0),
+            ..LayoutStyle::default()
+        };
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -517,10 +698,12 @@ struct PlaygroundNodeIds {
     sep2: NodeId,
     /// Footer label
     footer: NodeId,
-    /// Section header node IDs: Button Variants, Interactive Demo, Card, CJK
-    section_headers: [NodeId; 4],
+    /// Section header node IDs: Button Variants, Interactive Demo, Card, CJK, Canvas
+    section_headers: [NodeId; 5],
     /// CJK & Emoji label IDs (5 labels)
     cjk_labels: [NodeId; 5],
+    /// Interactive high-contrast Canvas node ID
+    canvas: NodeId,
 }
 
 /// Extract structural IDs from the layout root.
@@ -557,7 +740,9 @@ struct PlaygroundNodeIds {
 ///         ├── Label(emoji) (29)
 ///         ├── Label(mixed) (30)
 ///         ├── Separator (31)
-///         └── Label(footer) (32)
+///         ├── Label(footer) (32)
+///         ├── Label(section-5) (33)
+///         └── Canvas("contrast-canvas") (34)  ← interactive index 8
 fn extract_playground_ids(root: &LayoutNode) -> PlaygroundNodeIds {
     let toolbar = &root.children[0];
     let content_col = &root.children[4];
@@ -587,10 +772,11 @@ fn extract_playground_ids(root: &LayoutNode) -> PlaygroundNodeIds {
         sep2: content_col.children[12].id,   // 31
         footer: content_col.children[13].id, // 32
         section_headers: [
-            content_col.children[0].id, // 9
-            content_col.children[2].id, // 15
-            content_col.children[4].id, // 20
-            content_col.children[6].id, // 25
+            content_col.children[0].id,  // 9
+            content_col.children[2].id,  // 15
+            content_col.children[4].id,  // 20
+            content_col.children[6].id,  // 25
+            content_col.children[14].id, // 33
         ],
         cjk_labels: [
             content_col.children[7].id,  // 26
@@ -599,141 +785,23 @@ fn extract_playground_ids(root: &LayoutNode) -> PlaygroundNodeIds {
             content_col.children[10].id, // 29
             content_col.children[11].id, // 30
         ],
+        canvas: content_col.children[15].id, // 34
     }
 }
 
-// ---------------------------------------------------------------------------
-// Application trait implementation
-// ---------------------------------------------------------------------------
-
-impl Application for Playground {
-    fn window_config(&self) -> WindowConfig {
-        WindowConfig {
-            title: "AcmeUI Native Playground".into(),
-            width: 1080.0,
-            height: 720.0,
-            ..WindowConfig::default()
-        }
-    }
-
-    fn event(&mut self, event: PlatformEvent) -> bool {
-        match event {
-            PlatformEvent::PointerMoved { x, y, .. } => {
-                self.cursor = (x, y);
-                let next = self.hit();
-                let changed = next != self.hovered;
-                self.hovered = next;
-                changed
-            }
-            PlatformEvent::PointerButton { pressed, .. } => {
-                if pressed {
-                    self.pressed = self.hit();
-                    true
-                } else {
-                    let activated = self
-                        .pressed
-                        .take()
-                        .filter(|value| Some(*value) == self.hit());
-                    activated.is_some_and(|index| self.activate(index))
-                }
-            }
-            PlatformEvent::Scroll { delta_y, .. } => {
-                self.scroll = (self.scroll - delta_y).clamp(0.0, self.max_scroll);
-                true
-            }
-            PlatformEvent::Key {
-                key: PlatformKey::Tab,
-                pressed: true,
-                shift,
-                ..
-            } => {
-                self.focused = if shift {
-                    (self.focused + 7) % 8
-                } else {
-                    (self.focused + 1) % 8
-                };
-                true
-            }
-            PlatformEvent::Key {
-                key: PlatformKey::Enter | PlatformKey::Space,
-                pressed: true,
-                ..
-            } => self.activate(self.focused),
-            PlatformEvent::Resized { .. } => true,
-            _ => false,
-        }
-    }
-
-    fn on_gpu_recovered(&mut self, _window: WindowId) {
-        // The renderer rebuilt empty GPU atlases after device loss; drop the CPU
-        // atlas so the next frame re-uploads every glyph instead of referencing
-        // blank texture regions.
-        self.atlas.clear();
-    }
-
-    fn frame(&mut self, context: FrameContext) -> acme_core::Scene {
-        let width = context.logical_width;
-        let height = context.logical_height;
-        let theme = if self.dark {
-            Theme::dark()
-        } else {
-            Theme::light()
-        };
-        let colors = theme.colors;
-
-        // ── 1. Build and style the layout tree ──
-        let description = self.build_tree();
-        let mut root = self.layout_root(&description);
-
-        apply_playground_styles(&mut root, width, height);
-
-        // ── 2. Compute layout ──
-        let snapshot = self
-            .layout
-            .compute(&root, (width, height))
-            .expect("finite Playground viewport");
-        let ids = extract_playground_ids(&root);
-        #[cfg(test)]
-        {
-            self.last_frame_layout = Some((ids.button_ids, snapshot.clone()));
-        }
-
-        // ── 3. Extract button hit-test rects ──
-        for (index, btn_id) in ids.button_ids.into_iter().enumerate() {
-            if let Some(rect) = snapshot.get(btn_id) {
-                self.buttons[index] = [rect.x, rect.y, rect.width, rect.height];
-            }
-        }
-
-        // ── 4. Scroll metrics ──
-        if let Some(metrics) = snapshot.scroll_metrics(ids.content) {
-            self.max_scroll = (metrics.content_height - metrics.viewport_height).max(0.0);
-        }
-        self.scroll = self.scroll.clamp(0.0, self.max_scroll);
-
-        // ── 5. Build frame ──
-        let mut frame = Frame {
-            clear: rgba(colors.background),
-            ..Frame::default()
-        };
-
-        // ── Toolbar background ──
-        if let Some(header_rect) = snapshot.get(ids.toolbar) {
-            frame.quads.push(Quad {
-                rect: [
-                    header_rect.x,
-                    header_rect.y,
-                    header_rect.width,
-                    header_rect.height,
-                ],
-                color: rgba(colors.surface),
-                radius: theme.radii.lg,
-                border_width: 1.0,
-                border_color: rgba(colors.border),
-            });
-        }
-
-        // ── Render interactive buttons by index ──
+impl Playground {
+    #[allow(clippy::too_many_arguments)]
+    fn paint_button(
+        &mut self,
+        painter: &mut Painter<'_>,
+        theme: &Theme,
+        index: usize,
+        node_id: NodeId,
+        rect: Rect<acme_core::Logical>,
+        scale_factor: f32,
+        hovered_id: Option<NodeId>,
+        pressed_id: Option<NodeId>,
+    ) {
         let button_variants = [
             ButtonVariant::Primary,   // 0: theme toggle
             ButtonVariant::Primary,   // 1: primary click
@@ -759,116 +827,315 @@ impl Application for Playground {
             "",
         ];
 
-        for (index, rect) in self.buttons.into_iter().enumerate() {
-            let effective_variant = if index == 7 {
-                if self.danger_mode {
-                    ButtonVariant::Danger
-                } else {
-                    ButtonVariant::Ghost
-                }
+        let effective_variant = if index == 7 {
+            if self.danger_mode {
+                ButtonVariant::Danger
             } else {
-                button_variants[index]
-            };
+                ButtonVariant::Ghost
+            }
+        } else {
+            button_variants[index]
+        };
 
-            let state = ButtonState {
-                hovered: self.hovered == Some(index),
-                pressed: self.pressed == Some(index),
-                focused: self.focused == index,
-            };
+        let state = ButtonState {
+            hovered: hovered_id == Some(node_id),
+            pressed: pressed_id == Some(node_id),
+            focused: self.focused == index,
+        };
+        let disabled = index == 5 && self.click_count >= 999;
 
-            let disabled = index == 5 && self.click_count >= 999;
+        let key = match index {
+            0 => "theme",
+            1 => "primary",
+            2 => "secondary",
+            3 => "ghost",
+            4 => "danger",
+            5 => "clicker",
+            6 => "reset",
+            7 => "toggle-danger",
+            _ => "",
+        };
 
-            let key = match index {
-                0 => "theme",
-                1 => "primary",
-                2 => "secondary",
-                3 => "ghost",
-                4 => "danger",
-                5 => "clicker",
-                6 => "reset",
-                7 => "toggle-danger",
-                _ => "",
-            };
+        let label_text: String = match index {
+            5 => format!("Clicks: {}", self.click_count),
+            7 => {
+                if self.danger_mode {
+                    "⚠ Danger ON".to_string()
+                } else {
+                    "Safe Mode".to_string()
+                }
+            }
+            _ => button_labels[index].to_string(),
+        };
 
-            // Pre-compute label text (must outlive the button builder)
-            let label_text: String = match index {
-                5 => format!("Clicks: {}", self.click_count),
-                7 => {
-                    if self.danger_mode {
-                        "⚠ Danger ON".to_string()
-                    } else {
-                        "Safe Mode".to_string()
+        let builder = button::<PlaygroundMessage>(key, label_text.as_str())
+            .variant(effective_variant)
+            .disabled(disabled);
+        let resolved = builder.resolve_style(theme, state);
+
+        painter.rounded_rect_bordered(
+            rect,
+            theme.radii.md,
+            theme_color(resolved.background),
+            if state.focused { 3.0 } else { 1.0 },
+            theme_color(if state.focused {
+                resolved.focus
+            } else {
+                resolved.border
+            }),
+        );
+
+        self.add_text(
+            painter,
+            &label_text,
+            [rect.origin.x.get() + 14.0, rect.origin.y.get() + 13.0],
+            theme.typography.label,
+            if disabled {
+                theme.colors.disabled_text
+            } else {
+                resolved.foreground
+            },
+            scale_factor,
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Application trait implementation
+// ---------------------------------------------------------------------------
+
+impl Application for Playground {
+    fn window_config(&self) -> WindowConfig {
+        WindowConfig {
+            title: "AcmeUI Native Playground".into(),
+            width: 1080.0,
+            height: 720.0,
+            ..WindowConfig::default()
+        }
+    }
+
+    fn take_window_requests(&mut self, _window: WindowId) -> Vec<WindowRequest> {
+        std::mem::take(&mut self.pending_window_requests)
+    }
+
+    fn event(&mut self, event: PlatformEvent) -> bool {
+        match event {
+            PlatformEvent::PointerMoved { x, y, .. } => {
+                self.cursor = (x, y);
+                let point = Point::new(x, y);
+                let prev_hovered = self.click_detector.hovered();
+                let prev_dragging = self.click_detector.is_dragging();
+                let outcomes = self.click_detector.on_pointer_move(&self.hit_layer, point);
+                self.sync_cursor();
+                !outcomes.is_empty()
+                    || self.click_detector.hovered() != prev_hovered
+                    || self.click_detector.is_dragging() != prev_dragging
+            }
+            PlatformEvent::PointerLeft { .. } | PlatformEvent::CursorLeft { .. } => {
+                let outcomes = self.click_detector.on_pointer_leave();
+                self.sync_cursor();
+                !outcomes.is_empty()
+            }
+            PlatformEvent::PointerButton {
+                pressed,
+                x,
+                y,
+                button,
+                ..
+            } => {
+                self.cursor = (x, y);
+                let point = Point::new(x, y);
+                let outcomes = self.click_detector.on_pointer_button(
+                    &self.hit_layer,
+                    button,
+                    pressed,
+                    point,
+                    self.elapsed_secs(),
+                );
+                let mut activated = false;
+                for outcome in &outcomes {
+                    if let PointerOutcome::Clicked { id, button: 0, .. } = *outcome
+                        && let Some(index) = self.interactive_index_of(id)
+                    {
+                        self.focused = index;
+                        activated |= self.activate(index);
                     }
                 }
-                _ => button_labels[index].to_string(),
-            };
-
-            // Build a temporary button for style resolution
-            let builder = button::<PlaygroundMessage>(key, label_text.as_str())
-                .variant(effective_variant)
-                .disabled(disabled);
-            let resolved = builder.resolve_style(&theme, state);
-
-            // Button quad
-            frame.quads.push(Quad {
-                rect,
-                color: rgba(resolved.background),
-                radius: theme.radii.md,
-                border_width: if state.focused { 3.0 } else { 1.0 },
-                border_color: rgba(if state.focused {
-                    resolved.focus
+                if !pressed {
+                    let _ = self.click_detector.on_pointer_move(&self.hit_layer, point);
+                }
+                self.sync_cursor();
+                activated || !outcomes.is_empty()
+            }
+            PlatformEvent::Scroll { delta_y, .. } => {
+                self.scroll = (self.scroll - delta_y).clamp(0.0, self.max_scroll);
+                true
+            }
+            PlatformEvent::Key {
+                key: PlatformKey::Tab,
+                pressed: true,
+                shift,
+                ..
+            } => {
+                self.focused = if shift {
+                    (self.focused + INTERACTIVE_COUNT - 1) % INTERACTIVE_COUNT
                 } else {
-                    resolved.border
-                }),
-            });
+                    (self.focused + 1) % INTERACTIVE_COUNT
+                };
+                true
+            }
+            PlatformEvent::Key {
+                key: PlatformKey::Enter | PlatformKey::Space,
+                pressed: true,
+                ..
+            } => self.activate(self.focused),
+            PlatformEvent::Resized { .. } => true,
+            _ => false,
+        }
+    }
 
-            // Button label text
-            self.add_text(
-                &mut frame,
-                &label_text,
-                [rect[0] + 14.0, rect[1] + 13.0],
-                theme.typography.label,
-                if disabled {
-                    colors.disabled_text
-                } else {
-                    resolved.foreground
-                },
+    fn on_gpu_recovered(&mut self, _window: WindowId) {
+        // The renderer rebuilt empty GPU atlases after device loss; drop the CPU
+        // atlas so the next frame re-uploads every glyph instead of referencing
+        // blank texture regions.
+        self.atlas.clear();
+    }
+
+    fn frame(&mut self, context: FrameContext) -> Scene {
+        let width = context.logical_width;
+        let height = context.logical_height;
+        let theme = self.current_theme();
+        let colors = theme.colors;
+        self.atlas.begin_frame();
+
+        // ── 1. Build and style the layout tree ──
+        let description = self.build_tree();
+        let mut root = self.layout_root(&description);
+
+        apply_playground_styles(&mut root, width, height);
+
+        // ── 2. Compute layout ──
+        let snapshot = self
+            .layout
+            .compute(&root, (width, height))
+            .expect("finite Playground viewport");
+        let ids = extract_playground_ids(&root);
+        #[cfg(test)]
+        {
+            self.last_frame_layout = Some((ids.button_ids, snapshot.clone()));
+        }
+
+        for (index, btn_id) in ids.button_ids.into_iter().enumerate() {
+            self.interactive_ids[index] = btn_id;
+        }
+        self.interactive_ids[8] = ids.canvas;
+
+        // ── 3. Scroll metrics ──
+        if let Some(metrics) = snapshot.scroll_metrics(ids.content) {
+            self.max_scroll = (metrics.content_height - metrics.viewport_height).max(0.0);
+        }
+        self.scroll = self.scroll.clamp(0.0, self.max_scroll);
+
+        // ── 4. Rebuild HitTestLayer (fixed header vs scroll-clipped viewport) ──
+        self.hit_layer.clear();
+        if let Some(header_btn_rect) = snapshot.get(ids.button_ids[0]) {
+            self.hit_layer.push_region(
+                HitRegionSpec::rect(ids.button_ids[0], layout_rect_to_logical(*header_btn_rect))
+                    .enabled(true)
+                    .cursor(CursorHint::Pointer)
+                    .tag(0),
+            );
+        }
+        if let Some(vp) = snapshot.get(ids.content) {
+            let vp_rect = layout_rect_to_logical(*vp);
+            self.hit_layer
+                .with_scroll_viewport(vp_rect, 0.0, self.scroll, |layer| {
+                    for (offset, btn_id) in ids.button_ids[1..].iter().enumerate() {
+                        let index = offset + 1;
+                        if let Some(rect) = snapshot.get(*btn_id) {
+                            let enabled = !(index == 5 && self.click_count >= 999);
+                            let cursor = if enabled {
+                                CursorHint::Pointer
+                            } else {
+                                CursorHint::NotAllowed
+                            };
+                            layer.push_region(
+                                HitRegionSpec::rect(*btn_id, layout_rect_to_logical(*rect))
+                                    .enabled(enabled)
+                                    .cursor(cursor)
+                                    .tag(index as u64),
+                            );
+                        }
+                    }
+                    if let Some(canvas_rect) = snapshot.get(ids.canvas) {
+                        layer.push_region(
+                            HitRegionSpec::rect(ids.canvas, layout_rect_to_logical(*canvas_rect))
+                                .enabled(true)
+                                .cursor(CursorHint::Pointer)
+                                .tag(8),
+                        );
+                    }
+                });
+        }
+
+        let hovered_id = self.click_detector.hovered();
+        let pressed_id = self.click_detector.pressed();
+
+        // ── 5. Paint immediate scene via acme_core::Painter ──
+        let mut painter = Painter::with_clear(theme_color(colors.background));
+
+        // ── Fixed Header / Toolbar ──
+        if let Some(header_rect) = snapshot.get(ids.toolbar) {
+            painter.rounded_rect_bordered(
+                layout_rect_to_logical(*header_rect),
+                theme.radii.lg,
+                theme_color(colors.surface),
+                1.0,
+                theme_color(colors.border),
+            );
+        }
+        if let Some(btn_rect) = snapshot.get(ids.button_ids[0]) {
+            self.paint_button(
+                &mut painter,
+                &theme,
+                0,
+                ids.button_ids[0],
+                layout_rect_to_logical(*btn_rect),
                 context.scale_factor,
-                None,
+                hovered_id,
+                pressed_id,
             );
         }
 
-        // ── Fixed header text ──
         if let Some(title_rect) = snapshot.get(ids.title) {
             self.add_text(
-                &mut frame,
+                &mut painter,
                 "AcmeUI Native Playground",
                 [title_rect.x, title_rect.y + 2.0],
                 22.0,
                 colors.foreground,
                 context.scale_factor,
-                None,
             );
         }
 
         if let Some(sub_rect) = snapshot.get(ids.subtitle) {
             self.add_text(
-                &mut frame,
+                &mut painter,
                 "Interactive Widget Testing · 繁體中文 🎨",
                 [sub_rect.x, sub_rect.y + 2.0],
                 theme.typography.body,
                 colors.muted_foreground,
                 context.scale_factor,
-                None,
             );
         }
 
         if let Some(status_rect) = snapshot.get(ids.status) {
             self.add_text(
-                &mut frame,
+                &mut painter,
                 &format!(
-                    "Theme: {}  Clicks: {}  Danger: {}",
+                    "Theme: {}{}  Clicks: {}  Danger: {}",
                     if self.dark { "Dark" } else { "Light" },
+                    if self.high_contrast { " (HC)" } else { "" },
                     self.click_count,
                     if self.danger_mode { "ON" } else { "OFF" },
                 ),
@@ -876,149 +1143,200 @@ impl Application for Playground {
                 theme.typography.label,
                 colors.muted_foreground,
                 context.scale_factor,
-                None,
             );
         }
 
         if let Some(sep_rect) = snapshot.get(ids.sep1) {
-            frame.quads.push(Quad::solid(
-                [sep_rect.x, sep_rect.y, sep_rect.width, 1.0],
-                rgba(colors.border),
-            ));
+            painter.fill_rect(
+                Rect::new(sep_rect.x, sep_rect.y, sep_rect.width, 1.0),
+                theme_color(colors.border),
+            );
         }
 
-        // ── Scroll viewport ──
+        // ── Scroll viewport (clipped + offset) ──
         if let Some(vp) = snapshot.get(ids.content) {
-            let clip = [vp.x, vp.y, vp.width, vp.height];
+            let vp_rect = layout_rect_to_logical(*vp);
             let scroll = self.scroll;
 
-            // Section headers
-            let section_texts = [
-                (ids.section_headers[0], "▸ Button Variants"),
-                (ids.section_headers[1], "▸ Interactive Demo"),
-                (ids.section_headers[2], "▸ Card Container"),
-                (ids.section_headers[3], "▸ CJK & Emoji Rendering"),
-            ];
-            for (sid, text) in &section_texts {
-                if let Some(r) = snapshot.get(*sid) {
-                    let y = r.y - scroll;
-                    self.add_text(
-                        &mut frame,
-                        text,
-                        [r.x + 4.0, y + 2.0],
-                        theme.typography.body,
-                        colors.foreground,
-                        context.scale_factor,
-                        Some(clip),
-                    );
-                }
-            }
+            painter.with_clip(vp_rect, |painter| {
+                painter.with_offset(0.0, -scroll, |painter| {
+                    // Scrollable interactive buttons (1..=7)
+                    for (offset, btn_id) in ids.button_ids[1..].iter().enumerate() {
+                        let index = offset + 1;
+                        if let Some(btn_rect) = snapshot.get(*btn_id) {
+                            self.paint_button(
+                                painter,
+                                &theme,
+                                index,
+                                *btn_id,
+                                layout_rect_to_logical(*btn_rect),
+                                context.scale_factor,
+                                hovered_id,
+                                pressed_id,
+                            );
+                        }
+                    }
 
-            // Card background
-            if let Some(card_rect) = snapshot.get(ids.card) {
-                let y = card_rect.y - scroll;
-                frame.clipped_quads.push(ClippedQuad {
-                    quad: Quad {
-                        rect: [card_rect.x, y, card_rect.width, card_rect.height],
-                        color: rgba(colors.surface),
-                        radius: theme.radii.lg,
-                        border_width: 1.0,
-                        border_color: rgba(colors.border),
-                    },
-                    clip,
-                });
-                // Card content labels
-                let card_texts = [
-                    (
-                        ids.card_children[0],
-                        "Card — a rounded surface with column layout and padding.",
-                    ),
-                    (
-                        ids.card_children[1],
-                        "Cards can contain any widgets: labels, buttons, rows, columns.",
-                    ),
-                    (
-                        ids.card_children[2],
-                        "Supports nesting, gap spacing, and semantic padding.",
-                    ),
-                ];
-                for (cid, text) in &card_texts {
-                    if let Some(cr) = snapshot.get(*cid) {
-                        let cy = cr.y - scroll;
-                        self.add_text(
-                            &mut frame,
-                            text,
-                            [cr.x + 4.0, cy + 2.0],
-                            theme.typography.body,
-                            colors.foreground,
-                            context.scale_factor,
-                            Some(clip),
+                    // Section headers
+                    let section_texts = [
+                        (ids.section_headers[0], "▸ Button Variants"),
+                        (ids.section_headers[1], "▸ Interactive Demo"),
+                        (ids.section_headers[2], "▸ Card Container"),
+                        (ids.section_headers[3], "▸ CJK & Emoji Rendering"),
+                        (ids.section_headers[4], "▸ Canvas & High Contrast"),
+                    ];
+                    for (sid, text) in &section_texts {
+                        if let Some(r) = snapshot.get(*sid) {
+                            self.add_text(
+                                painter,
+                                text,
+                                [r.x + 4.0, r.y + 2.0],
+                                theme.typography.body,
+                                colors.foreground,
+                                context.scale_factor,
+                            );
+                        }
+                    }
+
+                    // Card background and labels
+                    if let Some(card_rect) = snapshot.get(ids.card) {
+                        painter.rounded_rect_bordered(
+                            layout_rect_to_logical(*card_rect),
+                            theme.radii.lg,
+                            theme_color(colors.surface),
+                            1.0,
+                            theme_color(colors.border),
+                        );
+                        let card_texts = [
+                            (
+                                ids.card_children[0],
+                                "Card — a rounded surface with column layout and padding.",
+                            ),
+                            (
+                                ids.card_children[1],
+                                "Cards can contain any widgets: labels, buttons, rows, columns.",
+                            ),
+                            (
+                                ids.card_children[2],
+                                "Supports nesting, gap spacing, and semantic padding.",
+                            ),
+                        ];
+                        for (cid, text) in &card_texts {
+                            if let Some(cr) = snapshot.get(*cid) {
+                                self.add_text(
+                                    painter,
+                                    text,
+                                    [cr.x + 4.0, cr.y + 2.0],
+                                    theme.typography.body,
+                                    colors.foreground,
+                                    context.scale_factor,
+                                );
+                            }
+                        }
+                    }
+
+                    // CJK & Emoji labels
+                    let cjk_emoji_texts = [
+                        (ids.cjk_labels[0], "繁體中文：系統介面與文字渲染測試 🀄"),
+                        (ids.cjk_labels[1], "日本語：システムインターフェース 🗾"),
+                        (ids.cjk_labels[2], "한국어: 사용자 인터페이스 테스트 🎯"),
+                        (ids.cjk_labels[3], "Emoji: 🚀🎨🙂🎉🔥💯⭐🧪✨🎭👋🌟😊🎮"),
+                        (ids.cjk_labels[4], "Mixed: Hello 你好 こんにちは 🌍 123 ABC"),
+                    ];
+                    for (cid, text) in &cjk_emoji_texts {
+                        if let Some(r) = snapshot.get(*cid) {
+                            self.add_text(
+                                painter,
+                                text,
+                                [r.x + 4.0, r.y + 2.0],
+                                theme.typography.body,
+                                colors.foreground,
+                                context.scale_factor,
+                            );
+                        }
+                    }
+
+                    // Separator in content area
+                    if let Some(sep2) = snapshot.get(ids.sep2) {
+                        painter.fill_rect(
+                            Rect::new(sep2.x, sep2.y, sep2.width, 1.0),
+                            theme_color(colors.border),
                         );
                     }
-                }
-            }
 
-            // CJK & Emoji labels
-            let cjk_emoji_texts = [
-                (ids.cjk_labels[0], "繁體中文：系統介面與文字渲染測試 🀄"),
-                (ids.cjk_labels[1], "日本語：システムインターフェース 🗾"),
-                (ids.cjk_labels[2], "한국어: 사용자 인터페이스 테스트 🎯"),
-                (ids.cjk_labels[3], "Emoji: 🚀🎨🙂🎉🔥💯⭐🧪✨🎭👋🌟😊🎮"),
-                (ids.cjk_labels[4], "Mixed: Hello 你好 こんにちは 🌍 123 ABC"),
-            ];
-            for (cid, text) in &cjk_emoji_texts {
-                if let Some(r) = snapshot.get(*cid) {
-                    let y = r.y - scroll;
-                    self.add_text(
-                        &mut frame,
-                        text,
-                        [r.x + 4.0, y + 2.0],
-                        theme.typography.body,
-                        colors.foreground,
-                        context.scale_factor,
-                        Some(clip),
-                    );
-                }
-            }
+                    // State footer
+                    if let Some(footer) = snapshot.get(ids.footer) {
+                        self.add_text(
+                            painter,
+                            &format!(
+                                "State: {}  HC: {}  Clicks: {}  Danger: {}",
+                                if self.dark {
+                                    "🌙 Dark"
+                                } else {
+                                    "☀️ Light"
+                                },
+                                if self.high_contrast { "ON" } else { "OFF" },
+                                self.click_count,
+                                if self.danger_mode {
+                                    "⚠ ON"
+                                } else {
+                                    "✓ OFF"
+                                },
+                            ),
+                            [footer.x + 4.0, footer.y + 2.0],
+                            theme.typography.label,
+                            colors.muted_foreground,
+                            context.scale_factor,
+                        );
+                    }
 
-            // Separator in content area
-            if let Some(sep2) = snapshot.get(ids.sep2) {
-                let y = sep2.y - scroll;
-                frame.clipped_quads.push(ClippedQuad {
-                    quad: Quad::solid([sep2.x, y, sep2.width, 1.0], rgba(colors.border)),
-                    clip,
+                    // Interactive high-contrast Canvas widget
+                    if let Some(canvas_layout_rect) = snapshot.get(ids.canvas) {
+                        let canvas_rect = layout_rect_to_logical(*canvas_layout_rect);
+                        if let WidgetNode::Column(root_col) = &description
+                            && let Some(WidgetNode::Column(content_col)) = root_col.children.get(4)
+                            && let Some(WidgetNode::Canvas(canvas_widget)) =
+                                content_col.children.get(15)
+                        {
+                            paint_canvas_with_theme(canvas_widget, canvas_rect, &theme, painter);
+                        }
+                        if self.focused == 8 || hovered_id == Some(ids.canvas) {
+                            let ring_color = if self.focused == 8 {
+                                theme_color(colors.ring)
+                            } else {
+                                theme_color(colors.primary)
+                            };
+                            painter.rect(
+                                canvas_rect,
+                                acme_core::RectStyle::default()
+                                    .radius(theme.radii.md)
+                                    .border(if self.focused == 8 { 3.0 } else { 2.0 }, ring_color),
+                            );
+                        }
+                        let canvas_label = if self.high_contrast {
+                            "Canvas: High Contrast ON (click or Space)"
+                        } else {
+                            "Canvas: Standard Theme (click or Space)"
+                        };
+                        painter.with_clip(canvas_rect, |painter| {
+                            self.add_text(
+                                painter,
+                                canvas_label,
+                                [
+                                    canvas_rect.origin.x.get() + 168.0,
+                                    canvas_rect.origin.y.get() + 19.0,
+                                ],
+                                theme.typography.label,
+                                colors.foreground,
+                                context.scale_factor,
+                            );
+                        });
+                    }
                 });
-            }
-
-            // State footer
-            if let Some(footer) = snapshot.get(ids.footer) {
-                let y = footer.y - scroll;
-                self.add_text(
-                    &mut frame,
-                    &format!(
-                        "State: {}  Clicks: {}  Danger: {}",
-                        if self.dark {
-                            "🌙 Dark"
-                        } else {
-                            "☀️ Light"
-                        },
-                        self.click_count,
-                        if self.danger_mode {
-                            "⚠ ON"
-                        } else {
-                            "✓ OFF"
-                        },
-                    ),
-                    [footer.x + 4.0, y + 2.0],
-                    theme.typography.label,
-                    colors.muted_foreground,
-                    context.scale_factor,
-                    Some(clip),
-                );
-            }
+            });
         }
 
-        scene_from_frame(&frame)
+        painter.finish()
     }
 }
 
@@ -1026,6 +1344,231 @@ impl Application for Playground {
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn rgba(color: ThemeColor) -> [f32; 4] {
-    [color.red, color.green, color.blue, color.alpha]
+fn map_cursor_hint(hint: CursorHint) -> CursorIcon {
+    match hint {
+        CursorHint::Default => CursorIcon::Default,
+        CursorHint::Pointer => CursorIcon::Pointer,
+        CursorHint::Text => CursorIcon::Text,
+        CursorHint::Grab => CursorIcon::Grab,
+        CursorHint::Grabbing => CursorIcon::Grabbing,
+        CursorHint::ResizeEW => CursorIcon::ResizeHorizontal,
+        CursorHint::ResizeNS => CursorIcon::ResizeVertical,
+        CursorHint::NotAllowed => CursorIcon::NotAllowed,
+    }
+}
+
+fn map_atlas_format(format: AtlasFormat) -> GlyphFormat {
+    match format {
+        AtlasFormat::Alpha8 => GlyphFormat::Alpha8,
+        AtlasFormat::Rgba8 => GlyphFormat::Rgba8,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use acme_core::DrawCommand;
+
+    fn ctx(width: f32, height: f32) -> FrameContext {
+        FrameContext {
+            window: WindowId(0),
+            logical_width: width,
+            logical_height: height,
+            scale_factor: 1.0,
+        }
+    }
+
+    fn move_pointer(app: &mut Playground, x: f32, y: f32) -> bool {
+        app.event(PlatformEvent::PointerMoved {
+            window: WindowId(0),
+            x,
+            y,
+        })
+    }
+
+    fn press_pointer(app: &mut Playground, x: f32, y: f32, pressed: bool) -> bool {
+        app.event(PlatformEvent::PointerButton {
+            window: WindowId(0),
+            pressed,
+            x,
+            y,
+            button: 0,
+            pointer: 1,
+            shift: false,
+            ctrl: false,
+            alt: false,
+        })
+    }
+
+    fn layout_rect(app: &Playground, id: NodeId) -> acme_layout::LayoutRect {
+        let (_, snapshot) = app.last_frame_layout.as_ref().expect("frame layout stored");
+        *snapshot.get(id).expect("node rect exists")
+    }
+
+    #[test]
+    fn painter_emits_valid_scene_with_balanced_clips_and_high_contrast_canvas() {
+        let mut app = Playground::new();
+        let scene = app.frame(ctx(1080.0, 720.0));
+        assert!(scene.validate().is_ok(), "emitted scene must validate");
+
+        let commands = scene.commands();
+        let push_clips = commands
+            .iter()
+            .filter(|cmd| matches!(cmd, DrawCommand::PushClip(_)))
+            .count();
+        let pop_clips = commands
+            .iter()
+            .filter(|cmd| matches!(cmd, DrawCommand::PopClip))
+            .count();
+        assert_eq!(push_clips, pop_clips);
+        assert!(push_clips >= 2, "viewport and canvas clips expected");
+        assert!(
+            commands
+                .iter()
+                .any(|cmd| matches!(cmd, DrawCommand::Quad(_))),
+            "expected Quad commands from Painter"
+        );
+        assert!(
+            commands
+                .iter()
+                .any(|cmd| matches!(cmd, DrawCommand::Text(_))),
+            "expected Text commands from Painter"
+        );
+
+        let default_clear = scene.clear_color();
+        app.high_contrast = true;
+        let hc_scene = app.frame(ctx(1080.0, 720.0));
+        assert!(hc_scene.validate().is_ok());
+        assert_ne!(hc_scene.clear_color(), default_clear);
+    }
+
+    #[test]
+    fn scroll_clipped_hit_layer_and_click_detector_handle_header_viewport_and_cursor() {
+        let mut app = Playground::new();
+        // Compact height so `content` scrolls and clips `btn-row` when scrolled down.
+        let _ = app.frame(ctx(800.0, 380.0));
+
+        // 1. Fixed header theme button remains clickable even after scrolling down.
+        app.scroll = 140.0;
+        let _ = app.frame(ctx(800.0, 380.0));
+
+        let header_btn = layout_rect(&app, app.interactive_ids[0]);
+        let hx = header_btn.x + header_btn.width * 0.5;
+        let hy = header_btn.y + header_btn.height * 0.5;
+
+        assert!(move_pointer(&mut app, hx, hy));
+        assert_eq!(app.click_detector.cursor(), CursorHint::Pointer);
+        let requests = app.take_window_requests(WindowId(0));
+        assert!(requests.contains(&WindowRequest::SetCursor(CursorIcon::Pointer)));
+
+        assert!(!app.dark);
+        assert!(press_pointer(&mut app, hx, hy, true));
+        assert!(press_pointer(&mut app, hx, hy, false));
+        assert!(app.dark, "clicking fixed header button toggles theme");
+
+        // 2. Scrolled-off button in `btn-row` (`primary`, index 1) must be clipped out.
+        let primary_btn = layout_rect(&app, app.interactive_ids[1]);
+        let px_unscrolled = primary_btn.x + primary_btn.width * 0.5;
+        let py_scrolled = (primary_btn.y - app.scroll) + primary_btn.height * 0.5;
+        app.cursor = (px_unscrolled, py_scrolled);
+        assert_eq!(
+            app.hit(),
+            None,
+            "scrolled-off button must be clipped (primary={primary_btn:?}, scroll={}, max_scroll={})",
+            app.scroll,
+            app.max_scroll
+        );
+
+        assert!(!press_pointer(&mut app, px_unscrolled, py_scrolled, true));
+        assert!(!press_pointer(&mut app, px_unscrolled, py_scrolled, false));
+        assert_eq!(app.click_count, 0, "clipped button click must not activate");
+
+        // 3. When scroll = 0, clicking `clicker` (index 5) increments counter and canvas toggles HC.
+        app.scroll = 0.0;
+        let _ = app.frame(ctx(1080.0, 720.0));
+        let clicker_rect = layout_rect(&app, app.interactive_ids[5]);
+        let cx = clicker_rect.x + clicker_rect.width * 0.5;
+        let cy = clicker_rect.y + clicker_rect.height * 0.5;
+        assert!(move_pointer(&mut app, cx, cy));
+        assert!(press_pointer(&mut app, cx, cy, true));
+        assert!(press_pointer(&mut app, cx, cy, false));
+        assert_eq!(app.click_count, 1);
+
+        // 4. Scroll down to bottom so the interactive Canvas enters the viewport and toggles HC.
+        app.scroll = app.max_scroll;
+        let _ = app.frame(ctx(1080.0, 720.0));
+        let canvas_rect = layout_rect(&app, app.interactive_ids[8]);
+        let cvx = canvas_rect.x + canvas_rect.width * 0.5;
+        let cvy = (canvas_rect.y - app.scroll) + canvas_rect.height * 0.5;
+        assert!(!app.high_contrast);
+        assert!(move_pointer(&mut app, cvx, cvy));
+        assert!(press_pointer(&mut app, cvx, cvy, true));
+        assert!(press_pointer(&mut app, cvx, cvy, false));
+        assert!(app.high_contrast, "clicking canvas toggles high contrast");
+    }
+
+    #[test]
+    fn drag_out_cancels_click_and_keyboard_focus_cycles_all_controls() {
+        let mut app = Playground::new();
+        let _ = app.frame(ctx(1080.0, 720.0));
+
+        let clicker = layout_rect(&app, app.interactive_ids[5]);
+        let start_x = clicker.x + clicker.width * 0.5;
+        let start_y = clicker.y + clicker.height * 0.5;
+
+        // Press inside button, drag outside, release -> no click activation.
+        assert!(press_pointer(&mut app, start_x, start_y, true));
+        assert_eq!(app.click_detector.pressed(), Some(app.interactive_ids[5]));
+        assert!(move_pointer(&mut app, start_x + 300.0, start_y));
+        assert!(app.click_detector.is_dragging());
+        assert!(press_pointer(&mut app, start_x + 300.0, start_y, false));
+        assert_eq!(app.click_detector.pressed(), None);
+        assert_eq!(app.click_count, 0, "drag-out release must cancel click");
+
+        // Tab through interactive buttons to the canvas (index 8) and activate with Space.
+        assert_eq!(app.focused, 0);
+        for _ in 0..8 {
+            assert!(app.event(PlatformEvent::Key {
+                window: WindowId(0),
+                key: PlatformKey::Tab,
+                pressed: true,
+                shift: false,
+                ctrl: false,
+                alt: false,
+                meta: false,
+                repeat: false,
+                text: None,
+                character: None,
+            }));
+        }
+        assert_eq!(app.focused, 8);
+        assert!(app.event(PlatformEvent::Key {
+            window: WindowId(0),
+            key: PlatformKey::Space,
+            pressed: true,
+            shift: false,
+            ctrl: false,
+            alt: false,
+            meta: false,
+            repeat: false,
+            text: None,
+            character: None,
+        }));
+        assert!(app.high_contrast);
+
+        // Shift+Tab wraps backwards cleanly.
+        assert!(app.event(PlatformEvent::Key {
+            window: WindowId(0),
+            key: PlatformKey::Tab,
+            pressed: true,
+            shift: true,
+            ctrl: false,
+            alt: false,
+            meta: false,
+            repeat: false,
+            text: None,
+            character: None,
+        }));
+        assert_eq!(app.focused, 7);
+    }
 }

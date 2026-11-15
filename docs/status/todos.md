@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 052 — Immediate-mode Painter, HitTestLayer, Theme JSON & backlog completion (2026-11-15)
+
+- [x] Implement `Painter`/`Canvas`/`painter_bridge`, `HitTestLayer`/`ClickDetector`/`hit_bridge`, `HighContrastPack`, `Theme::to_json`/`from_json`, `KeyModifiers`/`KeyInput`, `LiveRegion`, `ProgressRing`, `QRCode`, charts, `DropdownMenu`, `Drawer`, `DatePicker`, `Combobox`, `SliderMarks`, `BottomNav`, `PullToRefresh`, `MobileTabBar`/`MobileDrawer`/`MobileCarousel`, and `FrameDirtyTracker`; migrate `apps/playground`, `apps/gallery`, and `apps/acme-gallery`.
+- [x] Resolve all P1/P2 independent review findings (`Dialog`/`Popover`/`Table`/`DataGrid`/`Drawer`/`MobileDrawer`/clip balance/UTF-8 offsets/AA contrast/theme validation), preserve `confirm_dialog.rs`/`modal.rs`/`context_menu.rs` and `Cargo.lock`, and pass workspace/feature/consumer/package/security/CPU gates; [report](../team/roadmap-052/REPORT.md).
+- [ ] Live GPU window, Windows 注音 IME, physical DPI/touch hardware, and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 051 — Notification typed action/Close identity (2026-11-13)
 
 - [x] Investigate current typed messages, distinct retained control identity/keyed reorder and optional-sibling continuity regression-first: already GREEN; preserve production conversion and existing four tests.

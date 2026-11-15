@@ -31,7 +31,9 @@ pub use frame::{
 pub use content::{find_text_input_marker, render_content, tree_key_static};
 
 // ── Layer 2: Hit testing ──
-pub use hit_test::{collect_data_widget_hits, collect_hit_regions};
+pub use hit_test::{
+    build_hit_layer, collect_data_widget_hits, collect_hit_regions, hit_layer_fingerprint,
+};
 
 // ── Layer 2: Style helpers — push_widget_style used internally by content only
 
@@ -39,5 +41,5 @@ pub use hit_test::{collect_data_widget_hits, collect_hit_regions};
 pub use text::add_text;
 
 // ── Layer 1: Geometry and layout ──
-pub use geometry::{point_in_rect, quad_rect, scrolled_hit_rect};
+pub use geometry::{point_in_rect, rect_from_array, rect_style, scrolled_hit_rect};
 pub use layout::{apply_gallery_styles, extract_gallery_ids};

@@ -2,7 +2,9 @@
 //! Absorbs gpui-component's circular progress strength (complements linear progress).
 
 use crate::WidgetNode;
-use acme_core::WidgetKey;
+use acme_core::{Point, WidgetKey};
+use acme_widgets::painter_bridge::theme_color;
+use acme_widgets::{canvas, label, stack};
 
 /// Builder for a circular progress ring.
 pub struct ProgressRingBuilder<M> {
@@ -43,28 +45,52 @@ impl<M: Clone + 'static> ProgressRingBuilder<M> {
 
 impl<M: Clone + 'static> From<ProgressRingBuilder<M>> for WidgetNode<M> {
     fn from(b: ProgressRingBuilder<M>) -> Self {
-        // Approximate the ring fill with a fraction-of-8 glyph.
-        let eighths = ((b.value / 100.0) * 8.0).round() as usize;
-        let ring_glyph = match eighths {
-            0 => "○",
-            1 => "◔",
-            2 | 3 => "◑",
-            4..=7 => "◕",
-            _ => "●",
-        };
+        let ratio = (b.value / 100.0).clamp(0.0, 1.0);
+        let pct = (ratio * 100.0).round() as u32;
+        let ring_size = b.size.max(8.0);
+        let id_str = b.id.as_str().to_string();
 
-        let mut stack = crate::stack::<M>().key(b.id).size(b.size, b.size);
-        stack = stack.child(crate::label(ring_glyph));
+        let ring_canvas = canvas::<M>()
+            .key(format!("{id_str}_ring"))
+            .size(ring_size, ring_size)
+            .accessible_label(format!("Progress {pct}%"))
+            .paint(move |painter, rect, theme| {
+                let w = rect.size.width.get();
+                let h = rect.size.height.get();
+                let center =
+                    Point::new(rect.origin.x.get() + w * 0.5, rect.origin.y.get() + h * 0.5);
+                let outer_r = (w.min(h) * 0.5 - 2.0).max(2.0);
+                let thickness = (outer_r * 0.22).clamp(2.0, 8.0);
+                let arc_r = (outer_r - thickness * 0.5).max(1.0);
+
+                painter.ring(center, outer_r, thickness, theme_color(theme.colors.muted));
+                if ratio > 0.0 {
+                    painter.arc_segments(
+                        center,
+                        arc_r,
+                        -std::f32::consts::FRAC_PI_2,
+                        std::f32::consts::TAU * ratio,
+                        thickness,
+                        theme_color(theme.colors.primary),
+                        32,
+                    );
+                }
+            });
+
+        let mut root = stack::<M>().key(b.id).size(ring_size, ring_size);
+        root = root.child(ring_canvas);
         if b.show_label {
-            stack = stack.child(crate::label(format!("{:.0}%", b.value)));
+            root = root.child(label(format!("{pct}%")));
         }
-        stack.build()
+        root.build()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use acme_core::{DrawCommand, Painter, Rect};
+    use acme_theme::Theme;
 
     #[derive(Clone, Debug, PartialEq)]
     enum Msg {}
@@ -82,6 +108,8 @@ mod tests {
             panic!("expected Stack");
         };
         assert_eq!(s.children.len(), 2);
+        assert!(matches!(s.children[0], WidgetNode::Canvas(_)));
+        assert!(matches!(s.children[1], WidgetNode::Label(_)));
     }
 
     #[test]
@@ -97,5 +125,28 @@ mod tests {
             panic!("expected Stack");
         };
         assert_eq!(s.children.len(), 1);
+        assert!(matches!(s.children[0], WidgetNode::Canvas(_)));
+    }
+
+    #[test]
+    fn progress_ring_canvas_paints_track_and_arc_commands() {
+        let node: WidgetNode<Msg> = progress_ring(60.0).into();
+        let WidgetNode::Stack(s) = &node else {
+            panic!("expected Stack");
+        };
+        let WidgetNode::Canvas(c) = &s.children[0] else {
+            panic!("expected Canvas child");
+        };
+        let theme = Theme::dark();
+        let mut painter = Painter::new();
+        c.paint_into(&mut painter, Rect::new(0.0, 0.0, 48.0, 48.0), &theme);
+        let scene = painter.finish();
+        assert!(
+            scene
+                .commands()
+                .iter()
+                .any(|cmd| matches!(cmd, DrawCommand::Quad(_))),
+            "expected ring and arc quads in scene"
+        );
     }
 }

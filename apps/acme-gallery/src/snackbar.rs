@@ -142,26 +142,31 @@ impl Gallery {
         ];
         self.snackbar.bounds = Some(intersect_clip([x, y, width, height], clip));
         let mut index = self.button_info.len();
-        collect_hit_regions(&widget, &layout, &shifted, false, &mut self.button_info);
-        let mut frame = Frame::default();
-        render_content(
-            &mut frame,
+        collect_hit_regions_with_nodes(
             &widget,
             &layout,
             &shifted,
-            theme,
-            context.scale_factor,
-            0.0,
-            clip,
-            &mut index,
-            self.hovered,
-            self.pressed,
-            &mut self.fonts,
-            &mut self.atlas,
+            false,
+            &mut self.button_info,
+            Some(&mut self.hit_nodes),
         );
-        // Append a separate frame after page text, preserving overlay painter order.
-        for command in scene_from_frame(&frame).commands() {
-            scene.push(command.clone());
-        }
+        let mut painter = Painter::on(scene);
+        painter.with_clip(Rect::new(clip[0], clip[1], clip[2], clip[3]), |painter| {
+            render_content_painter(
+                painter,
+                &widget,
+                &layout,
+                &shifted,
+                theme,
+                context.scale_factor,
+                0.0,
+                clip,
+                &mut index,
+                self.hovered,
+                self.pressed,
+                &mut self.fonts,
+                &mut self.atlas,
+            );
+        });
     }
 }

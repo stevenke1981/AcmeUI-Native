@@ -53,6 +53,7 @@ impl<M: Clone + 'static> PullToRefreshBuilder<M> {
 
 impl<M: Clone + 'static> From<PullToRefreshBuilder<M>> for WidgetNode<M> {
     fn from(b: PullToRefreshBuilder<M>) -> Self {
+        let id_str = b.id.as_str().to_string();
         let mut col = column::<M>().key(b.id).gap(8.0);
 
         // Refresh indicator Row
@@ -63,14 +64,29 @@ impl<M: Clone + 'static> From<PullToRefreshBuilder<M>> for WidgetNode<M> {
             "Pull to refresh"
         };
 
-        col = col.child(
+        let indicator_row = if let Some(msg) = b.on_refresh {
+            let trigger = button::<M>(format!("{id_str}_trigger").as_str(), indicator_text)
+                .variant(ButtonVariant::Ghost)
+                .disabled(b.refreshing)
+                .on_click(msg);
             row::<M>()
+                .key(format!("{id_str}_indicator").as_str())
+                .gap(8.0)
+                .padding(4.0)
+                .child(crate::label::<M>(indicator_icon))
+                .child(trigger)
+                .build()
+        } else {
+            row::<M>()
+                .key(format!("{id_str}_indicator").as_str())
                 .gap(8.0)
                 .padding(4.0)
                 .child(crate::label::<M>(indicator_icon))
                 .child(crate::label::<M>(indicator_text))
-                .build(),
-        );
+                .build()
+        };
+
+        col = col.child(indicator_row);
 
         // Optional child content
         if let Some(child) = b.child {
@@ -144,5 +160,46 @@ mod tests {
             panic!("expected Label for text");
         };
         assert_eq!(text_lbl.text, "Refreshing...");
+    }
+
+    #[test]
+    fn pull_to_refresh_on_refresh_renders_interactive_trigger_button() {
+        #[derive(Clone, Debug, PartialEq)]
+        enum RefreshMsg {
+            Triggered,
+        }
+
+        let idle: WidgetNode<RefreshMsg> = pull_to_refresh("ptr")
+            .on_refresh(RefreshMsg::Triggered)
+            .child(crate::label::<RefreshMsg>("Feed"))
+            .into();
+        let WidgetNode::Column(col) = &idle else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Row(indicator) = &col.children[0] else {
+            panic!("expected indicator Row");
+        };
+        let WidgetNode::Button(trigger) = &indicator.children[1] else {
+            panic!("expected interactive trigger Button");
+        };
+        assert_eq!(trigger.key.as_str(), "ptr_trigger");
+        assert!(!trigger.disabled);
+        assert_eq!(trigger.activate(), Some(&RefreshMsg::Triggered));
+
+        let busy: WidgetNode<RefreshMsg> = pull_to_refresh("ptr")
+            .refreshing(true)
+            .on_refresh(RefreshMsg::Triggered)
+            .into();
+        let WidgetNode::Column(busy_col) = &busy else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Row(busy_ind) = &busy_col.children[0] else {
+            panic!("expected indicator Row");
+        };
+        let WidgetNode::Button(busy_trigger) = &busy_ind.children[1] else {
+            panic!("expected disabled trigger Button while refreshing");
+        };
+        assert!(busy_trigger.disabled);
+        assert_eq!(busy_trigger.activate(), None);
     }
 }

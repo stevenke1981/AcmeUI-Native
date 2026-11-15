@@ -6,11 +6,15 @@
 // Module declarations
 // ============================================================================
 
+pub mod canvas;
 pub mod data;
+pub mod dirty_tracker;
 pub mod foundations;
+pub mod hit_bridge;
 pub mod inputs;
 pub mod navigation;
 pub mod overlay;
+pub mod painter_bridge;
 pub mod prelude;
 pub mod retained_binding;
 pub mod view_bridge;
@@ -91,6 +95,7 @@ pub enum WidgetNode<M> {
     Sidebar(Sidebar<M>),
     TabBar(TabBar<M>),
     Breadcrumb(Breadcrumb<M>),
+    Canvas(Canvas<M>),
 }
 
 // ============================================================================
@@ -119,6 +124,7 @@ impl<M> WidgetNode<M> {
             Self::Sidebar(v) => Some(&v.key),
             Self::TabBar(v) => Some(&v.key),
             Self::Breadcrumb(v) => Some(&v.key),
+            Self::Canvas(v) => v.key(),
         }
     }
 
@@ -140,7 +146,11 @@ impl<M> WidgetNode<M> {
             Self::Sidebar(v) => &v.children,
             Self::TabBar(v) => &v.children,
             Self::Breadcrumb(v) => &v.children,
-            Self::Label(_) | Self::Button(_) | Self::Separator(_) | Self::TextInput(_) => &[],
+            Self::Label(_)
+            | Self::Button(_)
+            | Self::Separator(_)
+            | Self::TextInput(_)
+            | Self::Canvas(_) => &[],
         }
     }
 
@@ -431,6 +441,7 @@ impl<M> WidgetNode<M> {
                 v.layout_style(),
                 v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
+            Self::Canvas(v) => LayoutNode::leaf(id, v.effective_layout()),
         }
     }
 
@@ -493,16 +504,22 @@ impl<M> WidgetNode<M> {
         }
     }
 
+    pub(crate) fn to_layout_subtree_with_context(
+        &self,
+        id: NodeId,
+        context: &WidgetLayoutContext,
+    ) -> LayoutNode {
+        let mut ids = SequentialIds { next: id.get() };
+        self.to_layout_alloc_with_context(&mut ids, context)
+    }
+
     /// Shared layout body. `ids` decides where every node ID comes from, so the
     /// sequential and the bound layouts cannot drift apart.
     fn to_layout_alloc_with_context<I: LayoutIdSource>(
         &self,
         ids: &mut I,
         context: &WidgetLayoutContext,
-    ) -> LayoutNode
-    where
-        M: Clone,
-    {
+    ) -> LayoutNode {
         // Tooltip/Popover take no ID of their own: the child is laid out in
         // their place and keeps its identity.
         if let Some(child) = self.transparent_child() {
@@ -649,9 +666,9 @@ impl<M> WidgetNode<M> {
                 },
             ),
             Self::Tree(v) => {
-                let visible = v.visible_nodes();
-                let mut child_nodes = Vec::with_capacity(visible.len());
-                for node in &visible {
+                let depths = v.visible_node_depths();
+                let mut child_nodes = Vec::with_capacity(depths.len());
+                for depth in depths {
                     let leaf_id = ids.synthetic_id();
                     child_nodes.push(LayoutNode::leaf(
                         leaf_id,
@@ -659,7 +676,7 @@ impl<M> WidgetNode<M> {
                             width: Length::Auto,
                             height: Length::px(24.0),
                             padding: Edges {
-                                left: node.depth as f32 * v.indent,
+                                left: depth as f32 * v.indent,
                                 ..Edges::default()
                             },
                             ..Default::default()
@@ -817,6 +834,7 @@ impl<M> WidgetNode<M> {
                     .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
+            Self::Canvas(v) => LayoutNode::leaf(id, v.effective_layout()),
         }
     }
 

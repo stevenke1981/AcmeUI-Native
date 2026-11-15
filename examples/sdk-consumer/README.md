@@ -11,11 +11,13 @@ not a member of the root workspace (it has its own `[workspace]` table), it is
 - A declarative UI from `acme_ui::prelude` (`default_template`, `card`, `label`,
   `button`) converted to a `LayoutNode` tree and laid out by
   `LayoutEngine::compute_with_text`.
-- Rendering through `acme_render_wgpu::Frame` and `scene_from_frame`, the same
-  path the Gallery apps use.
-- A headless `#[test]` that builds one frame `Scene` without opening a window.
-
-The button is visual only; click messages are not routed in this example.
+- Immediate-mode rendering through `acme_core::Painter` (`Painter::with_clear`,
+  `rounded_rect_bordered`, `text_primitive`, `finish_checked`).
+- Spatial hit testing and click/hover/drag routing through
+  `acme_core::HitTestLayer` and `ClickDetector`, plus `WindowRequest::SetCursor`
+  cursor synchronization.
+- A headless `#[test]` that builds one frame `Scene` and routes button pointer
+  clicks and drag-out cancellation without opening a window.
 
 ## Run
 

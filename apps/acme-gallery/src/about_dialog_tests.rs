@@ -15,6 +15,14 @@ fn click(g: &mut Gallery, message: GalleryMessage) {
         .find(|h| h.message == message)
         .unwrap()
         .rect;
+    g.scroll = (r[1] - 100.0).clamp(0.0, g.max_scroll);
+    frame(g);
+    let r = g
+        .button_info
+        .iter()
+        .find(|h| h.message == message)
+        .unwrap()
+        .rect;
     let (x, y) = (r[0] + r[2] / 2.0, r[1] + r[3] / 2.0 - g.scroll);
     g.event(PlatformEvent::PointerMoved {
         window: WindowId(1),

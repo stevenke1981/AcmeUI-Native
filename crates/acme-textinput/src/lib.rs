@@ -244,8 +244,8 @@ impl TextInputState {
     /// Both `start` and `end` are clamped to `text.len()` and `start ≤ end`
     /// is enforced. The cursor is placed at `end`.
     pub fn set_selection_range(&mut self, start: usize, end: usize) {
-        let clamped_end = end.min(self.text.len());
-        let clamped_start = start.min(clamped_end);
+        let clamped_end = floor_char_boundary(&self.text, end);
+        let clamped_start = floor_char_boundary(&self.text, start).min(clamped_end);
         if clamped_start < clamped_end {
             self.selection = Some((clamped_start, clamped_end));
         } else {
@@ -265,7 +265,7 @@ impl TextInputState {
             self.selection = None;
             return;
         }
-        let clamped = offset.min(self.text.len());
+        let clamped = floor_char_boundary(&self.text, offset);
         // Collect word-boundary indices
         let words: Vec<(usize, &str)> = self.text.split_word_bound_indices().collect();
         for &(start, word) in &words {

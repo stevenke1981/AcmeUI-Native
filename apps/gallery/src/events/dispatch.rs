@@ -17,43 +17,46 @@
 //!   │  hit.rs — hit_test (pure query)            │  Layer 1
 //!   └────────────────────────────────────────────┘     Query
 
+use acme_core::{ClickDetector, HitTestLayer, Point, PointerOutcome};
 use acme_platform::PlatformKey;
 use acme_textinput::TextInputState;
 
-use crate::events::{ActivationCtx, handle_message, hit_test, refresh_ime_caret_rect};
+use crate::events::{ActivationCtx, handle_message, refresh_ime_caret_rect};
 use crate::focus::{FocusTarget, target_at};
 use crate::render::{point_in_rect, scrolled_hit_rect};
 use crate::types::*;
 
 // ── Pointer ─────────────────────────────────────────────────────────────────
 
-/// Handle `PointerMoved` — update cursor + hovered.
+/// Handle `PointerMoved` — update cursor, [`ClickDetector`], and `hovered`.
 pub fn handle_pointer_moved(
     cursor: &mut (f32, f32),
     hovered: &mut Option<usize>,
     x: f32,
     y: f32,
-    button_info: &[HitRegion],
-    scroll: f32,
-    scroll_clip_rect: [f32; 4],
+    hit_layer: &HitTestLayer,
+    click_detector: &mut ClickDetector,
 ) -> bool {
     *cursor = (x, y);
-    let next = hit_test(button_info, *cursor, scroll, scroll_clip_rect);
+    let pt = Point::new(x, y);
+    let _ = click_detector.on_pointer_move(hit_layer, pt);
+    let next = hit_layer.hit_test(pt).map(|hit| hit.tag as usize);
     let changed = next != *hovered;
     *hovered = next;
     changed
 }
 
-/// Handle `PointerButton { pressed: true }` — text-input focus + hit test.
+/// Handle `PointerButton { pressed: true }` — text-input focus + [`ClickDetector`] press.
 #[allow(clippy::too_many_arguments)]
 pub fn handle_pointer_pressed(
     pressed: &mut Option<usize>,
     text_input: &mut TextInputState,
     text_input_rect: [f32; 4],
     cursor: (f32, f32),
-    button_info: &[HitRegion],
-    scroll: f32,
-    scroll_clip_rect: [f32; 4],
+    hit_layer: &HitTestLayer,
+    click_detector: &mut ClickDetector,
+    button: u16,
+    event_seq: &mut u64,
     dark: bool,
     fonts: &mut acme_text::FontSystem,
     last_scale_factor: f32,
@@ -66,25 +69,46 @@ pub fn handle_pointer_pressed(
     text_input.focused = in_text;
     *ime_caret_window_rect =
         refresh_ime_caret_rect(text_input, text_input_rect, dark, fonts, last_scale_factor);
-    *pressed = hit_test(button_info, cursor, scroll, scroll_clip_rect);
+    *event_seq = event_seq.saturating_add(1);
+    let pt = Point::new(cursor.0, cursor.1);
+    let _ = click_detector.on_pointer_button(hit_layer, button, true, pt, *event_seq as f64 * 0.25);
+    *pressed = hit_layer.hit_test(pt).map(|hit| hit.tag as usize);
     true
 }
 
-/// Handle `PointerButton { pressed: false }` — activation dispatch.
+/// Handle `PointerButton { pressed: false }` — [`ClickDetector`] activation dispatch.
+#[allow(clippy::too_many_arguments)]
 pub fn handle_pointer_released(
     pressed: &mut Option<usize>,
     cursor: (f32, f32),
     button_info: &[HitRegion],
-    scroll: f32,
-    scroll_clip_rect: [f32; 4],
+    hit_layer: &HitTestLayer,
+    click_detector: &mut ClickDetector,
+    button: u16,
+    event_seq: &mut u64,
     mut act_ctx: ActivationCtx,
 ) -> bool {
-    let pressed_was = pressed.take();
-    let activated = pressed_was
-        .filter(|&value| Some(value) == hit_test(button_info, cursor, scroll, scroll_clip_rect));
-    activated.is_some_and(|index| {
-        let message = button_info[index].message;
-        handle_message(&mut act_ctx, message)
+    let prev_pressed = pressed.take();
+    *event_seq = event_seq.saturating_add(1);
+    let pt = Point::new(cursor.0, cursor.1);
+    let outcomes =
+        click_detector.on_pointer_button(hit_layer, button, false, pt, *event_seq as f64 * 0.25);
+    let mut activated_idx = None;
+    for outcome in outcomes {
+        if let PointerOutcome::Clicked { id, .. } = outcome
+            && let Some(hit) = hit_layer.hit_test(pt).filter(|hit| hit.id == id)
+        {
+            let idx = hit.tag as usize;
+            if prev_pressed == Some(idx) {
+                activated_idx = Some(idx);
+                break;
+            }
+        }
+    }
+    activated_idx.is_some_and(|index| {
+        button_info
+            .get(index)
+            .is_some_and(|region| handle_message(&mut act_ctx, region.message))
     })
 }
 

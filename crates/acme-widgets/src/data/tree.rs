@@ -187,6 +187,46 @@ pub struct VisibleNode<M> {
     pub expanded: bool,
 }
 
+impl<M> Tree<M> {
+    pub(crate) fn visible_node_depths(&self) -> Vec<usize> {
+        let mut depths = Vec::new();
+        let mut y: f32 = 0.0;
+        let row_height = 24.0;
+        for node in &self.children {
+            self.collect_visible_with(node, 0, &mut y, row_height, &mut |_, depth, _| {
+                depths.push(depth);
+            });
+        }
+        depths
+    }
+
+    fn collect_visible_with(
+        &self,
+        node: &TreeNode<M>,
+        depth: usize,
+        y: &mut f32,
+        row_height: f32,
+        visit: &mut impl FnMut(&TreeNode<M>, usize, bool),
+    ) {
+        let is_expanded = self.expanded.contains(&node.key) || node.expanded;
+        let end_y = *y + row_height;
+        let max_y = self.scroll_offset + self.viewport_height + (self.overscan as f32 * row_height);
+        let min_y = (self.scroll_offset - (self.overscan as f32 * row_height)).max(0.0);
+
+        if end_y >= min_y && *y <= max_y {
+            visit(node, depth, is_expanded);
+        }
+
+        *y = end_y;
+
+        if is_expanded {
+            for child in &node.children {
+                self.collect_visible_with(child, depth + 1, y, row_height, visit);
+            }
+        }
+    }
+}
+
 impl<M: Clone> Tree<M> {
     /// Walk the tree and collect all visible (expanded + in-viewport) nodes.
     /// Returns a flat list of `VisibleNode` entries suitable for layout.
@@ -196,46 +236,24 @@ impl<M: Clone> Tree<M> {
         let row_height = 24.0; // standard row height for estimation
 
         for node in &self.children {
-            self.collect_visible(node, 0, &mut y, row_height, &mut result);
+            self.collect_visible_with(
+                node,
+                0,
+                &mut y,
+                row_height,
+                &mut |node, depth, is_expanded| {
+                    result.push(VisibleNode {
+                        key: node.key.clone(),
+                        content: node.content.clone(),
+                        depth,
+                        has_children: !node.children.is_empty(),
+                        expanded: is_expanded,
+                    });
+                },
+            );
         }
 
         result
-    }
-
-    fn collect_visible(
-        &self,
-        node: &TreeNode<M>,
-        depth: usize,
-        y: &mut f32,
-        row_height: f32,
-        out: &mut Vec<VisibleNode<M>>,
-    ) {
-        let is_expanded = self.expanded.contains(&node.key) || node.expanded;
-        let has_children = !node.children.is_empty();
-
-        // Skip nodes strictly after the viewport + overscan window
-        let end_y = *y + row_height;
-        let max_y = self.scroll_offset + self.viewport_height + (self.overscan as f32 * row_height);
-        let min_y = (self.scroll_offset - (self.overscan as f32 * row_height)).max(0.0);
-
-        if end_y >= min_y && *y <= max_y {
-            out.push(VisibleNode {
-                key: node.key.clone(),
-                content: node.content.clone(),
-                depth,
-                has_children,
-                expanded: is_expanded,
-            });
-        }
-
-        *y = end_y;
-
-        // Recurse into children if expanded
-        if is_expanded {
-            for child in &node.children {
-                self.collect_visible(child, depth + 1, y, row_height, out);
-            }
-        }
     }
 
     /// Count total visible nodes (for navigation bounds).

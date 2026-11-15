@@ -161,10 +161,10 @@ pub(crate) fn preedit_text(state: &TextInputState) -> String {
 /// offset is clamped to a char boundary first, so a mid-char or out-of-range
 /// platform cursor cannot slice inside a character.
 pub(crate) fn drawn_offset(state: &TextInputState, plain: usize) -> usize {
+    let plain = crate::caret::floor_char_boundary(&state.preedit, plain);
     if !state.password {
-        return plain.min(state.preedit.len());
+        return plain;
     }
-    let plain = floor_char_boundary(&state.preedit, plain);
     state.preedit[..plain].graphemes(true).count() * state.password_char.len_utf8()
 }
 

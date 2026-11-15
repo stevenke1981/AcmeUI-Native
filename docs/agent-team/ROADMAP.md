@@ -86,6 +86,8 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 051 | Codex CLI single writer + author review | Notification typed action/Close identity investigation; controlled desktop Gallery | Already-green retained/message/optional-control guards; pointer/theme/scale/layout tests; [report](../team/roadmap-051/REPORT.md); manual/native acceptance NOT_RUN |
 
+| 052 | Agent Team (`team_chief_orchestrator`, parallel workers + `team_independent_reviewer`) | Immediate-mode Painter/Canvas/hit layer, app migrations, HighContrastPack, Theme JSON, platform `KeyModifiers`/`KeyInput`, LiveRegion, desktop/mobile controls & `FrameDirtyTracker` | Locked workspace, feature-matrix, external consumer, packaging, deny/audit & CPU evidence PASS; [report](../team/roadmap-052/REPORT.md); live GPU/IME/DPI/screen-reader NOT_RUN |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.

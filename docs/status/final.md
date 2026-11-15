@@ -1,5 +1,11 @@
 # Delivery Status
 
+## 2026-11-15 — ROADMAP 052 Immediate-mode Painter, HitTestLayer & backlog completion
+
+- Implemented immediate-mode `Painter` / `Canvas` / `painter_bridge` and `HitTestLayer` / `ClickDetector` / `hit_bridge`, migrating `apps/playground`, `apps/gallery`, and `apps/acme-gallery` off `Frame`/`scene_from_frame` while keeping `confirm_dialog.rs`, `modal.rs`, `context_menu.rs`, and `Cargo.lock` untouched.
+- Added `HighContrastPack`, zero-dependency `Theme::to_json`/`from_json` + token validation, `acme-platform` `KeyModifiers`/`KeyInput`, `LiveRegion`, `FrameDirtyTracker`, UTF-8 clamping in `acme-textinput`, `ProgressRing`, `QRCode`, chart migrations, `DropdownMenu`, `Drawer`, `DatePicker`, `Combobox`, `SliderMarks`, `BottomNav`, `PullToRefresh`, and `MobileTabBar`/`MobileDrawer`/`MobileCarousel`.
+- Resolved all P1/P2 findings (`Dialog`/`Popover`/`Table`/`DataGrid` overlay & compound-cell geometry, `Drawer`/`MobileDrawer` scrim stack sizing + gallery hover/press alignment, `SceneClipGuard` + `finish_checked()`, UTF-8 offsets, AA tone contrast); [report](../team/roadmap-052/REPORT.md). Live GPU window, Windows 注音 IME, physical DPI/touch, and screen readers remain NOT_RUN.
+
 ## 2026-11-13 — ROADMAP 051 Notification typed action/Close identity
 
 - Regression-first investigation found current typed messages, scoped retained identities/reorder and optional-sibling continuity already green. Added guards; production conversion and public API remain unchanged.

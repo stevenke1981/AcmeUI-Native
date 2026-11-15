@@ -48,7 +48,7 @@ mod rt_shadow;
 mod types;
 
 use acme_accessibility::AccessibilityAdapter;
-use acme_core::{Color, NodeId, Scene};
+use acme_core::{ClickDetector, Color, HitTestLayer, NodeId, Point, Scene};
 use acme_layout::{LayoutEngine, LayoutNode, WidgetLayoutContext};
 use acme_platform::{
     Application, Clipboard, FrameContext, PlatformEvent, PlatformKey, WindowConfig, WindowId,
@@ -58,17 +58,20 @@ use acme_textinput::TextInputState;
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained, is_synthetic};
 use acme_widgets::{WidgetNode, column, row, scroll_view};
 
+#[cfg(test)]
+use crate::events::hit_test;
 use crate::events::{
     ActivationCtx, compute_ime_caret_rect, handle_enter_space_key, handle_general_key,
     handle_ime_commit, handle_ime_preedit, handle_pointer_moved, handle_pointer_pressed,
-    handle_pointer_released, handle_scroll_event, handle_tab_key, handle_tree_arrow_key, hit_test,
+    handle_pointer_released, handle_scroll_event, handle_tab_key, handle_tree_arrow_key,
     same_hit_list,
 };
 use crate::focus::{FocusTarget, resolve_focus};
 use crate::render::{
-    RenderCtx, apply_gallery_styles, build_layout_context, build_theme, collect_data_widget_hits,
-    collect_hit_regions, compute_scroll_state, compute_toolbar_labels, extract_gallery_ids,
-    render_page_content, render_sidebar, render_text_input_overlay, render_toolbar,
+    RenderCtx, apply_gallery_styles, build_hit_layer, build_layout_context, build_theme,
+    collect_data_widget_hits, collect_hit_regions, compute_scroll_state, compute_toolbar_labels,
+    extract_gallery_ids, hit_layer_fingerprint, render_page_content, render_sidebar,
+    render_text_input_overlay, render_toolbar,
 };
 use crate::types::*;
 
@@ -131,6 +134,10 @@ struct Gallery {
     scroll: f32,
     max_scroll: f32,
     button_info: Vec<HitRegion>,
+    hit_layer: HitTestLayer,
+    hit_layer_fingerprint: u64,
+    click_detector: ClickDetector,
+    event_seq: u64,
 
     // Text Input / IME state
     text_input: TextInputState,
@@ -192,6 +199,10 @@ impl Gallery {
             scroll: 0.0,
             max_scroll: 0.0,
             button_info: Vec::new(),
+            hit_layer: HitTestLayer::new(),
+            hit_layer_fingerprint: 0,
+            click_detector: ClickDetector::new(),
+            event_seq: 0,
             text_input: TextInputState::new(),
             text_input_rect: [0.0; 4],
             ime_caret_window_rect: None,
@@ -217,6 +228,14 @@ impl Gallery {
             accessibility: AccessibilityAdapter::new(0),
             retained: rt_shadow::RetainedStep::new(),
             screenshot_config: None,
+        }
+    }
+
+    fn sync_hit_layer(&mut self) {
+        let fp = hit_layer_fingerprint(&self.button_info, self.scroll, self.scroll_clip_rect);
+        if fp != self.hit_layer_fingerprint {
+            self.hit_layer = build_hit_layer(&self.button_info, self.scroll, self.scroll_clip_rect);
+            self.hit_layer_fingerprint = fp;
         }
     }
 
@@ -287,32 +306,37 @@ impl Application for Gallery {
 
     fn event(&mut self, event: PlatformEvent) -> bool {
         match event {
-            PlatformEvent::PointerMoved { x, y, .. } => handle_pointer_moved(
-                &mut self.cursor,
-                &mut self.hovered,
-                x,
-                y,
-                &self.button_info,
-                self.scroll,
-                self.scroll_clip_rect,
-            ),
-            PlatformEvent::PointerButton { pressed, .. } => {
+            PlatformEvent::PointerMoved { x, y, .. } => {
+                self.sync_hit_layer();
+                handle_pointer_moved(
+                    &mut self.cursor,
+                    &mut self.hovered,
+                    x,
+                    y,
+                    &self.hit_layer,
+                    &mut self.click_detector,
+                )
+            }
+            PlatformEvent::PointerButton {
+                pressed, button, ..
+            } => {
+                self.sync_hit_layer();
                 if pressed {
                     handle_pointer_pressed(
                         &mut self.pressed,
                         &mut self.text_input,
                         self.text_input_rect,
                         self.cursor,
-                        &self.button_info,
-                        self.scroll,
-                        self.scroll_clip_rect,
+                        &self.hit_layer,
+                        &mut self.click_detector,
+                        button,
+                        &mut self.event_seq,
                         self.dark,
                         &mut self.fonts,
                         self.last_scale_factor,
                         &mut self.ime_caret_window_rect,
                     )
                 } else {
-                    let scroll = self.scroll;
                     let act_ctx = ActivationCtx {
                         dark: &mut self.dark,
                         density: &mut self.density,
@@ -333,23 +357,29 @@ impl Application for Gallery {
                         &mut self.pressed,
                         self.cursor,
                         &self.button_info,
-                        scroll,
-                        self.scroll_clip_rect,
+                        &self.hit_layer,
+                        &mut self.click_detector,
+                        button,
+                        &mut self.event_seq,
                         act_ctx,
                     )
                 }
             }
-            PlatformEvent::Scroll { delta_y, .. } => handle_scroll_event(
-                self.selected_category,
-                self.selected_page,
-                self.cursor,
-                self.vlist_viewport_rect,
-                self.scroll,
-                self.max_scroll,
-                &mut self.vlist_scroll,
-                &mut self.scroll,
-                delta_y,
-            ),
+            PlatformEvent::Scroll { delta_y, .. } => {
+                let handled = handle_scroll_event(
+                    self.selected_category,
+                    self.selected_page,
+                    self.cursor,
+                    self.vlist_viewport_rect,
+                    self.scroll,
+                    self.max_scroll,
+                    &mut self.vlist_scroll,
+                    &mut self.scroll,
+                    delta_y,
+                );
+                self.sync_hit_layer();
+                handled
+            }
             PlatformEvent::Key {
                 key: PlatformKey::Tab,
                 pressed: true,
@@ -571,6 +601,7 @@ impl Application for Gallery {
         let page = (self.selected_category, self.selected_page);
         if self.hit_page != Some(page) || !same_hit_list(&self.button_info, &button_info) {
             self.pressed = None;
+            let _ = self.click_detector.cancel();
         }
         self.hit_page = Some(page);
         self.button_info = button_info;
@@ -599,20 +630,19 @@ impl Application for Gallery {
             None => self.accessibility.clear_widget_focus(),
         }
 
-        // ── Layer 3: Scroll metrics ──
+        // ── Layer 3: Scroll metrics + HitTestLayer ──
         let (max_scroll, clamped_scroll, scroll_clip) =
             compute_scroll_state(&snapshot, ids.scroll_view, self.scroll);
         self.max_scroll = max_scroll;
         self.scroll = clamped_scroll;
         self.scroll_clip_rect = scroll_clip;
+        self.sync_hit_layer();
 
         // ── Layer 3: Hover is the region under the pointer on this frame's list ──
-        self.hovered = hit_test(
-            &self.button_info,
-            self.cursor,
-            self.scroll,
-            self.scroll_clip_rect,
-        );
+        self.hovered = self
+            .hit_layer
+            .hit_test(Point::new(self.cursor.0, self.cursor.1))
+            .map(|hit| hit.tag as usize);
 
         // ── Layer 4: Build scene ──
         let mut scene = Scene::with_clear(Color::rgba(
@@ -676,3 +706,139 @@ impl Application for Gallery {
 
 #[cfg(test)]
 mod container_actions_tests;
+
+#[cfg(test)]
+mod stage3_tests {
+    use super::*;
+    use crate::render::{render_content, tree_key_static};
+    use acme_core::{DrawCommand, Painter, PointerOutcome, Rect};
+    use acme_layout::Length;
+    use acme_widgets::painter_bridge::theme_color;
+    use acme_widgets::{canvas, label};
+
+    #[test]
+    fn painter_canvas_and_hit_layer_integrate_under_scroll_clip() {
+        let mut fonts = FontSystem::new();
+        let mut atlas = GlyphAtlas::default();
+        let theme = build_theme(false);
+        let ctx = build_layout_context(&theme, 1.0);
+        let _ = tree_key_static("docs");
+
+        let root_widget = column()
+            .key("stage3_root")
+            .width(400.0)
+            .child(
+                scroll_view("stage3_scroll")
+                    .child(
+                        column()
+                            .gap(12.0)
+                            .child(label("Canvas Demo"))
+                            .child(
+                                canvas::<GalleryMessage>()
+                                    .key("interactive_canvas")
+                                    .size(160.0, 40.0)
+                                    .on_click(GalleryMessage::ToggleTheme)
+                                    .paint(|painter, rect, t| {
+                                        painter.fill_rect(rect, theme_color(t.colors.accent));
+                                    }),
+                            )
+                            .child(
+                                canvas::<GalleryMessage>()
+                                    .key("disabled_canvas")
+                                    .size(160.0, 40.0)
+                                    .disabled(true)
+                                    .on_click(GalleryMessage::ToggleFocusRings)
+                                    .paint(|painter, rect, t| {
+                                        painter.fill_rect(rect, theme_color(t.colors.muted));
+                                    }),
+                            )
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build();
+
+        let mut layout = root_widget.to_layout_with_context(NodeId::new(1), &ctx);
+        layout.children[0].style.width = Length::px(400.0);
+        layout.children[0].style.height = Length::px(200.0);
+        let snapshot = LayoutEngine::new()
+            .compute_with_text(&layout, (600.0, 400.0), &mut fonts, 1.0)
+            .unwrap();
+
+        let mut hits = Vec::new();
+        collect_hit_regions(&root_widget, &layout, &snapshot, false, &mut hits);
+        assert_eq!(
+            hits.len(),
+            1,
+            "only enabled interactive Canvas should emit a HitRegion"
+        );
+        assert_eq!(hits[0].message, GalleryMessage::ToggleTheme);
+        assert!(hits[0].scrolled);
+
+        let clip = [0.0, 20.0, 400.0, 200.0];
+        let scroll_y = 10.0;
+        let mut scene = Scene::new();
+        let mut btn_idx = 0;
+        {
+            let mut painter = Painter::on(&mut scene);
+            painter.with_clip(Rect::new(clip[0], clip[1], clip[2], clip[3]), |painter| {
+                render_content(
+                    painter,
+                    &root_widget,
+                    &layout,
+                    &snapshot,
+                    &theme,
+                    1.0,
+                    scroll_y,
+                    clip,
+                    &mut btn_idx,
+                    None,
+                    None,
+                    0,
+                    &mut fonts,
+                    &mut atlas,
+                    true,
+                );
+            });
+            let _ = painter.finish();
+        }
+        assert_eq!(btn_idx, 1, "interactive Canvas advances focus slot index");
+
+        let expected_y = hits[0].rect[1] - scroll_y;
+        assert!(
+            scene.commands().iter().any(|cmd| matches!(
+                cmd,
+                DrawCommand::Quad(q)
+                    if (q.rect.origin.x.get() - hits[0].rect[0]).abs() < 0.01
+                        && (q.rect.origin.y.get() - expected_y).abs() < 0.01
+                        && (q.rect.size.width.get() - 160.0).abs() < 0.01
+            )),
+            "Canvas fill_rect must paint into Scene via Painter::on inside clip"
+        );
+
+        let hit_layer = build_hit_layer(&hits, scroll_y, clip);
+        let mut detector = ClickDetector::new();
+        let pt_inside = Point::new(hits[0].rect[0] + 20.0, expected_y + 15.0);
+        let _ = detector.on_pointer_move(&hit_layer, pt_inside);
+        let _ = detector.on_pointer_button(&hit_layer, 0, true, pt_inside, 0.25);
+        let outcomes = detector.on_pointer_button(&hit_layer, 0, false, pt_inside, 0.50);
+        assert!(
+            outcomes.iter().any(|o| matches!(
+                o,
+                PointerOutcome::Clicked { id, .. } if *id == hits[0].node
+            )),
+            "ClickDetector must route click onto interactive Canvas via HitTestLayer"
+        );
+
+        assert_eq!(
+            hit_layer.hit_test(Point::new(hits[0].rect[0] + 20.0, 5.0)),
+            None,
+            "points above scroll viewport clip must not hit"
+        );
+        assert_eq!(
+            hit_layer.hit_test(Point::new(hits[0].rect[0] + 20.0, 260.0)),
+            None,
+            "points below scroll viewport clip must not hit"
+        );
+    }
+}

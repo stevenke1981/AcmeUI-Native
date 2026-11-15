@@ -3,6 +3,7 @@
 
 use crate::WidgetNode;
 use acme_core::WidgetKey;
+use acme_widgets::{LivePoliteness, label_builder};
 
 /// Live region politeness level.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -45,12 +46,13 @@ impl<M: Clone + 'static> LiveRegionBuilder<M> {
 
 impl<M: Clone + 'static> From<LiveRegionBuilder<M>> for WidgetNode<M> {
     fn from(b: LiveRegionBuilder<M>) -> Self {
-        // Visually hidden label announced to screen readers.
-        let mut node = crate::label(b.message);
-        if let WidgetNode::Label(ref mut l) = node {
-            l.font_size = Some(0.0);
-        }
-        node
+        let live = match b.politeness {
+            LiveRegionPoliteness::Off => LivePoliteness::Off,
+            LiveRegionPoliteness::Polite => LivePoliteness::Polite,
+            LiveRegionPoliteness::Assertive => LivePoliteness::Assertive,
+        };
+        // Visually hidden label announced to screen readers via AccessKit live region.
+        label_builder(b.message).font_size(0.0).live(live).build()
     }
 }
 
@@ -64,7 +66,10 @@ mod tests {
     #[test]
     fn live_region_produces_label() {
         let node: WidgetNode<Msg> = live_region("Item added").into();
-        assert!(matches!(node, WidgetNode::Label(_)));
+        let WidgetNode::Label(label) = node else {
+            panic!("expected Label");
+        };
+        assert_eq!(label.live, Some(LivePoliteness::Polite));
     }
 
     #[test]
@@ -77,5 +82,21 @@ mod tests {
     fn live_region_assertive() {
         let b = live_region::<Msg>("Error!").politeness(LiveRegionPoliteness::Assertive);
         assert_eq!(b.politeness, LiveRegionPoliteness::Assertive);
+        let node: WidgetNode<Msg> = b.into();
+        let WidgetNode::Label(label) = node else {
+            panic!("expected Label");
+        };
+        assert_eq!(label.live, Some(LivePoliteness::Assertive));
+    }
+
+    #[test]
+    fn live_region_off_maps_to_off() {
+        let node: WidgetNode<Msg> = live_region("Quiet")
+            .politeness(LiveRegionPoliteness::Off)
+            .into();
+        let WidgetNode::Label(label) = node else {
+            panic!("expected Label");
+        };
+        assert_eq!(label.live, Some(LivePoliteness::Off));
     }
 }

@@ -245,6 +245,7 @@ impl WidgetTreeDump {
             WidgetNode::Sidebar(_) => "Sidebar",
             WidgetNode::TabBar(_) => "TabBar",
             WidgetNode::Breadcrumb(_) => "Breadcrumb",
+            WidgetNode::Canvas(_) => "Canvas",
         }
     }
 
@@ -273,6 +274,10 @@ impl WidgetTreeDump {
             WidgetNode::Sidebar(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::TabBar(v) => format!(" key=\"{}\"", v.key.as_str()),
             WidgetNode::Breadcrumb(v) => format!(" key=\"{}\"", v.key.as_str()),
+            WidgetNode::Canvas(v) => {
+                v.id.as_ref()
+                    .map_or_else(String::new, |k| format!(" key=\"{}\"", k.as_str()))
+            }
             WidgetNode::Label(_) | WidgetNode::Separator(_) => String::new(),
         }
     }
@@ -315,6 +320,19 @@ impl WidgetTreeDump {
             WidgetNode::Sidebar(v) => format!(" width={} children={}", v.width, v.children.len()),
             WidgetNode::TabBar(v) => format!(" tabs={} selected={}", v.tabs.len(), v.selected),
             WidgetNode::Breadcrumb(v) => format!(" segments={}", v.segments.len()),
+            WidgetNode::Canvas(v) => {
+                let mut s = format!(
+                    " w={:?} h={:?} clickable={} disabled={}",
+                    v.width,
+                    v.height,
+                    v.on_click.is_some(),
+                    v.disabled
+                );
+                if let Some(label) = &v.accessible_label {
+                    s.push_str(&format!(" label=\"{label}\""));
+                }
+                s
+            }
             _ => String::new(),
         }
     }
@@ -667,5 +685,19 @@ mod tests {
         let frame = Frame::default();
         let s = RenderDiagnostics::frame_size(&frame);
         assert!(s.contains("0 quads"));
+    }
+
+    #[test]
+    fn widget_tree_dump_includes_canvas_kind_key_and_extra_info() {
+        let node = acme_widgets::canvas::<()>()
+            .key("spark")
+            .size(100.0, 24.0)
+            .accessible_label("Sparkline")
+            .build();
+        let dump = WidgetTreeDump::dump_widget_tree(&node, &LayoutSnapshot::default(), 0);
+        assert!(dump.contains("Canvas"), "dump was: {dump}");
+        assert!(dump.contains("key=\"spark\""), "dump was: {dump}");
+        assert!(dump.contains("label=\"Sparkline\""), "dump was: {dump}");
+        assert!(dump.contains("w=Some(100.0)"), "dump was: {dump}");
     }
 }
