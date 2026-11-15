@@ -1,20 +1,38 @@
 //! Color and geometry helpers — pure functions for rendering primitives.
 
-use acme_core::{Color, QuadPrimitive, Rect};
+use acme_core::{Color, Logical, QuadPrimitive, Rect, RectStyle};
 use acme_theme::ThemeColor;
 
 /// Convert a [`ThemeColor`] to [`Color`].
-#[allow(dead_code)]
 pub fn rgba(color: ThemeColor) -> Color {
     Color::rgba(color.red, color.green, color.blue, color.alpha)
 }
 
 /// Convert a [`ThemeColor`] to [`Color`].
+#[allow(dead_code)]
 pub fn theme_color_to_core(tc: ThemeColor) -> Color {
     Color::rgba(tc.red, tc.green, tc.blue, tc.alpha)
 }
 
+/// Build a [`Rect`] in logical coordinates from `[x, y, width, height]`.
+pub fn rect_from_array(rect: [f32; 4]) -> Rect<Logical> {
+    Rect::new(rect[0], rect[1], rect[2], rect[3])
+}
+
+/// Build a [`RectStyle`] from theme fill/border parameters.
+pub fn rect_style(
+    fill: ThemeColor,
+    radius: f32,
+    border_width: f32,
+    border_color: ThemeColor,
+) -> RectStyle {
+    RectStyle::solid(rgba(fill))
+        .radius(radius)
+        .border(border_width, rgba(border_color))
+}
+
 /// Build a [`QuadPrimitive`] from its parts.
+#[allow(dead_code)]
 pub fn quad_rect(
     rect: [f32; 4],
     fill: ThemeColor,

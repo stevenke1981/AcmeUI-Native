@@ -119,4 +119,22 @@ contracts! {
         assert_eq!(b.id.as_str(),"search_bar");assert_eq!(b.placeholder,"Search…");
         assert!(b.value.is_empty() && b.show_cancel && !b.auto_focus && b.on_submit.is_none() && b.on_change.is_none());
     }),
+    mobile_tab_bar: (super::mobile_tab_bar::<()>(vec!["Feed","Profile"]),Row,2,|b| {
+        assert_eq!(b.id.as_str(),"mobile_tab_bar");
+        assert_eq!(b.tabs,vec!["Feed","Profile"]);
+        assert_eq!(b.selected_index,0);
+        assert!(!b.disabled && b.on_select.is_none());
+    }),
+    mobile_drawer: (super::mobile_drawer::<()>("mobile_drawer"),Stack,1,|b| {
+        assert_eq!(b.id.as_str(),"mobile_drawer");
+        assert!(b.title.is_none() && !b.open && b.child.is_none() && b.on_close.is_none());
+        assert_eq!(b.side,super::MobileDrawerSide::Left);
+    }),
+    mobile_carousel: (super::mobile_carousel::<()>("mobile_carousel"),Column,1,|b| {
+        assert_eq!(b.id.as_str(),"mobile_carousel");
+        assert!(b.items.is_empty());
+        assert_eq!(b.active_index,0);
+        assert!(b.show_indicators);
+        assert!(b.on_prev.is_none() && b.on_next.is_none() && b.on_select.is_none());
+    }),
 }

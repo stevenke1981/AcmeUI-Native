@@ -3,7 +3,7 @@
 //! All functions are pure with respect to `Gallery` — state is passed explicitly
 //! via [`RenderCtx`] so that rendering logic is decoupled from app state.
 
-use acme_core::{DrawCommand, NodeId, Rect, Scene};
+use acme_core::{NodeId, Painter, Scene};
 use acme_layout::{LayoutNode, LayoutSnapshot, WidgetLayoutContext};
 use acme_text::{FontSystem, GlyphAtlas};
 use acme_textinput::{TextInputState, render_text_input};
@@ -12,7 +12,9 @@ use acme_widgets::{ButtonState, WidgetNode, button};
 
 use crate::events::scroll_text_input_to_caret;
 use crate::render::layout::GalleryNodeIds;
-use crate::render::{add_text, find_text_input_marker, quad_rect, render_content};
+use crate::render::{
+    add_text, find_text_input_marker, rect_from_array, rect_style, render_content,
+};
 use crate::types::{CATEGORIES, Density, GalleryMessage};
 
 // ── Render Context ──────────────────────────────────────────────────────────
@@ -59,16 +61,14 @@ pub struct RenderCtx<'a> {
 /// Render sidebar: background → title → 8 category buttons.
 pub fn render_sidebar(ctx: &mut RenderCtx) {
     let colors = ctx.theme.colors;
+    let mut painter = Painter::on(ctx.scene);
 
     // Background
     if let Some(r) = ctx.snapshot.get(ctx.ids.sidebar) {
-        ctx.scene.push(DrawCommand::Quad(quad_rect(
-            [r.x, r.y, r.width, r.height],
-            colors.surface,
-            0.0,
-            1.0,
-            colors.border,
-        )));
+        painter.rect(
+            rect_from_array([r.x, r.y, r.width, r.height]),
+            rect_style(colors.surface, 0.0, 1.0, colors.border),
+        );
     }
 
     // Title
@@ -76,7 +76,7 @@ pub fn render_sidebar(ctx: &mut RenderCtx) {
         add_text(
             ctx.fonts,
             ctx.atlas,
-            ctx.scene,
+            &mut painter,
             "AcmeUI",
             ([r.x + 4.0, r.y + 2.0], 18.0),
             colors.foreground,
@@ -110,25 +110,27 @@ pub fn render_sidebar(ctx: &mut RenderCtx) {
         } else {
             colors.foreground
         };
-        ctx.scene.push(DrawCommand::Quad(quad_rect(
-            [r.x, r.y, r.width, r.height],
-            bg,
-            ctx.theme.radii.md,
-            if is_selected || (st.focused && ctx.show_focus_rings) {
-                2.0
-            } else {
-                1.0
-            },
-            if st.focused {
-                colors.ring
-            } else {
-                colors.border
-            },
-        )));
+        painter.rect(
+            rect_from_array([r.x, r.y, r.width, r.height]),
+            rect_style(
+                bg,
+                ctx.theme.radii.md,
+                if is_selected || (st.focused && ctx.show_focus_rings) {
+                    2.0
+                } else {
+                    1.0
+                },
+                if st.focused {
+                    colors.ring
+                } else {
+                    colors.border
+                },
+            ),
+        );
         add_text(
             ctx.fonts,
             ctx.atlas,
-            ctx.scene,
+            &mut painter,
             CATEGORIES[i].name,
             ([r.x + 12.0, r.y + 9.0], ctx.theme.typography.label),
             fg,
@@ -137,21 +139,20 @@ pub fn render_sidebar(ctx: &mut RenderCtx) {
             ctx.theme.typography.line_height,
         );
     }
+    let _ = painter.finish();
 }
 
 /// Render toolbar: background → 3 toggle buttons.
 pub fn render_toolbar(ctx: &mut RenderCtx) {
     let colors = ctx.theme.colors;
+    let mut painter = Painter::on(ctx.scene);
 
     // Background
     if let Some(r) = ctx.snapshot.get(ctx.ids.toolbar) {
-        ctx.scene.push(DrawCommand::Quad(quad_rect(
-            [r.x, r.y, r.width, r.height],
-            colors.surface,
-            0.0,
-            1.0,
-            colors.border,
-        )));
+        painter.rect(
+            rect_from_array([r.x, r.y, r.width, r.height]),
+            rect_style(colors.surface, 0.0, 1.0, colors.border),
+        );
     }
 
     // Buttons
@@ -173,25 +174,27 @@ pub fn render_toolbar(ctx: &mut RenderCtx) {
         };
         let btn = button::<GalleryMessage>("", "");
         let resolved = btn.resolve_style(ctx.theme, st);
-        ctx.scene.push(DrawCommand::Quad(quad_rect(
-            [r.x, r.y, r.width, r.height],
-            resolved.background,
-            ctx.theme.radii.md,
-            if st.focused && ctx.show_focus_rings {
-                2.0
-            } else {
-                1.0
-            },
-            if st.focused {
-                resolved.focus
-            } else {
-                resolved.border
-            },
-        )));
+        painter.rect(
+            rect_from_array([r.x, r.y, r.width, r.height]),
+            rect_style(
+                resolved.background,
+                ctx.theme.radii.md,
+                if st.focused && ctx.show_focus_rings {
+                    2.0
+                } else {
+                    1.0
+                },
+                if st.focused {
+                    resolved.focus
+                } else {
+                    resolved.border
+                },
+            ),
+        );
         add_text(
             ctx.fonts,
             ctx.atlas,
-            ctx.scene,
+            &mut painter,
             label_text,
             ([r.x + 12.0, r.y + 7.0], 13.0),
             resolved.foreground,
@@ -200,6 +203,7 @@ pub fn render_toolbar(ctx: &mut RenderCtx) {
             ctx.theme.typography.line_height,
         );
     }
+    let _ = painter.finish();
 }
 
 /// Render scroll‑view page content via DFS widget dispatch.
@@ -211,27 +215,27 @@ pub fn render_page_content(ctx: &mut RenderCtx) {
         // matching the first content hit slot, and clip every primitive.
         let scroll_widget = &ctx.description.children()[1].children()[1];
         let scroll_layout = &ctx.root.children[1].children[1];
-        ctx.scene.push(DrawCommand::PushClip(Rect::new(
-            clip[0], clip[1], clip[2], clip[3],
-        )));
-        render_content(
-            ctx.scene,
-            scroll_widget,
-            scroll_layout,
-            ctx.snapshot,
-            ctx.theme,
-            ctx.scale,
-            ctx.scroll,
-            clip,
-            &mut btn_idx,
-            ctx.hovered,
-            ctx.pressed,
-            ctx.focused,
-            ctx.fonts,
-            ctx.atlas,
-            ctx.show_focus_rings,
-        );
-        ctx.scene.push(DrawCommand::PopClip);
+        let mut painter = Painter::on(ctx.scene);
+        painter.with_clip(rect_from_array(clip), |painter| {
+            render_content(
+                painter,
+                scroll_widget,
+                scroll_layout,
+                ctx.snapshot,
+                ctx.theme,
+                ctx.scale,
+                ctx.scroll,
+                clip,
+                &mut btn_idx,
+                ctx.hovered,
+                ctx.pressed,
+                ctx.focused,
+                ctx.fonts,
+                ctx.atlas,
+                ctx.show_focus_rings,
+            );
+        });
+        let _ = painter.finish();
     }
 }
 
@@ -262,10 +266,11 @@ pub fn render_text_input_overlay(ctx: &mut RenderCtx) {
                 // IME caret cache refresh is handled by the caller after this returns.
 
                 if !ctx.ime_text.is_empty() {
+                    let mut painter = Painter::on(ctx.scene);
                     add_text(
                         ctx.fonts,
                         ctx.atlas,
-                        ctx.scene,
+                        &mut painter,
                         &format!("Committed: {}", ctx.ime_text),
                         ([ph.x + 2.0, y + ph.height + 6.0], 14.0),
                         ctx.theme.colors.muted_foreground,
@@ -273,6 +278,7 @@ pub fn render_text_input_overlay(ctx: &mut RenderCtx) {
                         None,
                         ctx.theme.typography.line_height,
                     );
+                    let _ = painter.finish();
                 }
             }
         }

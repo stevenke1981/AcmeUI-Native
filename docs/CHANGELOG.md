@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased - Immediate-mode Painter, HitTestLayer, Theme JSON & widget completion (ROADMAP 052, 2026-11-15)
+
+- Added immediate-mode `acme_core::Painter`, `acme_widgets::Canvas`, and
+  `painter_bridge`, plus `HitTestLayer` / `ClickDetector` and `hit_bridge`,
+  migrating `apps/playground`, `apps/gallery`, and `apps/acme-gallery` off
+  `Frame`/`scene_from_frame` with matching canvas hover/press hit indices.
+- Added `HighContrastPack`, zero-dependency `Theme::to_json` / `Theme::from_json`
+  with UTF-8-safe escape parsing and spacing/radius/typography validation,
+  `KeyModifiers`/`KeyInput` (`acme-platform`), `LiveRegion` (`acme-accessibility`),
+  `FrameDirtyTracker`, and UTF-8 boundary clamping in `acme-textinput`.
+- Added `ProgressRing`, `QRCode`, chart painter migrations, `DropdownMenu`,
+  `Drawer`, `DatePicker`, `Combobox`, `SliderMarks`, `BottomNav`, `PullToRefresh`,
+  and P4 mobile builders (`MobileTabBar`, `MobileDrawer`, `MobileCarousel`).
+
 ## Unreleased - Close-request veto hook (2026-11-13)
 
 - `Application::close_requested(&mut self, WindowId) -> bool` (default `true`) is

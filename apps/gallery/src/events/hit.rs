@@ -1,9 +1,13 @@
-//! Layer 1 — Hit testing: pure function, no mutation.
+//! Layer 1 — Hit testing: pure function backed by [`acme_core::HitTestLayer`].
 //!
 //! Given hit-region data and current cursor/scroll state, returns the
 //! top-most hit-region index under the cursor, or `None`.
 
-use crate::render::{point_in_rect, scrolled_hit_rect};
+#[cfg(test)]
+use acme_core::Point;
+
+#[cfg(test)]
+use crate::render::build_hit_layer;
 use crate::types::HitRegion;
 
 /// Whether two region lists name the same widgets in the same order.
@@ -18,31 +22,21 @@ pub fn same_hit_list(before: &[HitRegion], after: &[HitRegion]) -> bool {
             .all(|(a, b)| a.node == b.node && a.message == b.message)
 }
 
-/// Reverse-iterate hit regions to find the top-most match under cursor.
+/// Reverse-iterate hit regions via [`acme_core::HitTestLayer`] to find the
+/// top-most match under cursor.
 ///
 /// * `button_info` — hit regions collected during the last frame.
 /// * `cursor` — current pointer coordinates `(x, y)`.
 /// * `scroll` — current content scroll offset.
 /// * `scroll_clip_rect` — window-space clip rect of the scroll viewport.
+#[cfg(test)]
 pub fn hit_test(
     button_info: &[HitRegion],
     cursor: (f32, f32),
     scroll: f32,
     scroll_clip_rect: [f32; 4],
 ) -> Option<usize> {
-    button_info.iter().enumerate().rev().find_map(|(i, hr)| {
-        let r = if hr.scrolled {
-            if scroll_clip_rect[2] > 0.0 && !point_in_rect(cursor.0, cursor.1, scroll_clip_rect) {
-                return None;
-            }
-            scrolled_hit_rect(hr.rect, scroll)
-        } else {
-            hr.rect
-        };
-        if point_in_rect(cursor.0, cursor.1, r) {
-            Some(i)
-        } else {
-            None
-        }
-    })
+    build_hit_layer(button_info, scroll, scroll_clip_rect)
+        .hit_test(Point::new(cursor.0, cursor.1))
+        .map(|hit| hit.tag as usize)
 }

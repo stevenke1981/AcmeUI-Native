@@ -15,8 +15,10 @@ pub struct DatePickerBuilder<M> {
     pub selected_day: Option<u32>,
     pub open: bool,
     pub placeholder: String,
-    /// Message sent when a day cell is clicked (not yet wired per-cell).
+    /// Message sent when the calendar container is clicked.
     pub on_change: Option<M>,
+    /// Callback producing a message when a specific day cell (1-31) is clicked.
+    pub on_select_day: Option<fn(u32) -> M>,
     /// Message sent when the ◀ (prev month) button is clicked.
     pub on_prev_month: Option<M>,
     /// Message sent when the ▶ (next month) button is clicked.
@@ -33,6 +35,7 @@ pub fn date_picker<M: Clone + 'static>(id: impl Into<WidgetKey>) -> DatePickerBu
         open: false,
         placeholder: String::new(),
         on_change: None,
+        on_select_day: None,
         on_prev_month: None,
         on_next_month: None,
     }
@@ -72,6 +75,12 @@ impl<M: Clone + 'static> DatePickerBuilder<M> {
     /// Set the message dispatched when the selection changes.
     pub fn on_change(mut self, msg: M) -> Self {
         self.on_change = Some(msg);
+        self
+    }
+
+    /// Set a callback invoked with the chosen day (1-31) when a day cell is clicked.
+    pub fn on_select_day(mut self, f: fn(u32) -> M) -> Self {
+        self.on_select_day = Some(f);
         self
     }
 
@@ -210,17 +219,28 @@ impl<M: Clone + 'static> From<DatePickerBuilder<M>> for WidgetNode<M> {
         for i in 0..total_cells {
             let cell: WidgetNode<M> = if i as u32 >= offset && day <= dim {
                 let is_selected = b.selected_day == Some(day);
-                let cell_card = card::<M>()
-                    .key(format!("{id_str}-d{day}").as_str())
-                    .padding(4.0)
-                    .variant(if is_selected {
-                        CardVariant::Interactive
-                    } else {
-                        CardVariant::Plain
-                    })
-                    .child(label::<M>(day.to_string()));
+                let built = if let Some(on_day) = b.on_select_day {
+                    button::<M>(format!("{id_str}-d{day}").as_str(), day.to_string())
+                        .variant(if is_selected {
+                            ButtonVariant::Primary
+                        } else {
+                            ButtonVariant::Ghost
+                        })
+                        .on_click(on_day(day))
+                } else {
+                    card::<M>()
+                        .key(format!("{id_str}-d{day}").as_str())
+                        .padding(4.0)
+                        .variant(if is_selected {
+                            CardVariant::Interactive
+                        } else {
+                            CardVariant::Plain
+                        })
+                        .child(label::<M>(day.to_string()))
+                        .build()
+                };
                 day += 1;
-                cell_card.build()
+                built
             } else {
                 // Empty filler cell so the grid stays aligned.
                 card::<M>()
@@ -731,5 +751,50 @@ mod tests {
         };
         assert_eq!(col.message, None);
         assert_eq!(col.children.len(), 3);
+    }
+
+    #[test]
+    fn date_picker_on_select_day_renders_clickable_day_buttons() {
+        #[derive(Clone, Debug, PartialEq)]
+        enum DayMsg {
+            PickDay(u32),
+        }
+
+        let node: WidgetNode<DayMsg> = date_picker("dp")
+            .year(2025)
+            .month(1)
+            .selected_day(Some(1))
+            .open(true)
+            .on_select_day(DayMsg::PickDay)
+            .into();
+
+        let WidgetNode::Column(col) = &node else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Column(grid) = &col.children[2] else {
+            panic!("expected grid Column");
+        };
+        let WidgetNode::Row(first_row) = &grid.children[0] else {
+            panic!("expected first Row");
+        };
+        // Leading empty filler cell remains a non-clickable Card
+        assert!(matches!(first_row.children[0], WidgetNode::Card(_)));
+
+        // Day 1 (selected) is a clickable Primary Button
+        let WidgetNode::Button(day1) = &first_row.children[3] else {
+            panic!("expected Button for day 1");
+        };
+        assert_eq!(day1.key.as_str(), "dp-d1");
+        assert_eq!(day1.label, "1");
+        assert_eq!(day1.variant, ButtonVariant::Primary);
+        assert_eq!(day1.activate(), Some(&DayMsg::PickDay(1)));
+
+        // Day 2 (unselected) is a clickable Ghost Button
+        let WidgetNode::Button(day2) = &first_row.children[4] else {
+            panic!("expected Button for day 2");
+        };
+        assert_eq!(day2.key.as_str(), "dp-d2");
+        assert_eq!(day2.variant, ButtonVariant::Ghost);
+        assert_eq!(day2.activate(), Some(&DayMsg::PickDay(2)));
     }
 }

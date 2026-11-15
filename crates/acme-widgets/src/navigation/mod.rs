@@ -116,7 +116,9 @@ impl<M: Clone> NavRail<M> {
             })
             .collect();
     }
+}
 
+impl<M> NavRail<M> {
     pub(crate) fn layout_style(&self) -> LayoutStyle {
         let width = if self.collapsed {
             Length::px(56.0)
@@ -189,7 +191,9 @@ impl<M: Clone> Sidebar<M> {
         }
         WidgetNode::Sidebar(self)
     }
+}
 
+impl<M> Sidebar<M> {
     pub(crate) fn layout_style(&self) -> LayoutStyle {
         LayoutStyle {
             kind: LayoutKind::Column,
@@ -304,7 +308,9 @@ impl<M: Clone> TabBar<M> {
             })
             .collect();
     }
+}
 
+impl<M> TabBar<M> {
     pub(crate) fn layout_style(&self) -> LayoutStyle {
         LayoutStyle {
             kind: LayoutKind::Row,
@@ -408,7 +414,9 @@ impl<M: Clone> Breadcrumb<M> {
         }
         self.children = nodes;
     }
+}
 
+impl<M> Breadcrumb<M> {
     pub(crate) fn layout_style(&self) -> LayoutStyle {
         LayoutStyle {
             kind: LayoutKind::Row,

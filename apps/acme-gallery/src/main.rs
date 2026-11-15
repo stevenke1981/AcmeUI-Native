@@ -9,28 +9,38 @@
 
 #![allow(clippy::collapsible_if)]
 
-use acme_core::{NodeId, RetainedTree};
+use acme_core::{
+    AtlasUpload, ClickDetector, Color, CursorHint, DrawCommand, GlyphDraw, GlyphFormat,
+    HitRegionSpec, HitTestLayer, HitZLayer, NodeId, Painter, Point, PointerOutcome, Rect,
+    RectStyle, RetainedTree, TextPrimitive,
+};
 use acme_layout::{LayoutEngine, LayoutNode, LayoutStyle, Length, Overflow, WidgetLayoutContext};
 use acme_platform::{Application, FrameContext, PlatformEvent, WindowConfig, WindowId};
+#[cfg(test)]
 use acme_render_wgpu::{ClippedQuad, Frame, Quad, TextRun, scene_from_frame};
-use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
+use acme_text::{FontSystem, GlyphAtlas, PreparedText, TextConstraints, TextStyle};
 use acme_theme::packs::{available_themes, theme_by_name};
 use acme_theme::{Theme, ThemeColor, ThemeMode};
 use acme_ui::charts::{
     BarEntry, ChartPoint, PieSlice, area_chart, bar_chart, gauge, line_chart, pie_chart, sparkline,
 };
+use acme_ui::foundations::{LiveRegionPoliteness, live_region, progress_ring, qr_code};
+use acme_ui::inputs::{SelectOption, SliderMark, combobox, date_picker, slider_marks};
 use acme_ui::mobile::{
-    MobileAvatarSize, MobileBannerTone, MobileButtonSize, mobile_action, mobile_avatar,
-    mobile_banner, mobile_button, mobile_card, mobile_chip, mobile_list_item, mobile_loader,
-    mobile_notification, mobile_progress, mobile_search, mobile_segmented, mobile_sheet_handle,
-    mobile_stepper, mobile_toggle,
+    MobileAvatarSize, MobileBannerTone, MobileButtonSize, MobileDrawerSide, mobile_action,
+    mobile_avatar, mobile_banner, mobile_button, mobile_card, mobile_carousel, mobile_chip,
+    mobile_drawer, mobile_list_item, mobile_loader, mobile_notification, mobile_progress,
+    mobile_search, mobile_segmented, mobile_sheet_handle, mobile_stepper, mobile_tab_bar,
+    mobile_toggle,
 };
+use acme_ui::overlay::{DrawerPlacement, drawer, dropdown_menu};
+use acme_widgets::painter_bridge::{paint_canvas_with_theme, theme_color};
 use acme_widgets::retained_binding::{RetainedBinding, bind_retained};
 use acme_widgets::style::{Styled, TextAlign};
 use acme_widgets::view_bridge::widget_to_views;
 use acme_widgets::{
-    ButtonSize, ButtonState, ButtonVariant, CardVariant, WidgetNode, button, card, column, label,
-    label_with_size, row, scroll_view, separator,
+    ButtonSize, ButtonState, ButtonVariant, CardVariant, WidgetNode, button, canvas, card, column,
+    label, label_with_size, menu_item, row, scroll_view, separator,
 };
 
 #[path = "mobile_search.rs"]
@@ -188,6 +198,26 @@ enum GalleryMessage {
     SwipeRestore,
     SwipeArchive,
     SwipeDelete,
+    SelectHighContrast,
+    LiveRegionAnnounce,
+    DatePickerToggle,
+    DatePickerSelectDay(u32),
+    DatePickerPrevMonth,
+    DatePickerNextMonth,
+    ComboboxToggle,
+    ComboboxSelect(u8),
+    SliderMarkSelect(u8),
+    DropdownToggle,
+    DropdownSelect(u8),
+    DrawerToggle,
+    DrawerClose,
+    MobileTabSelect(usize),
+    MobileDrawerToggle,
+    MobileDrawerClose,
+    MobileCarouselPrev,
+    MobileCarouselNext,
+    MobileCarouselSelect(usize),
+    CanvasPing,
 }
 
 // ── Theme preference persistence ────────────────────────────────────────────
@@ -275,6 +305,28 @@ struct Gallery {
     snackbar: SnackbarDemo,
     swipe: SwipeDemo,
     spinner: SpinnerDemo,
+    live_region_status: &'static str,
+    date_picker_open: bool,
+    date_year: u32,
+    date_month: u32,
+    date_selected_day: Option<u32>,
+    combobox_open: bool,
+    combobox_value: &'static str,
+    slider_value: f32,
+    dropdown_open: bool,
+    dropdown_status: &'static str,
+    drawer_open: bool,
+    mobile_tab_index: usize,
+    mobile_drawer_open: bool,
+    mobile_carousel_index: usize,
+    canvas_pings: usize,
+
+    hit_nodes: Vec<NodeId>,
+    hit_layer: HitTestLayer,
+    click_detector: ClickDetector,
+    viewport_clip: [f32; 4],
+    hit_layer_fingerprint: u64,
+    event_seq: u64,
 
     fonts: FontSystem,
     atlas: GlyphAtlas,
@@ -337,6 +389,27 @@ impl Gallery {
             snackbar: SnackbarDemo::new(),
             swipe: SwipeDemo::new(),
             spinner: SpinnerDemo::new(),
+            live_region_status: "Ready",
+            date_picker_open: false,
+            date_year: 2026,
+            date_month: 11,
+            date_selected_day: Some(15),
+            combobox_open: false,
+            combobox_value: "AcmeUI Native",
+            slider_value: 50.0,
+            dropdown_open: false,
+            dropdown_status: "none",
+            drawer_open: false,
+            mobile_tab_index: 0,
+            mobile_drawer_open: false,
+            mobile_carousel_index: 0,
+            canvas_pings: 0,
+            hit_nodes: Vec::new(),
+            hit_layer: HitTestLayer::new(),
+            click_detector: ClickDetector::new(),
+            viewport_clip: [SIDEBAR_WIDTH, TOOLBAR_HEIGHT, 900.0, 660.0],
+            hit_layer_fingerprint: 0,
+            event_seq: 0,
             fonts: FontSystem::new(),
             atlas: GlyphAtlas::default(),
             layout: LayoutEngine::new(),
@@ -509,6 +582,51 @@ impl Gallery {
                         .build(),
                 ),
             )
+            .child(
+                self.page_section(
+                    "ProgressRing, QRCode & LiveRegion",
+                    column()
+                        .key("foundations_p4_section")
+                        .gap(12.0)
+                        .child(
+                            row()
+                                .key("foundations_p4_canvas_row")
+                                .gap(16.0)
+                                .child(
+                                    progress_ring::<GalleryMessage>(68.0)
+                                        .key("foundations_progress_ring")
+                                        .size(56.0)
+                                        .show_label(true),
+                                )
+                                .child(
+                                    qr_code::<GalleryMessage>("https://acme-ui.native")
+                                        .key("foundations_qr_code")
+                                        .size(96.0),
+                                )
+                                .build(),
+                        )
+                        .child(
+                            row()
+                                .key("foundations_live_region_row")
+                                .gap(8.0)
+                                .child(
+                                    button("foundations_live_btn", "Announce Status")
+                                        .on_click(GalleryMessage::LiveRegionAnnounce),
+                                )
+                                .child(label(format!(
+                                    "LiveRegion status: {}",
+                                    self.live_region_status
+                                )))
+                                .child(
+                                    live_region::<GalleryMessage>(self.live_region_status)
+                                        .key("foundations_live_region")
+                                        .politeness(LiveRegionPoliteness::Polite),
+                                )
+                                .build(),
+                        )
+                        .build(),
+                ),
+            )
             .build()
     }
 
@@ -611,6 +729,98 @@ impl Gallery {
                         .build(),
                 ),
             )
+            .child(
+                self.page_section(
+                    "DatePicker — calendar selector",
+                    column()
+                        .key("inputs_date_picker_section")
+                        .gap(8.0)
+                        .child(
+                            row()
+                                .gap(8.0)
+                                .child(
+                                    button(
+                                        "inputs_date_toggle",
+                                        if self.date_picker_open {
+                                            "Hide Calendar"
+                                        } else {
+                                            "Show Calendar"
+                                        },
+                                    )
+                                    .on_click(GalleryMessage::DatePickerToggle),
+                                )
+                                .child(label(match self.date_selected_day {
+                                    Some(day) => format!(
+                                        "Selected: {:04}-{:02}-{:02}",
+                                        self.date_year, self.date_month, day
+                                    ),
+                                    None => format!(
+                                        "Browsing: {:04}-{:02}",
+                                        self.date_year, self.date_month
+                                    ),
+                                }))
+                                .build(),
+                        )
+                        .child(
+                            date_picker::<GalleryMessage>("inputs_date_picker")
+                                .year(self.date_year)
+                                .month(self.date_month)
+                                .selected_day(self.date_selected_day)
+                                .open(self.date_picker_open)
+                                .placeholder("Pick a date")
+                                .on_select_day(GalleryMessage::DatePickerSelectDay)
+                                .on_prev_month(GalleryMessage::DatePickerPrevMonth)
+                                .on_next_month(GalleryMessage::DatePickerNextMonth),
+                        )
+                        .build(),
+                ),
+            )
+            .child(
+                self.page_section(
+                    "Combobox — option filter",
+                    column()
+                        .key("inputs_combobox_section")
+                        .gap(8.0)
+                        .child(
+                            combobox::<GalleryMessage>("inputs_combobox")
+                                .value(self.combobox_value)
+                                .placeholder("Choose target...")
+                                .option(SelectOption::new("AcmeUI Native", "acme"))
+                                .option(SelectOption::new("Rust WGPU", "wgpu"))
+                                .option(SelectOption::new("Taffy Layout", "taffy"))
+                                .open(self.combobox_open)
+                                .on_toggle(GalleryMessage::ComboboxToggle)
+                                .on_select_option(combobox_option_message),
+                        )
+                        .child(label(format!(
+                            "Combobox: {} ({})",
+                            self.combobox_value,
+                            if self.combobox_open { "open" } else { "closed" }
+                        )))
+                        .build(),
+                ),
+            )
+            .child(
+                self.page_section(
+                    "SliderMarks — stepped marks",
+                    column()
+                        .key("inputs_slider_marks_section")
+                        .gap(8.0)
+                        .child(
+                            slider_marks::<GalleryMessage>(self.slider_value)
+                                .key("inputs_slider_marks")
+                                .min(0.0)
+                                .max(100.0)
+                                .mark(SliderMark::new(0.0, "0%"))
+                                .mark(SliderMark::new(25.0, "25%"))
+                                .mark(SliderMark::new(50.0, "50%"))
+                                .mark(SliderMark::new(75.0, "75%"))
+                                .mark(SliderMark::new(100.0, "100%"))
+                                .on_change(slider_mark_message),
+                        )
+                        .build(),
+                ),
+            )
             .build()
     }
 
@@ -703,6 +913,86 @@ impl Gallery {
                         .build(),
                 ),
             )
+            .child(
+                self.page_section(
+                    "DropdownMenu — popup menu",
+                    column()
+                        .key("overlay_dropdown_section")
+                        .gap(8.0)
+                        .child(
+                            row()
+                                .gap(12.0)
+                                .child(
+                                    dropdown_menu::<GalleryMessage>("overlay_dropdown")
+                                        .trigger_label(if self.dropdown_open {
+                                            "Actions ▴"
+                                        } else {
+                                            "Actions ▾"
+                                        })
+                                        .open(self.dropdown_open)
+                                        .on_toggle(GalleryMessage::DropdownToggle)
+                                        .item(
+                                            menu_item("new", "New Item")
+                                                .on_click(GalleryMessage::DropdownSelect(0)),
+                                        )
+                                        .item(
+                                            menu_item("export", "Export Scene")
+                                                .on_click(GalleryMessage::DropdownSelect(1)),
+                                        )
+                                        .separator()
+                                        .item(
+                                            menu_item("archive", "Archive")
+                                                .on_click(GalleryMessage::DropdownSelect(2)),
+                                        ),
+                                )
+                                .child(label(format!(
+                                    "Dropdown: {} ({})",
+                                    self.dropdown_status,
+                                    if self.dropdown_open { "open" } else { "closed" }
+                                )))
+                                .build(),
+                        )
+                        .build(),
+                ),
+            )
+            .child(
+                self.page_section(
+                    "Drawer — slide-over panel",
+                    column()
+                        .key("overlay_drawer_section")
+                        .gap(8.0)
+                        .child(
+                            row()
+                                .gap(8.0)
+                                .child(
+                                    button(
+                                        "overlay_drawer_toggle",
+                                        if self.drawer_open {
+                                            "Close Drawer"
+                                        } else {
+                                            "Open Drawer"
+                                        },
+                                    )
+                                    .on_click(GalleryMessage::DrawerToggle),
+                                )
+                                .child(label(format!(
+                                    "Drawer: {}",
+                                    if self.drawer_open { "open" } else { "closed" }
+                                )))
+                                .build(),
+                        )
+                        .child(
+                            drawer::<GalleryMessage>("overlay_drawer")
+                                .title("Inspector Drawer")
+                                .placement(DrawerPlacement::Right)
+                                .backdrop(true)
+                                .open(self.drawer_open)
+                                .on_close(GalleryMessage::DrawerClose)
+                                .content(label("Drawer canvas backdrop & controls.")),
+                        )
+                        .build(),
+                ),
+            )
             .build()
     }
 
@@ -749,6 +1039,34 @@ impl Gallery {
             .child(label(
                 "All charts are static representations built from existing primitives.",
             ))
+            // Interactive Canvas
+            .child(
+                self.page_section(
+                    "Interactive Canvas — HitTestLayer",
+                    row()
+                        .gap(12.0)
+                        .child(
+                            canvas::<GalleryMessage>()
+                                .key("charts_interactive_canvas")
+                                .size(220.0, 36.0)
+                                .cursor(CursorHint::Pointer)
+                                .accessible_label("Trigger Canvas Ping")
+                                .on_click(GalleryMessage::CanvasPing)
+                                .paint(|painter, rect, theme| {
+                                    painter.fill_rect(rect, theme_color(theme.colors.accent));
+                                    let dot = Rect::new(
+                                        rect.origin.x.get() + 10.0,
+                                        rect.origin.y.get() + 10.0,
+                                        16.0,
+                                        16.0,
+                                    );
+                                    painter.fill_rect(dot, theme_color(theme.colors.primary));
+                                }),
+                        )
+                        .child(label(format!("Canvas clicks: {}", self.canvas_pings)))
+                        .build(),
+                ),
+            )
             // Bar Chart
             .child(
                 self.page_section(
@@ -1086,6 +1404,81 @@ impl Gallery {
                     ))
                     .build(),
             ))
+            .child(self.page_section(
+                "Mobile Navigation & Carousel (P4)",
+                column()
+                    .key("gallery_mobile_p4_section")
+                    .gap(12.0)
+                    .child(
+                        mobile_tab_bar::<GalleryMessage>(vec!["Feed", "Explore", "Saved"])
+                            .key("gallery_mobile_tab_bar")
+                            .selected_index(self.mobile_tab_index)
+                            .on_select(GalleryMessage::MobileTabSelect),
+                    )
+                    .child(
+                        row()
+                            .key("gallery_mobile_drawer_controls")
+                            .gap(8.0)
+                            .child(
+                                button(
+                                    "gallery_mobile_drawer_toggle",
+                                    if self.mobile_drawer_open {
+                                        "Close Mobile Drawer"
+                                    } else {
+                                        "Open Mobile Drawer"
+                                    },
+                                )
+                                .on_click(GalleryMessage::MobileDrawerToggle),
+                            )
+                            .child(label(format!(
+                                "Mobile drawer: {}",
+                                if self.mobile_drawer_open {
+                                    "open"
+                                } else {
+                                    "closed"
+                                }
+                            )))
+                            .build(),
+                    )
+                    .child(
+                        mobile_drawer::<GalleryMessage>("gallery_mobile_drawer")
+                            .title("Navigation")
+                            .open(self.mobile_drawer_open)
+                            .side(MobileDrawerSide::Left)
+                            .on_close(GalleryMessage::MobileDrawerClose)
+                            .child(label("Quick mobile links")),
+                    )
+                    .child(
+                        mobile_carousel::<GalleryMessage>("gallery_mobile_carousel")
+                            .active_index(self.mobile_carousel_index)
+                            .show_indicators(true)
+                            .on_prev(GalleryMessage::MobileCarouselPrev)
+                            .on_next(GalleryMessage::MobileCarouselNext)
+                            .on_select(GalleryMessage::MobileCarouselSelect)
+                            .item(
+                                card()
+                                    .key("gallery_mobile_slide_0")
+                                    .padding(8.0)
+                                    .child(label("Slide 1 · Overview"))
+                                    .build(),
+                            )
+                            .item(
+                                card()
+                                    .key("gallery_mobile_slide_1")
+                                    .padding(8.0)
+                                    .child(label("Slide 2 · Metrics"))
+                                    .build(),
+                            )
+                            .item(
+                                card()
+                                    .key("gallery_mobile_slide_2")
+                                    .padding(8.0)
+                                    .child(label("Slide 3 · Summary"))
+                                    .build(),
+                            ),
+                    )
+                    .build(),
+            ))
             .build()
     }
 
@@ -1096,7 +1489,28 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Design System", 24.0))
             .child(separator())
-            .child(self.page_section("Theme packs", self.theme_pack_swatches()))
+            .child(
+                self.page_section(
+                    "Theme packs",
+                    column()
+                        .gap(8.0)
+                        .child(self.theme_pack_swatches())
+                        .child(
+                            row()
+                                .gap(8.0)
+                                .child(
+                                    button("apply_high_contrast", "Apply High Contrast Theme")
+                                        .on_click(GalleryMessage::SelectHighContrast),
+                                )
+                                .child(
+                                    button("cycle_theme_pack", "Next Theme Pack")
+                                        .on_click(GalleryMessage::CycleTheme),
+                                )
+                                .build(),
+                        )
+                        .build(),
+                ),
+            )
             .child(label("All semantic design tokens defined by the V2 theme."))
             .child(label("Full sizing: 240 x 96 box, 12 px padding"))
             .child(self.full_sizing_example())
@@ -1303,35 +1717,52 @@ impl Gallery {
         row().gap(8.0).child(label(text)).build()
     }
 
+    fn reset_hover_press(&mut self) {
+        self.pressed = None;
+        self.hovered = None;
+        self.click_detector.cancel();
+    }
+
+    fn sync_hit_layer(&mut self) {
+        let fp = hit_layer_fingerprint(
+            &self.button_info,
+            self.scroll,
+            self.viewport_clip,
+            self.snackbar.bounds,
+        );
+        if fp != self.hit_layer_fingerprint {
+            self.hit_layer = build_hit_layer(
+                &self.button_info,
+                &self.hit_nodes,
+                self.scroll,
+                self.viewport_clip,
+                self.snackbar.bounds,
+            );
+            self.hit_layer_fingerprint = fp;
+        }
+    }
+
     fn hit(&self) -> Option<usize> {
-        self.button_info
-            .iter()
-            .enumerate()
-            .rev()
-            .find_map(|(i, hr)| {
-                if self.snackbar.covers(self.cursor.0, self.cursor.1)
-                    && !snackbar::is_overlay_action(hr.message)
-                {
-                    return None;
-                }
-                let r = if hr.scrolled {
-                    if self.cursor.1 < 40.0 {
-                        return None;
-                    }
-                    [hr.rect[0], hr.rect[1] - self.scroll, hr.rect[2], hr.rect[3]]
-                } else {
-                    hr.rect
-                };
-                if self.cursor.0 >= r[0]
-                    && self.cursor.0 <= r[0] + r[2]
-                    && self.cursor.1 >= r[1]
-                    && self.cursor.1 <= r[1] + r[3]
-                {
-                    Some(i)
-                } else {
-                    None
-                }
-            })
+        let point = Point::new(self.cursor.0, self.cursor.1);
+        let fp = hit_layer_fingerprint(
+            &self.button_info,
+            self.scroll,
+            self.viewport_clip,
+            self.snackbar.bounds,
+        );
+        if fp == self.hit_layer_fingerprint {
+            self.hit_layer.hit_test(point).map(|hit| hit.tag as usize)
+        } else {
+            build_hit_layer(
+                &self.button_info,
+                &self.hit_nodes,
+                self.scroll,
+                self.viewport_clip,
+                self.snackbar.bounds,
+            )
+            .hit_test(point)
+            .map(|hit| hit.tag as usize)
+        }
     }
 
     fn activate(&mut self, index: usize) -> bool {
@@ -1346,6 +1777,11 @@ impl Gallery {
             }
             GalleryMessage::CycleTheme => {
                 self.cycle_theme();
+                true
+            }
+            GalleryMessage::SelectHighContrast => {
+                self.theme_pack = "high-contrast".to_string();
+                save_theme_pref(&self.theme_pack, self.dark);
                 true
             }
             GalleryMessage::SelectCategory(i) => {
@@ -1623,7 +2059,137 @@ impl Gallery {
                 self.mobile_selected = index;
                 true
             }
+            GalleryMessage::LiveRegionAnnounce => {
+                self.live_region_status = if self.live_region_status == "Ready" {
+                    "Updated via LiveRegion"
+                } else {
+                    "Ready"
+                };
+                true
+            }
+            GalleryMessage::DatePickerToggle => {
+                self.date_picker_open = !self.date_picker_open;
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::DatePickerSelectDay(day) => {
+                self.date_selected_day = Some(day);
+                true
+            }
+            GalleryMessage::DatePickerPrevMonth => {
+                if self.date_month <= 1 {
+                    self.date_year = self.date_year.saturating_sub(1).max(1);
+                    self.date_month = 12;
+                } else {
+                    self.date_month -= 1;
+                }
+                true
+            }
+            GalleryMessage::DatePickerNextMonth => {
+                if self.date_month >= 12 {
+                    self.date_year = self.date_year.saturating_add(1);
+                    self.date_month = 1;
+                } else {
+                    self.date_month += 1;
+                }
+                true
+            }
+            GalleryMessage::ComboboxToggle => {
+                self.combobox_open = !self.combobox_open;
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::ComboboxSelect(index) => {
+                self.combobox_value = match index {
+                    0 => "AcmeUI Native",
+                    1 => "Rust WGPU",
+                    _ => "Taffy Layout",
+                };
+                self.combobox_open = false;
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::SliderMarkSelect(value) => {
+                self.slider_value = (value as f32).clamp(0.0, 100.0);
+                true
+            }
+            GalleryMessage::DropdownToggle => {
+                self.dropdown_open = !self.dropdown_open;
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::DropdownSelect(index) => {
+                self.dropdown_status = match index {
+                    0 => "New Item",
+                    1 => "Export Scene",
+                    _ => "Archive",
+                };
+                self.dropdown_open = false;
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::DrawerToggle => {
+                self.drawer_open = !self.drawer_open;
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::DrawerClose => {
+                if !self.drawer_open {
+                    return false;
+                }
+                self.drawer_open = false;
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::MobileTabSelect(index) => {
+                self.mobile_tab_index = index.min(2);
+                true
+            }
+            GalleryMessage::MobileDrawerToggle => {
+                self.mobile_drawer_open = !self.mobile_drawer_open;
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::MobileDrawerClose => {
+                if !self.mobile_drawer_open {
+                    return false;
+                }
+                self.mobile_drawer_open = false;
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::MobileCarouselPrev => {
+                self.mobile_carousel_index = self.mobile_carousel_index.saturating_sub(1);
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::MobileCarouselNext => {
+                self.mobile_carousel_index = (self.mobile_carousel_index + 1).min(2);
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::MobileCarouselSelect(index) => {
+                self.mobile_carousel_index = index.min(2);
+                self.reset_hover_press();
+                true
+            }
+            GalleryMessage::CanvasPing => {
+                self.canvas_pings += 1;
+                true
+            }
         }
+    }
+}
+
+fn slider_mark_message(value: f32) -> GalleryMessage {
+    GalleryMessage::SliderMarkSelect(value.round().clamp(0.0, 100.0) as u8)
+}
+
+fn combobox_option_message(value: String) -> GalleryMessage {
+    match value.as_str() {
+        "acme" => GalleryMessage::ComboboxSelect(0),
+        "wgpu" => GalleryMessage::ComboboxSelect(1),
+        _ => GalleryMessage::ComboboxSelect(2),
     }
 }
 
@@ -1675,25 +2241,55 @@ impl Application for Gallery {
         match event {
             PlatformEvent::PointerMoved { x, y, .. } => {
                 self.cursor = (x, y);
+                self.sync_hit_layer();
+                let _ = self
+                    .click_detector
+                    .on_pointer_move(&self.hit_layer, Point::new(x, y));
                 let next = self.hit();
                 let changed = next != self.hovered;
                 self.hovered = next;
                 changed
             }
-            PlatformEvent::PointerButton { pressed, .. } => {
+            PlatformEvent::PointerButton {
+                pressed, button, ..
+            } => {
+                self.sync_hit_layer();
+                self.event_seq = self.event_seq.saturating_add(1);
+                let pt = Point::new(self.cursor.0, self.cursor.1);
+                let outcomes = self.click_detector.on_pointer_button(
+                    &self.hit_layer,
+                    button,
+                    pressed,
+                    pt,
+                    self.event_seq as f64 * 0.25,
+                );
                 if pressed {
                     self.pressed = self.hit();
                     true
                 } else {
-                    let activated = self
-                        .pressed
-                        .take()
-                        .filter(|&value| Some(value) == self.hit());
-                    activated.is_some_and(|i| self.activate(i))
+                    let prev_pressed = self.pressed.take();
+                    let mut activated_idx = None;
+                    for outcome in outcomes {
+                        if let PointerOutcome::Clicked { id, .. } = outcome {
+                            if let Some(hit_idx) = self
+                                .hit_layer
+                                .hit_test(pt)
+                                .filter(|hit| hit.id == id)
+                                .map(|hit| hit.tag as usize)
+                            {
+                                if prev_pressed == Some(hit_idx) {
+                                    activated_idx = Some(hit_idx);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    activated_idx.is_some_and(|i| self.activate(i))
                 }
             }
             PlatformEvent::Scroll { delta_y, .. } => {
                 self.scroll = (self.scroll - delta_y).clamp(0.0, self.max_scroll);
+                self.sync_hit_layer();
                 true
             }
             PlatformEvent::Resized { .. } => true,
@@ -1725,8 +2321,7 @@ impl Application for Gallery {
         let spinner_changed = self.spinner.tick(now);
         if notification_changed || snackbar_changed {
             // Removing a card changes hit indices while a pointer may be held.
-            self.pressed = None;
-            self.hovered = None;
+            self.reset_hover_press();
             true
         } else {
             spinner_changed
@@ -1782,8 +2377,17 @@ impl Application for Gallery {
 
         // 8. Collect hit regions
         let mut button_info = Vec::new();
-        collect_hit_regions(&description, &root, &snapshot, false, &mut button_info);
+        let mut hit_nodes = Vec::new();
+        collect_hit_regions_with_nodes(
+            &description,
+            &root,
+            &snapshot,
+            false,
+            &mut button_info,
+            Some(&mut hit_nodes),
+        );
         self.button_info = button_info;
+        self.hit_nodes = hit_nodes;
 
         // 9. Scroll metrics
         self.max_scroll = snapshot
@@ -1802,21 +2406,16 @@ impl Application for Gallery {
         );
         let colors = theme.colors;
 
-        // 10. Build frame
-        let mut frame = Frame {
-            clear: rgba(colors.background),
-            ..Frame::default()
-        };
+        // 10. Build scene via Painter
+        let mut painter = Painter::with_clear(theme_color(colors.background));
 
         // 11. Sidebar background
         if let Some(r) = snapshot.get(ids.sidebar) {
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                colors.surface,
-                0.0,
-                1.0,
-                colors.border,
-            ));
+            painter.rect(
+                Rect::new(r.x, r.y, r.width, r.height),
+                RectStyle::solid(theme_color(colors.surface))
+                    .border(1.0, theme_color(colors.border)),
+            );
         }
 
         // 12. Sidebar title — centered
@@ -1832,17 +2431,15 @@ impl Application for Gallery {
             );
             let ox = r.x + (r.width - measured.width).max(0.0) / 2.0;
             let oy = r.y + (r.height - measured.height) / 2.0 + measured.baseline;
-            add_text(
+            painter.text_primitive(build_text_primitive(
                 &mut self.fonts,
                 &mut self.atlas,
-                &mut frame,
                 "AcmeUI",
                 ([ox, oy], 18.0),
                 colors.foreground,
                 context.scale_factor,
-                None,
                 theme.typography.line_height,
-            );
+            ));
         }
 
         // 13. Sidebar buttons — text centered both horizontally and vertically
@@ -1868,13 +2465,12 @@ impl Application for Gallery {
             } else {
                 colors.foreground
             };
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                bg,
-                theme.radii.md,
-                1.0,
-                colors.border,
-            ));
+            painter.rect(
+                Rect::new(r.x, r.y, r.width, r.height),
+                RectStyle::solid(theme_color(bg))
+                    .radius(theme.radii.md)
+                    .border(1.0, theme_color(colors.border)),
+            );
             let label = CATEGORIES[i].name;
             let measured = self.fonts.measure(
                 label,
@@ -1891,28 +2487,24 @@ impl Application for Gallery {
             // then add baseline so origin_y (the baseline position)
             // correctly positions all glyphs.
             let oy = r.y + (r.height - measured.height) / 2.0 + measured.baseline;
-            add_text(
+            painter.text_primitive(build_text_primitive(
                 &mut self.fonts,
                 &mut self.atlas,
-                &mut frame,
                 label,
                 ([ox, oy], theme.typography.label),
                 fg,
                 context.scale_factor,
-                None,
                 theme.typography.line_height,
-            );
+            ));
         }
 
         // 14. Toolbar background
         if let Some(r) = snapshot.get(ids.toolbar) {
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                colors.surface,
-                0.0,
-                1.0,
-                colors.border,
-            ));
+            painter.rect(
+                Rect::new(r.x, r.y, r.width, r.height),
+                RectStyle::solid(theme_color(colors.surface))
+                    .border(1.0, theme_color(colors.border)),
+            );
         }
 
         // 15. Toolbar buttons
@@ -1941,17 +2533,19 @@ impl Application for Gallery {
             };
             let btn = button::<GalleryMessage>("", "");
             let resolved = btn.resolve_style(&theme, st);
-            frame.quads.push(quad_rect(
-                [r.x, r.y, r.width, r.height],
-                resolved.background,
-                theme.radii.md,
-                1.0,
-                if st.hovered {
-                    colors.accent
-                } else {
-                    colors.border
-                },
-            ));
+            painter.rect(
+                Rect::new(r.x, r.y, r.width, r.height),
+                RectStyle::solid(theme_color(resolved.background))
+                    .radius(theme.radii.md)
+                    .border(
+                        1.0,
+                        theme_color(if st.hovered {
+                            colors.accent
+                        } else {
+                            colors.border
+                        }),
+                    ),
+            );
             let measured_tb = self.fonts.measure(
                 label_text,
                 &TextStyle {
@@ -1963,26 +2557,26 @@ impl Application for Gallery {
             );
             let tb_ox = r.x + (r.width - measured_tb.width).max(0.0) / 2.0;
             let tb_oy = r.y + (r.height - measured_tb.height) / 2.0 + measured_tb.baseline;
-            add_text(
+            painter.text_primitive(build_text_primitive(
                 &mut self.fonts,
                 &mut self.atlas,
-                &mut frame,
                 label_text,
                 ([tb_ox, tb_oy], 13.0),
                 resolved.foreground,
                 context.scale_factor,
-                None,
                 theme.typography.line_height,
-            );
+            ));
         }
 
-        // 16. Page content
         if let Some(sv_rect) = snapshot.get(ids.scroll_view) {
             let clip = [sv_rect.x, sv_rect.y, sv_rect.width, sv_rect.height];
+            self.viewport_clip = clip;
             let mut btn_idx = ids.sidebar_buttons.len() + ids.toolbar_buttons.len();
             if let Some((page_widget, page_layout)) = gallery_page_nodes(&description, &root) {
-                render_content(
-                    &mut frame,
+                let clip_rect = Rect::new(clip[0], clip[1], clip[2], clip[3]);
+                let mut clip_guard = SceneClipGuard::push(&mut painter, clip_rect);
+                render_content_painter(
+                    clip_guard.painter(),
                     page_widget,
                     page_layout,
                     &snapshot,
@@ -1999,7 +2593,7 @@ impl Application for Gallery {
             }
         }
 
-        let mut scene = scene_from_frame(&frame);
+        let mut scene = painter.finish_checked().expect("valid gallery scene");
         self.search.paint(
             &mut scene,
             &description,
@@ -2012,6 +2606,7 @@ impl Application for Gallery {
             &mut self.atlas,
         );
         self.paint_snackbar(&mut scene, &context, &theme);
+        self.sync_hit_layer();
         scene
     }
 }
@@ -2199,6 +2794,365 @@ fn apply_gallery_styles(root: &mut LayoutNode, width: f32, height: f32) {
 
 // ── Content Render ───────────────────────────────────────────────────────────
 
+/// RAII clip scope that guarantees `PopClip` is balanced with `PushClip`.
+struct SceneClipGuard<'a, 'b> {
+    painter: &'a mut Painter<'b>,
+}
+
+impl<'a, 'b> SceneClipGuard<'a, 'b> {
+    fn push(painter: &'a mut Painter<'b>, clip_rect: Rect<acme_core::Logical>) -> Self {
+        painter.scene_mut().push(DrawCommand::PushClip(clip_rect));
+        Self { painter }
+    }
+
+    fn painter(&mut self) -> &mut Painter<'b> {
+        self.painter
+    }
+}
+
+impl Drop for SceneClipGuard<'_, '_> {
+    fn drop(&mut self) {
+        self.painter.scene_mut().push(DrawCommand::PopClip);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn render_content_painter(
+    painter: &mut Painter<'_>,
+    widget: &WidgetNode<GalleryMessage>,
+    layout: &LayoutNode,
+    snapshot: &acme_layout::LayoutSnapshot,
+    theme: &Theme,
+    scale: f32,
+    scroll_y: f32,
+    clip: [f32; 4],
+    btn_idx: &mut usize,
+    hovered: Option<usize>,
+    pressed: Option<usize>,
+    fonts: &mut FontSystem,
+    atlas: &mut GlyphAtlas,
+) {
+    let colors = theme.colors;
+    let row_index = collapsible::row_action(widget).and_then(|_| {
+        snapshot.get(layout.id).map(|_| {
+            let index = *btn_idx;
+            *btn_idx += 1;
+            index
+        })
+    });
+    // Styled rows and stacks include switch tracks, card media and avatars.
+    if let WidgetNode::Row(container) | WidgetNode::Stack(container) = widget {
+        if let (Some(background), Some(rect)) =
+            (container.style.background, snapshot.get(layout.id))
+        {
+            let fill = match row_index {
+                Some(index) if pressed == Some(index) => {
+                    if background == acme_widgets::style::ColorToken::DangerSoft {
+                        colors.danger_soft
+                    } else {
+                        colors.ghost_pressed
+                    }
+                }
+                Some(index) if hovered == Some(index) => {
+                    if background == acme_widgets::style::ColorToken::DangerSoft {
+                        colors.danger_soft
+                    } else {
+                        colors.ghost_hover
+                    }
+                }
+                _ => background.resolve(theme),
+            };
+            painter.rect(
+                Rect::new(rect.x, rect.y - scroll_y, rect.width, rect.height),
+                RectStyle::solid(theme_color(fill))
+                    .radius(container.style.border_radius.unwrap_or(0.0)),
+            );
+        }
+    }
+    match widget {
+        WidgetNode::Label(l) => {
+            if l.font_size.is_some_and(|fs| fs <= 0.0) {
+                return;
+            }
+            if let Some(rect) = snapshot.get(layout.id) {
+                let fs = l.font_size.unwrap_or(theme.typography.body);
+                let y_text = rect.y - scroll_y;
+                let text_color = l
+                    .style
+                    .text_color
+                    .map(|token| token.resolve(theme))
+                    .or(l.color)
+                    .unwrap_or(colors.foreground);
+
+                let mut display_text = l.text.as_str();
+                let wrap = match l.wrap {
+                    acme_widgets::LabelWrap::None => acme_text::TextWrap::None,
+                    acme_widgets::LabelWrap::Word => acme_text::TextWrap::Word,
+                    acme_widgets::LabelWrap::Character => acme_text::TextWrap::Glyph,
+                };
+                let wrapped = l.wrap != acme_widgets::LabelWrap::None;
+                let alignment = l.style.text_align.unwrap_or(TextAlign::Left);
+                let aligned = !wrapped && alignment != TextAlign::Left;
+                let mut text_x = rect.x + if wrapped || aligned { 0.0 } else { 4.0 };
+                // Color swatch label: "\x01{color_name}|{display_text}"
+                if let Some((color_name, display)) = l
+                    .text
+                    .strip_prefix('\x01')
+                    .and_then(|rest| rest.split_once('|'))
+                {
+                    if let Some(swatch_color) = resolve_swatch_color(theme, color_name) {
+                        let swatch_size = fs * 0.85;
+                        let swatch_x = rect.x + 4.0;
+                        let swatch_y = y_text + (fs * 1.5 - swatch_size).max(0.0) / 2.0;
+                        painter.rect(
+                            Rect::new(swatch_x, swatch_y, swatch_size, swatch_size),
+                            RectStyle::solid(theme_color(swatch_color))
+                                .radius(theme.radii.sm.min(swatch_size / 2.0)),
+                        );
+                        display_text = display;
+                        text_x = swatch_x + swatch_size + 8.0;
+                    }
+                }
+                let shaped = fonts.shape(
+                    display_text,
+                    &TextStyle {
+                        font_size: fs,
+                        line_height: l.line_height.unwrap_or(fs * theme.typography.line_height),
+                        ..TextStyle::default()
+                    },
+                    TextConstraints {
+                        max_width: wrapped.then_some((rect.width - (text_x - rect.x)).max(0.0)),
+                        wrap,
+                    },
+                    scale,
+                );
+                let prepared = fonts.prepare(&shaped, atlas);
+                let primitive = text_primitive_from_prepared(
+                    [text_x, y_text + shaped.baseline],
+                    theme_color(text_color),
+                    prepared,
+                );
+                if aligned {
+                    let remaining = (rect.width - shaped.width).max(0.0);
+                    let aligned_x = rect.x
+                        + if alignment == TextAlign::Center {
+                            remaining / 2.0
+                        } else {
+                            remaining
+                        };
+                    let x = rect.x.max(clip[0]);
+                    let y = y_text.max(clip[1]);
+                    let right = (rect.x + rect.width).min(clip[0] + clip[2]);
+                    let bottom = (y_text + rect.height).min(clip[1] + clip[3]);
+                    let aligned_primitive = TextPrimitive {
+                        origin: Point::new(aligned_x, y_text + shaped.baseline),
+                        ..primitive
+                    };
+                    painter.with_clip(
+                        Rect::new(x, y, (right - x).max(0.0), (bottom - y).max(0.0)),
+                        |painter| {
+                            painter.text_primitive(aligned_primitive);
+                        },
+                    );
+                } else {
+                    painter.text_primitive(primitive);
+                }
+            }
+        }
+        WidgetNode::Button(btn) => {
+            if let Some(rect) = snapshot.get(layout.id) {
+                let y = rect.y - scroll_y;
+                let st = button_state_for_render(btn, btn_idx, hovered, pressed);
+                let resolved = btn.resolve_style(theme, st);
+                painter.rect(
+                    Rect::new(rect.x, y, rect.width, rect.height),
+                    RectStyle::solid(theme_color(resolved.background))
+                        .radius(btn.style.border_radius.unwrap_or(theme.radii.md))
+                        .border(
+                            btn.style.border_width.unwrap_or(1.0),
+                            theme_color(resolved.border),
+                        ),
+                );
+                let shaped = fonts.shape(
+                    &btn.label,
+                    &TextStyle {
+                        font_size: theme.typography.label,
+                        line_height: theme.typography.label * theme.typography.line_height,
+                        ..TextStyle::default()
+                    },
+                    TextConstraints {
+                        max_width: None,
+                        wrap: acme_text::TextWrap::None,
+                    },
+                    scale,
+                );
+                let prepared = fonts.prepare(&shaped, atlas);
+                let btn_clip = intersect_clip([rect.x, y, rect.width, rect.height], clip);
+                let origin = [
+                    rect.x + (rect.width - shaped.width).max(0.0) / 2.0,
+                    y + (rect.height - shaped.height).max(0.0) / 2.0 + shaped.baseline,
+                ];
+                painter.with_clip(
+                    Rect::new(btn_clip[0], btn_clip[1], btn_clip[2], btn_clip[3]),
+                    |painter| {
+                        painter.text_primitive(text_primitive_from_prepared(
+                            origin,
+                            theme_color(resolved.foreground),
+                            prepared,
+                        ));
+                    },
+                );
+            }
+        }
+        WidgetNode::Separator(_) => {
+            if let Some(rect) = snapshot.get(layout.id) {
+                let y = rect.y - scroll_y;
+                painter.fill_rect(
+                    Rect::new(rect.x, y, rect.width, 1.0),
+                    theme_color(colors.border),
+                );
+            }
+        }
+        WidgetNode::Card(c) => {
+            if let Some(rect) = snapshot.get(layout.id) {
+                let y = rect.y - scroll_y;
+                let (bg, border) = if let Some(custom_bg) = c.background_color {
+                    (custom_bg, colors.border)
+                } else {
+                    match c.variant {
+                        CardVariant::Elevated => (colors.surface, colors.border),
+                        CardVariant::Outlined => (colors.background, colors.border),
+                        CardVariant::Interactive => (colors.surface, colors.accent),
+                        _ => (colors.surface, colors.border),
+                    }
+                };
+                let radius = c.border_radius.unwrap_or(theme.radii.sm);
+                if c.variant == CardVariant::Elevated {
+                    paint_card_shadow_painter(
+                        painter,
+                        [rect.x, y, rect.width, rect.height],
+                        radius,
+                        theme.shadows.sm,
+                    );
+                }
+                painter.rect(
+                    Rect::new(rect.x, y, rect.width, rect.height),
+                    RectStyle::solid(theme_color(bg))
+                        .radius(radius)
+                        .border(c.style.border_width.unwrap_or(1.0), theme_color(border)),
+                );
+            }
+            let wc = widget.children();
+            for (w, l) in wc.iter().zip(layout.children.iter()) {
+                render_content_painter(
+                    painter, w, l, snapshot, theme, scale, scroll_y, clip, btn_idx, hovered,
+                    pressed, fonts, atlas,
+                );
+            }
+        }
+        WidgetNode::Canvas(c) => {
+            if let Some(rect) = snapshot.get(layout.id)
+                && rect.width > 0.0
+                && rect.height > 0.0
+            {
+                if c.activate().is_some() {
+                    *btn_idx += 1;
+                }
+                let canvas_rect = Rect::new(rect.x, rect.y - scroll_y, rect.width, rect.height);
+                let clip_rect = Rect::new(clip[0], clip[1], clip[2], clip[3]);
+                // Keep Painter's active clip stack synchronized while preserving outer PushClip retention.
+                painter.with_clip(clip_rect, |painter| {
+                    paint_canvas_with_theme(c, canvas_rect, theme, painter);
+                });
+            }
+        }
+        WidgetNode::TextInput(ti) => {
+            if ti.key.as_str() == "gallery_search__input" {
+                return;
+            }
+            if let Some(rect) = snapshot.get(layout.id) {
+                let y = rect.y - scroll_y;
+                painter.rect(
+                    Rect::new(rect.x, y, rect.width, rect.height),
+                    RectStyle::solid(theme_color(colors.surface))
+                        .radius(theme.radii.md)
+                        .border(1.0, theme_color(colors.input)),
+                );
+                let (text, color) = if ti.value.is_empty() {
+                    (
+                        ti.placeholder.as_deref().unwrap_or(""),
+                        colors.muted_foreground,
+                    )
+                } else {
+                    (ti.value.as_str(), colors.foreground)
+                };
+                if !text.is_empty() {
+                    let fs = theme.typography.body;
+                    let shaped = fonts.shape(
+                        text,
+                        &TextStyle {
+                            font_size: fs,
+                            line_height: fs * theme.typography.line_height,
+                            ..TextStyle::default()
+                        },
+                        TextConstraints::default(),
+                        scale,
+                    );
+                    let prepared = fonts.prepare(&shaped, atlas);
+                    let text_clip = intersect_clip([rect.x, y, rect.width, rect.height], clip);
+                    let origin = [
+                        rect.x + theme.spacing.px2,
+                        y + (rect.height - shaped.height).max(0.0) / 2.0 + shaped.baseline,
+                    ];
+                    painter.with_clip(
+                        Rect::new(text_clip[0], text_clip[1], text_clip[2], text_clip[3]),
+                        |painter| {
+                            painter.text_primitive(text_primitive_from_prepared(
+                                origin,
+                                theme_color(color),
+                                prepared,
+                            ));
+                        },
+                    );
+                }
+            }
+        }
+        WidgetNode::Tooltip(t) => {
+            render_content_painter(
+                painter, &t.child, layout, snapshot, theme, scale, scroll_y, clip, btn_idx,
+                hovered, pressed, fonts, atlas,
+            );
+        }
+        WidgetNode::Popover(p) => {
+            render_content_painter(
+                painter,
+                &p.children[0],
+                layout,
+                snapshot,
+                theme,
+                scale,
+                scroll_y,
+                clip,
+                btn_idx,
+                hovered,
+                pressed,
+                fonts,
+                atlas,
+            );
+        }
+        _ => {
+            let wc = widget.children();
+            for (w, l) in wc.iter().zip(layout.children.iter()) {
+                render_content_painter(
+                    painter, w, l, snapshot, theme, scale, scroll_y, clip, btn_idx, hovered,
+                    pressed, fonts, atlas,
+                );
+            }
+        }
+    }
+}
+
+#[cfg(test)]
 #[allow(clippy::too_many_arguments)]
 fn render_content(
     frame: &mut Frame,
@@ -2501,12 +3455,24 @@ fn button_state_for_render(
 
 // ── Hit Region Collection ────────────────────────────────────────────────────
 
+#[cfg(test)]
 fn collect_hit_regions(
     widget: &WidgetNode<GalleryMessage>,
     layout: &LayoutNode,
     snapshot: &acme_layout::LayoutSnapshot,
     scrolled: bool,
     result: &mut Vec<HitRegion>,
+) {
+    collect_hit_regions_with_nodes(widget, layout, snapshot, scrolled, result, None);
+}
+
+fn collect_hit_regions_with_nodes(
+    widget: &WidgetNode<GalleryMessage>,
+    layout: &LayoutNode,
+    snapshot: &acme_layout::LayoutSnapshot,
+    scrolled: bool,
+    result: &mut Vec<HitRegion>,
+    mut nodes: Option<&mut Vec<NodeId>>,
 ) {
     if let Some(message) = collapsible::row_action(widget) {
         if let Some(rect) = snapshot.get(layout.id) {
@@ -2515,6 +3481,9 @@ fn collect_hit_regions(
                 message,
                 scrolled,
             });
+            if let Some(nodes) = nodes.as_deref_mut() {
+                nodes.push(layout.id);
+            }
         }
     }
     match widget {
@@ -2526,28 +3495,162 @@ fn collect_hit_regions(
                         message: *msg,
                         scrolled,
                     });
+                    if let Some(nodes) = nodes.as_deref_mut() {
+                        nodes.push(layout.id);
+                    }
+                }
+            }
+        }
+        WidgetNode::Canvas(c) => {
+            if let Some(msg) = c.activate() {
+                if let Some(rect) = snapshot.get(layout.id) {
+                    if rect.width > 0.0 && rect.height > 0.0 {
+                        result.push(HitRegion {
+                            rect: [rect.x, rect.y, rect.width, rect.height],
+                            message: *msg,
+                            scrolled,
+                        });
+                        if let Some(nodes) = nodes.as_deref_mut() {
+                            nodes.push(layout.id);
+                        }
+                    }
                 }
             }
         }
         WidgetNode::ScrollView(_) => {
             let wc = widget.children();
             for (w, l) in wc.iter().zip(layout.children.iter()) {
-                collect_hit_regions(w, l, snapshot, true, result);
+                collect_hit_regions_with_nodes(w, l, snapshot, true, result, nodes.as_deref_mut());
             }
         }
         WidgetNode::Tooltip(t) => {
-            collect_hit_regions(&t.child, layout, snapshot, scrolled, result);
+            collect_hit_regions_with_nodes(&t.child, layout, snapshot, scrolled, result, nodes);
         }
         WidgetNode::Popover(p) => {
-            collect_hit_regions(&p.children[0], layout, snapshot, scrolled, result);
+            collect_hit_regions_with_nodes(
+                &p.children[0],
+                layout,
+                snapshot,
+                scrolled,
+                result,
+                nodes,
+            );
         }
         _ => {
             let wc = widget.children();
             for (w, l) in wc.iter().zip(layout.children.iter()) {
-                collect_hit_regions(w, l, snapshot, scrolled, result);
+                collect_hit_regions_with_nodes(
+                    w,
+                    l,
+                    snapshot,
+                    scrolled,
+                    result,
+                    nodes.as_deref_mut(),
+                );
             }
         }
     }
+}
+
+fn hit_layer_fingerprint(
+    regions: &[HitRegion],
+    scroll: f32,
+    viewport_clip: [f32; 4],
+    snackbar_bounds: Option<[f32; 4]>,
+) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    regions.len().hash(&mut hasher);
+    scroll.to_bits().hash(&mut hasher);
+    for v in viewport_clip {
+        v.to_bits().hash(&mut hasher);
+    }
+    if let Some(sb) = snackbar_bounds {
+        1u8.hash(&mut hasher);
+        for v in sb {
+            v.to_bits().hash(&mut hasher);
+        }
+    } else {
+        0u8.hash(&mut hasher);
+    }
+    for hr in regions {
+        for v in hr.rect {
+            v.to_bits().hash(&mut hasher);
+        }
+        hr.scrolled.hash(&mut hasher);
+    }
+    hasher.finish()
+}
+
+fn build_hit_layer(
+    regions: &[HitRegion],
+    nodes: &[NodeId],
+    scroll: f32,
+    viewport_clip: [f32; 4],
+    snackbar_bounds: Option<[f32; 4]>,
+) -> HitTestLayer {
+    let mut layer = HitTestLayer::new();
+    let clip_rect = Rect::new(
+        viewport_clip[0],
+        viewport_clip[1],
+        viewport_clip[2],
+        viewport_clip[3],
+    );
+    let mut overlay_indices = Vec::new();
+    let use_nodes = nodes.len() == regions.len();
+    for (idx, hr) in regions.iter().enumerate() {
+        if snackbar::is_overlay_action(hr.message) {
+            overlay_indices.push(idx);
+            continue;
+        }
+        let id = if use_nodes {
+            nodes[idx]
+        } else {
+            NodeId::new(100_000_000 + idx as u64)
+        };
+        let spec = HitRegionSpec::rect(
+            id,
+            Rect::new(hr.rect[0], hr.rect[1], hr.rect[2], hr.rect[3]),
+        )
+        .cursor(CursorHint::Pointer)
+        .tag(idx as u64);
+        if hr.scrolled {
+            layer.with_scroll_viewport(clip_rect, 0.0, scroll, |layer| {
+                layer.push_region(spec);
+            });
+        } else {
+            layer.push_region(spec);
+        }
+    }
+    if let Some(sb) = snackbar_bounds {
+        layer.push_scrim(
+            NodeId::new(u64::MAX - 1),
+            Rect::new(sb[0], sb[1], sb[2], sb[3]),
+            HitZLayer::Overlay,
+            false,
+        );
+    }
+    if !overlay_indices.is_empty() {
+        layer.with_z_layer(HitZLayer::Overlay, |layer| {
+            for idx in overlay_indices {
+                let hr = &regions[idx];
+                let id = if use_nodes {
+                    nodes[idx]
+                } else {
+                    NodeId::new(100_000_000 + idx as u64)
+                };
+                layer.push_region(
+                    HitRegionSpec::rect(
+                        id,
+                        Rect::new(hr.rect[0], hr.rect[1], hr.rect[2], hr.rect[3]),
+                    )
+                    .cursor(CursorHint::Pointer)
+                    .tag(idx as u64),
+                );
+            }
+        });
+    }
+    layer
 }
 
 // ── Render Helpers ───────────────────────────────────────────────────────────
@@ -2563,8 +3666,95 @@ fn intersect_clip(rect: [f32; 4], clip: [f32; 4]) -> [f32; 4] {
     ]
 }
 
+fn paint_card_shadow_painter(
+    painter: &mut Painter<'_>,
+    rect: [f32; 4],
+    radius: f32,
+    shadow: acme_theme::ShadowDef,
+) {
+    for layer in (1..=4).rev() {
+        let spread = shadow.spread + shadow.blur * layer as f32 / 8.0;
+        let mut color = shadow.color;
+        color.alpha /= 4.0;
+        painter.rect(
+            Rect::new(
+                rect[0] + shadow.offset_x - spread,
+                rect[1] + shadow.offset_y - spread,
+                rect[2] + 2.0 * spread,
+                rect[3] + 2.0 * spread,
+            ),
+            RectStyle::solid(theme_color(color)).radius(radius + spread),
+        );
+    }
+}
+
+fn build_text_primitive(
+    fonts: &mut FontSystem,
+    atlas: &mut GlyphAtlas,
+    text: &str,
+    geometry: ([f32; 2], f32),
+    color: ThemeColor,
+    scale: f32,
+    line_height_ratio: f32,
+) -> TextPrimitive {
+    let (origin, size) = geometry;
+    let style = TextStyle {
+        font_size: size,
+        line_height: size * line_height_ratio,
+        ..TextStyle::default()
+    };
+    let layout = fonts.shape(text, &style, TextConstraints::default(), scale);
+    let prepared = fonts.prepare(&layout, atlas);
+    text_primitive_from_prepared(origin, theme_color(color), prepared)
+}
+
+fn text_primitive_from_prepared(
+    origin: [f32; 2],
+    color: Color,
+    prepared: PreparedText,
+) -> TextPrimitive {
+    let glyphs = prepared
+        .glyphs
+        .iter()
+        .map(|glyph| GlyphDraw {
+            x: glyph.x as f32,
+            y: glyph.y as f32,
+            width: glyph.width as f32,
+            height: glyph.height as f32,
+            atlas_x: glyph.atlas_x,
+            atlas_y: glyph.atlas_y,
+            atlas_page: glyph.atlas_page,
+            format: match glyph.format {
+                acme_text::AtlasFormat::Alpha8 => GlyphFormat::Alpha8,
+                acme_text::AtlasFormat::Rgba8 => GlyphFormat::Rgba8,
+            },
+        })
+        .collect();
+    let uploads = prepared
+        .uploads
+        .iter()
+        .map(|region| AtlasUpload {
+            page: region.page,
+            origin: [region.x, region.y],
+            size: [region.width, region.height],
+            format: match region.format {
+                acme_text::AtlasFormat::Alpha8 => GlyphFormat::Alpha8,
+                acme_text::AtlasFormat::Rgba8 => GlyphFormat::Rgba8,
+            },
+            pixels: region.pixels.clone(),
+        })
+        .collect();
+    TextPrimitive {
+        origin: Point::new(origin[0], origin[1]),
+        color,
+        glyphs,
+        uploads,
+    }
+}
+
 /// A bounded layered approximation, using the theme's elevation token. This
 /// Gallery path emits ordinary clipped quads; it is not a renderer blur effect.
+#[cfg(test)]
 fn paint_card_shadow(
     frame: &mut Frame,
     rect: [f32; 4],
@@ -2592,34 +3782,6 @@ fn paint_card_shadow(
             clip,
         });
     }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn add_text(
-    fonts: &mut FontSystem,
-    atlas: &mut GlyphAtlas,
-    frame: &mut Frame,
-    text: &str,
-    geometry: ([f32; 2], f32),
-    color: ThemeColor,
-    scale: f32,
-    clip: Option<[f32; 4]>,
-    line_height_ratio: f32,
-) {
-    let (origin, size) = geometry;
-    let style = TextStyle {
-        font_size: size,
-        line_height: size * line_height_ratio,
-        ..TextStyle::default()
-    };
-    let layout = fonts.shape(text, &style, TextConstraints::default(), scale);
-    let prepared = fonts.prepare(&layout, atlas);
-    frame.text.push(TextRun {
-        prepared,
-        origin,
-        color: rgba(color),
-        clip,
-    });
 }
 
 /// Map a color name to its `ThemeColor` value from the current theme.
@@ -2652,10 +3814,12 @@ fn resolve_swatch_color(theme: &Theme, name: &str) -> Option<ThemeColor> {
     }
 }
 
+#[cfg(test)]
 fn rgba(color: ThemeColor) -> [f32; 4] {
     [color.red, color.green, color.blue, color.alpha]
 }
 
+#[cfg(test)]
 fn quad_rect(
     rect: [f32; 4],
     fill: ThemeColor,
@@ -2907,6 +4071,224 @@ mod tests {
                     .any(|q| q.rect[2..] == [52.0, 32.0] || q.rect[2..] == [24.0, 24.0])
             );
         }
+    }
+
+    fn pointer_click_message(g: &mut Gallery, width: f32, height: f32, message: GalleryMessage) {
+        g.frame(FrameContext {
+            window: WindowId(1),
+            logical_width: width,
+            logical_height: height,
+            scale_factor: 1.0,
+        });
+        let hr = g
+            .button_info
+            .iter()
+            .find(|h| h.message == message)
+            .expect("expected target hit region");
+        if hr.scrolled {
+            g.scroll = (hr.rect[1] - 120.0).clamp(0.0, g.max_scroll);
+            g.frame(FrameContext {
+                window: WindowId(1),
+                logical_width: width,
+                logical_height: height,
+                scale_factor: 1.0,
+            });
+        }
+        let hr = g
+            .button_info
+            .iter()
+            .find(|h| h.message == message)
+            .expect("expected target hit region after scroll");
+        let y_off = if hr.scrolled { g.scroll } else { 0.0 };
+        let (x, y) = (
+            hr.rect[0] + hr.rect[2] / 2.0,
+            hr.rect[1] + hr.rect[3] / 2.0 - y_off,
+        );
+        g.event(PlatformEvent::PointerMoved {
+            window: WindowId(1),
+            x,
+            y,
+        });
+        assert!(g.event(PlatformEvent::PointerButton {
+            window: WindowId(1),
+            pressed: true,
+            x,
+            y,
+            button: 0,
+            pointer: 0,
+            shift: false,
+            ctrl: false,
+            alt: false,
+        }));
+        assert!(g.event(PlatformEvent::PointerButton {
+            window: WindowId(1),
+            pressed: false,
+            x,
+            y,
+            button: 0,
+            pointer: 0,
+            shift: false,
+            ctrl: false,
+            alt: false,
+        }));
+    }
+
+    #[test]
+    fn stage3_painter_emits_canvas_commands_for_charts_and_foundations() {
+        let mut g = Gallery::new();
+        // Charts page: BarChart, LineChart, Gauge, Sparkline all emit Canvas draw commands via Painter.
+        g.selected_category = 6;
+        let scene = g.frame(FrameContext {
+            window: WindowId(1),
+            logical_width: 1100.0,
+            logical_height: 900.0,
+            scale_factor: 1.0,
+        });
+        let charts_clips = scene
+            .commands()
+            .iter()
+            .filter(|cmd| matches!(cmd, DrawCommand::PushClip(_)))
+            .count();
+        let charts_quads = scene
+            .commands()
+            .iter()
+            .filter(|cmd| matches!(cmd, DrawCommand::Quad(_)))
+            .count();
+        assert!(
+            charts_clips >= 5,
+            "Charts page should push scroll clip + 4 Canvas with_clip scopes, got {charts_clips}"
+        );
+        assert!(charts_quads > 15);
+
+        // Foundations page: ProgressRing and QRCode emit Canvas commands + live_region skips visible text.
+        g.selected_category = 1;
+        let foundations_scene = g.frame(FrameContext {
+            window: WindowId(1),
+            logical_width: 1100.0,
+            logical_height: 900.0,
+            scale_factor: 1.0,
+        });
+        let foundations_clips = foundations_scene
+            .commands()
+            .iter()
+            .filter(|cmd| matches!(cmd, DrawCommand::PushClip(_)))
+            .count();
+        assert!(
+            foundations_clips >= 3,
+            "Foundations page should include ProgressRing + QRCode Canvas clips, got {foundations_clips}"
+        );
+    }
+
+    #[test]
+    fn stage3_high_contrast_theme_pack_selection_works() {
+        let prev_pref = std::fs::read(THEME_PREF_FILE).ok();
+        let mut g = Gallery::new();
+        g.theme_pack = "default".into();
+        let default_primary = g.current_theme().colors.primary;
+
+        g.selected_category = 0; // Design System
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::SelectHighContrast);
+        assert_eq!(g.theme_pack, "high-contrast");
+        let hc_theme = g.current_theme();
+        assert!(hc_theme.meets_wcag_aa());
+        assert_ne!(hc_theme.colors.primary, default_primary);
+
+        // CycleTheme reaches "high-contrast" across the pack list.
+        g.theme_pack = "default".into();
+        let mut visited = Vec::new();
+        for _ in 0..=available_themes().len() {
+            g.cycle_theme();
+            visited.push(g.theme_pack.clone());
+        }
+        assert!(visited.iter().any(|p| p == "high-contrast"));
+
+        if let Some(bytes) = prev_pref {
+            let _ = std::fs::write(THEME_PREF_FILE, bytes);
+        } else {
+            let _ = std::fs::remove_file(THEME_PREF_FILE);
+        }
+    }
+
+    #[test]
+    fn stage3_hit_layer_routes_canvas_clicks_and_respects_scroll_and_scrim_clip() {
+        let mut g = Gallery::new();
+
+        // 1. Interactive Canvas click routing: Charts interactive Canvas + Drawer close.
+        g.selected_category = 6; // Charts
+        assert_eq!(g.canvas_pings, 0);
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::CanvasPing);
+        assert_eq!(g.canvas_pings, 1);
+
+        g.selected_category = 4; // Overlay
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::DrawerToggle);
+        assert!(g.drawer_open);
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::DrawerClose);
+        assert!(!g.drawer_open);
+
+        // 2. Inputs page interactive builders (DatePicker, Combobox, SliderMarks).
+        g.selected_category = 2; // Inputs
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::DatePickerToggle);
+        assert!(g.date_picker_open);
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::ComboboxToggle);
+        assert!(g.combobox_open);
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::SliderMarkSelect(75));
+        assert!((g.slider_value - 75.0).abs() < f32::EPSILON);
+
+        // 3. Mobile page P4 builders (MobileTabBar, MobileDrawer, MobileCarousel).
+        g.selected_category = CATEGORIES.len() - 1;
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::MobileTabSelect(2));
+        assert_eq!(g.mobile_tab_index, 2);
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::MobileCarouselNext);
+        assert_eq!(g.mobile_carousel_index, 1);
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::MobileDrawerToggle);
+        assert!(g.mobile_drawer_open);
+        pointer_click_message(&mut g, 1100.0, 900.0, GalleryMessage::MobileDrawerClose);
+        assert!(!g.mobile_drawer_open);
+
+        // 4. Scroll viewport clipping + snackbar scrim blocking via HitTestLayer.
+        g.scroll = 0.0;
+        g.frame(FrameContext {
+            window: WindowId(1),
+            logical_width: 1100.0,
+            logical_height: 700.0,
+            scale_factor: 1.0,
+        });
+        let offscreen_below = g
+            .button_info
+            .iter()
+            .find(|h| h.scrolled && h.rect[1] > 760.0)
+            .expect("mobile page has buttons below 760px");
+        g.event(PlatformEvent::PointerMoved {
+            window: WindowId(1),
+            x: offscreen_below.rect[0] + 10.0,
+            y: offscreen_below.rect[1] + 10.0,
+        });
+        assert_eq!(
+            g.hit(),
+            None,
+            "HitTestLayer must reject scrolled targets below viewport clip"
+        );
+
+        // Trigger snackbar scrim and verify click-through under scrim bounds is blocked.
+        g.snackbar.show(std::time::Instant::now(), true);
+        g.frame(FrameContext {
+            window: WindowId(1),
+            logical_width: 1100.0,
+            logical_height: 700.0,
+            scale_factor: 1.0,
+        });
+        let sb = g.snackbar.bounds.expect("snackbar bounds painted");
+        // Point near top-left edge inside snackbar card scrim (away from Action/Dismiss buttons).
+        g.event(PlatformEvent::PointerMoved {
+            window: WindowId(1),
+            x: sb[0] + 4.0,
+            y: sb[1] + 4.0,
+        });
+        assert_eq!(
+            g.hit(),
+            None,
+            "snackbar scrim must block underlying page hits"
+        );
     }
 }
 

@@ -93,10 +93,10 @@ fn actual_builder_binds_completely_and_keeps_ids_across_state_changes() {
         assert!(!playground.retained_error_logged);
         let binding = bind_retained(std::slice::from_ref(&description), &playground.retained);
         assert_eq!(binding.mismatches(), 0);
-        assert_eq!(binding.len(), 32);
+        assert_eq!(binding.len(), 34);
         let current = ids(&root);
-        assert_eq!(current.len(), 32);
-        assert_eq!(current.iter().copied().collect::<HashSet<_>>().len(), 32);
+        assert_eq!(current.len(), 34);
+        assert_eq!(current.iter().copied().collect::<HashSet<_>>().len(), 34);
         assert_eq!(root.id, playground.retained.roots()[0]);
         assert_ne!(root.id, NodeId::new(1));
         if let Some(first) = &first {
@@ -246,7 +246,8 @@ fn real_frame_uses_retained_ids_for_button_geometry_and_preserves_hit_rects() {
                 .layout
                 .compute(&bound, viewport)
                 .expect("bound layout");
-            let expected_ids = extract_playground_ids(&bound).button_ids;
+            let expected = extract_playground_ids(&bound);
+            let expected_ids = expected.button_ids;
             let (actual_ids, actual_snapshot) =
                 playground.last_frame_layout.as_ref().expect("frame layout");
             assert_eq!(*actual_ids, expected_ids);
@@ -261,6 +262,10 @@ fn real_frame_uses_retained_ids_for_button_geometry_and_preserves_hit_rects() {
                 first_ids = Some(*actual_ids);
             }
 
+            let vp = actual_snapshot
+                .get(expected.content)
+                .expect("content viewport geometry");
+
             let mut sequential = description.to_layout(NodeId::new(1));
             apply_playground_styles(&mut sequential, viewport.0, viewport.1);
             let snapshot = playground
@@ -274,15 +279,45 @@ fn real_frame_uses_retained_ids_for_button_geometry_and_preserves_hit_rects() {
                     .get(actual_ids[index])
                     .expect("retained button geometry");
                 assert_eq!(retained_rect, rect);
-                assert_eq!(
-                    playground.buttons[index],
-                    [rect.x, rect.y, rect.width, rect.height]
-                );
                 assert!(rect.width > 0.0 && rect.height > 0.0);
-                playground.cursor = (rect.x + rect.width * 0.5, rect.y + rect.height * 0.5);
-                assert_eq!(playground.hit(), Some(index));
+
+                let disabled = index == 5 && playground.click_count >= 999;
+                if index == 0 {
+                    playground.cursor = (rect.x + rect.width * 0.5, rect.y + rect.height * 0.5);
+                    assert_eq!(playground.hit(), Some(0));
+                } else {
+                    let screen_x = rect.x + rect.width * 0.5;
+                    let screen_y = rect.y - playground.scroll + rect.height * 0.5;
+                    playground.cursor = (screen_x, screen_y);
+                    let in_viewport = screen_x >= vp.x
+                        && screen_x < vp.x + vp.width
+                        && screen_y >= vp.y
+                        && screen_y < vp.y + vp.height;
+                    if in_viewport && !disabled {
+                        assert_eq!(playground.hit(), Some(index));
+                    } else {
+                        assert_eq!(playground.hit(), None);
+                    }
+                }
             }
             assert!(playground.scroll <= playground.max_scroll);
+
+            // Also verify unscrolled hits for every enabled button at scroll = 0.0.
+            playground.scroll = 0.0;
+            let unscrolled_scene = playground.frame(FrameContext {
+                window: WindowId(0),
+                logical_width: viewport.0,
+                logical_height: viewport.1,
+                scale_factor: 1.0,
+            });
+            assert!(!unscrolled_scene.commands().is_empty());
+            for (index, id) in sequential_ids.button_ids.into_iter().enumerate() {
+                let rect = snapshot.get(id).expect("button geometry");
+                playground.cursor = (rect.x + rect.width * 0.5, rect.y + rect.height * 0.5);
+                let expected_hit =
+                    (!(index == 5 && playground.click_count >= 999)).then_some(index);
+                assert_eq!(playground.hit(), expected_hit);
+            }
         }
     }
 }

@@ -1,17 +1,15 @@
-//! Text rendering helpers — shape, prepare, and push text runs.
+//! Text rendering helpers — shape, prepare, and emit text runs via [`Painter`].
 
-use acme_core::{
-    AtlasUpload, Color, DrawCommand, GlyphDraw, GlyphFormat, Point, Rect, Scene, TextPrimitive,
-};
+use acme_core::{AtlasUpload, Color, GlyphDraw, GlyphFormat, Painter, Point, Rect, TextPrimitive};
 use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
 use acme_theme::ThemeColor;
 
-/// Shape text and push it as a [`DrawCommand::Text`] onto the scene.
+/// Shape text and emit it as a [`TextPrimitive`] through [`Painter`].
 #[allow(clippy::too_many_arguments)]
 pub fn add_text(
     fonts: &mut FontSystem,
     atlas: &mut GlyphAtlas,
-    scene: &mut Scene,
+    painter: &mut Painter<'_>,
     text: &str,
     geometry: ([f32; 2], f32),
     color: ThemeColor,
@@ -61,24 +59,21 @@ pub fn add_text(
         });
     }
 
-    // If clip provided, wrap in PushClip/PopClip
-    if let Some(clip_rect) = clip {
-        scene.push(DrawCommand::PushClip(Rect::new(
-            clip_rect[0],
-            clip_rect[1],
-            clip_rect[2],
-            clip_rect[3],
-        )));
-    }
-
-    scene.push(DrawCommand::Text(TextPrimitive {
+    let primitive = TextPrimitive {
         origin: Point::new(origin[0], origin[1]),
         color: Color::rgba(color.red, color.green, color.blue, color.alpha),
         glyphs,
         uploads,
-    }));
+    };
 
-    if clip.is_some() {
-        scene.push(DrawCommand::PopClip);
+    if let Some(clip_rect) = clip {
+        painter.with_clip(
+            Rect::new(clip_rect[0], clip_rect[1], clip_rect[2], clip_rect[3]),
+            |painter| {
+                painter.text_primitive(primitive);
+            },
+        );
+    } else {
+        painter.text_primitive(primitive);
     }
 }

@@ -452,3 +452,134 @@ fn mobile_message_updates_keep_ids_and_disabled_button_out_of_hits() {
     let after = retained_layout_root(&description, &mut gallery.retained, &context);
     assert_eq!(layout_ids(&before), layout_ids(&after));
 }
+
+#[test]
+fn mobile_drawer_open_hover_press_and_scrim_close_stay_aligned() {
+    fn click_at(gallery: &mut Gallery, idx: usize, x: f32, y: f32) {
+        gallery.event(PlatformEvent::PointerMoved {
+            window: WindowId(0),
+            x,
+            y,
+        });
+        assert_eq!(gallery.hovered, Some(idx));
+        assert_eq!(gallery.hit(), Some(idx));
+        gallery.event(PlatformEvent::PointerButton {
+            window: WindowId(0),
+            pressed: true,
+            x,
+            y,
+            button: 0,
+            pointer: 0,
+            shift: false,
+            ctrl: false,
+            alt: false,
+        });
+        assert_eq!(gallery.pressed, Some(idx));
+        gallery.event(PlatformEvent::PointerButton {
+            window: WindowId(0),
+            pressed: false,
+            x,
+            y,
+            button: 0,
+            pointer: 0,
+            shift: false,
+            ctrl: false,
+            alt: false,
+        });
+        assert!(gallery.pressed.is_none());
+    }
+
+    fn click_region(
+        gallery: &mut Gallery,
+        predicate: impl Fn(&HitRegion) -> bool,
+        right_edge: bool,
+    ) {
+        let first_idx = gallery
+            .button_info
+            .iter()
+            .position(&predicate)
+            .expect("expected target hit region before scroll");
+        let (scrolled, first_y) = (
+            gallery.button_info[first_idx].scrolled,
+            gallery.button_info[first_idx].rect[1],
+        );
+        if scrolled {
+            gallery.scroll = (first_y - 220.0).clamp(0.0, gallery.max_scroll);
+            gallery.frame(frame_context(1.0));
+        }
+        let idx = gallery
+            .button_info
+            .iter()
+            .position(&predicate)
+            .expect("expected target hit region after scroll");
+        let region = &gallery.button_info[idx];
+        let x = if right_edge {
+            region.rect[0] + region.rect[2] - 8.0
+        } else {
+            region.rect[0] + region.rect[2] * 0.5
+        };
+        let y = if right_edge {
+            region.rect[1] + region.rect[3] - 8.0
+        } else {
+            region.rect[1] + region.rect[3] * 0.5
+        } - if region.scrolled { gallery.scroll } else { 0.0 };
+        click_at(gallery, idx, x, y);
+    }
+
+    let mut gallery = gallery();
+    gallery.selected_category = CATEGORIES.len() - 1;
+    gallery.frame(frame_context(1.0));
+
+    // Open mobile drawer via the toggle button.
+    click_region(
+        &mut gallery,
+        |h| h.message == GalleryMessage::MobileDrawerToggle,
+        false,
+    );
+    assert!(gallery.mobile_drawer_open);
+    gallery.frame(frame_context(1.0));
+
+    // Verify open mobile drawer contributes non-zero scrim + Close button before below-fold widgets.
+    let close_rects: Vec<[f32; 4]> = gallery
+        .button_info
+        .iter()
+        .filter(|h| h.message == GalleryMessage::MobileDrawerClose)
+        .map(|h| h.rect)
+        .collect();
+    assert_eq!(close_rects.len(), 2);
+    assert!(close_rects[0][2] > 0.0 && close_rects[0][3] >= 160.0);
+
+    // Hover and click a widget rendered AFTER the open mobile drawer (checks no btn_idx drift).
+    assert_eq!(gallery.mobile_carousel_index, 0);
+    click_region(
+        &mut gallery,
+        |h| h.message == GalleryMessage::MobileCarouselNext,
+        false,
+    );
+    assert_eq!(gallery.mobile_carousel_index, 1);
+
+    // Click the drawer Close button inside the open drawer card.
+    click_region(
+        &mut gallery,
+        |h| h.message == GalleryMessage::MobileDrawerClose && h.rect[2] < 120.0,
+        false,
+    );
+    assert!(!gallery.mobile_drawer_open);
+    gallery.frame(frame_context(1.0));
+
+    // Re-open and close via the backdrop scrim right edge (clear of the left drawer card).
+    click_region(
+        &mut gallery,
+        |h| h.message == GalleryMessage::MobileDrawerToggle,
+        false,
+    );
+    assert!(gallery.mobile_drawer_open);
+    gallery.frame(frame_context(1.0));
+
+    click_region(
+        &mut gallery,
+        |h| h.message == GalleryMessage::MobileDrawerClose && h.rect[2] >= 200.0,
+        true,
+    );
+    assert!(!gallery.mobile_drawer_open);
+}

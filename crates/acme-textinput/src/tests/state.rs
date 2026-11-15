@@ -358,3 +358,24 @@ fn display_text_normal() {
     s.text = "hello".to_string();
     assert_eq!(s.display_text(), "hello");
 }
+
+#[test]
+fn multibyte_offsets_clamp_to_char_boundaries_without_panicking() {
+    let mut s = TextInputState::new();
+    s.text = "中文測試".to_string();
+    s.set_selection_range(1, 5);
+    assert_eq!(s.selection(), Some((0, 3)));
+    assert_eq!(s.cursor(), 3);
+    assert!(s.text.is_char_boundary(s.cursor()));
+
+    s.select_word_at_offset(2);
+    assert!(s.text.is_char_boundary(s.cursor()));
+    if let Some((start, end)) = s.selection() {
+        assert!(s.text.is_char_boundary(start));
+        assert!(s.text.is_char_boundary(end));
+    }
+
+    s.preedit = "中文".to_string();
+    assert_eq!(crate::preedit::drawn_offset(&s, 1), 0);
+    assert_eq!(crate::preedit::drawn_offset(&s, 4), 3);
+}

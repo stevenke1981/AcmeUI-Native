@@ -199,6 +199,16 @@ fn widget_to_view<M>(widget: &WidgetNode<M>, parent_path: &str, index: usize) ->
         WidgetNode::Breadcrumb(v) => {
             container_view(Some(&v.key), "breadcrumb", &v.children, parent_path, index)
         }
+        WidgetNode::Canvas(v) => ViewNode {
+            key: v
+                .id
+                .clone()
+                .unwrap_or_else(|| auto_key(parent_path, index, "canvas")),
+            kind: "canvas".into(),
+            children: vec![],
+            focusable: v.on_click.is_some(),
+            disabled: v.disabled,
+        },
     }
 }
 
@@ -228,7 +238,8 @@ pub(crate) fn view_child_widgets<M>(widget: &WidgetNode<M>) -> Vec<&WidgetNode<M
         | WidgetNode::Button(_)
         | WidgetNode::Separator(_)
         | WidgetNode::TextInput(_)
-        | WidgetNode::Menu(_) => Vec::new(),
+        | WidgetNode::Menu(_)
+        | WidgetNode::Canvas(_) => Vec::new(),
     }
 }
 

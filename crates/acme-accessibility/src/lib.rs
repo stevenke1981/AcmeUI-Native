@@ -8,14 +8,14 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 use accesskit::{
-    Action, ActionData, ActionRequest, Invalid, Node as AccessNode, NodeId as AccessNodeId, Rect,
-    Role, Tree, TreeUpdate,
+    Action, ActionData, ActionRequest, Invalid, Live, Node as AccessNode, NodeId as AccessNodeId,
+    Rect, Role, Tree, TreeUpdate,
 };
 use acme_core::NodeId;
 use acme_layout::LayoutSnapshot;
 use acme_platform::{PlatformEvent, WindowId};
 use acme_widgets::retained_binding::{RetainedBinding, SyntheticIds};
-use acme_widgets::{TextInput, WidgetNode};
+use acme_widgets::{LivePoliteness, TextInput, WidgetNode};
 
 mod structure;
 #[cfg(test)]
@@ -752,6 +752,7 @@ fn widget_role<M>(node: &WidgetNode<M>) -> Role {
             Role::Navigation
         }
         WidgetNode::TabBar(_) => Role::TabList,
+        WidgetNode::Canvas(_) => Role::Canvas,
     }
 }
 
@@ -957,6 +958,7 @@ fn node_label<M>(node: &WidgetNode<M>, slot: Slot<'_>, label_override: Option<&s
         (Slot::Tab { label, .. } | Slot::NavItem { label, .. }, _) => label.to_string(),
         (_, WidgetNode::Label(l)) => l.text.clone(),
         (_, WidgetNode::Button(b)) => b.label.clone(),
+        (_, WidgetNode::Canvas(c)) => c.accessible_label.clone().unwrap_or_default(),
         (_, WidgetNode::TextInput(input)) => text_input_name(input).to_string(),
         (_, WidgetNode::Row(c) | WidgetNode::Column(c) | WidgetNode::Stack(c))
             if c.message.is_some() =>
@@ -999,6 +1001,24 @@ fn apply_widget_state<M>(access_node: &mut AccessNode, node: &WidgetNode<M>, slo
             // A disabled button must not advertise activation.
             if !button.disabled {
                 access_node.add_action(Action::Click);
+            }
+        }
+        WidgetNode::Canvas(canvas) => {
+            if canvas.disabled {
+                access_node.set_disabled();
+            } else if canvas.on_click.is_some() {
+                access_node.add_action(Action::Focus);
+                access_node.add_action(Action::Click);
+            }
+        }
+        WidgetNode::Label(label) => {
+            if let Some(live) = label.live {
+                let level = match live {
+                    LivePoliteness::Off => Live::Off,
+                    LivePoliteness::Polite => Live::Polite,
+                    LivePoliteness::Assertive => Live::Assertive,
+                };
+                access_node.set_live(level);
             }
         }
         WidgetNode::TextInput(input) => apply_text_input_state(access_node, input),
@@ -2644,6 +2664,65 @@ mod tests {
         let delete = only_node_with_role(&nodes, Role::Button);
         assert_eq!(delete.label(), Some("Delete"));
         assert!(delete.supports_action(Action::Click));
+    }
+
+    #[test]
+    fn canvas_accessibility_role_label_click_and_disabled() {
+        let interactive = acme_widgets::canvas::<TestMsg>()
+            .key("chart")
+            .size(120.0, 60.0)
+            .accessible_label("Sales sparkline")
+            .on_click(TestMsg)
+            .build();
+        let nodes = nodes_of(&interactive);
+        let canvas_node = only_node_with_role(&nodes, Role::Canvas);
+        assert_eq!(canvas_node.label(), Some("Sales sparkline"));
+        assert!(canvas_node.supports_action(Action::Focus));
+        assert!(canvas_node.supports_action(Action::Click));
+        assert!(!canvas_node.is_disabled());
+
+        let disabled = acme_widgets::canvas::<TestMsg>()
+            .key("disabled_chart")
+            .size(120.0, 60.0)
+            .accessible_label("Locked")
+            .on_click(TestMsg)
+            .disabled(true)
+            .build();
+        let disabled_nodes = nodes_of(&disabled);
+        let disabled_node = only_node_with_role(&disabled_nodes, Role::Canvas);
+        assert!(disabled_node.is_disabled());
+        assert!(!disabled_node.supports_action(Action::Click));
+        assert!(!disabled_node.supports_action(Action::Focus));
+    }
+
+    #[test]
+    fn label_live_politeness_maps_to_accesskit_live() {
+        let polite = acme_widgets::label_builder::<TestMsg>("Saved")
+            .live(LivePoliteness::Polite)
+            .build();
+        let assertive = acme_widgets::label_builder::<TestMsg>("Failed")
+            .live(LivePoliteness::Assertive)
+            .build();
+        let off = acme_widgets::label_builder::<TestMsg>("Muted")
+            .live(LivePoliteness::Off)
+            .build();
+        let plain = label::<TestMsg>("Plain");
+
+        let polite_nodes = nodes_of(&polite);
+        let p_node = only_node_with_role(&polite_nodes, Role::Label);
+        assert_eq!(p_node.live(), Some(Live::Polite));
+
+        let assertive_nodes = nodes_of(&assertive);
+        let a_node = only_node_with_role(&assertive_nodes, Role::Label);
+        assert_eq!(a_node.live(), Some(Live::Assertive));
+
+        let off_nodes = nodes_of(&off);
+        let o_node = only_node_with_role(&off_nodes, Role::Label);
+        assert_eq!(o_node.live(), Some(Live::Off));
+
+        let plain_nodes = nodes_of(&plain);
+        let plain_node = only_node_with_role(&plain_nodes, Role::Label);
+        assert_eq!(plain_node.live(), None);
     }
 }
 

@@ -15,6 +15,8 @@ pub struct ComboboxBuilder<M> {
     pub options: Vec<SelectOption>,
     pub open: bool,
     pub on_select: Option<M>,
+    pub on_select_option: Option<fn(String) -> M>,
+    pub on_toggle: Option<M>,
 }
 
 /// Create a new Combobox builder.
@@ -26,6 +28,8 @@ pub fn combobox<M: Clone + 'static>(id: impl Into<WidgetKey>) -> ComboboxBuilder
         options: vec![],
         open: false,
         on_select: None,
+        on_select_option: None,
+        on_toggle: None,
     }
 }
 
@@ -59,12 +63,33 @@ impl<M: Clone + 'static> ComboboxBuilder<M> {
         self.on_select = Some(msg);
         self
     }
+
+    /// Set a callback producing a message from the chosen option's value when clicked.
+    pub fn on_select_option(mut self, f: fn(String) -> M) -> Self {
+        self.on_select_option = Some(f);
+        self
+    }
+
+    /// Set the message dispatched when the open/close toggle button is clicked.
+    pub fn on_toggle(mut self, msg: M) -> Self {
+        self.on_toggle = Some(msg);
+        self
+    }
 }
 
 impl<M: Clone + 'static> From<ComboboxBuilder<M>> for WidgetNode<M> {
     fn from(b: ComboboxBuilder<M>) -> Self {
-        // Input row: TextInput + dropdown arrow
-        let input_key = format!("{}_input", b.id.as_str());
+        let id_str = b.id.as_str().to_string();
+        let input_key = format!("{id_str}_input");
+        let toggle_key = format!("{id_str}_toggle");
+        let toggle_glyph = if b.open { "▴" } else { "▾" };
+        let toggle_btn =
+            button::<M>(toggle_key.as_str(), toggle_glyph).variant(ButtonVariant::Ghost);
+        let toggle_node: WidgetNode<M> = match b.on_toggle {
+            Some(msg) => toggle_btn.on_click(msg),
+            None => toggle_btn.into(),
+        };
+
         let input_row = row::<M>()
             .gap(4.0)
             .child(
@@ -72,12 +97,35 @@ impl<M: Clone + 'static> From<ComboboxBuilder<M>> for WidgetNode<M> {
                     .value(b.value.as_str())
                     .placeholder(b.placeholder.as_str()),
             )
-            .child(label::<M>("▾"));
+            .child(toggle_node);
 
-        // Dropdown list
+        let query = b.value.trim().to_ascii_lowercase();
+        let filtered: Vec<&SelectOption> = b
+            .options
+            .iter()
+            .filter(|opt| {
+                query.is_empty()
+                    || opt.label.to_ascii_lowercase().contains(&query)
+                    || opt.value.to_ascii_lowercase().contains(&query)
+            })
+            .collect();
+
         let mut dropdown = card::<M>().variant(CardVariant::Outlined);
-        for opt in &b.options {
-            dropdown = dropdown.child(label::<M>(&opt.label));
+        if filtered.is_empty() && !b.options.is_empty() {
+            dropdown = dropdown.child(label::<M>("No matching options"));
+        } else {
+            for (idx, opt) in filtered.iter().enumerate() {
+                let opt_btn = button::<M>(format!("{id_str}_opt_{idx}").as_str(), &opt.label)
+                    .variant(ButtonVariant::Ghost);
+                let opt_node: WidgetNode<M> = if let Some(cb) = b.on_select_option {
+                    opt_btn.on_click(cb(opt.value.clone()))
+                } else if let Some(ref msg) = b.on_select {
+                    opt_btn.on_click(msg.clone())
+                } else {
+                    opt_btn.into()
+                };
+                dropdown = dropdown.child(opt_node);
+            }
         }
 
         column::<M>()
@@ -138,5 +186,53 @@ mod tests {
         };
         // First child of row = TextInput
         assert!(matches!(&input_row.children[0], WidgetNode::TextInput(_)));
+    }
+
+    #[test]
+    fn combobox_filters_options_and_wires_toggle_and_option_buttons() {
+        #[derive(Clone, Debug, PartialEq)]
+        enum ComboMsg {
+            Toggle,
+            Select(String),
+        }
+
+        let node: WidgetNode<ComboMsg> = combobox("colors")
+            .value("bl")
+            .open(true)
+            .option(SelectOption::new("Red", "red"))
+            .option(SelectOption::new("Blue", "blue"))
+            .option(SelectOption::new("Black", "black"))
+            .on_toggle(ComboMsg::Toggle)
+            .on_select_option(ComboMsg::Select)
+            .into();
+
+        let WidgetNode::Column(container) = &node else {
+            panic!("expected Column");
+        };
+        let WidgetNode::Row(input_row) = &container.children[0] else {
+            panic!("expected input Row");
+        };
+        let WidgetNode::Button(toggle) = &input_row.children[1] else {
+            panic!("expected toggle Button");
+        };
+        assert_eq!(toggle.label, "▴");
+        assert_eq!(toggle.activate(), Some(&ComboMsg::Toggle));
+
+        let WidgetNode::Card(dropdown) = &container.children[1] else {
+            panic!("expected dropdown Card");
+        };
+        assert_eq!(dropdown.children.len(), 2);
+
+        let WidgetNode::Button(opt0) = &dropdown.children[0] else {
+            panic!("expected option Button");
+        };
+        assert_eq!(opt0.label, "Blue");
+        assert_eq!(opt0.activate(), Some(&ComboMsg::Select("blue".into())));
+
+        let WidgetNode::Button(opt1) = &dropdown.children[1] else {
+            panic!("expected second option Button");
+        };
+        assert_eq!(opt1.label, "Black");
+        assert_eq!(opt1.activate(), Some(&ComboMsg::Select("black".into())));
     }
 }

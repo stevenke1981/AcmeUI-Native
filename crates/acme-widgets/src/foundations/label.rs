@@ -26,6 +26,17 @@ pub fn map_label_wrap(wrap: LabelWrap) -> TextWrapMode {
     }
 }
 
+/// Politeness level for accessibility live regions.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LivePoliteness {
+    /// Updates are not announced automatically.
+    Off,
+    /// Updates are announced at the next graceful opportunity.
+    Polite,
+    /// Updates interrupt the assistive technology immediately.
+    Assertive,
+}
+
 /// A text label widget.
 #[derive(Clone, Debug)]
 pub struct Label {
@@ -46,6 +57,8 @@ pub struct Label {
     /// Optional text color override.
     /// When `None`, the renderer uses the default foreground color.
     pub color: Option<ThemeColor>,
+    /// Optional accessibility live region politeness.
+    pub live: Option<LivePoliteness>,
     /// Accumulated GPUI‑inspired style (font-size, font-weight, text-color, etc.).
     pub style: Style,
 }
@@ -58,6 +71,7 @@ impl PartialEq for Label {
             && self.wrap == other.wrap
             && self.max_lines == other.max_lines
             && self.color == other.color
+            && self.live == other.live
             && self.style == other.style
     }
 }
@@ -72,6 +86,7 @@ pub fn label<M>(text: impl Into<String>) -> WidgetNode<M> {
         max_lines: None,
         cached: None,
         color: None,
+        live: None,
         style: Style::new(),
     })
 }
@@ -86,6 +101,7 @@ pub fn label_with_size<M>(text: impl Into<String>, font_size: f32) -> WidgetNode
         max_lines: None,
         cached: None,
         color: None,
+        live: None,
         style: Style::new(),
     })
 }
@@ -109,6 +125,7 @@ pub fn label_builder<M>(text: impl Into<String>) -> LabelBuilder<M> {
             max_lines: None,
             cached: None,
             color: None,
+            live: None,
             style: Style::new(),
         },
         _phantom: std::marker::PhantomData,
@@ -143,6 +160,12 @@ impl<M> LabelBuilder<M> {
     /// Set an explicit text color override.
     pub fn color(mut self, color: ThemeColor) -> Self {
         self.label.color = Some(color);
+        self
+    }
+
+    /// Set the accessibility live region politeness for this label.
+    pub fn live(mut self, politeness: LivePoliteness) -> Self {
+        self.label.live = Some(politeness);
         self
     }
 

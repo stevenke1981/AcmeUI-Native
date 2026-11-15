@@ -9,6 +9,7 @@ use crate::{ShadowDef, ShadowTokens, Theme, ThemeColor, ThemeMode};
 pub mod apple;
 pub mod dracula;
 pub mod gruvbox;
+pub mod high_contrast;
 pub mod material;
 pub mod nord;
 pub mod one_dark;
@@ -85,6 +86,7 @@ pub fn theme_by_name(name: &str, mode: ThemeMode) -> Option<Theme> {
         "solarized" => Some(solarized::SolarizedPack.theme(mode)),
         "gruvbox" => Some(gruvbox::GruvboxPack.theme(mode)),
         "one-dark" | "onedark" => Some(one_dark::OneDarkPack.theme(mode)),
+        "high-contrast" | "high_contrast" => Some(high_contrast::HighContrastPack.theme(mode)),
         _ => None,
     }
 }
@@ -102,6 +104,7 @@ pub fn available_themes() -> &'static [&'static str] {
         "solarized",
         "gruvbox",
         "one-dark",
+        "high-contrast",
     ]
 }
 
@@ -127,6 +130,16 @@ mod tests {
     #[test]
     fn unknown_theme_returns_none() {
         assert!(theme_by_name("does-not-exist", ThemeMode::Light).is_none());
+    }
+
+    #[test]
+    fn high_contrast_aliases_resolve_identically() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            let hyphen = theme_by_name("high-contrast", mode).expect("high-contrast resolves");
+            let underscore = theme_by_name("high_contrast", mode).expect("high_contrast resolves");
+            assert_eq!(hyphen, underscore);
+            assert_eq!(hyphen, high_contrast::HighContrastPack.theme(mode));
+        }
     }
 
     #[test]

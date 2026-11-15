@@ -81,15 +81,37 @@ impl<M: Clone + 'static> BottomNavItemBuilder<M> {
 
 impl<M: Clone + 'static> From<BottomNavBuilder<M>> for WidgetNode<M> {
     fn from(b: BottomNavBuilder<M>) -> Self {
+        let any_explicit = b.items.iter().any(|i| i.selected);
+        let selected_index = b.selected_index;
         let item_nodes: Vec<WidgetNode<M>> = b
             .items
             .into_iter()
-            .map(|item| {
-                let mut col = column::<M>().gap(4.0).padding(8.0);
+            .enumerate()
+            .map(|(idx, item)| {
+                let is_selected = if any_explicit {
+                    item.selected
+                } else {
+                    idx == selected_index
+                };
+                let item_key = item.id.clone();
+                let btn_key = format!("{}_btn", item_key.as_str());
+                let mut col = column::<M>().key(item_key).gap(4.0).padding(8.0);
+                if let Some(ref msg) = item.on_select {
+                    col = col.on_click(msg.clone());
+                }
                 if let Some(icon_name) = &item.icon {
                     col = col.child(crate::icon::<M>(*icon_name).build());
                 }
-                col = col.child(crate::label::<M>(item.label));
+                let tab_btn = button::<M>(btn_key.as_str(), item.label).variant(if is_selected {
+                    ButtonVariant::Primary
+                } else {
+                    ButtonVariant::Ghost
+                });
+                let btn_node: WidgetNode<M> = match item.on_select {
+                    Some(msg) => tab_btn.on_click(msg),
+                    None => tab_btn.into(),
+                };
+                col = col.child(btn_node);
                 col.build()
             })
             .collect();
@@ -151,5 +173,43 @@ mod tests {
         for child in &container.children {
             assert!(matches!(child, WidgetNode::Column(_)));
         }
+    }
+
+    #[test]
+    fn bottom_nav_renders_keyed_clickable_tab_buttons() {
+        #[derive(Clone, Debug, PartialEq)]
+        enum NavMsg {
+            Home,
+            Search,
+        }
+
+        let node: WidgetNode<NavMsg> = bottom_nav("nav")
+            .selected_index(1)
+            .item(bottom_nav_item("home", "Home").on_select(NavMsg::Home))
+            .item(bottom_nav_item("search", "Search").on_select(NavMsg::Search))
+            .into();
+
+        let WidgetNode::Row(row) = &node else {
+            panic!("expected Row");
+        };
+        let WidgetNode::Column(first_col) = &row.children[0] else {
+            panic!("expected first Column");
+        };
+        assert_eq!(first_col.key.as_ref().map(|k| k.as_str()), Some("home"));
+        let WidgetNode::Button(first_btn) = &first_col.children[0] else {
+            panic!("expected tab Button");
+        };
+        assert_eq!(first_btn.key.as_str(), "home_btn");
+        assert_eq!(first_btn.activate(), Some(&NavMsg::Home));
+        assert_eq!(first_btn.variant, ButtonVariant::Ghost);
+
+        let WidgetNode::Column(second_col) = &row.children[1] else {
+            panic!("expected second Column");
+        };
+        let WidgetNode::Button(second_btn) = &second_col.children[0] else {
+            panic!("expected second tab Button");
+        };
+        assert_eq!(second_btn.variant, ButtonVariant::Primary);
+        assert_eq!(second_btn.activate(), Some(&NavMsg::Search));
     }
 }

@@ -90,6 +90,27 @@ pub struct ToneColors {
     pub soft_fg: Option<acme_theme::ThemeColor>,
 }
 
+fn contrasting_fg(theme: &acme_theme::Theme, bg: acme_theme::ThemeColor) -> acme_theme::ThemeColor {
+    let white = acme_theme::ThemeColor::rgb(255, 255, 255);
+    if acme_theme::contrast_ratio(white, bg) >= 4.5 {
+        return white;
+    }
+    let black = acme_theme::ThemeColor::rgb(0, 0, 0);
+    [
+        white,
+        black,
+        theme.colors.foreground,
+        theme.colors.background,
+    ]
+    .into_iter()
+    .max_by(|a, b| {
+        acme_theme::contrast_ratio(*a, bg)
+            .partial_cmp(&acme_theme::contrast_ratio(*b, bg))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    })
+    .unwrap_or(black)
+}
+
 /// Resolve tone to color pair from theme
 pub fn resolve_tone(theme: &acme_theme::Theme, tone: Tone, _solid: bool) -> ToneColors {
     let c = &theme.colors;
@@ -108,25 +129,25 @@ pub fn resolve_tone(theme: &acme_theme::Theme, tone: Tone, _solid: bool) -> Tone
         },
         Tone::Success => ToneColors {
             bg: c.success,
-            fg: ThemeColor::rgb(255, 255, 255),
+            fg: contrasting_fg(theme, c.success),
             soft_bg: Some(c.success_soft),
             soft_fg: Some(c.success),
         },
         Tone::Warning => ToneColors {
             bg: c.warning,
-            fg: ThemeColor::rgb(255, 255, 255),
+            fg: contrasting_fg(theme, c.warning),
             soft_bg: Some(c.warning_soft),
             soft_fg: Some(c.warning),
         },
         Tone::Danger => ToneColors {
             bg: c.danger,
-            fg: ThemeColor::rgb(255, 255, 255),
+            fg: contrasting_fg(theme, c.danger),
             soft_bg: Some(c.danger_soft),
             soft_fg: Some(c.danger),
         },
         Tone::Info => ToneColors {
             bg: c.info,
-            fg: ThemeColor::rgb(255, 255, 255),
+            fg: contrasting_fg(theme, c.info),
             soft_bg: Some(c.info_soft),
             soft_fg: Some(c.info),
         },
@@ -160,4 +181,31 @@ impl ControlSize {
 /// Access theme helper — retrieves the current theme's color for a tone.
 pub fn tone_color(theme: &acme_theme::Theme, tone: Tone) -> acme_theme::ThemeColor {
     resolve_tone(theme, tone, true).bg
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use acme_theme::packs::ThemePack;
+    use acme_theme::packs::high_contrast::HighContrastPack;
+
+    #[test]
+    fn resolve_tone_maintains_aa_contrast_on_high_contrast_dark_pack() {
+        let hc_dark = HighContrastPack.dark();
+        for tone in [
+            Tone::Neutral,
+            Tone::Primary,
+            Tone::Success,
+            Tone::Warning,
+            Tone::Danger,
+            Tone::Info,
+        ] {
+            let resolved = resolve_tone(&hc_dark, tone, true);
+            let ratio = acme_theme::contrast_ratio(resolved.fg, resolved.bg);
+            assert!(
+                ratio >= 4.5,
+                "tone {tone:?} on HighContrastPack::dark() has insufficient contrast {ratio}"
+            );
+        }
+    }
 }
