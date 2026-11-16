@@ -14,7 +14,10 @@ pub use clipboard::Clipboard;
 pub use keys::PlatformKey;
 use keys::{map_logical_key, resolve_key_character, resolve_key_text};
 pub use waker::{CursorIcon, ResizeEdge, Waker, WindowRequest};
-use waker::{drain_window_requests, map_cursor_icon, map_resize_edge};
+use waker::{
+    OpenWindowRequest, drain_window_requests, map_cursor_icon, map_resize_edge,
+    plan_window_requests,
+};
 
 #[cfg(feature = "cpu-renderer")]
 mod cpu_window;
@@ -43,7 +46,7 @@ static NEXT_POINTER_ID: AtomicU64 = AtomicU64::new(1);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct WindowId(pub u64);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WindowConfig {
     pub title: String,
     /// Initial logical client (inner) width in pixels.
@@ -495,6 +498,22 @@ pub trait Application: 'static {
         true
     }
 
+    /// Called after a window requested with [`WindowRequest::Open`] was created and
+    /// its renderer initialised. `token` is the value given in the request; the
+    /// new window already has a redraw pending.
+    fn window_opened(&mut self, _token: u64, _window: WindowId) {}
+
+    /// Called when a [`WindowRequest::Open`] could not be fulfilled (unknown owner,
+    /// OS window creation failure or renderer initialisation failure).
+    fn window_open_failed(&mut self, _token: u64, _error: String) {}
+
+    /// Called after `window` has been removed from the runtime, whether it was
+    /// closed by [`WindowRequest::Close`], by an unvetoed user close request (see
+    /// [`Application::close_requested`]) or destroyed by the OS (for example
+    /// together with its owner). Not called for windows that never opened.
+    /// Closing a window other than the last one keeps the event loop running.
+    fn window_closed(&mut self, _window: WindowId) {}
+
     /// Optional polling interval for background-thread work such as global hotkeys.
     /// `None` keeps the runtime fully event-driven while `Some` schedules redraws
     /// without forcing a busy `ControlFlow::Poll` loop. Intervals are clamped
@@ -769,7 +788,12 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                 state.window.request_redraw();
             }
         }
-        process_window_requests(&mut self.app, &mut self.windows, event_loop);
+        process_window_requests(
+            &mut self.app,
+            &mut self.windows,
+            &mut self.next_window_id,
+            event_loop,
+        );
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
@@ -802,72 +826,18 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
         let backend_preference = resolve_render_backend_from_env(self.app.render_backend());
         let mut failures = Vec::new();
         for config in configs {
-            let mut attrs = Window::default_attributes()
-                .with_title(&config.title)
-                .with_inner_size(LogicalSize::new(config.width, config.height))
-                .with_resizable(true)
-                .with_decorations(config.decorations);
-            #[cfg(windows)]
-            {
-                use winit::platform::windows::WindowAttributesExtWindows;
-                attrs = attrs.with_undecorated_shadow(config.undecorated_shadow);
-            }
-            if let Some((width, height)) = resolve_min_window_size(&config, minimum_size) {
-                attrs = attrs.with_min_inner_size(LogicalSize::new(width, height));
-            }
-            if let Some((x, y)) = config.position {
-                attrs = attrs.with_position(LogicalPosition::new(x, y));
-            }
-            let window = match event_loop.create_window(attrs) {
-                Ok(window) => Arc::new(window),
-                Err(error) => {
-                    tracing::error!(%error, "failed to create window: {}", config.title);
-                    failures.push(format!("window '{}': {error}", config.title));
-                    continue;
-                }
-            };
-            window.set_ime_allowed(true);
-            let size = window.inner_size();
-            let scale = window.scale_factor() as f32;
-            match initialize_renderer(
-                window.clone(),
-                size.width,
-                size.height,
-                scale,
+            match create_window_state(
+                event_loop,
+                &config,
+                minimum_size,
                 backend_preference,
+                None,
+                &mut self.next_window_id,
             ) {
-                Ok(renderer) => {
-                    let winit_id = window.id();
-                    let win_id = WindowId(self.next_window_id);
-                    self.next_window_id += 1;
-                    self.windows.insert(
-                        winit_id,
-                        WindowState {
-                            id: win_id,
-                            window: window.clone(),
-                            renderer,
-                            renderer_dims: (size.width, size.height),
-                            renderer_scale: scale,
-                            cursor: (0.0, 0.0),
-                            shift: false,
-                            ctrl: false,
-                            alt: false,
-                            meta: false,
-                            dirty: true,
-                            retry: FrameRetry::default(),
-                            maximized: None,
-                        },
-                    );
-                    window.request_redraw();
+                Ok((winit_id, state)) => {
+                    self.windows.insert(winit_id, state);
                 }
-                Err(error) => {
-                    tracing::error!(
-                        %error,
-                        "renderer initialization failed for window: {}",
-                        config.title,
-                    );
-                    failures.push(format!("renderer for window '{}': {error}", config.title));
-                }
+                Err(error) => failures.push(error),
             }
         }
         if self.windows.is_empty() {
@@ -892,6 +862,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
         let Runtime {
             app,
             windows,
+            next_window_id,
             fatal,
             ..
         } = self;
@@ -975,7 +946,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             }
         }
         if should_drain_requests && fatal.is_none() && !windows.is_empty() {
-            process_window_requests(app, windows, event_loop);
+            process_window_requests(app, windows, next_window_id, event_loop);
         }
     }
 }
@@ -1676,6 +1647,123 @@ mod tests {
         };
         assert!(!no_mods.is_primary_shortcut(PlatformKey::Enter));
     }
+
+    #[derive(Default)]
+    struct LifecycleApp {
+        log: Vec<String>,
+    }
+
+    impl Application for LifecycleApp {
+        fn window_opened(&mut self, token: u64, window: WindowId) {
+            self.log.push(format!("opened {token} -> {}", window.0));
+        }
+        fn window_open_failed(&mut self, token: u64, error: String) {
+            self.log.push(format!("failed {token}: {error}"));
+        }
+        fn window_closed(&mut self, window: WindowId) {
+            self.log.push(format!("closed {}", window.0));
+        }
+        fn frame(&mut self, _ctx: FrameContext) -> Scene {
+            Scene::new()
+        }
+    }
+
+    #[test]
+    fn window_config_is_clone_and_partial_eq() {
+        let config = WindowConfig {
+            title: "Module".into(),
+            position: Some((10.0, 20.0)),
+            ..Default::default()
+        };
+        assert_eq!(config.clone(), config);
+        assert_ne!(config, WindowConfig::default());
+    }
+
+    #[test]
+    fn window_lifecycle_callbacks_default_to_noops() {
+        struct DefaultApp;
+        impl Application for DefaultApp {
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
+            }
+        }
+        let mut app = DefaultApp;
+        app.window_opened(1, WindowId(3));
+        app.window_open_failed(2, "boom".into());
+        app.window_closed(WindowId(3));
+        notify_window_open_results(&mut app, vec![(1, Ok(WindowId(4)))]);
+        assert!(finish_window_removal(&mut app, Some(WindowId(4)), 0));
+    }
+
+    #[test]
+    fn window_open_results_are_reported_in_request_order() {
+        let mut app = LifecycleApp::default();
+        notify_window_open_results(
+            &mut app,
+            vec![
+                (30, Ok(WindowId(2))),
+                (10, Err("owner window 9 is not open".into())),
+                (20, Ok(WindowId(3))),
+            ],
+        );
+        assert_eq!(
+            app.log,
+            vec![
+                "opened 30 -> 2".to_string(),
+                "failed 10: owner window 9 is not open".to_string(),
+                "opened 20 -> 3".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn closing_a_non_last_window_keeps_the_loop_running() {
+        let mut app = LifecycleApp::default();
+        assert!(!finish_window_removal(&mut app, Some(WindowId(1)), 1));
+        assert!(finish_window_removal(&mut app, Some(WindowId(0)), 0));
+        // A window that was already removed is not reported twice.
+        assert!(finish_window_removal(&mut app, None, 0));
+        assert!(!finish_window_removal(&mut app, None, 2));
+        assert_eq!(
+            app.log,
+            vec!["closed 1".to_string(), "closed 0".to_string()]
+        );
+    }
+
+    #[test]
+    fn center_over_owner_centres_smaller_child() {
+        assert_eq!(
+            center_over_owner((100, 50), (1200, 800), (400, 300)),
+            (500, 300)
+        );
+        // Odd remainders round toward the owner's top-left.
+        assert_eq!(center_over_owner((0, 0), (101, 101), (50, 50)), (25, 25));
+        // Negative (multi-monitor) owner coordinates are preserved.
+        assert_eq!(
+            center_over_owner((-1920, -200), (1000, 600), (200, 100)),
+            (-1520, 50)
+        );
+    }
+
+    #[test]
+    fn center_over_owner_clamps_larger_child_to_owner_origin() {
+        assert_eq!(
+            center_over_owner((100, 50), (400, 300), (800, 200)),
+            (100, 100)
+        );
+        assert_eq!(
+            center_over_owner((100, 50), (400, 300), (800, 600)),
+            (100, 50)
+        );
+    }
+
+    #[test]
+    fn logical_to_physical_size_scales_and_guards_scale() {
+        assert_eq!(logical_to_physical_size(400.0, 300.0, 1.5), (600, 450));
+        assert_eq!(logical_to_physical_size(400.0, 300.0, 0.0), (400, 300));
+        assert_eq!(logical_to_physical_size(400.0, 300.0, f64::NAN), (400, 300));
+        assert_eq!(logical_to_physical_size(-5.0, 10.4, 1.0), (0, 10));
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1700,10 +1788,190 @@ fn handle_window_lifecycle(
             }
         }
     }
-    windows.remove(&id);
-    if windows.is_empty() {
+    remove_window(app, windows, id, event_loop);
+}
+
+/// Remove `id` from the runtime, notify [`Application::window_closed`] once the
+/// OS window is gone, and exit the loop only when no window remains.
+fn remove_window(
+    app: &mut dyn Application,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    id: WinitWindowId,
+    event_loop: &ActiveEventLoop,
+) {
+    // Dropping the state drops the last `Arc<Window>`, destroying the OS window.
+    let removed = windows.remove(&id).map(|state| state.id);
+    if finish_window_removal(app, removed, windows.len()) {
         event_loop.exit();
     }
+}
+
+/// Notify the app about a removed window and return whether the event loop
+/// should exit (`true` only when no window remains).
+pub(crate) fn finish_window_removal(
+    app: &mut dyn Application,
+    removed: Option<WindowId>,
+    remaining: usize,
+) -> bool {
+    if let Some(window) = removed {
+        app.window_closed(window);
+    }
+    remaining == 0
+}
+
+/// Report runtime window-open outcomes to the app in request order.
+pub(crate) fn notify_window_open_results(
+    app: &mut dyn Application,
+    results: Vec<(u64, Result<WindowId, String>)>,
+) {
+    for (token, result) in results {
+        match result {
+            Ok(window) => app.window_opened(token, window),
+            Err(error) => app.window_open_failed(token, error),
+        }
+    }
+}
+
+/// Centre a child window over its owner, in physical pixels.
+///
+/// `owner_pos`/`owner_size` are the owner's outer top-left and outer size;
+/// `child_size` is the child's size. The result never lies above or left of the
+/// owner's top-left corner, so a child larger than its owner keeps its title bar
+/// reachable.
+pub(crate) fn center_over_owner(
+    owner_pos: (i32, i32),
+    owner_size: (u32, u32),
+    child_size: (u32, u32),
+) -> (i32, i32) {
+    let axis = |pos: i32, owner: u32, child: u32| -> i32 {
+        let offset = (i64::from(owner) - i64::from(child)) / 2;
+        let value =
+            (i64::from(pos) + offset.max(0)).clamp(i64::from(i32::MIN), i64::from(i32::MAX));
+        value as i32
+    };
+    (
+        axis(owner_pos.0, owner_size.0, child_size.0),
+        axis(owner_pos.1, owner_size.1, child_size.1),
+    )
+}
+
+/// Physical child size for a logical [`WindowConfig`] size at `scale_factor`.
+pub(crate) fn logical_to_physical_size(width: f64, height: f64, scale_factor: f64) -> (u32, u32) {
+    let scale = if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    };
+    let convert = |v: f64| (v.max(0.0) * scale).round().min(f64::from(u32::MAX)) as u32;
+    (convert(width), convert(height))
+}
+
+/// Position of a window opened over `owner` without an explicit position.
+fn owner_centered_position(owner: &Window, config: &WindowConfig) -> Option<PhysicalPosition<i32>> {
+    let owner_pos = owner.outer_position().ok()?;
+    let owner_size = owner.outer_size();
+    let child = logical_to_physical_size(config.width, config.height, owner.scale_factor());
+    let (x, y) = center_over_owner(
+        (owner_pos.x, owner_pos.y),
+        (owner_size.width, owner_size.height),
+        child,
+    );
+    Some(PhysicalPosition::new(x, y))
+}
+
+#[cfg(windows)]
+fn owner_hwnd(window: &Window) -> Option<isize> {
+    use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    match window.window_handle().ok()?.as_raw() {
+        RawWindowHandle::Win32(handle) => Some(handle.hwnd.get()),
+        _ => None,
+    }
+}
+
+/// Create one OS window plus its renderer. Shared by start-up
+/// ([`ApplicationHandler::resumed`]) and [`WindowRequest::Open`].
+///
+/// A new [`WindowId`] is allocated from `next_window_id` only on success, and
+/// the window gets a redraw request before it is returned. Errors are
+/// human-readable reasons naming the window title.
+fn create_window_state(
+    event_loop: &ActiveEventLoop,
+    config: &WindowConfig,
+    minimum_size: Option<(f64, f64)>,
+    backend_preference: RenderBackendPreference,
+    owner: Option<&Window>,
+    next_window_id: &mut u64,
+) -> Result<(WinitWindowId, WindowState), String> {
+    let mut attrs = Window::default_attributes()
+        .with_title(&config.title)
+        .with_inner_size(LogicalSize::new(config.width, config.height))
+        .with_resizable(true)
+        .with_decorations(config.decorations);
+    #[cfg(windows)]
+    {
+        use winit::platform::windows::WindowAttributesExtWindows;
+        attrs = attrs.with_undecorated_shadow(config.undecorated_shadow);
+        if let Some(hwnd) = owner.and_then(owner_hwnd) {
+            attrs = attrs.with_owner_window(hwnd);
+        }
+    }
+    if let Some((width, height)) = resolve_min_window_size(config, minimum_size) {
+        attrs = attrs.with_min_inner_size(LogicalSize::new(width, height));
+    }
+    if let Some((x, y)) = config.position {
+        attrs = attrs.with_position(LogicalPosition::new(x, y));
+    } else if let Some(position) = owner.and_then(|owner| owner_centered_position(owner, config)) {
+        attrs = attrs.with_position(position);
+    }
+    let window = match event_loop.create_window(attrs) {
+        Ok(window) => Arc::new(window),
+        Err(error) => {
+            tracing::error!(%error, "failed to create window: {}", config.title);
+            return Err(format!("window '{}': {error}", config.title));
+        }
+    };
+    window.set_ime_allowed(true);
+    let size = window.inner_size();
+    let scale = window.scale_factor() as f32;
+    let renderer = match initialize_renderer(
+        window.clone(),
+        size.width,
+        size.height,
+        scale,
+        backend_preference,
+    ) {
+        Ok(renderer) => renderer,
+        Err(error) => {
+            tracing::error!(
+                %error,
+                "renderer initialization failed for window: {}",
+                config.title,
+            );
+            return Err(format!("renderer for window '{}': {error}", config.title));
+        }
+    };
+    let winit_id = window.id();
+    let win_id = WindowId(*next_window_id);
+    *next_window_id += 1;
+    window.request_redraw();
+    Ok((
+        winit_id,
+        WindowState {
+            id: win_id,
+            window,
+            renderer,
+            renderer_dims: (size.width, size.height),
+            renderer_scale: scale,
+            cursor: (0.0, 0.0),
+            shift: false,
+            ctrl: false,
+            alt: false,
+            meta: false,
+            dirty: true,
+            retry: FrameRetry::default(),
+            maximized: None,
+        },
+    ))
 }
 
 /// Deliver a close request to `app` and return whether the window should close.
@@ -2024,6 +2292,7 @@ fn handle_keyboard(
 fn process_window_requests<A: Application>(
     app: &mut A,
     windows: &mut HashMap<WinitWindowId, WindowState>,
+    next_window_id: &mut u64,
     event_loop: &ActiveEventLoop,
 ) {
     let window_order: Vec<(WinitWindowId, WindowId)> = windows
@@ -2031,64 +2300,125 @@ fn process_window_requests<A: Application>(
         .map(|(&winit_id, state)| (winit_id, state.id))
         .collect();
     let batches = drain_window_requests(app, window_order.iter().map(|&(_, id)| id));
+    let mut opens: Vec<OpenWindowRequest> = Vec::new();
+    let mut closes: Vec<WinitWindowId> = Vec::new();
     for (win_id, requests) in batches {
         let Some(&(winit_id, _)) = window_order.iter().find(|&&(_, id)| id == win_id) else {
             continue;
         };
-        let mut should_close = false;
-        if let Some(state) = windows.get(&winit_id) {
-            for request in requests {
-                match request {
-                    WindowRequest::SetTitle(title) => {
-                        state.window.set_title(&title);
-                    }
-                    WindowRequest::Focus => {
-                        state.window.set_minimized(false);
-                        state.window.set_visible(true);
-                        state.window.focus_window();
-                    }
-                    WindowRequest::Minimize => {
-                        state.window.set_minimized(true);
-                    }
-                    WindowRequest::Close => {
-                        should_close = true;
-                    }
-                    WindowRequest::SetImeAllowed(allowed) => {
-                        state.window.set_ime_allowed(allowed);
-                    }
-                    WindowRequest::SetCursor(icon) => {
-                        state.window.set_cursor(map_cursor_icon(icon));
-                    }
-                    WindowRequest::ToggleMaximize => {
-                        state.window.set_maximized(!state.window.is_maximized());
-                    }
-                    WindowRequest::SetMaximized(maximized) => {
-                        state.window.set_maximized(maximized);
-                    }
-                    WindowRequest::DragMove => {
-                        if let Err(error) = state.window.drag_window() {
-                            tracing::warn!(%error, "window drag-move unavailable");
-                        }
-                    }
-                    WindowRequest::DragResize(edge) => {
-                        if let Err(error) = state.window.drag_resize_window(map_resize_edge(edge)) {
-                            tracing::warn!(%error, ?edge, "window drag-resize unavailable");
-                        }
-                    }
-                    WindowRequest::ShowSystemMenu { x, y } => {
-                        state
-                            .window
-                            .show_window_menu(LogicalPosition::new(f64::from(x), f64::from(y)));
-                    }
+        let plan = plan_window_requests(requests);
+        if let Some(state) = windows.get_mut(&winit_id) {
+            for request in plan.immediate {
+                apply_window_request(&state.window, request);
+            }
+            if plan.redraw {
+                state.dirty = true;
+                state.window.request_redraw();
+            }
+        }
+        opens.extend(plan.opens);
+        if plan.close {
+            closes.push(winit_id);
+        }
+    }
+    // Opens run before closes so an owner closed in the same pass still
+    // positions and owns its child.
+    if !opens.is_empty() {
+        let results = open_requested_windows(app, windows, next_window_id, event_loop, opens);
+        notify_window_open_results(app, results);
+    }
+    for winit_id in closes {
+        remove_window(app, windows, winit_id, event_loop);
+    }
+}
+
+/// Create the windows requested with [`WindowRequest::Open`], in order.
+fn open_requested_windows<A: Application>(
+    app: &mut A,
+    windows: &mut HashMap<WinitWindowId, WindowState>,
+    next_window_id: &mut u64,
+    event_loop: &ActiveEventLoop,
+    opens: Vec<OpenWindowRequest>,
+) -> Vec<(u64, Result<WindowId, String>)> {
+    let minimum_size = app.minimum_window_size();
+    let backend_preference = resolve_render_backend_from_env(app.render_backend());
+    let mut results = Vec::with_capacity(opens.len());
+    for open in opens {
+        let owner = match open.owner {
+            Some(owner_id) => match windows.values().find(|state| state.id == owner_id) {
+                Some(state) => Some(state.window.clone()),
+                None => {
+                    results.push((
+                        open.token,
+                        Err(format!(
+                            "owner window {} is not open for window '{}'",
+                            owner_id.0, open.config.title
+                        )),
+                    ));
+                    continue;
                 }
+            },
+            None => None,
+        };
+        let created = create_window_state(
+            event_loop,
+            &open.config,
+            minimum_size,
+            backend_preference,
+            owner.as_deref(),
+            next_window_id,
+        );
+        let result = created.map(|(winit_id, state)| {
+            let id = state.id;
+            windows.insert(winit_id, state);
+            id
+        });
+        results.push((open.token, result));
+    }
+    results
+}
+
+/// Apply a request that targets an existing window directly.
+fn apply_window_request(window: &Window, request: WindowRequest) {
+    match request {
+        WindowRequest::SetTitle(title) => {
+            window.set_title(&title);
+        }
+        WindowRequest::Focus => {
+            window.set_minimized(false);
+            window.set_visible(true);
+            window.focus_window();
+        }
+        WindowRequest::Minimize => {
+            window.set_minimized(true);
+        }
+        WindowRequest::SetImeAllowed(allowed) => {
+            window.set_ime_allowed(allowed);
+        }
+        WindowRequest::SetCursor(icon) => {
+            window.set_cursor(map_cursor_icon(icon));
+        }
+        WindowRequest::ToggleMaximize => {
+            window.set_maximized(!window.is_maximized());
+        }
+        WindowRequest::SetMaximized(maximized) => {
+            window.set_maximized(maximized);
+        }
+        WindowRequest::DragMove => {
+            if let Err(error) = window.drag_window() {
+                tracing::warn!(%error, "window drag-move unavailable");
             }
         }
-        if should_close {
-            windows.remove(&winit_id);
-            if windows.is_empty() {
-                event_loop.exit();
+        WindowRequest::DragResize(edge) => {
+            if let Err(error) = window.drag_resize_window(map_resize_edge(edge)) {
+                tracing::warn!(%error, ?edge, "window drag-resize unavailable");
             }
         }
+        WindowRequest::ShowSystemMenu { x, y } => {
+            window.show_window_menu(LogicalPosition::new(f64::from(x), f64::from(y)));
+        }
+        // Split out by `plan_window_requests` and handled by the caller.
+        WindowRequest::Close | WindowRequest::Open { .. } | WindowRequest::RequestRedraw => {}
     }
 }
 
