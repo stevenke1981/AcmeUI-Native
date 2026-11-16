@@ -92,6 +92,7 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 053a | Codex CLI (OpenRouter nemotron-3-ultra-550b-a55b:free) single writer + author review | Modal typed Close conversion; controlled Overlay Gallery close/restore | RED ignored on_close / unkeyed Label reproduced; message/passive/identity/geometry guards; [brief](../team/roadmap-053-modal-close/BRIEF.md); [report](../team/roadmap-053-modal-close/REPORT.md); reviewer gates PASS, manual/native/SDK CPU NOT_RUN |
 | 054a | Codex CLI (OpenRouter nemotron-3-ultra-550b-a55b:free) + author review | ContextMenu typed item-message conversion; controlled Overlay Gallery Cut/Copy/restore | RED ignored MenuItem.message / unkeyed Label reproduced; message/passive/disabled/separator/identity/geometry guards; [brief](../team/roadmap-054-context-menu/BRIEF.md); [report](../team/roadmap-054-context-menu/REPORT.md); reviewer gates PASS, manual/native/SDK CPU NOT_RUN |
+| 055 | Claude Code agent team: Fable 5.2 adviser + independent reviewer, Opus 5.5 component, Sonnet 5.5 Gallery, Haiku 5.5 verification | RadioCards typed selection (instance-keyed Buttons) + `navigate`; controlled Gallery Inputs pointer/keyboard host | RED reproduced; workspace 2050/0, clippy/fmt PASS; [brief](../team/roadmap-055/BRIEF.md); [report](../team/roadmap-055/REPORT.md); independent review no P0/P1; manual/IME/screen-reader NOT_RUN |
 
 ## Existing work to preserve
 

@@ -1,5 +1,10 @@
 # Todos
 
+## ROADMAP 055 — RadioCards typed selection and arrow-key navigation (2026-11-16)
+
+- [x] Bind `on_select` to instance-keyed option Buttons (Primary/Ghost + marker), keep the passive tree without a handler, add `navigate(forward)`; Gallery Inputs demo with pointer, F6/arrows/Enter/Space/Esc; [report](../team/roadmap-055/REPORT.md).
+- [ ] P2 review follow-ups (duplicate-value guard, deactivate/preedit tests, scroll-into-view, focus indicator); human Gallery, Windows 注音 IME, DPI/touch, GPU, screen reader — NOT_RUN.
+
 ## ROADMAP 054 — Calendar range highlighting (2026-11-16)
 
 - [x] Add inclusive same-month visual ranges with reversed-endpoint normalization, build-time day validation and last-setter selection semantics; preserve passive single-day/today behavior and retained day identity through header/range changes.
@@ -780,7 +785,8 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 ### Remaining enhancements
 - [ ] Wire VisuallyHidden/LiveRegion into acme-accessibility tree builder
-- [ ] CheckboxCards/RadioCards keyboard navigation (arrow keys)
+- [x] RadioCards typed selection + arrow-key navigation (ROADMAP 055)
+- [ ] CheckboxCards keyboard navigation (arrow keys)
 - [x] DataList density variants (compact/default/relaxed), both orientations with default compatibility, real layout/retained regressions and Gallery comparisons (ROADMAP 038).
 - [ ] Code syntax highlighting integration
 - [ ] Inset clip variants (rounded corners matching parent)

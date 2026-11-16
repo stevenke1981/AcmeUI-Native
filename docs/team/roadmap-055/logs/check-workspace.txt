@@ -1,0 +1,25 @@
+COMMAND: cargo check --locked --workspace --all-targets | START_UTC: 2026-11-16T12:53:41Z
+   Compiling slotmap v1.1.1
+    Checking acme-render-cpu v0.2.0 (F:\AcmeUI-Native\crates\acme-render-cpu)
+    Checking acme-core v0.2.0 (F:\AcmeUI-Native\crates\acme-core)
+    Checking acme-theme v0.2.0 (F:\AcmeUI-Native\crates\acme-theme)
+    Checking fontdb v0.16.2
+    Checking taffy v0.9.2
+    Checking acme-animation v0.2.0 (F:\AcmeUI-Native\crates\acme-animation)
+    Checking cosmic-text v0.14.2
+    Checking acme-text v0.2.0 (F:\AcmeUI-Native\crates\acme-text)
+    Checking acme-layout v0.2.0 (F:\AcmeUI-Native\crates\acme-layout)
+    Checking acme-render-wgpu v0.2.0 (F:\AcmeUI-Native\crates\acme-render-wgpu)
+    Checking acme-style v0.2.0 (F:\AcmeUI-Native\crates\acme-style)
+    Checking acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+    Checking acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Checking acme-platform v0.2.0 (F:\AcmeUI-Native\crates\acme-platform)
+    Checking acme-benchmark v0.2.0 (F:\AcmeUI-Native\apps\benchmark)
+    Checking acme-devtools v0.2.0 (F:\AcmeUI-Native\crates\acme-devtools)
+    Checking acme-textinput v0.2.0 (F:\AcmeUI-Native\crates\acme-textinput)
+    Checking acme-accessibility v0.2.0 (F:\AcmeUI-Native\crates\acme-accessibility)
+    Checking acme-playground v0.2.0 (F:\AcmeUI-Native\apps\playground)
+    Checking acme-ui-gallery v0.2.0 (F:\AcmeUI-Native\apps\acme-gallery)
+    Checking acme-gallery v0.2.0 (F:\AcmeUI-Native\apps\gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 12.15s
+EXIT_CODE: 0 | END_UTC: 2026-11-16T12:53:53Z

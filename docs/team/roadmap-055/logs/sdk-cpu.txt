@@ -1,0 +1,6 @@
+COMMAND: python scripts/verify_sdk.py --profile cpu | START_UTC: 2026-11-16T12:55:34Z
+[PASS] cargo fmt -p acme-render-cpu -- --check
+[PASS] cargo test --locked -p acme-render-cpu
+[PASS] cargo clippy --locked -p acme-render-cpu --all-targets --no-deps -- -D warnings
+Evidence: F:\AcmeUI-Native\target\sdk-evidence\20261116T125534878488Z\report.json
+EXIT_CODE: 0 | END_UTC: 2026-11-16T12:55:39Z

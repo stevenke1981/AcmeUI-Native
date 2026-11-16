@@ -1,0 +1,138 @@
+   Compiling once_cell v1.21.4
+   Compiling log v0.4.33
+   Compiling smallvec v1.15.2
+   Compiling smol_str v0.2.2
+   Compiling syn v2.0.119
+   Compiling fontdb v0.16.2
+   Compiling bytemuck_derive v1.11.0
+   Compiling bytemuck v1.25.2
+   Compiling font-types v0.12.1
+   Compiling rustybuzz v0.14.1
+   Compiling read-fonts v0.41.0
+   Compiling skrifa v0.44.0
+   Compiling swash v0.2.10
+   Compiling cosmic-text v0.14.2
+   Compiling acme-text v0.2.0 (F:\AcmeUI-Native\crates\acme-text)
+   Compiling acme-layout v0.2.0 (F:\AcmeUI-Native\crates\acme-layout)
+   Compiling acme-style v0.2.0 (F:\AcmeUI-Native\crates\acme-style)
+   Compiling acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:227:19
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+227 |         assert!(b.navigate(true).is_none());
+    |                   ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:229:19
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+229 |         assert!(b.navigate(false).is_none());
+    |                   ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:236:50
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+236 |         assert_eq!(plan("n", &values, Some("a")).navigate(true), sel("b"));
+    |                                                  ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:237:50
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+237 |         assert_eq!(plan("n", &values, Some("c")).navigate(true), sel("a"));
+    |                                                  ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:238:50
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+238 |         assert_eq!(plan("n", &values, Some("a")).navigate(false), sel("c"));
+    |                                                  ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:239:50
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+239 |         assert_eq!(plan("n", &values, Some("b")).navigate(false), sel("a"));
+    |                                                  ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:240:45
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+240 |         assert_eq!(plan("n", &values, None).navigate(true), sel("a"));
+    |                                             ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:241:45
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+241 |         assert_eq!(plan("n", &values, None).navigate(false), sel("c"));
+    |                                             ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:242:51
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+242 |         assert_eq!(plan("n", &values, Some("zz")).navigate(true), sel("a"));
+    |                                                   ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:243:51
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+243 |         assert_eq!(plan("n", &values, Some("zz")).navigate(false), sel("c"));
+    |                                                   ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:245:48
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+245 |             plan("n", &["only"], Some("only")).navigate(true),
+    |                                                ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:248:41
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+248 |         assert_eq!(plan("n", &[], None).navigate(true), None);
+    |                                         ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate` found for struct `inputs::radio_cards::RadioCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\radio_cards.rs:249:46
+    |
+31  | pub struct RadioCardsBuilder<M> {
+    | ------------------------------- method `navigate` not found for this struct
+...
+249 |         assert_eq!(plan("n", &[], Some("a")).navigate(false), None);
+    |                                              ^^^^^^^^ method not found in `RadioCardsBuilder<Msg>`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `acme-ui` (lib test) due to 13 previous errors

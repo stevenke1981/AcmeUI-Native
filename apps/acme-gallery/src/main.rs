@@ -66,6 +66,8 @@ mod notification;
 mod page_header;
 mod tour;
 use tour::TourDemo;
+mod radio_cards;
+use radio_cards::RadioCardsDemo;
 mod speed_dial;
 use speed_dial::SpeedDialDemo;
 mod snackbar;
@@ -190,6 +192,7 @@ enum GalleryMessage {
     CollapsibleToggle,
     CollapsibleDisable,
     CalendarRangeToggle,
+    RadioCardSelect(u8),
     SpeedDialToggle,
     SpeedDialDirection,
     SpeedDialAction(usize),
@@ -296,6 +299,7 @@ struct Gallery {
     list_details: bool,
     fab_status: &'static str,
     speed_dial: SpeedDialDemo,
+    radio_cards: RadioCardsDemo,
     bottom_selected: usize,
     header_description: bool,
     header_saves: usize,
@@ -386,6 +390,7 @@ impl Gallery {
             list_details: true,
             fab_status: "none",
             speed_dial: SpeedDialDemo::default(),
+            radio_cards: RadioCardsDemo::default(),
             bottom_selected: 0,
             header_description: true,
             header_saves: 0,
@@ -660,6 +665,7 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Inputs", 24.0))
             .child(separator())
+            .child(self.page_section("RadioCards — typed selection", self.radio_cards_examples()))
             .child(
                 self.page_section(
                     "Button Variants",
@@ -1819,6 +1825,7 @@ impl Gallery {
                     self.scroll = 0.0;
                     self.spinner.visible = false;
                     self.list_focus = None;
+                    self.radio_cards.active = false;
                     self.search.blur();
                     self.search.rect = None;
                     self.swipe.cancel_pointer();
@@ -2005,6 +2012,7 @@ impl Gallery {
                 self.hovered = None;
                 true
             }
+            GalleryMessage::RadioCardSelect(index) => self.radio_card_select(index),
             GalleryMessage::SpeedDialAction(index) => {
                 if !self.speed_dial.open || index > 1 {
                     return false;
@@ -2304,6 +2312,11 @@ impl Application for Gallery {
         };
         if overlay_pointer && matches!(event, PlatformEvent::PointerButton { pressed: true, .. }) {
             self.search.blur();
+        }
+        if self.selected_category == 2 && !overlay_pointer {
+            if let Some(changed) = self.radio_cards_event(&event) {
+                return changed;
+            }
         }
         if self.selected_category == 7 && (!overlay_pointer || self.swipe.pointer.is_some()) {
             if let Some(changed) = self.swipe_event(&event) {
@@ -4423,6 +4436,9 @@ mod swipe_actions_tests;
 
 #[cfg(test)]
 mod style_sizing_tests;
+
+#[cfg(test)]
+mod radio_cards_tests;
 
 #[cfg(test)]
 mod speed_dial_tests;
