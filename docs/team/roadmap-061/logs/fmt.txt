@@ -1,0 +1,2 @@
+$ cargo fmt -p acme-ui -p acme-ui-gallery -- --check (start 2026-11-16T17:12:27Z)
+exit code: 0

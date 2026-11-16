@@ -151,6 +151,7 @@ impl Gallery {
         self.nav_menu.destination = Some(index);
         self.nav_menu.active = true;
         self.side_nav.active = false;
+        self.sidenav.active = false;
         self.reset_hover_press();
         true
     }
@@ -180,7 +181,7 @@ impl Gallery {
     }
 
     /// Minimal scroll that brings `message` fully into view (top edge wins).
-    fn reveal_minimal(&mut self, message: GalleryMessage) {
+    pub(super) fn reveal_minimal(&mut self, message: GalleryMessage) {
         let Some(hit) = self.button_info.iter().find(|h| h.message == message) else {
             return;
         };
@@ -267,6 +268,7 @@ impl Gallery {
                 self.search.blur();
                 self.nav_menu.active = true;
                 self.side_nav.active = false;
+                self.sidenav.active = false;
                 self.reveal_nav_menu();
                 Some(true)
             }

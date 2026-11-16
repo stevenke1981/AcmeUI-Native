@@ -1,5 +1,10 @@
 # Todos
 
+## ROADMAP 061 — Sidenav typed activation and keyboard navigation (2026-11-17)
+
+- [x] `SidenavBuilder::on_select` / `navigate` (identical tree without a handler); Gallery F8 host (cross-section rove, skips disabled, Enter/Space confirm, Esc, guards); F6/F7/F8 mutually exclusive; `desktop`/`overlay` feature manifests fixed and checked in CI; [report](../team/roadmap-061/REPORT.md).
+- [ ] Light/high-contrast and 100% scaling real-window passes, Alt+Tab blur, screen reader — NOT_RUN.
+
 ## ROADMAP 060 — Readable selected category (2026-11-17)
 
 - [x] `Theme::selected_item_colors()` and a 7th `wcag_report` row; minimum retunes (solarized light accent_foreground; gruvbox accent light/dark); both Gallery shells paint the selected category from it with a fixed-gutter `▸`; selected ≥ 4.5:1 in all 24 pack-modes; [report](../team/roadmap-060/REPORT.md), [GUI](../team/roadmap-060/GUI.md).

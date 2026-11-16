@@ -70,10 +70,12 @@ mod checkbox_cards;
 mod navigation_menu;
 mod radio_cards;
 mod sidebar;
+mod sidenav;
 use checkbox_cards::CheckboxCardsDemo;
 use navigation_menu::NavMenuDemo;
 use radio_cards::RadioCardsDemo;
 use sidebar::SidebarDemo;
+use sidenav::SidenavDemo;
 mod speed_dial;
 use speed_dial::SpeedDialDemo;
 mod snackbar;
@@ -202,6 +204,7 @@ enum GalleryMessage {
     CheckboxCardToggle(u8),
     NavMenuSelect(u8),
     SidebarSelect(u8),
+    SidenavSelect(u8),
     SpeedDialToggle,
     SpeedDialDirection,
     SpeedDialAction(usize),
@@ -321,6 +324,7 @@ struct Gallery {
     checkbox_cards: CheckboxCardsDemo,
     nav_menu: NavMenuDemo,
     side_nav: SidebarDemo,
+    sidenav: SidenavDemo,
     bottom_selected: usize,
     header_description: bool,
     header_saves: usize,
@@ -415,6 +419,7 @@ impl Gallery {
             checkbox_cards: CheckboxCardsDemo::default(),
             nav_menu: NavMenuDemo::default(),
             side_nav: SidebarDemo::default(),
+            sidenav: SidenavDemo::default(),
             bottom_selected: 0,
             header_description: true,
             header_saves: 0,
@@ -937,6 +942,7 @@ impl Gallery {
                 ),
             )
             .child(self.page_section("Sidebar — typed activation", self.sidebar_examples()))
+            .child(self.page_section("Sidenav — typed sections", self.sidenav_examples()))
             .build()
     }
 
@@ -1862,6 +1868,7 @@ impl Gallery {
                     self.checkbox_cards.active = false;
                     self.nav_menu.active = false;
                     self.side_nav.active = false;
+                    self.sidenav.active = false;
                     self.search.blur();
                     self.search.rect = None;
                     self.swipe.cancel_pointer();
@@ -2052,6 +2059,7 @@ impl Gallery {
             GalleryMessage::CheckboxCardToggle(index) => self.checkbox_card_toggle(index),
             GalleryMessage::NavMenuSelect(index) => self.nav_menu_select(index),
             GalleryMessage::SidebarSelect(index) => self.sidebar_select(index),
+            GalleryMessage::SidenavSelect(index) => self.sidenav_select(index),
             GalleryMessage::SpeedDialAction(index) => {
                 if !self.speed_dial.open || index > 1 {
                     return false;
@@ -4526,6 +4534,9 @@ mod navigation_menu_tests;
 
 #[cfg(test)]
 mod sidebar_tests;
+
+#[cfg(test)]
+mod sidenav_tests;
 
 #[cfg(test)]
 mod speed_dial_tests;

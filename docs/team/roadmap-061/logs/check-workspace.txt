@@ -1,0 +1,5 @@
+$ cargo check --locked --workspace --all-targets (start 2026-11-16T17:12:45Z)
+    Checking acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Checking acme-ui-gallery v0.2.0 (F:\AcmeUI-Native\apps\acme-gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.92s
+exit code: 0

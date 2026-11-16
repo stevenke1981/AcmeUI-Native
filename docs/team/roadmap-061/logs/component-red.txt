@@ -1,0 +1,189 @@
+   Compiling acme-style v0.2.0 (F:\AcmeUI-Native\crates\acme-style)
+   Compiling acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+error[E0599]: no method named `on_select` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:395:44
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `on_select` not found for this struct
+...
+395 |         passive(key, sections(), selected).on_select(go)
+    |                                            ^^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:402:23
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+402 |             assert!(b.navigate(true).is_none());
+    |                       ^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:403:23
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+403 |             assert!(b.navigate(false).is_none());
+    |                       ^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:464:30
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+464 |                 assert_ne!(b.navigate(forward), Some(go("security")));
+    |                              ^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `on_select` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:476:10
+    |
+77  |   pub struct SidenavBuilder<M> {
+    |   ---------------------------- method `on_select` not found for this struct
+...
+471 |           let only_off = passive(
+    |  ________________________-
+472 | |             "side",
+473 | |             vec![sidenav_section("A").item(sidenav_item("Off", "off").disabled())],
+474 | |             Some("off"),
+475 | |         )
+476 | |         .on_select(go);
+    | |         -^^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+    | |_________|
+    |
+
+error[E0599]: no method named `navigate` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:520:60
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+520 |         let nav = |c: Option<&str>, f: bool| typed("s", c).navigate(f);
+    |                                                            ^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `on_select` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:546:10
+    |
+77  |   pub struct SidenavBuilder<M> {
+    |   ---------------------------- method `on_select` not found for this struct
+...
+537 |           let gappy = passive(
+    |  _____________________-
+538 | |             "s",
+539 | |             vec![
+540 | |                 sidenav_section("A").item(sidenav_item("One", "one")),
+...   |
+546 | |         .on_select(go);
+    | |         -^^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+    | |_________|
+    |
+
+error[E0599]: no method named `navigate` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:554:22
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+554 |         assert_eq!(b.navigate(true), Some(go("profile")));
+    |                      ^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:556:22
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+556 |         assert_eq!(b.navigate(false), Some(go("privacy")));
+    |                      ^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `on_select` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:569:10
+    |
+77  |   pub struct SidenavBuilder<M> {
+    |   ---------------------------- method `on_select` not found for this struct
+...
+557 |           let edges_off = passive(
+    |  _________________________-
+558 | |             "s",
+559 | |             vec![
+560 | |                 sidenav_section("A")
+...   |
+569 | |         .on_select(go);
+    | |         -^^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+    | |_________|
+    |
+
+error[E0599]: no method named `navigate` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:578:26
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+578 |             assert_eq!(b.navigate(true), None);
+    |                          ^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:579:26
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+579 |             assert_eq!(b.navigate(false), None);
+    |                          ^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `on_select` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:581:41
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `on_select` not found for this struct
+...
+581 |         let empty = sidenav::<Nav>("s").on_select(go);
+    |                                         ^^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `on_select` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:585:82
+    |
+77  | pub struct SidenavBuilder<M> {
+    | ---------------------------- method `on_select` not found for this struct
+...
+585 |             passive("s", vec![sidenav_section("A"), sidenav_section("B")], None).on_select(go);
+    |                                                                                  ^^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+
+error[E0599]: no method named `on_select` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:596:10
+    |
+77  |   pub struct SidenavBuilder<M> {
+    |   ---------------------------- method `on_select` not found for this struct
+...
+588 |           let all_off = passive(
+    |  _______________________-
+589 | |             "s",
+590 | |             vec![
+591 | |                 sidenav_section("A").item(sidenav_item("A", "a").disabled()),
+...   |
+596 | |         .on_select(go);
+    | |         -^^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+    | |_________|
+    |
+
+error[E0599]: no method named `on_select` found for struct `desktop::sidenav::SidenavBuilder` in the current scope
+   --> crates\acme-ui\src\desktop\sidenav.rs:604:10
+    |
+77  |   pub struct SidenavBuilder<M> {
+    |   ---------------------------- method `on_select` not found for this struct
+...
+599 |           let single = passive(
+    |  ______________________-
+600 | |             "s",
+601 | |             vec![sidenav_section("A").item(sidenav_item("Only", "only"))],
+602 | |             Some("only"),
+603 | |         )
+604 | |         .on_select(go);
+    | |         -^^^^^^^^^ method not found in `SidenavBuilder<Nav>`
+    | |_________|
+    |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `acme-ui` (lib test) due to 16 previous errors

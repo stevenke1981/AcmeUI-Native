@@ -1,5 +1,5 @@
 //! Controlled Sidebar demo with a page-scoped keyboard host, plus the
-//! single keyboard owner for the Layout page (NavigationMenu F6 / Sidebar F7).
+//! single keyboard owner for the Layout page (NavigationMenu F6 / Sidebar F7 / Sidenav F8).
 use super::*;
 use acme_platform::PlatformKey;
 use acme_ui::layout::{SidebarBuilder, SidebarItem, SidebarState};
@@ -125,15 +125,17 @@ impl Gallery {
         self.side_nav.confirmed = Some(index);
         self.side_nav.active = true;
         self.nav_menu.active = false;
+        self.sidenav.active = false;
         self.reset_hover_press();
         true
     }
 
-    /// Pointer press over the Snackbar overlay: neither Layout keyboard host
+    /// Pointer press over the Snackbar overlay: none of the three Layout keyboard hosts
     /// owns the keyboard any more. Changes nothing else.
     pub(super) fn layout_keyboard_release(&mut self) {
         self.nav_menu.active = false;
         self.side_nav.active = false;
+        self.sidenav.active = false;
     }
 
     /// Arrow navigation: reveal the current item only when it is hidden.
@@ -194,6 +196,7 @@ impl Gallery {
                 self.search.blur();
                 self.side_nav.active = true;
                 self.nav_menu.active = false;
+                self.sidenav.active = false;
                 self.reset_hover_press();
                 self.reveal_sidebar_group();
                 Some(true)
@@ -265,9 +268,13 @@ impl Gallery {
         }
     }
 
-    /// Single keyboard owner of the Layout page. The sidebar hook runs first;
-    /// F6 / F7 each deactivate the other group, so exactly one can be active.
+    /// Single keyboard owner of the Layout page. The sidenav and sidebar hooks
+    /// run first; F6 / F7 / F8 each deactivate the other groups, so at most one
+    /// can be active.
     pub(super) fn layout_page_event(&mut self, event: &PlatformEvent) -> Option<bool> {
+        if let Some(changed) = self.sidenav_event(event) {
+            return Some(changed);
+        }
         if let Some(changed) = self.sidebar_event(event) {
             return Some(changed);
         }
