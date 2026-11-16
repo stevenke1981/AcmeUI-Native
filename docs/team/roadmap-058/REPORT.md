@@ -36,7 +36,7 @@ Tested source: HEAD `3a1814c` plus the uncommitted 058 diff (`logs/env.txt`), Wi
 Real-window GUI: 14/14 steps PASS with real pointer and keyboard input at 150% DPI, including held Space and repeated still-pointer clicks; see [GUI.md](GUI.md).
 
 ## Independent review (Fable 5.2): no P0, no functional P1
-- Process P1 (workspace log incomplete, no CPU profile): the workspace log was read while still being written; the final run is complete (above). CPU profile evidence is recorded separately after commit.
+- Process P1 (workspace log incomplete, no CPU profile): the workspace log was read while still being written; the final run is complete (above). CPU profile (`python scripts/verify_sdk.py --profile cpu`) PASS on commit `deeb801`: `cpu-profile-deeb801/report.json`.
 - P2 fixed: held-Space flicker, modifier chords, Space on an off-screen card, F7 hiding the focused card in a short viewport, stale hover on a no-op confirm; tests added for reset_hover_press on every key, pointer/focus `None` contract, arrow reveal.
 - P2 noted: `gallery_radio_cards_preedit_blocks_arrows` pins a pre-existing guard; the new pub field `focused` is an API addition.
 
