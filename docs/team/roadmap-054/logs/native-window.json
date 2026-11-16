@@ -1,0 +1,143 @@
+{
+  "started_at": "2026-11-16T12:05:36.614866+00:00",
+  "source_sha": "a33496abb6adde8577448a01e433df39bda65daa",
+  "git_status": "?? docs/team/roadmap-054/evidence.json\n?? docs/team/roadmap-054/logs/clippy.txt\n?? docs/team/roadmap-054/logs/cpu.txt\n?? docs/team/roadmap-054/logs/cpu/\n?? docs/team/roadmap-054/logs/format.txt\n?? docs/team/roadmap-054/logs/gallery-build.txt\n?? docs/team/roadmap-054/logs/initial-regression.txt\n?? docs/team/roadmap-054/logs/native-capture.txt\n?? docs/team/roadmap-054/logs/targeted-tests.txt\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "execution": "single Codex agent; author inspection of automated captures",
+  "manual_validation": "NOT_RUN",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1000x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "2097154",
+      "1100",
+      "1000"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "112",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1090",
+      "990"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "650",
+      "409",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1090",
+      "990"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "650",
+      "409",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "265",
+      "20",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1090",
+      "990"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-16T12:05:38.610570+00:00",
+      "path": "docs/team/roadmap-054/gallery-calendar-range.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "6e370a1efdd565e3c5dd130c51d5a7fba46f129394584a4e243040035e0fa767"
+    },
+    {
+      "captured_at": "2026-11-16T12:05:39.452598+00:00",
+      "path": "docs/team/roadmap-054/gallery-calendar-clear.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "c90cb1f9e3c0a664086417b09c277537365b0ed0a60be02d49e42af1872dc7ca"
+    },
+    {
+      "captured_at": "2026-11-16T12:05:40.910329+00:00",
+      "path": "docs/team/roadmap-054/gallery-calendar-range-dark.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "745e988c7eae218c6793031d4850c46305a41064203f587dab0580c677f037f9"
+    }
+  ],
+  "environment": {
+    "DISPLAY": ":0",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=1000\nSCREEN=0\n",
+  "status": "CAPTURED",
+  "finished_at": "2026-11-16T12:05:40.980012+00:00"
+}

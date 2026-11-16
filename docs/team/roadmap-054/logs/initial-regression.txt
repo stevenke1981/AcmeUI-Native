@@ -1,0 +1,130 @@
+   Compiling acme-widgets v0.2.0 (/workspace/AcmeUI-Native/crates/acme-widgets)
+   Compiling acme-ui v0.2.0 (/workspace/AcmeUI-Native/crates/acme-ui)
+error[E0433]: failed to resolve: use of undeclared type `ColorToken`
+  --> crates/acme-ui/src/foundations/calendar_range_tests.rs:29:47
+   |
+29 |             (content.style.background == Some(ColorToken::Accent)).then_some(day)
+   |                                               ^^^^^^^^^^ use of undeclared type `ColorToken`
+   |
+help: consider importing this enum
+   |
+1  + use crate::style::ColorToken;
+   |
+
+error[E0425]: cannot find function `collect_focusable` in crate `acme_widgets`
+   --> crates/acme-ui/src/foundations/calendar_range_tests.rs:148:31
+    |
+148 |         assert!(acme_widgets::collect_focusable(&roots, &binding).is_empty());
+    |                               ^^^^^^^^^^^^^^^^^ not found in `acme_widgets`
+
+error[E0599]: no method named `selected_range` found for struct `CalendarBuilder` in the current scope
+  --> crates/acme-ui/src/foundations/calendar_range_tests.rs:46:42
+   |
+46 |         let node = calendar(year, month).selected_range(start, end).build();
+   |                                          ^^^^^^^^^^^^^^
+   |
+  ::: crates/acme-ui/src/foundations/calendar.rs:13:1
+   |
+13 | pub struct CalendarBuilder<M> {
+   | ----------------------------- method `selected_range` not found for this struct
+   |
+help: there is a method `selected_day` with a similar name, but with different arguments
+  --> crates/acme-ui/src/foundations/calendar.rs:36:5
+   |
+36 |     pub fn selected_day(mut self, day: u32) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `selected_range` found for struct `CalendarBuilder` in the current scope
+  --> crates/acme-ui/src/foundations/calendar_range_tests.rs:52:47
+   |
+52 |     let mut builder = calendar::<()>(2024, 2).selected_range(28, 29);
+   |                                               ^^^^^^^^^^^^^^
+   |
+  ::: crates/acme-ui/src/foundations/calendar.rs:13:1
+   |
+13 | pub struct CalendarBuilder<M> {
+   | ----------------------------- method `selected_range` not found for this struct
+   |
+help: there is a method `selected_day` with a similar name, but with different arguments
+  --> crates/acme-ui/src/foundations/calendar.rs:36:5
+   |
+36 |     pub fn selected_day(mut self, day: u32) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `selected_range` found for struct `CalendarBuilder` in the current scope
+  --> crates/acme-ui/src/foundations/calendar_range_tests.rs:62:10
+   |
+59 |       let node = calendar(2026, 11)
+   |  ________________-
+60 | |         .selected_day(2)
+61 | |         .today_day(15)
+62 | |         .selected_range(5, 12)
+   | |_________-^^^^^^^^^^^^^^
+   |
+  ::: crates/acme-ui/src/foundations/calendar.rs:13:1
+   |
+13 |   pub struct CalendarBuilder<M> {
+   |   ----------------------------- method `selected_range` not found for this struct
+   |
+help: there is a method `selected_day` with a similar name, but with different arguments
+  --> crates/acme-ui/src/foundations/calendar.rs:36:5
+   |
+36 |     pub fn selected_day(mut self, day: u32) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `selected_range` found for struct `CalendarBuilder` in the current scope
+  --> crates/acme-ui/src/foundations/calendar_range_tests.rs:69:10
+   |
+68 |       let node = calendar(2026, 11)
+   |  ________________-
+69 | |         .selected_range(5, 12)
+   | |_________-^^^^^^^^^^^^^^
+   |
+  ::: crates/acme-ui/src/foundations/calendar.rs:13:1
+   |
+13 |   pub struct CalendarBuilder<M> {
+   |   ----------------------------- method `selected_range` not found for this struct
+   |
+help: there is a method `selected_day` with a similar name, but with different arguments
+  --> crates/acme-ui/src/foundations/calendar.rs:36:5
+   |
+36 |     pub fn selected_day(mut self, day: u32) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `selected_range` found for struct `CalendarBuilder` in the current scope
+  --> crates/acme-ui/src/foundations/calendar_range_tests.rs:93:52
+   |
+93 |             let node = calendar::<()>(year, month).selected_range(5, 12).build();
+   |                                                    ^^^^^^^^^^^^^^
+   |
+  ::: crates/acme-ui/src/foundations/calendar.rs:13:1
+   |
+13 | pub struct CalendarBuilder<M> {
+   | ----------------------------- method `selected_range` not found for this struct
+   |
+help: there is a method `selected_day` with a similar name, but with different arguments
+  --> crates/acme-ui/src/foundations/calendar.rs:36:5
+   |
+36 |     pub fn selected_day(mut self, day: u32) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `selected_range` found for struct `CalendarBuilder` in the current scope
+   --> crates/acme-ui/src/foundations/calendar_range_tests.rs:127:31
+    |
+127 |             builder = builder.selected_range(start, end);
+    |                               ^^^^^^^^^^^^^^
+    |
+   ::: crates/acme-ui/src/foundations/calendar.rs:13:1
+    |
+13  | pub struct CalendarBuilder<M> {
+    | ----------------------------- method `selected_range` not found for this struct
+    |
+help: there is a method `selected_day` with a similar name, but with different arguments
+   --> crates/acme-ui/src/foundations/calendar.rs:36:5
+    |
+36  |     pub fn selected_day(mut self, day: u32) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some errors have detailed explanations: E0425, E0433, E0599.
+For more information about an error, try `rustc --explain E0425`.
+error: could not compile `acme-ui` (lib test) due to 8 previous errors

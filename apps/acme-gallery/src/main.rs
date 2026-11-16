@@ -56,6 +56,7 @@ mod about_dialog;
 mod action_examples;
 mod anchor;
 mod bottom_navigation;
+mod calendar_range;
 mod collapsible;
 mod fab;
 mod fullscreen;
@@ -181,6 +182,7 @@ enum GalleryMessage {
     AnchorNavigate(usize),
     CollapsibleToggle,
     CollapsibleDisable,
+    CalendarRangeToggle,
     SpeedDialToggle,
     SpeedDialDirection,
     SpeedDialAction(usize),
@@ -303,6 +305,7 @@ struct Gallery {
     collapsible_open: bool,
     collapsible_disabled: bool,
     collapsible_toggles: usize,
+    calendar_range: bool,
     snackbar: SnackbarDemo,
     swipe: SwipeDemo,
     spinner: SpinnerDemo,
@@ -387,6 +390,7 @@ impl Gallery {
             collapsible_open: false,
             collapsible_disabled: false,
             collapsible_toggles: 0,
+            calendar_range: true,
             snackbar: SnackbarDemo::new(),
             swipe: SwipeDemo::new(),
             spinner: SpinnerDemo::new(),
@@ -527,6 +531,7 @@ impl Gallery {
             .child(label_with_size("Foundations", 24.0))
             .child(separator())
             .child(self.page_section("Collapsible — typed toggle", self.collapsible_examples()))
+            .child(self.page_section("Calendar — date range", self.calendar_range_examples()))
             .child(
                 self.page_section(
                     "Typography",
@@ -2078,6 +2083,11 @@ impl Gallery {
                 } else {
                     "Ready"
                 };
+                true
+            }
+            GalleryMessage::CalendarRangeToggle => {
+                self.calendar_range = !self.calendar_range;
+                self.reset_hover_press();
                 true
             }
             GalleryMessage::DatePickerToggle => {

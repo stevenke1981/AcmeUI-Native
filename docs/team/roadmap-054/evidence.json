@@ -1,0 +1,303 @@
+{
+  "source_sha": "a33496abb6adde8577448a01e433df39bda65daa",
+  "execution": "single Codex agent; author self-review",
+  "independent_review": "NOT_RUN",
+  "manual_validation": "NOT_RUN",
+  "started_at": "2026-11-16T12:04:54.561550+00:00",
+  "git_status": "?? docs/team/roadmap-054/logs/initial-regression.txt",
+  "environment": {
+    "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+    "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)",
+    "cargo": "cargo 1.88.0 (873a06493 2025-05-10)"
+  },
+  "initial_regression": {
+    "source_sha": "603730be870a86298c27fc9e2d2811a5bccfadaa",
+    "git_status": "M crates/acme-ui/src/foundations/calendar.rs\n?? crates/acme-ui/src/foundations/calendar_range_tests.rs\n?? docs/team/roadmap-054/\n?? scripts/__pycache__/",
+    "check": {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-ui",
+        "--lib",
+        "calendar_range"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:01:58.898008+00:00",
+      "status": "FAIL",
+      "exit_code": 101,
+      "log": "docs/team/roadmap-054/logs/initial-regression.txt",
+      "finished_at": "2026-11-16T12:02:03.535868+00:00",
+      "duration_seconds": 4.632,
+      "log_sha256": "a4201e79419971c3e8537d8f61caaa64adad1583fabae67ff2c34ebdb62aca02"
+    }
+  },
+  "checks": [
+    {
+      "name": "format",
+      "command": [
+        "rustfmt",
+        "--edition",
+        "2024",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "crates/acme-ui/src/foundations/calendar.rs",
+        "crates/acme-ui/src/foundations/calendar_range_tests.rs",
+        "apps/acme-gallery/src/main.rs",
+        "apps/acme-gallery/src/calendar_range.rs"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:04:54.740682+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/format.txt",
+      "finished_at": "2026-11-16T12:04:54.859789+00:00",
+      "duration_seconds": 0.119,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "targeted-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-ui",
+        "--all-features",
+        "-p",
+        "acme-ui-gallery"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:04:54.860446+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/targeted-tests.txt",
+      "finished_at": "2026-11-16T12:05:21.629478+00:00",
+      "duration_seconds": 26.769,
+      "log_sha256": "069c5881f633e5f592e56688d59de81fa8fb9460d24a4ad158b7b195233352e2"
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "acme-ui",
+        "--all-features",
+        "-p",
+        "acme-ui-gallery",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:05:21.630922+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/clippy.txt",
+      "finished_at": "2026-11-16T12:05:27.639779+00:00",
+      "duration_seconds": 6.009,
+      "log_sha256": "bc70bdd32175d0d151045e9811ca080834ff4264feab784e4f763aa7051f19ed"
+    },
+    {
+      "name": "cpu",
+      "command": [
+        "python3",
+        "scripts/verify_sdk.py",
+        "--profile",
+        "cpu",
+        "--output",
+        "docs/team/roadmap-054/logs/cpu"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:05:27.640378+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/cpu.txt",
+      "finished_at": "2026-11-16T12:05:29.672767+00:00",
+      "duration_seconds": 2.032,
+      "log_sha256": "9b010f376a87a84c9c03a95b10b82a238da1c6e4a5ed1cf62e99be98938d7c41"
+    },
+    {
+      "name": "gallery-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "acme-ui-gallery"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:05:29.673270+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/gallery-build.txt",
+      "finished_at": "2026-11-16T12:05:36.556860+00:00",
+      "duration_seconds": 6.884,
+      "log_sha256": "6221531f0312867cf14a53fae81834e501961ff5c1a83632ee21ae01532b14d3"
+    },
+    {
+      "name": "native-capture",
+      "command": [
+        "python3",
+        "docs/team/roadmap-054/logs/capture.py"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:05:36.557684+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/native-capture.txt",
+      "finished_at": "2026-11-16T12:05:41.043684+00:00",
+      "duration_seconds": 4.486,
+      "log_sha256": "ea9a80f3b8001305306997119b98b5fa90e6a6c2f2b3726a4f9d1ed6da9a7bf4"
+    },
+    {
+      "name": "workspace-check",
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--workspace",
+        "--all-targets"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:05:41.044249+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/workspace-check.txt",
+      "finished_at": "2026-11-16T12:05:45.046251+00:00",
+      "duration_seconds": 4.002,
+      "log_sha256": "1a604939d13e8fc1080ef76e31c1c74a2615eae2f2abc2144b3ef9586cf0a53c"
+    },
+    {
+      "name": "workspace-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:05:45.047139+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/workspace-tests.txt",
+      "finished_at": "2026-11-16T12:06:40.237119+00:00",
+      "duration_seconds": 55.19,
+      "log_sha256": "f8209731b1ebae17f854b13b4b9c73c0ba43c76901ae89ffe5f902b17da1002c"
+    },
+    {
+      "name": "release-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--workspace"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:06:40.238550+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/release-build.txt",
+      "finished_at": "2026-11-16T12:08:30.772338+00:00",
+      "duration_seconds": 110.534,
+      "log_sha256": "9e74ef6e228d3a0a23db2d438fbcb677963e7ba9307f9590e6acb6d968185d52"
+    }
+  ],
+  "finished_at": "2026-11-16T12:08:30.772753+00:00",
+  "artifacts": [
+    {
+      "path": "BRIEF.md",
+      "sha256": "3b78c8caec223c9bd522dc9a2b78b833bdcf079885311a03392a2ae3a753393a"
+    },
+    {
+      "path": "REPORT.md",
+      "sha256": "60ea86b4ce40763fab6e5ae9044c7cdf929ffc6e343005fae8c613547c2817b0"
+    },
+    {
+      "path": "gallery-calendar-clear.png",
+      "sha256": "c90cb1f9e3c0a664086417b09c277537365b0ed0a60be02d49e42af1872dc7ca"
+    },
+    {
+      "path": "gallery-calendar-range-dark.png",
+      "sha256": "745e988c7eae218c6793031d4850c46305a41064203f587dab0580c677f037f9"
+    },
+    {
+      "path": "gallery-calendar-range.png",
+      "sha256": "6e370a1efdd565e3c5dd130c51d5a7fba46f129394584a4e243040035e0fa767"
+    },
+    {
+      "path": "logs/capture.py",
+      "sha256": "5a0c43c71105c2074a7cc8fe7d05a248d3f238784aa2fc84bb7dbf7ef232b18b"
+    },
+    {
+      "path": "logs/clippy.txt",
+      "sha256": "bc70bdd32175d0d151045e9811ca080834ff4264feab784e4f763aa7051f19ed"
+    },
+    {
+      "path": "logs/cpu/01.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "logs/cpu/02.log",
+      "sha256": "1b08a2d6e68ce16eef3c13b4d0ea89b281bc3772d3ff7058aac4000882525cb2"
+    },
+    {
+      "path": "logs/cpu/03.log",
+      "sha256": "95a806da94ff6d1d774fd482ed26588b6956966135e5f2107cbc3638d0b69bd2"
+    },
+    {
+      "path": "logs/cpu/report.json",
+      "sha256": "69baf5220c8966ccc084622b5cbc5579b6c634ed09476fc080c542562c3480c6"
+    },
+    {
+      "path": "logs/cpu.txt",
+      "sha256": "9b010f376a87a84c9c03a95b10b82a238da1c6e4a5ed1cf62e99be98938d7c41"
+    },
+    {
+      "path": "logs/format.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "logs/gallery-build.txt",
+      "sha256": "6221531f0312867cf14a53fae81834e501961ff5c1a83632ee21ae01532b14d3"
+    },
+    {
+      "path": "logs/initial-regression.txt",
+      "sha256": "a4201e79419971c3e8537d8f61caaa64adad1583fabae67ff2c34ebdb62aca02"
+    },
+    {
+      "path": "logs/native-capture.txt",
+      "sha256": "ea9a80f3b8001305306997119b98b5fa90e6a6c2f2b3726a4f9d1ed6da9a7bf4"
+    },
+    {
+      "path": "logs/native-window.json",
+      "sha256": "a09b12fff01b159a9e4b05b8a28b6100db983794363578292dcfd3027cf6dd16"
+    },
+    {
+      "path": "logs/native-window.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "logs/release-build.txt",
+      "sha256": "9e74ef6e228d3a0a23db2d438fbcb677963e7ba9307f9590e6acb6d968185d52"
+    },
+    {
+      "path": "logs/targeted-tests.txt",
+      "sha256": "069c5881f633e5f592e56688d59de81fa8fb9460d24a4ad158b7b195233352e2"
+    },
+    {
+      "path": "logs/workspace-check.txt",
+      "sha256": "1a604939d13e8fc1080ef76e31c1c74a2615eae2f2abc2144b3ef9586cf0a53c"
+    },
+    {
+      "path": "logs/workspace-tests.txt",
+      "sha256": "f8209731b1ebae17f854b13b4b9c73c0ba43c76901ae89ffe5f902b17da1002c"
+    }
+  ]
+}

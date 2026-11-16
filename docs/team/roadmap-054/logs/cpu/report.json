@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "acme-render-cpu",
+        "--",
+        "--check"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:05:27.779508+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/cpu/01.log",
+      "finished_at": "2026-11-16T12:05:27.946337+00:00",
+      "duration_seconds": 0.167,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-render-cpu"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:05:27.946519+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/cpu/02.log",
+      "finished_at": "2026-11-16T12:05:28.924752+00:00",
+      "duration_seconds": 0.978,
+      "log_sha256": "1b08a2d6e68ce16eef3c13b4d0ea89b281bc3772d3ff7058aac4000882525cb2"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "acme-render-cpu",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T12:05:28.924962+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/docs/team/roadmap-054/logs/cpu/03.log",
+      "finished_at": "2026-11-16T12:05:29.643767+00:00",
+      "duration_seconds": 0.719,
+      "log_sha256": "95a806da94ff6d1d774fd482ed26588b6956966135e5f2107cbc3638d0b69bd2"
+    }
+  ],
+  "started_at": "2026-11-16T12:05:27.685621+00:00",
+  "source_sha": "a33496abb6adde8577448a01e433df39bda65daa",
+  "git_status": "?? docs/team/roadmap-054/evidence.json\n?? docs/team/roadmap-054/logs/clippy.txt\n?? docs/team/roadmap-054/logs/cpu.txt\n?? docs/team/roadmap-054/logs/format.txt\n?? docs/team/roadmap-054/logs/initial-regression.txt\n?? docs/team/roadmap-054/logs/targeted-tests.txt",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "python": "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]",
+  "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+  "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+  "profile": "cpu",
+  "manual_validation": "NOT_RUN",
+  "independent_review": "NOT_RUN",
+  "finished_at": "2026-11-16T12:05:29.643930+00:00"
+}
