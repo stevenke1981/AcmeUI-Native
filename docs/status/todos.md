@@ -1,5 +1,10 @@
 # Todos
 
+## ROADMAP 057 — Sidebar typed activation and roving keyboard navigation (2026-11-16)
+
+- [x] Add `on_select`/`navigate`, `SidebarItem::value`/`disabled`, colon keys; legacy tree unchanged. Gallery Layout F7 host, F6/F7 mutually exclusive, reveal only when hidden; [report](../team/roadmap-057/REPORT.md), [GUI](../team/roadmap-057/GUI.md).
+- [ ] Known limitation: dropdown-close scroll clamp moves content under the pointer near max scroll. Follow-ups in 059 (reveal margins), 060 (category contrast), 063 (left-aligned labels). Windows 注音 IME, screen reader, touch — NOT_RUN.
+
 ## ROADMAP 056 — NavigationMenu typed activation and roving keyboard navigation (2026-11-16)
 
 - [x] Add `on_select`/`active_child`/`navigate`/`navigate_child`, an opt-in colon key scheme, and disabled entries that never emit; the legacy tree is unchanged. Gallery Layout host with pointer and F6/arrows/Enter/Esc; [report](../team/roadmap-056/REPORT.md).

@@ -123,20 +123,48 @@ impl Gallery {
         }
         self.nav_menu.destination = Some(index);
         self.nav_menu.active = true;
+        self.side_nav.active = false;
         self.reset_hover_press();
         true
     }
 
+    /// Scrolls so the hit region of `message` sits `margin` px below the
+    /// viewport top, but only when that region is not fully in view.
+    pub(super) fn reveal_if_hidden(&mut self, message: GalleryMessage, margin: f32) {
+        if self.hit_is_hidden(message) == Some(true) {
+            self.reveal_at(message, margin);
+        }
+    }
+
+    /// `Some(true)` when the hit region of `message` is not fully in view,
+    /// `None` when it has no hit region.
+    pub(super) fn hit_is_hidden(&self, message: GalleryMessage) -> Option<bool> {
+        let hit = self.button_info.iter().find(|h| h.message == message)?;
+        let [_, view_top, _, view_height] = self.viewport_clip;
+        let top = hit.rect[1] - self.scroll;
+        Some(!(top >= view_top && top + hit.rect[3] <= view_top + view_height))
+    }
+
+    /// Unconditionally scrolls `message` to `margin` px below the toolbar.
+    pub(super) fn reveal_at(&mut self, message: GalleryMessage, margin: f32) {
+        if let Some(hit) = self.button_info.iter().find(|h| h.message == message) {
+            self.scroll = (hit.rect[1] - TOOLBAR_HEIGHT - margin).clamp(0.0, self.max_scroll);
+        }
+    }
+
+    /// Reveals the focused child, falling back to the selected item when the
+    /// child has no hit region yet (its dropdown opens on the next frame).
     fn reveal_nav_menu(&mut self) {
-        let Some(index) = flat_index(self.nav_menu.item) else {
-            return;
-        };
-        if let Some(hit) = self
-            .button_info
-            .iter()
-            .find(|h| h.message == GalleryMessage::NavMenuSelect(index))
-        {
-            self.scroll = (hit.rect[1] - TOOLBAR_HEIGHT - 8.0).clamp(0.0, self.max_scroll);
+        let child = self
+            .nav_menu
+            .child
+            .and_then(flat_index)
+            .map(GalleryMessage::NavMenuSelect)
+            .filter(|m| self.hit_is_hidden(*m).is_some());
+        let target =
+            child.or_else(|| flat_index(self.nav_menu.item).map(GalleryMessage::NavMenuSelect));
+        if let Some(target) = target {
+            self.reveal_if_hidden(target, 8.0);
         }
     }
 
@@ -164,12 +192,26 @@ impl Gallery {
                 }
                 self.search.blur();
                 self.nav_menu.active = true;
+                self.side_nav.active = false;
                 self.reveal_nav_menu();
                 Some(true)
             }
             PlatformEvent::Key {
                 key, pressed: true, ..
             } if self.nav_menu.active => {
+                // Keys the host does not handle are never consumed.
+                if !matches!(
+                    key,
+                    PlatformKey::ArrowLeft
+                        | PlatformKey::ArrowRight
+                        | PlatformKey::ArrowDown
+                        | PlatformKey::ArrowUp
+                        | PlatformKey::Enter
+                        | PlatformKey::Space
+                        | PlatformKey::Escape
+                ) {
+                    return None;
+                }
                 if !self.search.input.preedit.is_empty() {
                     return Some(false);
                 }
@@ -210,7 +252,10 @@ impl Gallery {
                         if self.nav_menu.child.is_some() {
                             self.nav_menu.child = None;
                         } else {
+                            // Leaving never scrolls.
                             self.nav_menu.active = false;
+                            self.reset_hover_press();
+                            return Some(true);
                         }
                     }
                     _ => return None,

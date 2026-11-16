@@ -68,8 +68,10 @@ mod tour;
 use tour::TourDemo;
 mod navigation_menu;
 mod radio_cards;
+mod sidebar;
 use navigation_menu::NavMenuDemo;
 use radio_cards::RadioCardsDemo;
+use sidebar::SidebarDemo;
 mod speed_dial;
 use speed_dial::SpeedDialDemo;
 mod snackbar;
@@ -196,6 +198,7 @@ enum GalleryMessage {
     CalendarRangeToggle,
     RadioCardSelect(u8),
     NavMenuSelect(u8),
+    SidebarSelect(u8),
     SpeedDialToggle,
     SpeedDialDirection,
     SpeedDialAction(usize),
@@ -304,6 +307,7 @@ struct Gallery {
     speed_dial: SpeedDialDemo,
     radio_cards: RadioCardsDemo,
     nav_menu: NavMenuDemo,
+    side_nav: SidebarDemo,
     bottom_selected: usize,
     header_description: bool,
     header_saves: usize,
@@ -396,6 +400,7 @@ impl Gallery {
             speed_dial: SpeedDialDemo::default(),
             radio_cards: RadioCardsDemo::default(),
             nav_menu: NavMenuDemo::default(),
+            side_nav: SidebarDemo::default(),
             bottom_selected: 0,
             header_description: true,
             header_saves: 0,
@@ -913,6 +918,7 @@ impl Gallery {
                         .build(),
                 ),
             )
+            .child(self.page_section("Sidebar — typed activation", self.sidebar_examples()))
             .build()
     }
 
@@ -1836,6 +1842,7 @@ impl Gallery {
                     self.list_focus = None;
                     self.radio_cards.active = false;
                     self.nav_menu.active = false;
+                    self.side_nav.active = false;
                     self.search.blur();
                     self.search.rect = None;
                     self.swipe.cancel_pointer();
@@ -2024,6 +2031,7 @@ impl Gallery {
             }
             GalleryMessage::RadioCardSelect(index) => self.radio_card_select(index),
             GalleryMessage::NavMenuSelect(index) => self.nav_menu_select(index),
+            GalleryMessage::SidebarSelect(index) => self.sidebar_select(index),
             GalleryMessage::SpeedDialAction(index) => {
                 if !self.speed_dial.open || index > 1 {
                     return false;
@@ -2330,7 +2338,7 @@ impl Application for Gallery {
             }
         }
         if self.selected_category == 3 && !overlay_pointer {
-            if let Some(changed) = self.nav_menu_event(&event) {
+            if let Some(changed) = self.layout_page_event(&event) {
                 return changed;
             }
         }
@@ -4458,6 +4466,9 @@ mod radio_cards_tests;
 
 #[cfg(test)]
 mod navigation_menu_tests;
+
+#[cfg(test)]
+mod sidebar_tests;
 
 #[cfg(test)]
 mod speed_dial_tests;

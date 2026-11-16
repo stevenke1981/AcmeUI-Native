@@ -1,5 +1,10 @@
 # Delivery Status
 
+## 2026-11-16 — ROADMAP 057 Sidebar typed activation and roving keyboard navigation
+
+- Sidebar items were plain Labels. They now emit typed messages, support disabled items and `navigate`, with a Gallery Layout pointer and F7 keyboard host sharing one page keyboard owner with the 056 NavigationMenu. Workspace tests 2090 passed / 0 failed; clippy and fmt PASS; real-window GUI 13/13 PASS; [report](../team/roadmap-057/REPORT.md).
+- Execution: Claude Code agent team (Fable 5.2 adviser/reviewer; Opus 5.5 component; Sonnet 5.5 Gallery; Haiku 5.5 verification; Opus 5.5 Lead GUI). 注音 IME and screen reader NOT_RUN.
+
 ## 2026-11-16 — ROADMAP 056 NavigationMenu typed activation and roving keyboard navigation
 
 - NavigationMenu Buttons had no `on_click`. Items and children now emit typed messages, disabled entries never emit, and `navigate`/`navigate_child` are added, with a Gallery Layout pointer and keyboard host. Workspace tests 2065 passed / 0 failed; clippy and fmt PASS; [report](../team/roadmap-056/REPORT.md).
