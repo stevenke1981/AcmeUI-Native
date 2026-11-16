@@ -1,0 +1,309 @@
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+error[E0599]: no method named `value` found for struct `layout::sidebar::SidebarItem` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:281:18
+    |
+26  |   pub struct SidebarItem {
+    |   ---------------------- method `value` not found for this struct
+...
+280 | /             SidebarItem::new("Drafts")
+281 | |                 .value("drafts")
+    | |                 -^^^^^ method not found in `SidebarItem`
+    | |_________________|
+    |
+
+error[E0599]: no method named `value` found for struct `layout::sidebar::SidebarItem` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:284:38
+    |
+26  | pub struct SidebarItem {
+    | ---------------------- method `value` not found for this struct
+...
+284 |             SidebarItem::new("Spam").value("spam").disabled(true),
+    |                                      ^^^^^ method not found in `SidebarItem`
+
+error[E0599]: no method named `value` found for struct `layout::sidebar::SidebarItem` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:285:41
+    |
+26  | pub struct SidebarItem {
+    | ---------------------- method `value` not found for this struct
+...
+285 |             SidebarItem::new("Archive").value("archive"),
+    |                                         ^^^^^ method not found in `SidebarItem`
+
+error[E0599]: no method named `on_select` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:298:36
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `on_select` not found for this struct
+...
+298 |         passive(key, state, items).on_select(go)
+    |                                    ^^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0609]: no field `value` on type `layout::sidebar::SidebarItem`
+   --> crates\acme-ui\src\layout\sidebar.rs:305:44
+    |
+305 |                 let on = current == Some(i.value.as_str());
+    |                                            ^^^^^ unknown field
+    |
+    = note: available fields are: `label`, `icon`, `active`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:322:27
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+322 |                 assert!(b.navigate(true).is_none());
+    |                           ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:323:27
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+323 |                 assert!(b.navigate(false).is_none());
+    |                           ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0609]: no field `value` on type `layout::sidebar::SidebarItem`
+   --> crates\acme-ui\src\layout\sidebar.rs:353:46
+    |
+353 |         assert_eq!(SidebarItem::new("Inbox").value, "Inbox");
+    |                                              ^^^^^ unknown field
+    |
+    = note: available fields are: `label`, `icon`, `active`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:384:34
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+384 |                     assert_ne!(b.navigate(forward), Some(go("spam")));
+    |                                  ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `disabled` found for struct `layout::sidebar::SidebarItem` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:395:42
+    |
+26  | pub struct SidebarItem {
+    | ---------------------- method `disabled` not found for this struct
+...
+395 |             vec![SidebarItem::new("Off").disabled(true).active(true)],
+    |                                          ^^^^^^^^ method not found in `SidebarItem`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:397:29
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+397 |         assert_eq!(only_off.navigate(true), None);
+    |                             ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `value` found for struct `layout::sidebar::SidebarItem` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:434:40
+    |
+26  | pub struct SidebarItem {
+    | ---------------------- method `value` not found for this struct
+...
+434 |                 SidebarItem::new("設定").value("settings").active(true),
+    |                                          ^^^^^ method not found in `SidebarItem`
+
+error[E0599]: no method named `value` found for struct `layout::sidebar::SidebarItem` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:435:40
+    |
+26  | pub struct SidebarItem {
+    | ---------------------- method `value` not found for this struct
+...
+435 |                 SidebarItem::new("首頁").value("home"),
+    |                                          ^^^^^ method not found in `SidebarItem`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:455:92
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+455 |             |c: Option<&str>, f: bool| typed("s", SidebarState::Expanded, with_current(c)).navigate(f);
+    |                                                                                            ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0609]: no field `value` on type `layout::sidebar::SidebarItem`
+   --> crates\acme-ui\src\layout\sidebar.rs:470:28
+    |
+470 |                 let on = i.value == "Inbox" || i.value == "archive";
+    |                            ^^^^^ unknown field
+    |
+    = note: available fields are: `label`, `icon`, `active`
+
+error[E0609]: no field `value` on type `layout::sidebar::SidebarItem`
+   --> crates\acme-ui\src\layout\sidebar.rs:470:50
+    |
+470 |                 let on = i.value == "Inbox" || i.value == "archive";
+    |                                                  ^^^^^ unknown field
+    |
+    = note: available fields are: `label`, `icon`, `active`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:475:22
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+475 |         assert_eq!(b.navigate(true), sel("drafts"));
+    |                      ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:476:22
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+476 |         assert_eq!(b.navigate(false), sel("archive"));
+    |                      ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:481:74
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+481 |                     typed("s", SidebarState::Collapsed, with_current(c)).navigate(f),
+    |                                                                          ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:491:22
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+491 |         assert_eq!(b.navigate(true), Some(go("Inbox")));
+    |                      ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:492:22
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+492 |         assert_eq!(b.navigate(false), Some(go("archive")));
+    |                      ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `disabled` found for struct `layout::sidebar::SidebarItem` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:497:39
+    |
+26  | pub struct SidebarItem {
+    | ---------------------- method `disabled` not found for this struct
+...
+497 |                 SidebarItem::new("A").disabled(true),
+    |                                       ^^^^^^^^ method not found in `SidebarItem`
+
+error[E0599]: no method named `disabled` found for struct `layout::sidebar::SidebarItem` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:500:39
+    |
+26  | pub struct SidebarItem {
+    | ---------------------- method `disabled` not found for this struct
+...
+500 |                 SidebarItem::new("D").disabled(true),
+    |                                       ^^^^^^^^ method not found in `SidebarItem`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:503:30
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+503 |         assert_eq!(edges_off.navigate(true), Some(go("B")));
+    |                              ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:504:30
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+504 |         assert_eq!(edges_off.navigate(false), Some(go("C")));
+    |                              ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:511:26
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+511 |             assert_eq!(b.navigate(true), None);
+    |                          ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:512:26
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+512 |             assert_eq!(b.navigate(false), None);
+    |                          ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `on_select` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:514:38
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `on_select` not found for this struct
+...
+514 |         let empty = sidebar::<Nav>().on_select(go);
+    |                                      ^^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `disabled` found for struct `layout::sidebar::SidebarItem` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:521:39
+    |
+26  | pub struct SidebarItem {
+    | ---------------------- method `disabled` not found for this struct
+...
+521 |                 SidebarItem::new("A").disabled(true),
+    |                                       ^^^^^^^^ method not found in `SidebarItem`
+
+error[E0599]: no method named `disabled` found for struct `layout::sidebar::SidebarItem` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:522:39
+    |
+26  | pub struct SidebarItem {
+    | ---------------------- method `disabled` not found for this struct
+...
+522 |                 SidebarItem::new("B").disabled(true).active(true),
+    |                                       ^^^^^^^^ method not found in `SidebarItem`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:525:28
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+525 |         assert_eq!(all_off.navigate(true), None);
+    |                            ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:526:28
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+526 |         assert_eq!(all_off.navigate(false), None);
+    |                            ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:532:27
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+532 |         assert_eq!(single.navigate(true), Some(go("Only")));
+    |                           ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::sidebar::SidebarBuilder` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:533:27
+    |
+53  | pub struct SidebarBuilder<M> {
+    | ---------------------------- method `navigate` not found for this struct
+...
+533 |         assert_eq!(single.navigate(false), Some(go("Only")));
+    |                           ^^^^^^^^ method not found in `SidebarBuilder<Nav>`
+
+Some errors have detailed explanations: E0599, E0609.
+For more information about an error, try `rustc --explain E0599`.
+error: could not compile `acme-ui` (lib test) due to 34 previous errors

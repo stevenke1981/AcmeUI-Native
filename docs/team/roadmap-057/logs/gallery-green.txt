@@ -1,0 +1,25 @@
+FMT_OK
+test sidebar_tests::gallery_sidebar_disabled_item_has_no_hit_region ... ok
+test sidebar_tests::gallery_navigation_menu_preedit_passes_unhandled_keys_through ... ok
+test sidebar_tests::gallery_navigation_menu_activation_deactivates_sidebar ... ok
+test sidebar_tests::gallery_sidebar_f6_during_preedit_keeps_sidebar_active ... ok
+test sidebar_tests::gallery_sidebar_f7_with_late_current_item_reveals_whole_group ... ok
+test sidebar_tests::gallery_navigation_menu_reveals_focused_child_below_the_fold ... ok
+test sidebar_tests::gallery_sidebar_hit_and_paint_slots_match_across_themes_scales_and_states ... ok
+test sidebar_tests::gallery_sidebar_up_down_wrap_skip_disabled_and_enter_space_confirm ... ok
+test sidebar_tests::gallery_sidebar_f7_and_navigation_menu_f6_are_mutually_exclusive ... ok
+test sidebar_tests::gallery_sidebar_keys_ignored_during_preedit ... ok
+test sidebar_tests::gallery_sidebar_f7_reveals_group_into_view ... ok
+test sidebar_tests::gallery_sidebar_left_right_collapse_expand_keep_selection_and_node_ids ... ok
+test sidebar_tests::gallery_navigation_menu_pointer_click_does_not_reveal_when_content_height_is_stable ... ok
+test sidebar_tests::gallery_navigation_menu_reveal_only_when_out_of_view_and_not_on_leaving_escape ... ok
+test sidebar_tests::gallery_sidebar_pointer_press_off_group_deactivates ... ok
+test sidebar_tests::gallery_sidebar_pointer_selects_each_enabled_item_with_real_events ... ok
+test sidebar_tests::gallery_sidebar_keys_ignored_off_page_and_after_escape_or_blur ... ok
+test result: ok. 130 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.61s
+    Checking acme-platform v0.2.0 (F:\AcmeUI-Native\crates\acme-platform)
+    Checking acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Checking acme-textinput v0.2.0 (F:\AcmeUI-Native\crates\acme-textinput)
+    Checking acme-ui-gallery v0.2.0 (F:\AcmeUI-Native\apps\acme-gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.30s
+CLIPPY_EXIT=0

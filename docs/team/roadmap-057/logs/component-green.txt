@@ -1,0 +1,71 @@
+# ROADMAP 057 component green — HEAD 8735e43 + working tree
+## cargo fmt -p acme-ui -- --check
+exit=0
+## cargo test --locked -p acme-ui --all-features sidebar
+    Blocking waiting for file lock on build directory
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.32s
+     Running unittests src\lib.rs (target\debug\deps\acme_ui-81a09332650d76b5.exe)
+
+running 12 tests
+test layout::sidebar::tests::sidebar_collapsed_uses_narrow_width ... ok
+test layout::sidebar::tests::sidebar_produces_column ... ok
+test layout::sidebar::tests::sidebar_with_header_and_footer ... ok
+test layout::sidebar::tests::sidebar_with_items ... ok
+test layout::sidebar::tests::sidebar_navigate_none_without_handler_or_enabled_item ... ok
+test layout::sidebar::tests::sidebar_navigate_without_current_returns_first_or_last_enabled ... ok
+test layout::sidebar::tests::sidebar_navigate_wraps_and_skips_disabled ... ok
+test layout::sidebar::tests::sidebar_on_select_builds_instance_keyed_buttons_bound_to_values ... ok
+test layout::sidebar::tests::sidebar_without_handler_matches_legacy_tree_expanded_collapsed_header_footer ... ok
+test layout::sidebar::tests::sidebar_disabled_item_never_activates ... ok
+test layout::sidebar::tests::sidebar_current_item_is_primary_and_marked_expanded_and_collapsed ... ok
+test layout::sidebar::tests::sidebar_item_keys_stable_across_collapse_and_distinct_per_instance ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 895 filtered out; finished in 0.00s
+
+     Running tests\minimal_features.rs (target\debug\deps\minimal_features-8faaa38af1ed31d3.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+exit=0
+## cargo test --locked -p acme-ui --all-features navigation_menu
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src\lib.rs (target\debug\deps\acme_ui-81a09332650d76b5.exe)
+
+running 14 tests
+test layout::navigation_menu::tests::navigation_menu_from_conversion ... ok
+test layout::navigation_menu::tests::navigation_menu_builds_row ... ok
+test layout::navigation_menu::tests::navigation_menu_empty ... ok
+test layout::navigation_menu::tests::navigation_menu_navigate_wraps_skips_disabled_and_handles_empty_unknown ... ok
+test layout::navigation_menu::tests::navigation_menu_non_selected_no_dropdown ... ok
+test layout::navigation_menu::tests::navigation_menu_no_children_no_card ... ok
+test layout::navigation_menu::tests::navigation_menu_has_correct_item_count ... ok
+test layout::navigation_menu::tests::navigation_menu_navigate_child_wraps_skips_disabled_and_requires_open_parent ... ok
+test layout::navigation_menu::tests::navigation_menu_items_bind_typed_select_messages_to_instance_keyed_buttons ... ok
+test layout::navigation_menu::tests::navigation_menu_disabled_items_and_children_never_emit ... ok
+test layout::navigation_menu::tests::navigation_menu_selected_shows_dropdown ... ok
+test layout::navigation_menu::tests::navigation_menu_without_handler_keeps_legacy_tree_and_keys ... ok
+test layout::navigation_menu::tests::navigation_menu_keys_unique_and_variants_use_theme_tokens ... ok
+test layout::navigation_menu::tests::navigation_menu_retained_ids_survive_selection_change_and_dropdown_toggle ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 893 filtered out; finished in 0.00s
+
+     Running tests\minimal_features.rs (target\debug\deps\minimal_features-8faaa38af1ed31d3.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+exit=0
+## cargo clippy --locked -p acme-ui --all-features --all-targets --no-deps -- -D warnings
+    Checking acme-core v0.2.0 (F:\AcmeUI-Native\crates\acme-core)
+    Checking acme-text v0.2.0 (F:\AcmeUI-Native\crates\acme-text)
+    Checking acme-theme v0.2.0 (F:\AcmeUI-Native\crates\acme-theme)
+    Checking acme-layout v0.2.0 (F:\AcmeUI-Native\crates\acme-layout)
+    Checking acme-style v0.2.0 (F:\AcmeUI-Native\crates\acme-style)
+    Checking acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+    Checking acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.14s
+exit=0

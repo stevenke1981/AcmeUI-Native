@@ -113,10 +113,11 @@ impl<M: Clone> NavigationMenuBuilder<M> {
     /// `"{id}:sub:{parent}:{child}"`. The selected item uses the primary
     /// variant and the others ghost; items with children carry a ` ▾` marker.
     /// Disabled items, disabled children and children of a disabled item never
-    /// emit and get no click message. Values must be unique within their level
-    /// and must not contain `:` because they are part of those keys (not
-    /// enforced). Without a handler the legacy `"{id}_{value}"` /
-    /// `"{id}_{value}_{child}"` tree is built unchanged.
+    /// emit and get no click message. Values must be globally unique across
+    /// all items and children (not just within a level), because the handler
+    /// receives only the value, and must not contain `:` because they are part
+    /// of those keys (not enforced). Without a handler the legacy
+    /// `"{id}_{value}"` / `"{id}_{value}_{child}"` tree is built unchanged.
     pub fn on_select(mut self, f: fn(&str) -> M) -> Self {
         self.on_select = Some(f);
         self
