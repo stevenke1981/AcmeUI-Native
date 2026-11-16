@@ -182,6 +182,7 @@ enum GalleryMessage {
     CollapsibleToggle,
     CollapsibleDisable,
     SpeedDialToggle,
+    SpeedDialDirection,
     SpeedDialAction(usize),
     BottomNavigationSelect(usize),
     HeaderSave,
@@ -1913,6 +1914,18 @@ impl Gallery {
             }
             GalleryMessage::SpeedDialToggle => {
                 self.speed_dial.open = !self.speed_dial.open;
+                self.pressed = None;
+                self.hovered = None;
+                true
+            }
+            GalleryMessage::SpeedDialDirection => {
+                use acme_ui::overlay::SpeedDialDirection;
+                self.speed_dial.direction = match self.speed_dial.direction {
+                    SpeedDialDirection::Up => SpeedDialDirection::Down,
+                    SpeedDialDirection::Down => SpeedDialDirection::Left,
+                    SpeedDialDirection::Left => SpeedDialDirection::Right,
+                    SpeedDialDirection::Right => SpeedDialDirection::Up,
+                };
                 self.pressed = None;
                 self.hovered = None;
                 true

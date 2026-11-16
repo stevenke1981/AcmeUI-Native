@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "acme-render-cpu",
+        "--",
+        "--check"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T08:54:16.582452+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/target/roadmap-053/cpu/01.log",
+      "finished_at": "2026-11-16T08:54:16.751414+00:00",
+      "duration_seconds": 0.169,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-render-cpu"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T08:54:16.751638+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/target/roadmap-053/cpu/02.log",
+      "finished_at": "2026-11-16T08:54:18.226529+00:00",
+      "duration_seconds": 1.475,
+      "log_sha256": "cb9d0ed50c08fd2d828d26d3e0673800356d4dc06e970554da752a871329d1a8"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "acme-render-cpu",
+        "--all-targets",
+        "--no-deps",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/AcmeUI-Native",
+      "started_at": "2026-11-16T08:54:18.226739+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "/workspace/AcmeUI-Native/target/roadmap-053/cpu/03.log",
+      "finished_at": "2026-11-16T08:54:18.948260+00:00",
+      "duration_seconds": 0.722,
+      "log_sha256": "fbd1a8d7ccba07e1d6ab11c55ac359811766007b8d895bb403ea6547afb39e03"
+    }
+  ],
+  "started_at": "2026-11-16T08:54:16.514746+00:00",
+  "source_sha": "2133f7c4191d9ba63a90a8fdc41af4b685abc890",
+  "git_status": "?? docs/team/roadmap-053/evidence.json\n?? docs/team/roadmap-053/logs/",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "python": "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]",
+  "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5",
+  "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+  "profile": "cpu",
+  "manual_validation": "NOT_RUN",
+  "independent_review": "NOT_RUN",
+  "finished_at": "2026-11-16T08:54:18.948425+00:00"
+}

@@ -1,0 +1,208 @@
+{
+  "started_at": "2026-11-16T09:58:23.752759+00:00",
+  "source_sha": "2133f7c4191d9ba63a90a8fdc41af4b685abc890",
+  "git_status": "?? docs/team/roadmap-053/evidence.json\n?? docs/team/roadmap-053/logs/\n",
+  "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+  "execution": "single Codex agent; author inspection of automated captures",
+  "manual_validation": "NOT_RUN",
+  "commands": [
+    [
+      "Xvfb",
+      "-displayfd",
+      "1",
+      "-screen",
+      "0",
+      "1100x1000x24",
+      "-nolisten",
+      "tcp"
+    ],
+    [
+      "/workspace/AcmeUI-Native/target/debug/acme-ui-gallery"
+    ],
+    [
+      "xdotool",
+      "windowsize",
+      "2097154",
+      "1100",
+      "1000"
+    ],
+    [
+      "xdotool",
+      "windowfocus",
+      "--sync",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "getwindowgeometry",
+      "--shell",
+      "2097154"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "80",
+      "238",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "650",
+      "750",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1090",
+      "990"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "650",
+      "697",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1090",
+      "990"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "650",
+      "697",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1090",
+      "990"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "650",
+      "697",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1090",
+      "990"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "450",
+      "750",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "265",
+      "20",
+      "click",
+      "1"
+    ],
+    [
+      "xdotool",
+      "mousemove",
+      "--window",
+      "2097154",
+      "1090",
+      "990"
+    ]
+  ],
+  "captures": [
+    {
+      "captured_at": "2026-11-16T09:58:25.992528+00:00",
+      "path": "docs/team/roadmap-053/gallery-speed-dial-up.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "54aaadc5e347136bbdebcda96f0a216d32e233976a16c51d11e2f57475067f64"
+    },
+    {
+      "captured_at": "2026-11-16T09:58:26.824011+00:00",
+      "path": "docs/team/roadmap-053/gallery-speed-dial-down.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "c04be3d36c30fe2a3c955198d2e17e9512320a60e71b0b9c0a409fd1b61adcb5"
+    },
+    {
+      "captured_at": "2026-11-16T09:58:27.653953+00:00",
+      "path": "docs/team/roadmap-053/gallery-speed-dial-left.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "a8e41aed85ebad1ce007be8a1b43ed80de67d9d4f1b5842f26bcd83700d9588e"
+    },
+    {
+      "captured_at": "2026-11-16T09:58:28.485147+00:00",
+      "path": "docs/team/roadmap-053/gallery-speed-dial-right.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "cf809dc929c17292db20e09fdc9c08e72f642ef4ed59b5edc23c2cbb9c01063e"
+    },
+    {
+      "captured_at": "2026-11-16T09:58:29.916968+00:00",
+      "path": "docs/team/roadmap-053/gallery-speed-dial-right-dark-action.png",
+      "dimensions": [
+        1100,
+        1000
+      ],
+      "sha256": "3ea15386d0c89c292d358c737f7dd7d433339831662e5d285fd7807807b708ae"
+    }
+  ],
+  "environment": {
+    "DISPLAY": ":2",
+    "WINIT_UNIX_BACKEND": "x11",
+    "ACME_RENDER_BACKEND": "cpu"
+  },
+  "geometry": "WINDOW=2097154\nX=0\nY=0\nWIDTH=1100\nHEIGHT=1000\nSCREEN=0\n",
+  "status": "CAPTURED",
+  "finished_at": "2026-11-16T09:58:29.951739+00:00",
+  "author_inspection": "PASS: all four direction labels and action/toggle placement visible; dark Right capture shows Share selected while open"
+}
