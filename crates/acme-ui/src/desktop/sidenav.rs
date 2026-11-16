@@ -141,8 +141,10 @@ impl<M: Clone + 'static> SidenavBuilder<M> {
     /// With a handler, the Column keeps the key `"{id}"`, section headers stay
     /// labels, and each item is a full-width Button keyed `"{id}:item:{value}"`.
     /// The selected item uses the primary variant and a `▸ ` marker, the
-    /// others ghost with two-space padding; an icon is shown as a text prefix
-    /// before the label. Disabled items get no click message. Values must be
+    /// others ghost with a four-space pad that matches the marker width; an
+    /// icon is shown as a text prefix before the label. Items are
+    /// `TextAlign::Left` (label at the button's left padding, see
+    /// `Button::label_x`). Disabled items get no click message. Values must be
     /// unique across all sections and must not contain `:` (not enforced).
     /// Without a handler the legacy Card tree is built unchanged.
     pub fn on_select(mut self, f: fn(&str) -> M) -> Self {
@@ -193,9 +195,15 @@ fn rove(disabled: &[bool], current: Option<usize>, forward: bool) -> Option<usiz
         .find(|&index| !disabled[index])
 }
 
+/// Handler-mode prefix for unselected items: four spaces shape to the width of
+/// the `▸ ` marker in the Windows default font within 0.6px (other font
+/// stacks may differ) (two spaces are ~7.6px
+/// narrower at 13px), so labels share one column. Mirrors the Sidebar rule.
+const UNMARKED_PREFIX: &str = "    ";
+
 /// Button label for an item in the typed (`on_select`) tree.
 fn typed_label(item: &SidenavItem, selected: bool) -> String {
-    let prefix = if selected { "▸ " } else { "  " };
+    let prefix = if selected { "▸ " } else { UNMARKED_PREFIX };
     match &item.icon {
         Some(icon) => format!("{prefix}{icon} {}", item.label),
         None => format!("{prefix}{}", item.label),
@@ -231,6 +239,10 @@ impl<M: Clone + 'static> From<SidenavBuilder<M>> for WidgetNode<M> {
                     .variant(variant)
                     .full_width(true)
                     .disabled(item.disabled);
+                    let btn = acme_widgets::style::Styled::text_align(
+                        btn,
+                        acme_widgets::style::TextAlign::Left,
+                    );
                     col = col.child(if item.disabled {
                         btn.into()
                     } else {
@@ -603,10 +615,10 @@ mod tests {
         let variant_of = |node: &WidgetNode<Nav>, k: &str| button_at(node, k).variant;
 
         let node: WidgetNode<Nav> = typed("s", Some("privacy")).into();
-        assert_eq!(label_of(&node, "s:item:profile"), "  @ Profile");
-        assert_eq!(label_of(&node, "s:item:appearance"), "  Appearance");
+        assert_eq!(label_of(&node, "s:item:profile"), "    @ Profile");
+        assert_eq!(label_of(&node, "s:item:appearance"), "    Appearance");
         assert_eq!(label_of(&node, "s:item:privacy"), "▸ Privacy");
-        assert_eq!(label_of(&node, "s:item:security"), "  Security");
+        assert_eq!(label_of(&node, "s:item:security"), "    Security");
         assert_eq!(variant_of(&node, "s:item:privacy"), Primary);
         for k in ["s:item:profile", "s:item:appearance", "s:item:security"] {
             assert_eq!(variant_of(&node, k), Ghost);
@@ -622,7 +634,7 @@ mod tests {
         for v in ["profile", "appearance", "privacy", "security"] {
             let k = format!("s:item:{v}");
             assert_eq!(variant_of(&node, &k), Ghost);
-            assert!(label_of(&node, &k).starts_with("  "));
+            assert!(label_of(&node, &k).starts_with("    "));
         }
 
         // Theme tokens only: production code must not construct colors directly.

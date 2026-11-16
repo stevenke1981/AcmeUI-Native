@@ -1,0 +1,90 @@
+# ROADMAP 063 component GREEN — base c53bab5 + uncommitted component diff
+
+$ cargo test --locked -p acme-widgets
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.97s
+
+running 183 tests
+
+test result: ok. 183 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 5 tests
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 13 tests
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+exit=0
+
+$ cargo test --locked -p acme-ui --all-features
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.88s
+
+running 932 tests
+
+test result: ok. 932 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+
+running 2 tests
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test crates\acme-ui\src\desktop\sidenav.rs - desktop::sidenav (line 8) ... ignored
+test crates\acme-ui\src\layout\form.rs - layout::form (line 6) ... ignored
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+exit=0
+
+$ cargo check --locked -p acme-ui --no-default-features --features desktop
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.32s
+exit=0
+
+$ cargo check --locked -p acme-ui --no-default-features --features layout
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.73s
+exit=0
+
+$ cargo clippy --locked -p acme-widgets --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.45s
+exit=0
+
+$ cargo clippy --locked -p acme-ui --all-features --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.38s
+exit=0
+
+$ cargo fmt -p acme-widgets -p acme-ui -- --check
+exit=0
+
+# Named acceptance tests
+test button_label_x_tests::button_label_x_centers_when_unset_or_center ... ok
+test button_label_x_tests::button_label_x_left_and_right_use_padding_and_clamp ... ok
+test painter_bridge::tests::bridge_button_paint_is_identical_for_any_text_align ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 180 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test inputs::radio_cards::tests::radio_cards_without_handler_stay_passive_and_keep_legacy_tree ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_without_handler_matches_legacy_tree ... ok
+test layout::sidebar::tests::sidebar_without_handler_matches_legacy_tree_expanded_collapsed_header_footer ... ok
+test layout::navigation_menu::tests::navigation_menu_without_handler_keeps_legacy_tree_and_keys ... ok
+test layout::sidebar::tests::sidebar_and_sidenav_without_handler_unchanged ... ok
+test layout::sidebar::tests::sidebar_and_sidenav_handler_items_are_left_aligned_collapsed_centered ... ok
+test desktop::sidenav::tests::sidenav_without_handler_matches_legacy_tree ... ok
+063 prefix width: marker=14.758301 two_spaces=7.1220703
+063 label column: "    👤 Inbox" -> 14.244141
+063 label column: "▸ ⚙ Drafts" -> 14.758301
+063 label column: "    Spam" -> 14.244141
+063 label column: "    Archive" -> 14.244141
+063 label column: "▸ Profile" -> 14.758301
+063 label column: "    設定" -> 14.244141
+test layout::sidebar::tests::sidebar_marker_and_unmarked_prefix_label_columns_match ... ok
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 924 filtered out; finished in 0.02s

@@ -2058,3 +2058,70 @@ mod label_style_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod button_label_x_tests {
+    use super::*;
+    use acme_style::TextAlign;
+    use acme_style::prelude::*;
+
+    /// Today's painter formula (centred, overflow pinned at the left edge).
+    fn centred(x: f32, w: f32, t: f32) -> f32 {
+        x + (w - t).max(0.0) / 2.0
+    }
+
+    #[test]
+    fn button_label_x_centers_when_unset_or_center() {
+        let unset = button::<()>("b", "Save");
+        let center = button::<()>("b", "Save").text_align(TextAlign::Center);
+        // Padding never affects centring.
+        let padded = button::<()>("b", "Save")
+            .text_align(TextAlign::Center)
+            .p(30.0);
+        for (x, w, t) in [
+            (0.0, 120.0, 40.0),
+            (17.5, 200.0, 33.3),
+            (-4.0, 80.0, 80.0),
+            (10.0, 60.0, 90.0), // overflow keeps max(0) centring
+            (3.25, 0.0, 12.0),
+        ] {
+            let want = centred(x, w, t);
+            for b in [&unset, &center, &padded] {
+                assert_eq!(b.label_x(x, w, t).to_bits(), want.to_bits(), "{x} {w} {t}");
+            }
+        }
+        assert_eq!(unset.label_x(10.0, 60.0, 90.0), 10.0);
+    }
+
+    #[test]
+    fn button_label_x_left_and_right_use_padding_and_clamp() {
+        assert_eq!(crate::inputs::button::DEFAULT_LABEL_PAD, 12.0);
+        let left = button::<()>("b", "Inbox").text_align(TextAlign::Left);
+        let right = button::<()>("b", "Inbox").text_align(TextAlign::Right);
+        // Default pad 12.0.
+        assert_eq!(left.label_x(20.0, 200.0, 50.0), 32.0);
+        assert_eq!(right.label_x(20.0, 200.0, 50.0), 20.0 + 200.0 - 12.0 - 50.0);
+        // Explicit padding: Left uses padding.left, Right mirrors with padding.right.
+        let left_p = left.clone().pl(7.0).pr(3.0);
+        let right_p = right.clone().pl(7.0).pr(3.0);
+        assert_eq!(left_p.label_x(20.0, 200.0, 50.0), 27.0);
+        assert_eq!(
+            right_p.label_x(20.0, 200.0, 50.0),
+            20.0 + 200.0 - 3.0 - 50.0
+        );
+        // Zero padding is honoured (not replaced by the default).
+        let flush = left.clone().p(0.0);
+        assert_eq!(flush.label_x(20.0, 200.0, 50.0), 20.0);
+        // Text wider than the rect clamps to rect_x + pad for both.
+        assert_eq!(left.label_x(20.0, 60.0, 90.0), 32.0);
+        assert_eq!(right.label_x(20.0, 60.0, 90.0), 32.0);
+        assert_eq!(right_p.label_x(20.0, 60.0, 90.0), 27.0);
+        // Exactly fitting text (w - 2*pad == t) lands on the pad for Right too.
+        assert_eq!(right.label_x(0.0, 124.0, 100.0), 12.0);
+        // Left is independent of text width.
+        assert_eq!(
+            left.label_x(5.0, 100.0, 1.0),
+            left.label_x(5.0, 100.0, 99.0)
+        );
+    }
+}

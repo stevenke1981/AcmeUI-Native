@@ -1,0 +1,24 @@
+# ROADMAP 063 — Report: Left-aligned Sidebar / Sidenav labels
+
+- **Execution:** Claude Code agent team.
+  - Opus 5.5: component.
+  - Sonnet 5.5: Gallery painters.
+  - Fable 5.2: review — 0 P0, 1 P1, 6 P2.
+  - Opus 5.5 Lead: gates and real-window GUI.
+- **Change:**
+  - Additive `Button::label_x`: unset or Center is identical to the old centring; Left and Right use padding or 12.0.
+  - Sidebar and Sidenav handler-mode items are left-aligned; collapsed Sidebar items stay centred. Unselected items use a four-space prefix so labels share the `▸` column.
+  - The acme-gallery painters and the shell category list are left-aligned after the marker gutter.
+- **Gates:** run on base `c53bab5` plus this diff before the review fixes. Workspace tests 2202 passed / 0 failed; fmt and clippy PASS. After the review fixes, the targeted tests (acme-widgets, both galleries, acme-ui sidebar) and clippy PASS.
+- **Real-window GUI, `gui/` (default light and dark):**
+  - Sidebar and Sidenav are left-aligned, with label columns stable across selection.
+  - The collapsed Sidebar is centred.
+  - Shell categories are left-aligned.
+- **Review fixes:**
+  - P1: the font-dependent ≤ 2px column assertions now run on Windows only (the font that was verified); other OSes log the offset.
+  - P2-4: the untested Left/Right branch in `apps/gallery` is removed.
+  - P2-2/3: `label_x` docs now cover padding semantics and the 12.0 default.
+- **Accepted / follow-up:**
+  - P2-1: paint `▸` in a gutter instead of a label prefix, so accessible names stay clean; this also fixes cross-font alignment.
+  - P2-5: the `apps/gallery` toolbar and the playground paint unstyled buttons at fixed insets; left unchanged.
+- **NOT_RUN:** macOS and Linux real-window, screen reader.

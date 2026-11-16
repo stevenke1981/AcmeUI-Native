@@ -197,3 +197,108 @@ fn gallery_longest_selected_category_label_fits_inside_button() {
         );
     }
 }
+
+// ── ROADMAP 063: left-aligned labels ────────────────────────────────────────
+
+fn text_runs(scene: &Scene) -> Vec<TextPrimitive> {
+    scene
+        .commands()
+        .iter()
+        .filter_map(|c| match c {
+            DrawCommand::Text(t) => Some(t.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+fn unaligned_content_buttons(
+    widget: &WidgetNode<GalleryMessage>,
+    layout: &LayoutNode,
+    snapshot: &acme_layout::LayoutSnapshot,
+    out: &mut Vec<[f32; 2]>,
+) {
+    match widget {
+        WidgetNode::Button(btn) => {
+            if btn.style.text_align.is_none() && btn.activate().is_some() && !btn.label.is_empty() {
+                if let Some(r) = snapshot.get(layout.id) {
+                    out.push([r.x, r.y]);
+                }
+            }
+        }
+        // Only descend through containers `render_content` itself walks (other
+        // composites, e.g. NavRail, are not painted by this renderer).
+        WidgetNode::Row(_)
+        | WidgetNode::Column(_)
+        | WidgetNode::Stack(_)
+        | WidgetNode::Card(_)
+        | WidgetNode::ScrollView(_) => {
+            for (w, l) in widget.children().iter().zip(layout.children.iter()) {
+                unaligned_content_buttons(w, l, snapshot, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Unaligned content buttons keep the fixed `rect.x + 10, y + 8` label origin
+/// they had before `Button::label_x` existed.
+#[test]
+fn gallery_unaligned_buttons_paint_identically() {
+    let mut checked = 0;
+    for category in 0..CATEGORIES.len() {
+        let mut gallery = Gallery::new();
+        gallery.selected_category = category;
+        let scene = render(&mut gallery);
+        let theme = build_theme(gallery.dark);
+        let context = build_layout_context(&theme, 1.0);
+        let description = gallery.description();
+        let mut root = layout_root(&description, None, &context);
+        apply_gallery_styles(&mut root, 1100.0, 760.0);
+        let snapshot = gallery
+            .layout
+            .compute_with_text(&root, (1100.0, 760.0), &mut gallery.fonts, 1.0)
+            .unwrap();
+        let mut buttons = Vec::new();
+        unaligned_content_buttons(&description, &root, &snapshot, &mut buttons);
+        let runs = text_runs(&scene);
+        for [x, y] in buttons {
+            // Skip shell chrome (category list and toolbar): different painters.
+            if x < SIDEBAR_WIDTH || y < TOOLBAR_HEIGHT {
+                continue;
+            }
+            let (ex, ey) = (x + 10.0, y - gallery.scroll + 8.0);
+            assert!(
+                runs.iter()
+                    .any(|t| t.origin.x.get() == ex && (t.origin.y.get() - ey).abs() < 1e-3),
+                "category {category}: unaligned button at ({x}, {y}) not painted at ({ex}, {ey})"
+            );
+            checked += 1;
+        }
+    }
+    assert!(checked > 10, "only {checked} content buttons checked");
+}
+
+/// The shell category list already left-aligns: marker gutter at +8 and the
+/// label at a fixed inset, the same x selected or not, never centred.
+#[test]
+fn gallery_shell_category_labels_left_aligned_after_marker() {
+    for selected in [0, 3, CATEGORIES.len() - 1] {
+        let mut gallery = Gallery::new();
+        gallery.selected_category = selected;
+        let scene = render(&mut gallery);
+        for category in 0..CATEGORIES.len() {
+            let rect = category_rect(&gallery, category);
+            let p = painted(&scene, rect, "left");
+            assert_eq!(
+                p.label.origin.x.get(),
+                rect[0] + 24.0,
+                "category {category} (selected {selected}) label x"
+            );
+            if let Some(marker) = &p.marker {
+                let (_, m_hi) = ink_x(marker);
+                let (l_lo, _) = ink_x(&p.label);
+                assert!(m_hi <= l_lo, "marker ink {m_hi} before label ink {l_lo}");
+            }
+        }
+    }
+}
