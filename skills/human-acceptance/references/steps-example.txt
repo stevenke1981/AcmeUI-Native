@@ -1,0 +1,28 @@
+# Example script for: python human_input.py --title "AcmeUI Gallery" --script steps-example.txt
+# One step per line. '#' starts a comment. Quote values that contain spaces.
+# Coordinates are physical pixels relative to the window's top-left (the screenshot grid).
+
+place:0,0,1500,1030
+shot:docs/team/roadmap-NNN/gui/00-start.png
+
+# Open the Layout page with a real click, then move the pointer away from hover.
+click:161,342
+wait:0.5
+park
+shot:docs/team/roadmap-NNN/gui/01-layout.png
+
+# Keyboard journey (arrows are sent as extended keys, so NumLock does not matter).
+key:f6
+shot:docs/team/roadmap-NNN/gui/02-f6.png
+key:right
+key:down
+key:down
+shot:docs/team/roadmap-NNN/gui/03-arrows.png
+key:enter
+shot:docs/team/roadmap-NNN/gui/04-enter.png
+key:escape
+key:escape
+shot:docs/team/roadmap-NNN/gui/05-escape.png
+
+# Text entry (committed Unicode; this does NOT exercise IME composition).
+# type:"搜尋 search"
