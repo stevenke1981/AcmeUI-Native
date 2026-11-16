@@ -1,13 +1,15 @@
 //! Calendar component — a standalone date grid widget.
 //!
 //! Renders a 7-column grid (Sun–Sat) with day-of-month cells for the given
-//! year/month. The current day and selected day are highlighted.
+//! year/month. The current day, selected day or same-month range are highlighted.
 //!
 //! This is a *structural* placeholder using Labels and Cards, not a true
 //! interactive date picker. A future version should add navigation buttons
 //! (prev/next month) and click handling.
 
 use crate::WidgetNode;
+use acme_layout::Length;
+use acme_widgets::style::{ColorToken, Styled, TextAlign};
 
 /// Builder for a calendar grid widget.
 pub struct CalendarBuilder<M> {
@@ -16,6 +18,7 @@ pub struct CalendarBuilder<M> {
     pub selected_day: Option<u32>,
     pub today_day: Option<u32>,
     pub show_header: bool,
+    selected_range: Option<(u32, u32)>,
     _phantom: std::marker::PhantomData<M>,
 }
 
@@ -27,6 +30,7 @@ pub fn calendar<M>(year: i32, month: u32) -> CalendarBuilder<M> {
         selected_day: None,
         today_day: None,
         show_header: true,
+        selected_range: None,
         _phantom: std::marker::PhantomData,
     }
 }
@@ -35,6 +39,19 @@ impl<M: Clone + 'static> CalendarBuilder<M> {
     /// Set the selected day (highlighted).
     pub fn selected_day(mut self, day: u32) -> Self {
         self.selected_day = Some(day);
+        self.selected_range = None;
+        self
+    }
+
+    /// Highlight an inclusive range in the displayed month using theme accents.
+    ///
+    /// Reversed endpoints are normalized. If either endpoint is outside the
+    /// displayed month's valid days, no range is highlighted. Validation uses
+    /// the year/month at build time. This replaces the single-day selection;
+    /// calling `selected_day` afterward replaces the range. Cells remain passive.
+    pub fn selected_range(mut self, start: u32, end: u32) -> Self {
+        self.selected_range = Some((start.min(end), start.max(end)));
+        self.selected_day = None;
         self
     }
 
@@ -63,7 +80,11 @@ impl<M: Clone + 'static> CalendarBuilder<M> {
         if self.show_header {
             let month_name = month_name(self.month);
             let header_text = format!("{month_name} {}", self.year);
-            col = col.child(crate::label(&header_text));
+            col = col.child(
+                crate::row()
+                    .key("calendar_header")
+                    .child(crate::label(&header_text)),
+            );
         }
 
         // Weekday header
@@ -81,9 +102,15 @@ impl<M: Clone + 'static> CalendarBuilder<M> {
 
     fn build_weekday_header(&self) -> WidgetNode<M> {
         let days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-        let mut row = crate::row().gap(2.0).padding(2.0);
+        let mut row = crate::row().key("calendar_weekdays").gap(2.0).padding(2.0);
         for d in &days {
-            row = row.child(crate::label(*d));
+            row = row.child(
+                crate::label_builder(*d)
+                    .w(Length::px(28.0))
+                    .flex_shrink(0.0)
+                    .text_align(TextAlign::Center)
+                    .build(),
+            );
         }
         row.build()
     }
@@ -91,43 +118,50 @@ impl<M: Clone + 'static> CalendarBuilder<M> {
     fn build_day_grid(&self) -> Vec<WidgetNode<M>> {
         let days_in_month = days_in_month(self.year, self.month);
         let first_weekday = first_weekday_of_month(self.year, self.month); // 0=Sun
+        let range = self
+            .selected_range
+            .filter(|(start, end)| *start >= 1 && *end <= days_in_month);
         let mut weeks: Vec<WidgetNode<M>> = Vec::new();
         let mut day: i32 = 1i32 - first_weekday as i32; // may be negative (previous month)
 
         while day <= days_in_month as i32 {
-            let mut row = crate::row().gap(2.0).padding(2.0);
+            let mut row = crate::row()
+                .key(format!("calendar_week_{}", weeks.len()))
+                .gap(2.0)
+                .padding(2.0);
             for _ in 0..7 {
                 if day >= 1 && day <= days_in_month as i32 {
                     let d = day as u32;
                     let is_selected = self.selected_day == Some(d);
                     let is_today = self.today_day == Some(d);
-
-                    let cell = if is_selected {
-                        // Selected: accent background
-                        crate::card()
-                            .padding(4.0)
-                            .variant(crate::CardVariant::Interactive)
-                            .child(crate::label(d.to_string()))
-                            .build()
+                    let in_range = range.is_some_and(|(start, end)| (start..=end).contains(&d));
+                    let variant = if is_selected {
+                        crate::CardVariant::Interactive
                     } else if is_today {
-                        // Today: outlined
-                        crate::card()
-                            .padding(4.0)
-                            .variant(crate::CardVariant::Outlined)
-                            .child(crate::label(d.to_string()))
-                            .build()
+                        crate::CardVariant::Outlined
                     } else {
-                        // Normal day
-                        crate::card()
-                            .padding(4.0)
-                            .variant(crate::CardVariant::Plain)
-                            .child(crate::label(d.to_string()))
-                            .build()
+                        crate::CardVariant::Plain
                     };
+                    let mut text = crate::label_builder(d.to_string())
+                        .w(Length::px(20.0))
+                        .text_align(TextAlign::Center);
+                    let mut content = crate::row().padding(4.0);
+                    if in_range {
+                        content = content.bg(ColorToken::Accent);
+                        text = text.text_color(ColorToken::AccentForeground);
+                    }
+                    let cell = crate::card()
+                        .key(format!("calendar_day_{d}"))
+                        .padding(0.0)
+                        .w(Length::px(28.0))
+                        .flex_shrink(0.0)
+                        .variant(variant)
+                        .child(content.child(text.build()))
+                        .build();
                     row = row.child(cell);
                 } else {
                     // Empty cell (day from adjacent month)
-                    row = row.child(crate::column().width(24.0).height(24.0).build());
+                    row = row.child(crate::column().width(28.0).height(28.0).build());
                 }
                 day += 1;
             }
@@ -200,6 +234,10 @@ fn first_weekday_of_month(year: i32, month: u32) -> u32 {
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+#[cfg(test)]
+#[path = "calendar_range_tests.rs"]
+mod range_tests;
+
 #[cfg(test)]
 mod tests {
     use super::*;
