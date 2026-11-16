@@ -4,7 +4,7 @@ fn frame(g: &mut Gallery) {
     g.frame(FrameContext {
         window: WindowId(1),
         logical_width: 1100.0,
-        logical_height: 1000.0,
+        logical_height: 1400.0,
         scale_factor: 1.0,
     });
 }
