@@ -1,0 +1,166 @@
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+error[E0599]: no method named `focused` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:173:19
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `focused` not found for this struct
+...
+173 |             b = b.focused(f);
+    |                   ^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `focused` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:228:48
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `focused` not found for this struct
+...
+228 |         let focused: WidgetNode<Msg> = build().focused("b").into();
+    |                                                ^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:365:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+365 |         assert_eq!(b.navigate_focus(Some("a"), true), Some("b"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:366:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+366 |         assert_eq!(b.navigate_focus(Some("b"), true), Some("c"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:367:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+367 |         assert_eq!(b.navigate_focus(Some("c"), true), Some("a"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:368:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+368 |         assert_eq!(b.navigate_focus(Some("a"), false), Some("c"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:369:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+369 |         assert_eq!(b.navigate_focus(Some("c"), false), Some("b"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:370:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+370 |         assert_eq!(b.navigate_focus(None, true), Some("a"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:371:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+371 |         assert_eq!(b.navigate_focus(None, false), Some("c"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:376:27
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+376 |         assert_eq!(single.navigate_focus(Some("only"), true), Some("only"));
+    |                           ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:377:27
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+377 |         assert_eq!(single.navigate_focus(Some("only"), false), Some("only"));
+    |                           ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:380:26
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+380 |         assert_eq!(empty.navigate_focus(None, true), None);
+    |                          ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:381:26
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+381 |         assert_eq!(empty.navigate_focus(Some("a"), false), None);
+    |                          ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:387:28
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+387 |         assert_eq!(passive.navigate_focus(Some("x"), true), Some("y"));
+    |                            ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:393:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+393 |         assert_eq!(b.navigate_focus(Some("zz"), true), Some("a"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:394:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+394 |         assert_eq!(b.navigate_focus(Some("zz"), false), Some("c"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:395:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+395 |         assert_eq!(b.navigate_focus(Some(""), true), Some("a"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+error[E0599]: no method named `navigate_focus` found for struct `inputs::checkbox_cards::CheckboxCardsBuilder` in the current scope
+   --> crates\acme-ui\src\inputs\checkbox_cards.rs:396:22
+    |
+31  | pub struct CheckboxCardsBuilder<M> {
+    | ---------------------------------- method `navigate_focus` not found for this struct
+...
+396 |         assert_eq!(b.navigate_focus(Some(""), false), Some("c"));
+    |                      ^^^^^^^^^^^^^^ method not found in `CheckboxCardsBuilder<Msg>`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `acme-ui` (lib test) due to 18 previous errors
+warning: build failed, waiting for other jobs to finish...

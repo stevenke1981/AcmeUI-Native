@@ -66,9 +66,11 @@ mod notification;
 mod page_header;
 mod tour;
 use tour::TourDemo;
+mod checkbox_cards;
 mod navigation_menu;
 mod radio_cards;
 mod sidebar;
+use checkbox_cards::CheckboxCardsDemo;
 use navigation_menu::NavMenuDemo;
 use radio_cards::RadioCardsDemo;
 use sidebar::SidebarDemo;
@@ -197,6 +199,7 @@ enum GalleryMessage {
     CollapsibleDisable,
     CalendarRangeToggle,
     RadioCardSelect(u8),
+    CheckboxCardToggle(u8),
     NavMenuSelect(u8),
     SidebarSelect(u8),
     SpeedDialToggle,
@@ -306,6 +309,7 @@ struct Gallery {
     fab_status: &'static str,
     speed_dial: SpeedDialDemo,
     radio_cards: RadioCardsDemo,
+    checkbox_cards: CheckboxCardsDemo,
     nav_menu: NavMenuDemo,
     side_nav: SidebarDemo,
     bottom_selected: usize,
@@ -399,6 +403,7 @@ impl Gallery {
             fab_status: "none",
             speed_dial: SpeedDialDemo::default(),
             radio_cards: RadioCardsDemo::default(),
+            checkbox_cards: CheckboxCardsDemo::default(),
             nav_menu: NavMenuDemo::default(),
             side_nav: SidebarDemo::default(),
             bottom_selected: 0,
@@ -676,6 +681,10 @@ impl Gallery {
             .child(label_with_size("Inputs", 24.0))
             .child(separator())
             .child(self.page_section("RadioCards — typed selection", self.radio_cards_examples()))
+            .child(self.page_section(
+                "CheckboxCards — typed toggling",
+                self.checkbox_cards_examples(),
+            ))
             .child(
                 self.page_section(
                     "Button Variants",
@@ -1841,6 +1850,7 @@ impl Gallery {
                     self.spinner.visible = false;
                     self.list_focus = None;
                     self.radio_cards.active = false;
+                    self.checkbox_cards.active = false;
                     self.nav_menu.active = false;
                     self.side_nav.active = false;
                     self.search.blur();
@@ -2030,6 +2040,7 @@ impl Gallery {
                 true
             }
             GalleryMessage::RadioCardSelect(index) => self.radio_card_select(index),
+            GalleryMessage::CheckboxCardToggle(index) => self.checkbox_card_toggle(index),
             GalleryMessage::NavMenuSelect(index) => self.nav_menu_select(index),
             GalleryMessage::SidebarSelect(index) => self.sidebar_select(index),
             GalleryMessage::SpeedDialAction(index) => {
@@ -2333,7 +2344,7 @@ impl Application for Gallery {
             self.search.blur();
         }
         if self.selected_category == 2 && !overlay_pointer {
-            if let Some(changed) = self.radio_cards_event(&event) {
+            if let Some(changed) = self.inputs_keyboard_event(&event) {
                 return changed;
             }
         }
@@ -4463,6 +4474,9 @@ mod style_sizing_tests;
 
 #[cfg(test)]
 mod radio_cards_tests;
+
+#[cfg(test)]
+mod checkbox_cards_tests;
 
 #[cfg(test)]
 mod navigation_menu_tests;
