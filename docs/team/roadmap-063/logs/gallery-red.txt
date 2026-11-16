@@ -1,0 +1,31 @@
+   Compiling acme-ui-gallery v0.2.0 (F:\AcmeUI-Native\apps\acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.29s
+     Running unittests src\main.rs (target\debug\deps\acme_ui_gallery-fd6ef7608e1ada32.exe)
+
+running 4 tests
+test button_alignment_tests::gallery_sidebar_and_sidenav_labels_start_at_left_padding ... FAILED
+test button_alignment_tests::gallery_shell_category_labels_left_aligned_after_marker ... FAILED
+test button_alignment_tests::gallery_toolbar_unaligned_buttons_paint_identically ... ok
+test button_alignment_tests::gallery_unaligned_buttons_paint_identically ... ok
+
+failures:
+
+---- button_alignment_tests::gallery_sidebar_and_sidenav_labels_start_at_left_padding stdout ----
+
+thread 'button_alignment_tests::gallery_sidebar_and_sidenav_labels_start_at_left_padding' panicked at apps\acme-gallery\src\button_alignment_tests.rs:224:9:
+sidebar: selected origin 109.12085 vs rect [16.0, 66.0, 240.0, 36.0]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- button_alignment_tests::gallery_shell_category_labels_left_aligned_after_marker stdout ----
+
+thread 'button_alignment_tests::gallery_shell_category_labels_left_aligned_after_marker' panicked at apps\acme-gallery\src\button_alignment_tests.rs:288:13:
+category 0 (selected 0): label offset 46.05786
+
+
+failures:
+    button_alignment_tests::gallery_shell_category_labels_left_aligned_after_marker
+    button_alignment_tests::gallery_sidebar_and_sidenav_labels_start_at_left_padding
+
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 188 filtered out; finished in 1.09s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`

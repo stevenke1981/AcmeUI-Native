@@ -1,8 +1,12 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
-use acme_style::Style;
 use acme_style::prelude::*;
+use acme_style::{Style, TextAlign};
 use acme_theme::{Theme, ThemeColor};
+
+/// Horizontal label inset (logical px) used by [`Button::label_x`] for
+/// `TextAlign::Left` / `TextAlign::Right` when `style.padding` is unset.
+pub(crate) const DEFAULT_LABEL_PAD: f32 = 12.0;
 
 /// Button style variant.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -127,6 +131,34 @@ impl<M> Button<M> {
             None
         } else {
             self.message.as_ref()
+        }
+    }
+    /// Left x of the label for a button painted in `rect_x..rect_x + rect_width`
+    /// with a shaped label `text_width` wide.
+    ///
+    /// - `style.text_align` unset or `Center`: centred, overflow pinned at the
+    ///   left edge (`rect_x + max(0, rect_width - text_width) / 2`).
+    /// - `Left`: `rect_x + pad`, where `pad` is `style.padding.left` when padding
+    ///   is set, else 12.0 logical px.
+    /// - `Right`: mirrors `Left` (`rect_x + rect_width - pad - text_width`, `pad`
+    ///   from `style.padding.right`); text too wide for the rect clamps to
+    ///   `rect_x + pad.left` so it starts where `Left` would.
+    ///
+    /// Padding is read as a whole: a partial setter such as `.pr(3.0)` sets
+    /// every other side to 0. Left/Right alignment is intended for full-width
+    /// or explicitly padded buttons; on an auto-width button (laid out with
+    /// 10px side padding) the 12.0 default leaves `Right` clamped to `Left`.
+    pub fn label_x(&self, rect_x: f32, rect_width: f32, text_width: f32) -> f32 {
+        let pad = |side: fn(&acme_layout::Edges) -> f32| {
+            self.style.padding.as_ref().map_or(DEFAULT_LABEL_PAD, side)
+        };
+        match self.style.text_align {
+            None | Some(TextAlign::Center) => rect_x + (rect_width - text_width).max(0.0) / 2.0,
+            Some(TextAlign::Left) => rect_x + pad(|e| e.left),
+            Some(TextAlign::Right) => {
+                let start = rect_x + pad(|e| e.left);
+                (rect_x + rect_width - pad(|e| e.right) - text_width).max(start)
+            }
         }
     }
     /// Resolve visual style from theme and state.

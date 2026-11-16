@@ -167,11 +167,14 @@ impl<M: Clone + 'static> SidebarBuilder<M> {
     /// With a handler, the Column keeps the key `"{id}"` and each item is a
     /// full-width Button keyed `"{id}:item:{value}"` (independent of the
     /// collapse state). The current (`active`) item uses the primary variant
-    /// and a `▸ ` marker, the others ghost with two-space padding; collapsed,
-    /// items show the icon (or the label's first character) with the marker
-    /// kept on the current item. Disabled items get no click message. Values
-    /// must be unique within the sidebar and must not contain `:` (not
-    /// enforced). Without a handler the legacy label tree is built unchanged.
+    /// and a `▸ ` marker, the others ghost with a four-space pad that matches
+    /// the marker width; collapsed, items show the icon (or the label's first
+    /// character) with the marker kept on the current item. Expanded items are
+    /// `TextAlign::Left` (label at the button's left padding, see
+    /// `Button::label_x`); collapsed items stay centred. Disabled items get no
+    /// click message. Values must be unique within the sidebar and must not
+    /// contain `:` (not enforced). Without a handler the legacy label tree is
+    /// built unchanged.
     pub fn on_select(mut self, f: fn(&str) -> M) -> Self {
         self.on_select = Some(f);
         self
@@ -193,11 +196,17 @@ impl<M: Clone + 'static> SidebarBuilder<M> {
     }
 }
 
+/// Handler-mode prefix for unmarked expanded items. The `▸ ` marker shapes to
+/// ~1.14 em in the Windows default font (14.76px at the 13px label size,
+/// measured with `acme-text`; other font stacks may differ), while two spaces are only ~0.55 em (7.12px); four spaces
+/// (14.24px) keep every label in the same column within 0.6px at 12–16px.
+const UNMARKED_PREFIX: &str = "    ";
+
 /// Button label for an item in the typed (`on_select`) tree.
 fn typed_label(item: &SidebarItem, state: SidebarState) -> String {
     match state {
         SidebarState::Expanded => {
-            let prefix = if item.active { "▸ " } else { "  " };
+            let prefix = if item.active { "▸ " } else { UNMARKED_PREFIX };
             match &item.icon {
                 Some(icon) => format!("{}{} {}", prefix, icon.char(), item.label),
                 None => format!("{}{}", prefix, item.label),
@@ -248,13 +257,20 @@ impl<M: Clone + 'static> From<SidebarBuilder<M>> for WidgetNode<M> {
                 } else {
                     crate::ButtonVariant::Ghost
                 };
-                let btn = crate::button::<M>(
+                let mut btn = crate::button::<M>(
                     format!("{prefix_id}:item:{}", item.value),
                     typed_label(item, b.state),
                 )
                 .variant(variant)
                 .full_width(true)
                 .disabled(item.disabled);
+                // Expanded labels read as a list; collapsed glyphs stay centred.
+                if b.state == SidebarState::Expanded {
+                    btn = acme_widgets::style::Styled::text_align(
+                        btn,
+                        acme_widgets::style::TextAlign::Left,
+                    );
+                }
                 col = col.child(if item.disabled {
                     btn.into()
                 } else {
@@ -534,14 +550,14 @@ mod tests {
         let expanded: WidgetNode<Nav> = typed("s", SidebarState::Expanded, items()).into();
         assert_eq!(
             label_of(&expanded, "s:item:Inbox"),
-            format!("  {user} Inbox")
+            format!("    {user} Inbox")
         );
         assert_eq!(
             label_of(&expanded, "s:item:drafts"),
             format!("▸ {gear} Drafts")
         );
-        assert_eq!(label_of(&expanded, "s:item:spam"), "  Spam");
-        assert_eq!(label_of(&expanded, "s:item:archive"), "  Archive");
+        assert_eq!(label_of(&expanded, "s:item:spam"), "    Spam");
+        assert_eq!(label_of(&expanded, "s:item:archive"), "    Archive");
         assert_eq!(variant_of(&expanded, "s:item:drafts"), Primary);
         for k in ["s:item:Inbox", "s:item:spam", "s:item:archive"] {
             assert_eq!(variant_of(&expanded, k), Ghost);
@@ -729,6 +745,206 @@ mod tests {
                 assert_eq!(ids, prev);
             }
             saved = Some(ids);
+        }
+    }
+
+    // ---- ROADMAP 063: left-aligned item labels ----
+
+    fn buttons(node: &WidgetNode<Nav>, out: &mut Vec<crate::Button<Nav>>) {
+        if let WidgetNode::Button(b) = node {
+            out.push(b.clone());
+        }
+        for child in node.children() {
+            buttons(child, out);
+        }
+    }
+
+    fn any_text_align(node: &WidgetNode<Nav>) -> bool {
+        matches!(node, WidgetNode::Button(b) if b.style.text_align.is_some())
+            || node.children().iter().any(any_text_align)
+    }
+
+    #[test]
+    fn sidebar_and_sidenav_handler_items_are_left_aligned_collapsed_centered() {
+        use crate::style::TextAlign;
+        // Sidebar expanded: every item (current, plain, disabled) is Left and
+        // its label starts at rect_x + 12 regardless of label width.
+        for current in [None, Some("drafts"), Some("archive")] {
+            let node: WidgetNode<Nav> =
+                typed("s", SidebarState::Expanded, with_current(current)).into();
+            let mut bs = Vec::new();
+            buttons(&node, &mut bs);
+            assert_eq!(bs.len(), 4);
+            for b in &bs {
+                assert_eq!(
+                    b.style.text_align,
+                    Some(TextAlign::Left),
+                    "{}",
+                    b.key.as_str()
+                );
+                assert_eq!(b.label_x(8.0, 240.0, 40.0), 20.0);
+                assert_eq!(b.label_x(8.0, 240.0, 120.0), 20.0);
+            }
+        }
+        // Sidebar collapsed: glyph-only buttons stay centred (alignment unset).
+        let node: WidgetNode<Nav> = typed("s", SidebarState::Collapsed, items()).into();
+        let mut bs = Vec::new();
+        buttons(&node, &mut bs);
+        assert_eq!(bs.len(), 4);
+        for b in &bs {
+            assert_eq!(b.style.text_align, None, "{}", b.key.as_str());
+            assert_eq!(b.label_x(8.0, 48.0, 10.0), 8.0 + 19.0);
+        }
+        // Sidenav (handler mode): every item is Left; headers stay labels.
+        #[cfg(feature = "desktop")]
+        {
+            use crate::desktop::sidenav::{sidenav, sidenav_item, sidenav_section};
+            for selected in [None, Some("profile"), Some("privacy")] {
+                let mut b = sidenav::<Nav>("n")
+                    .section(
+                        sidenav_section("General")
+                            .item(sidenav_item("Profile", "profile").icon("@"))
+                            .item(sidenav_item("Appearance", "appearance")),
+                    )
+                    .section(
+                        sidenav_section("Advanced")
+                            .item(sidenav_item("Privacy", "privacy"))
+                            .item(sidenav_item("Security", "security").disabled()),
+                    );
+                if let Some(v) = selected {
+                    b = b.selected(v);
+                }
+                let node: WidgetNode<Nav> = b.on_select(go).into();
+                let mut bs = Vec::new();
+                buttons(&node, &mut bs);
+                assert_eq!(bs.len(), 4);
+                for b in &bs {
+                    assert_eq!(
+                        b.style.text_align,
+                        Some(TextAlign::Left),
+                        "{}",
+                        b.key.as_str()
+                    );
+                    assert_eq!(b.label_x(0.0, 200.0, 60.0), 12.0);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn sidebar_and_sidenav_without_handler_unchanged() {
+        // Passive trees carry no Buttons and no alignment, and match the
+        // pinned legacy replica exactly (Debug included).
+        for state in [SidebarState::Expanded, SidebarState::Collapsed] {
+            let node: WidgetNode<Nav> = passive("side", state, items()).into();
+            let expected = legacy_tree("side", state, &items(), None, None);
+            assert_eq!(node, expected);
+            assert_eq!(format!("{node:?}"), format!("{expected:?}"));
+            assert!(!any_text_align(&node));
+            let mut bs = Vec::new();
+            buttons(&node, &mut bs);
+            assert!(bs.is_empty());
+        }
+        #[cfg(feature = "desktop")]
+        {
+            use crate::desktop::sidenav::{sidenav, sidenav_item, sidenav_section};
+            let node: WidgetNode<Nav> = sidenav::<Nav>("n")
+                .section(sidenav_section("General").item(sidenav_item("Profile", "profile")))
+                .selected("profile")
+                .into();
+            assert!(!any_text_align(&node));
+            let mut bs = Vec::new();
+            buttons(&node, &mut bs);
+            assert!(bs.is_empty());
+        }
+    }
+
+    /// Advance of the shaped glyphs before byte `start` in `text`.
+    fn label_start(fonts: &mut acme_text::FontSystem, text: &str, prefix_len: usize) -> f32 {
+        let theme = acme_theme::Theme::light();
+        let style = acme_text::TextStyle {
+            font_size: theme.typography.label,
+            ..acme_text::TextStyle::default()
+        };
+        let layout = fonts.shape(text, &style, acme_text::TextConstraints::default(), 1.0);
+        layout
+            .glyphs
+            .iter()
+            .find(|g| g.byte_range.start >= prefix_len)
+            .map(|g| g.x)
+            .expect("label glyph")
+    }
+
+    #[test]
+    fn sidebar_marker_and_unmarked_prefix_label_columns_match() {
+        // `▸ ` (U+25B8 + space) and two spaces differ by ~7.6px at 13px in the
+        // default font, so handler mode pads unmarked items with
+        // UNMARKED_PREFIX; the label must then start in the same column
+        // (≤ 2px) whether or not the item is current, at both builders' labels.
+        let mut fonts = acme_text::FontSystem::new();
+        let two = label_start(&mut fonts, "  Inbox", 2);
+        let marked = label_start(&mut fonts, "▸ Inbox", "▸ ".len());
+        eprintln!("063 prefix width: marker={marked} two_spaces={two}");
+        let node: WidgetNode<Nav> =
+            typed("s", SidebarState::Expanded, with_current(Some("drafts"))).into();
+        let mut bs = Vec::new();
+        buttons(&node, &mut bs);
+        let starts: Vec<(String, f32)> = bs
+            .iter()
+            .map(|b| {
+                let prefix = if b.label.starts_with('▸') {
+                    "▸ "
+                } else {
+                    UNMARKED_PREFIX
+                };
+                assert!(b.label.starts_with(prefix), "{}", b.label);
+                (
+                    b.label.clone(),
+                    label_start(&mut fonts, &b.label, prefix.len()),
+                )
+            })
+            .collect();
+        #[cfg(feature = "desktop")]
+        let starts = {
+            use crate::desktop::sidenav::{sidenav, sidenav_item, sidenav_section};
+            let node: WidgetNode<Nav> = sidenav::<Nav>("n")
+                .section(
+                    sidenav_section("General")
+                        .item(sidenav_item("Profile", "profile"))
+                        .item(sidenav_item("設定", "settings")),
+                )
+                .selected("profile")
+                .on_select(go)
+                .into();
+            let mut bs = Vec::new();
+            buttons(&node, &mut bs);
+            let mut starts = starts;
+            for b in &bs {
+                let prefix = if b.label.starts_with('▸') {
+                    "▸ "
+                } else {
+                    UNMARKED_PREFIX
+                };
+                assert!(b.label.starts_with(prefix), "{}", b.label);
+                starts.push((
+                    b.label.clone(),
+                    label_start(&mut fonts, &b.label, prefix.len()),
+                ));
+            }
+            starts
+        };
+        for (label, x) in &starts {
+            eprintln!("063 label column: {label:?} -> {x}");
+            // The space/marker width ratio depends on the system font stack;
+            // the <= 2px column match is verified for the Windows default font
+            // only. Other platforms record the measured offset (ROADMAP 063
+            // follow-up: paint the marker in a gutter instead of a prefix).
+            if cfg!(target_os = "windows") {
+                assert!(
+                    (x - marked).abs() <= 2.0,
+                    "{label:?} starts at {x}, marker column {marked}"
+                );
+            }
         }
     }
 }

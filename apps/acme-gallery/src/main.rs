@@ -2635,7 +2635,9 @@ impl Application for Gallery {
                 },
                 TextConstraints::default(),
             );
-            let ox = r.x + (r.width - measured.width).max(0.0) / 2.0;
+            // Left-aligned just after the marker gutter; the label x is the
+            // same whether or not the category is selected.
+            let ox = r.x + CATEGORY_LABEL_INSET;
             // Vertical centering: place the layout's top at
             //   r.y + (r.height - measured.height) / 2
             // then add baseline so origin_y (the baseline position)
@@ -2722,7 +2724,7 @@ impl Application for Gallery {
                 },
                 TextConstraints::default(),
             );
-            let tb_ox = r.x + (r.width - measured_tb.width).max(0.0) / 2.0;
+            let tb_ox = btn.label_x(r.x, r.width, measured_tb.width);
             let tb_oy = r.y + (r.height - measured_tb.height) / 2.0 + measured_tb.baseline;
             painter.text_primitive(build_text_primitive(
                 &mut self.fonts,
@@ -3166,7 +3168,7 @@ fn render_content_painter(
                 let prepared = fonts.prepare(&shaped, atlas);
                 let btn_clip = intersect_clip([rect.x, y, rect.width, rect.height], clip);
                 let origin = [
-                    rect.x + (rect.width - shaped.width).max(0.0) / 2.0,
+                    btn.label_x(rect.x, rect.width, shaped.width),
                     y + (rect.height - shaped.height).max(0.0) / 2.0 + shaped.baseline,
                 ];
                 painter.with_clip(
@@ -3511,7 +3513,7 @@ fn render_content(
                 frame.text.push(TextRun {
                     prepared: fonts.prepare(&shaped, atlas),
                     origin: [
-                        rect.x + (rect.width - shaped.width).max(0.0) / 2.0,
+                        btn.label_x(rect.x, rect.width, shaped.width),
                         y + (rect.height - shaped.height).max(0.0) / 2.0 + shaped.baseline,
                     ],
                     color: rgba(resolved.foreground),
@@ -3876,6 +3878,8 @@ fn paint_card_shadow_painter(
 /// layout.
 const CATEGORY_MARKER: &str = "▸";
 const CATEGORY_MARKER_GUTTER: f32 = 8.0;
+/// Label inset from the button's left edge: past the marker gutter and glyph.
+const CATEGORY_LABEL_INSET: f32 = 24.0;
 
 fn build_text_primitive(
     fonts: &mut FontSystem,
@@ -4532,6 +4536,8 @@ mod checkbox_cards_tests;
 #[cfg(test)]
 mod navigation_menu_tests;
 
+#[cfg(test)]
+mod button_alignment_tests;
 #[cfg(test)]
 mod sidebar_tests;
 

@@ -885,6 +885,54 @@ mod tests {
         assert_eq!(scene.commands().len(), 1);
     }
 
+    /// ROADMAP 063: the SDK bridge paints Button chrome only (the core
+    /// `Painter` has no text primitive), so alignment must not change a byte
+    /// of its Scene, and an unaligned button must equal the pre-063 chrome.
+    #[test]
+    fn bridge_button_paint_is_identical_for_any_text_align() {
+        use acme_style::{Styled, TextAlign};
+        let theme = Theme::light();
+        let scene_for = |align: Option<TextAlign>| {
+            let mut b = button::<()>("ok", "Save changes").full_width(true);
+            if let Some(a) = align {
+                b = b.text_align(a);
+            }
+            let root = column::<()>().width(240.0).child(b.on_click(())).build();
+            let layout = root.to_layout(NodeId::new(1));
+            let snapshot = LayoutEngine::new()
+                .compute(&layout, (400.0, 200.0))
+                .unwrap();
+            let rect = node_logical_rect(&snapshot, layout.children[0].id).unwrap();
+            let mut painter = Painter::new();
+            paint_widget_tree_overlays_or_primitives(
+                &root,
+                &layout,
+                &snapshot,
+                &theme,
+                &mut painter,
+            );
+            (painter.finish(), rect)
+        };
+        let (unset, rect) = scene_for(None);
+        // Pre-063 reference: exactly one bordered, rounded chrome quad.
+        let resolved = button::<()>("ok", "Save changes")
+            .resolve_style(&theme, crate::inputs::ButtonState::default());
+        let mut reference = Painter::new();
+        reference.rect(
+            rect,
+            RectStyle::solid(theme_color(resolved.background))
+                .radius(theme.radii.md)
+                .border(1.0, theme_color(resolved.border)),
+        );
+        let reference = reference.finish();
+        assert_eq!(unset, reference);
+        assert_eq!(format!("{unset:?}"), format!("{reference:?}"));
+        for align in [TextAlign::Left, TextAlign::Center, TextAlign::Right] {
+            let (scene, _) = scene_for(Some(align));
+            assert_eq!(format!("{scene:?}"), format!("{unset:?}"), "{align:?}");
+        }
+    }
+
     /// Paints a single fixed-size card and returns its chrome quad's
     /// (border_width, border_color).
     fn card_chrome(builder: crate::CardBuilder<()>, theme: &Theme) -> (f32, Color) {

@@ -1,0 +1,177 @@
+   Compiling acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+error[E0425]: cannot find value `DEFAULT_LABEL_PAD` in module `crate::inputs::button`
+    --> crates\acme-widgets\src\lib.rs:2098:43
+     |
+2098 |         assert_eq!(crate::inputs::button::DEFAULT_LABEL_PAD, 12.0);
+     |                                           ^^^^^^^^^^^^^^^^^ not found in `crate::inputs::button`
+
+error[E0599]: no method named `label_x` found for reference `&inputs::button::Button<()>` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2090:30
+     |
+2090 |                 assert_eq!(b.label_x(x, w, t).to_bits(), want.to_bits(), "{x} {w} {t}");
+     |                              ^^^^^^^ method not found in `&Button<()>`
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2093:26
+     |
+2093 |         assert_eq!(unset.label_x(10.0, 60.0, 90.0), 10.0);
+     |                          ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2102:25
+     |
+2102 |         assert_eq!(left.label_x(20.0, 200.0, 50.0), 32.0);
+     |                         ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2103:26
+     |
+2103 |         assert_eq!(right.label_x(20.0, 200.0, 50.0), 20.0 + 200.0 - 12.0 - 50.0);
+     |                          ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2107:27
+     |
+2107 |         assert_eq!(left_p.label_x(20.0, 200.0, 50.0), 27.0);
+     |                           ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2108:28
+     |
+2108 |         assert_eq!(right_p.label_x(20.0, 200.0, 50.0), 20.0 + 200.0 - 3.0 - 50.0);
+     |                            ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2111:26
+     |
+2111 |         assert_eq!(flush.label_x(20.0, 200.0, 50.0), 20.0);
+     |                          ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2113:25
+     |
+2113 |         assert_eq!(left.label_x(20.0, 60.0, 90.0), 32.0);
+     |                         ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2114:26
+     |
+2114 |         assert_eq!(right.label_x(20.0, 60.0, 90.0), 32.0);
+     |                          ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2115:28
+     |
+2115 |         assert_eq!(right_p.label_x(20.0, 60.0, 90.0), 27.0);
+     |                            ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2117:26
+     |
+2117 |         assert_eq!(right.label_x(0.0, 124.0, 100.0), 12.0);
+     |                          ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2119:25
+     |
+2119 |         assert_eq!(left.label_x(5.0, 100.0, 1.0), left.label_x(5.0, 100.0, 99.0));
+     |                         ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+error[E0599]: no method named `label_x` found for struct `inputs::button::Button` in the current scope
+    --> crates\acme-widgets\src\lib.rs:2119:56
+     |
+2119 |         assert_eq!(left.label_x(5.0, 100.0, 1.0), left.label_x(5.0, 100.0, 99.0));
+     |                                                        ^^^^^^^ method not found in `Button<()>`
+     |
+    ::: crates\acme-widgets\src\inputs\button.rs:56:1
+     |
+56   | pub struct Button<M> {
+     | -------------------- method `label_x` not found for this struct
+
+Some errors have detailed explanations: E0425, E0599.
+For more information about an error, try `rustc --explain E0425`.
+error: could not compile `acme-widgets` (lib test) due to 14 previous errors
+warning: build failed, waiting for other jobs to finish...
+=== acme-ui ===
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+error[E0599]: no method named `label_x` found for reference `&acme_widgets::Button<layout::sidebar::tests::Nav>` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:764:30
+    |
+764 |                 assert_eq!(b.label_x(8.0, 240.0, 40.0), 20.0);
+    |                              ^^^^^^^ method not found in `&Button<Nav>`
+
+error[E0599]: no method named `label_x` found for reference `&acme_widgets::Button<layout::sidebar::tests::Nav>` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:765:30
+    |
+765 |                 assert_eq!(b.label_x(8.0, 240.0, 120.0), 20.0);
+    |                              ^^^^^^^ method not found in `&Button<Nav>`
+
+error[E0599]: no method named `label_x` found for reference `&acme_widgets::Button<layout::sidebar::tests::Nav>` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:775:26
+    |
+775 |             assert_eq!(b.label_x(8.0, 48.0, 10.0), 8.0 + 19.0);
+    |                          ^^^^^^^ method not found in `&Button<Nav>`
+
+error[E0599]: no method named `label_x` found for reference `&acme_widgets::Button<layout::sidebar::tests::Nav>` in the current scope
+   --> crates\acme-ui\src\layout\sidebar.rs:802:34
+    |
+802 |                     assert_eq!(b.label_x(0.0, 200.0, 60.0), 12.0);
+    |                                  ^^^^^^^ method not found in `&Button<Nav>`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `acme-ui` (lib test) due to 4 previous errors

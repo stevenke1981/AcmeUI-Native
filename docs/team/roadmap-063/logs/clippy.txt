@@ -1,0 +1,18 @@
+$ cargo clippy --locked -p acme-widgets -p acme-ui --all-features -p acme-ui-gallery -p acme-gallery -p acme-playground --all-targets --no-deps -- -D warnings (start 2026-11-16T19:05:44Z)
+    Checking acme-core v0.2.0 (F:\AcmeUI-Native\crates\acme-core)
+    Checking acme-text v0.2.0 (F:\AcmeUI-Native\crates\acme-text)
+    Checking acme-layout v0.2.0 (F:\AcmeUI-Native\crates\acme-layout)
+    Checking acme-theme v0.2.0 (F:\AcmeUI-Native\crates\acme-theme)
+    Checking acme-render-cpu v0.2.0 (F:\AcmeUI-Native\crates\acme-render-cpu)
+    Checking acme-render-wgpu v0.2.0 (F:\AcmeUI-Native\crates\acme-render-wgpu)
+    Checking acme-style v0.2.0 (F:\AcmeUI-Native\crates\acme-style)
+    Checking acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+    Checking acme-platform v0.2.0 (F:\AcmeUI-Native\crates\acme-platform)
+    Checking acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Checking acme-textinput v0.2.0 (F:\AcmeUI-Native\crates\acme-textinput)
+    Checking acme-accessibility v0.2.0 (F:\AcmeUI-Native\crates\acme-accessibility)
+    Checking acme-playground v0.2.0 (F:\AcmeUI-Native\apps\playground)
+    Checking acme-gallery v0.2.0 (F:\AcmeUI-Native\apps\gallery)
+    Checking acme-ui-gallery v0.2.0 (F:\AcmeUI-Native\apps\acme-gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.21s
+exit code: 0
