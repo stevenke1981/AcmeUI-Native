@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 053 — SpeedDial directional expansion (2026-11-16)
+
+- [x] Add Up/Down/Left/Right with existing Up default, declaration-ordered typed actions, passive fallback and retained control/focus continuity through direction and keyed instance reorders.
+- [x] Add a controlled Gallery direction selector and pointer/theme/scale/clip/layout regressions; verification and automated native CPU evidence in [report](../team/roadmap-053/REPORT.md).
+- [ ] Viewport anchoring and animation remain separate; human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 052 — Immediate-mode Painter, HitTestLayer, Theme JSON & backlog completion (2026-11-15)
 
 - [x] Implement `Painter`/`Canvas`/`painter_bridge`, `HitTestLayer`/`ClickDetector`/`hit_bridge`, `HighContrastPack`, `Theme::to_json`/`from_json`, `KeyModifiers`/`KeyInput`, `LiveRegion`, `ProgressRing`, `QRCode`, charts, `DropdownMenu`, `Drawer`, `DatePicker`, `Combobox`, `SliderMarks`, `BottomNav`, `PullToRefresh`, `MobileTabBar`/`MobileDrawer`/`MobileCarousel`, and `FrameDirtyTracker`; migrate `apps/playground`, `apps/gallery`, and `apps/acme-gallery`.
@@ -65,7 +71,7 @@
 
 - [x] Cover the converted SpeedDial tree and fix the existing ignored on_action callback: open configured actions become instance-keyed Buttons carrying indexed messages; passive labels, root/toggle identity and host-controlled state remain compatible.
 - [x] Add Gallery open/select/close and stale-action rejection, theme/scale/clip/hit regressions and actual CPU window evidence. Exact source and checks: [report](../team/roadmap-042/REPORT.md).
-- [ ] Directional expansion, animation/global overlay placement and human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance remain separate / NOT_RUN.
+- [ ] Directional expansion implemented in ROADMAP 053; animation/global overlay placement and human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance remain separate / NOT_RUN.
 
 ## ROADMAP 041 — Retained container focus and typed activation (2026-11-11)
 
@@ -681,7 +687,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 
 ### Remaining enhancements
 - [ ] Real image rendering in ImageList (currently placeholder labels)
-- [ ] SpeedDial directional expansion (up/down/left/right)
+- [x] SpeedDial directional expansion (up/down/left/right), preserving the default Up layout and current typed actions; Gallery direction selector, retained focus and layout/paint/pointer checks (ROADMAP 053). Viewport placement and animation remain separate.
 - [ ] AppBar scroll-hide behavior
 - [ ] TextField input masking and adornments (leading/trailing icons)
 - [x] Paper square variant (no border radius), independent of elevation; real layout/retained/Gallery checks and native CPU evidence (ROADMAP 036). Existing shadow approximation and manual acceptance remain separate.

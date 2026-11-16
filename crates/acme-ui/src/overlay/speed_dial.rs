@@ -4,6 +4,16 @@
 use crate::WidgetNode;
 use acme_core::WidgetKey;
 
+/// Direction in which the actions extend from the toggle.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SpeedDialDirection {
+    #[default]
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 /// A single speed dial action.
 #[derive(Clone, Debug)]
 pub struct SpeedDialAction {
@@ -29,6 +39,7 @@ impl SpeedDialAction {
 pub struct SpeedDialBuilder<M> {
     pub id: WidgetKey,
     pub open: bool,
+    pub direction: SpeedDialDirection,
     pub actions: Vec<SpeedDialAction>,
     pub on_toggle: Option<M>,
     pub on_action: Option<fn(usize) -> M>,
@@ -39,6 +50,7 @@ pub fn speed_dial<M: Clone + 'static>() -> SpeedDialBuilder<M> {
     SpeedDialBuilder {
         id: WidgetKey::from("speed_dial"),
         open: false,
+        direction: SpeedDialDirection::default(),
         actions: Vec::new(),
         on_toggle: None,
         on_action: None,
@@ -53,6 +65,16 @@ impl<M: Clone + 'static> SpeedDialBuilder<M> {
 
     pub fn open(mut self, value: bool) -> Self {
         self.open = value;
+        self
+    }
+
+    /// Set the expansion direction (default: up).
+    ///
+    /// Actions keep declaration order from top to bottom or left to right.
+    /// Up/Left place them before the toggle; Down/Right place them after it.
+    /// Placement within the viewport remains the host's responsibility.
+    pub fn direction(mut self, value: SpeedDialDirection) -> Self {
+        self.direction = value;
         self
     }
 
@@ -77,7 +99,19 @@ impl<M: Clone + 'static> SpeedDialBuilder<M> {
 impl<M: Clone + 'static> From<SpeedDialBuilder<M>> for WidgetNode<M> {
     fn from(b: SpeedDialBuilder<M>) -> Self {
         let action_prefix = b.id.as_str().to_owned();
-        let mut col = crate::column::<M>().key(b.id).gap(8.0).padding(8.0);
+        let horizontal = matches!(
+            b.direction,
+            SpeedDialDirection::Left | SpeedDialDirection::Right
+        );
+        let mut container = if horizontal {
+            crate::row::<M>()
+        } else {
+            crate::column::<M>()
+        }
+        .key(b.id)
+        .gap(8.0)
+        .padding(8.0);
+        let mut children = Vec::new();
 
         if b.open {
             for (index, action) in b.actions.iter().enumerate() {
@@ -88,12 +122,12 @@ impl<M: Clone + 'static> From<SpeedDialBuilder<M>> for WidgetNode<M> {
                 let label = format!("{}{}", icon_str, action.label);
                 let child = if let Some(message) = b.on_action {
                     crate::button(format!("{action_prefix}:action:{index}"), label)
-                        .full_width(true)
+                        .full_width(!horizontal)
                         .on_click(message(index))
                 } else {
                     crate::label(label)
                 };
-                col = col.child(child);
+                children.push(child);
             }
         }
 
@@ -105,8 +139,18 @@ impl<M: Clone + 'static> From<SpeedDialBuilder<M>> for WidgetNode<M> {
         } else {
             fab.into()
         };
-        col = col.child(fab_node);
-        col.build()
+        if matches!(
+            b.direction,
+            SpeedDialDirection::Down | SpeedDialDirection::Right
+        ) {
+            children.insert(0, fab_node);
+        } else {
+            children.push(fab_node);
+        }
+        for child in children {
+            container = container.child(child);
+        }
+        container.build()
     }
 }
 
