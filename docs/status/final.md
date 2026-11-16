@@ -1,5 +1,10 @@
 # Delivery Status
 
+## 2026-11-16 — ROADMAP 059 Layout keyboard hosts polish
+
+- Remaining NavigationMenu/Sidebar host P2s fixed, plus a keyboard-owner frame. Real-window verification caught the frame painting at about 1.1:1 contrast; `Interactive` cards now draw a 2px `ring` border in both painters. Workspace tests 2136 passed / 0 failed; clippy and fmt PASS; [report](../team/roadmap-059/REPORT.md).
+- Execution: Claude Code agent team (Fable 5.2 adviser/reviewer; Opus 5.5 component; Sonnet 5.5 Gallery; Opus 5.5 Lead gates and GUI). 注音 IME and screen reader NOT_RUN.
+
 ## 2026-11-16 — ROADMAP 058 CheckboxCards typed toggling and roving keyboard focus
 
 - CheckboxCards never bound `on_toggle`. Cards now toggle by pointer and keyboard, with focus navigation and a Gallery Inputs F7 host sharing one page keyboard owner with RadioCards. Workspace tests 2117 passed / 0 failed; clippy and fmt PASS; real-window GUI 14/14 PASS; [report](../team/roadmap-058/REPORT.md).

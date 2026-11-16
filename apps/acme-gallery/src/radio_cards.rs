@@ -66,11 +66,11 @@ impl Gallery {
                 name(self.radio_cards.confirmed)
             )))
             .child(label(format!(
-                "Keyboard group: {}",
+                "鍵盤群組：{}",
                 if self.radio_cards.active {
-                    "active"
+                    "使用中"
                 } else {
-                    "inactive"
+                    "未使用"
                 }
             )))
             .build()

@@ -98,11 +98,11 @@ impl Gallery {
             .child(label(format!("已勾選：{checked}")))
             .child(label(format!("目前焦點：{focus}")))
             .child(label(format!(
-                "Keyboard group: {}",
+                "鍵盤群組：{}",
                 if self.checkbox_cards.active {
-                    "active"
+                    "使用中"
                 } else {
-                    "inactive"
+                    "未使用"
                 }
             )))
             .build()

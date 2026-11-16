@@ -619,3 +619,363 @@ fn gallery_navigation_menu_preedit_passes_unhandled_keys_through() {
     assert!(g.nav_menu.active);
     assert_eq!(g.nav_menu.item, "home");
 }
+
+// ── ROADMAP 059 ─────────────────────────────────────────────────────────
+
+fn chord_event(
+    key: PlatformKey,
+    (ctrl, alt, meta): (bool, bool, bool),
+    repeat: bool,
+) -> PlatformEvent {
+    PlatformEvent::Key {
+        window: WindowId(1),
+        key,
+        pressed: true,
+        shift: false,
+        ctrl,
+        alt,
+        meta,
+        repeat,
+        text: None,
+        character: None,
+    }
+}
+
+fn find_widget<'a>(
+    node: &'a WidgetNode<GalleryMessage>,
+    key: &str,
+) -> Option<&'a WidgetNode<GalleryMessage>> {
+    if node.key().is_some_and(|k| k.as_str() == key) {
+        return Some(node);
+    }
+    node.children().iter().find_map(|c| find_widget(c, key))
+}
+
+fn frame_variant(node: &WidgetNode<GalleryMessage>, key: &str) -> (CardVariant, f32, usize) {
+    let Some(WidgetNode::Card(card)) = find_widget(node, key) else {
+        panic!("{key} must be an always-present Card");
+    };
+    (card.variant, card.padding.top, card.children.len())
+}
+
+#[test]
+fn gallery_layout_hosts_snackbar_press_deactivates_menu_and_sidebar() {
+    for (nav_active, side_key) in [
+        (true, PlatformKey::Function(6)),
+        (false, PlatformKey::Function(7)),
+    ] {
+        let mut g = layout();
+        key(&mut g, side_key);
+        assert_eq!(
+            (g.nav_menu.active, g.side_nav.active),
+            (nav_active, !nav_active)
+        );
+        g.snackbar.show(std::time::Instant::now(), true);
+        frame(&mut g);
+        let sb = g.snackbar.bounds.expect("snackbar bounds painted");
+        let (item, current) = (g.nav_menu.item, g.side_nav.current);
+        let before = (
+            g.nav_menu.destination,
+            g.side_nav.confirmed,
+            g.nav_menu.child,
+        );
+        press_at(&mut g, sb[0] + 4.0, sb[1] + 4.0);
+        assert_eq!((g.nav_menu.active, g.side_nav.active), (false, false));
+        assert_eq!((g.nav_menu.item, g.side_nav.current), (item, current));
+        assert_eq!(
+            before,
+            (
+                g.nav_menu.destination,
+                g.side_nav.confirmed,
+                g.nav_menu.child
+            )
+        );
+    }
+}
+
+#[test]
+fn gallery_sidebar_ignores_ctrl_alt_meta_chords() {
+    for chord in [
+        (true, false, false),
+        (false, true, false),
+        (false, false, true),
+    ] {
+        let mut g = layout();
+        // Entry chords are not ours while inactive.
+        for k in [PlatformKey::Function(6), PlatformKey::Function(7)] {
+            assert_eq!(g.sidebar_event(&chord_event(k, chord, false)), None);
+        }
+        assert!(!g.side_nav.active, "{chord:?}");
+        key(&mut g, PlatformKey::Function(7));
+        let scroll = g.scroll;
+        for k in [
+            PlatformKey::ArrowDown,
+            PlatformKey::ArrowUp,
+            PlatformKey::ArrowLeft,
+            PlatformKey::ArrowRight,
+            PlatformKey::Enter,
+            PlatformKey::Space,
+            PlatformKey::Escape,
+            PlatformKey::Function(6),
+            PlatformKey::Function(7),
+        ] {
+            assert_eq!(
+                g.sidebar_event(&chord_event(k, chord, false)),
+                None,
+                "{k:?} with {chord:?}"
+            );
+        }
+        assert!(
+            g.side_nav.active,
+            "chords never leave the group ({chord:?})"
+        );
+        assert_eq!(
+            (
+                g.side_nav.current,
+                g.side_nav.confirmed,
+                g.side_nav.collapsed
+            ),
+            (0, None, false)
+        );
+        assert_eq!(g.scroll, scroll);
+    }
+    // Shift stays allowed.
+    let mut g = layout();
+    key(&mut g, PlatformKey::Function(7));
+    let shift = PlatformEvent::Key {
+        window: WindowId(1),
+        key: PlatformKey::ArrowDown,
+        pressed: true,
+        shift: true,
+        ctrl: false,
+        alt: false,
+        meta: false,
+        repeat: false,
+        text: None,
+        character: None,
+    };
+    assert_eq!(g.sidebar_event(&shift), Some(true));
+    assert_eq!(g.side_nav.current, 1);
+}
+
+#[test]
+fn gallery_sidebar_enter_space_ignore_os_auto_repeat() {
+    let mut g = layout();
+    key(&mut g, PlatformKey::Function(7));
+    for k in [PlatformKey::Enter, PlatformKey::Space] {
+        assert_eq!(
+            g.sidebar_event(&chord_event(k, (false, false, false), true)),
+            Some(false),
+            "{k:?} repeat"
+        );
+        assert_eq!(g.side_nav.confirmed, None);
+        assert!(g.side_nav.active);
+    }
+    // A fresh press still confirms; arrow repeat still roves.
+    assert_eq!(
+        g.sidebar_event(&chord_event(
+            PlatformKey::ArrowDown,
+            (false, false, false),
+            true
+        )),
+        Some(true)
+    );
+    assert_eq!(g.side_nav.current, 1);
+    assert!(key(&mut g, PlatformKey::Enter));
+    assert_eq!(g.side_nav.confirmed, Some(1));
+}
+
+#[test]
+fn gallery_layout_keyboard_owner_frame_is_interactive_only_while_active() {
+    let nav_key = "gallery_nav_menu_focus";
+    let side_key = "gallery_layout_sidebar_focus";
+    let mut g = layout();
+    let idle_nav = frame_variant(&g.nav_menu_examples(), nav_key);
+    let idle_side = frame_variant(&g.sidebar_examples(), side_key);
+    assert_eq!(idle_nav.0, CardVariant::Plain);
+    assert_eq!(idle_side.0, CardVariant::Plain);
+    key(&mut g, PlatformKey::Function(6));
+    let nav_on = frame_variant(&g.nav_menu_examples(), nav_key);
+    let side_off = frame_variant(&g.sidebar_examples(), side_key);
+    assert_eq!(nav_on.0, CardVariant::Interactive);
+    assert_eq!(side_off.0, CardVariant::Plain);
+    key(&mut g, PlatformKey::Function(7));
+    assert_eq!(
+        frame_variant(&g.nav_menu_examples(), nav_key).0,
+        CardVariant::Plain
+    );
+    let side_on = frame_variant(&g.sidebar_examples(), side_key);
+    assert_eq!(side_on.0, CardVariant::Interactive);
+    // Padding and child count are constant, so layout and IDs never shift.
+    assert_eq!((idle_nav.1, idle_nav.2), (nav_on.1, nav_on.2));
+    assert_eq!((idle_side.1, idle_side.2), (side_on.1, side_on.2));
+    assert!(idle_nav.1 > 0.0 && idle_side.1 > 0.0);
+}
+
+#[test]
+fn gallery_keyboard_status_labels_are_zh_tw() {
+    let mut g = layout();
+    let dump = |n: WidgetNode<GalleryMessage>| format!("{n:?}");
+    let idle = dump(g.nav_menu_examples());
+    assert!(idle.contains("鍵盤選單：未使用"));
+    assert!(dump(g.sidebar_examples()).contains("鍵盤群組：未使用"));
+    key(&mut g, PlatformKey::Function(6));
+    assert!(dump(g.nav_menu_examples()).contains("鍵盤選單：使用中"));
+    key(&mut g, PlatformKey::Function(7));
+    assert!(dump(g.sidebar_examples()).contains("鍵盤群組：使用中"));
+    for text in [
+        dump(g.nav_menu_examples()),
+        dump(g.sidebar_examples()),
+        dump(g.radio_cards_examples()),
+        dump(g.checkbox_cards_examples()),
+    ] {
+        assert!(!text.contains("Keyboard group") && !text.contains("Keyboard menu"));
+    }
+    assert!(dump(g.radio_cards_examples()).contains("鍵盤群組：未使用"));
+    assert!(dump(g.checkbox_cards_examples()).contains("鍵盤群組：未使用"));
+    g.radio_cards.active = true;
+    g.checkbox_cards.active = true;
+    assert!(dump(g.radio_cards_examples()).contains("鍵盤群組：使用中"));
+    assert!(dump(g.checkbox_cards_examples()).contains("鍵盤群組：使用中"));
+}
+
+// ── 059 P1: keyboard-owner ring contrast ────────────────────────────────
+
+fn paint_widget(g: &mut Gallery, widget: &WidgetNode<GalleryMessage>) -> Frame {
+    let theme = g.current_theme();
+    let context = WidgetLayoutContext {
+        body_font_size: theme.typography.body,
+        body_line_height: theme.typography.body * theme.typography.line_height,
+        label_font_size: theme.typography.label,
+        control_height: 36.0,
+        scale_factor: 1.0,
+    };
+    let layout = widget.to_layout_with_context(NodeId::new(1), &context);
+    let snapshot = g
+        .layout
+        .compute_with_text(&layout, (600.0, 800.0), &mut g.fonts, 1.0)
+        .unwrap();
+    let mut paint = Frame::default();
+    let mut index = 0;
+    render_content(
+        &mut paint,
+        widget,
+        &layout,
+        &snapshot,
+        &theme,
+        1.0,
+        0.0,
+        [0.0, 0.0, 600.0, 800.0],
+        &mut index,
+        None,
+        None,
+        &mut g.fonts,
+        &mut g.atlas,
+    );
+    paint
+}
+
+#[test]
+fn gallery_layout_owner_frame_border_is_ring_with_3_to_1_contrast() {
+    for dark in [false, true] {
+        let mut g = layout();
+        g.dark = dark;
+        let theme = g.current_theme();
+        for host in [6u8, 7] {
+            key(&mut g, PlatformKey::Function(host));
+            let widget = if host == 6 {
+                g.nav_menu_examples()
+            } else {
+                g.sidebar_examples()
+            };
+            let paint = paint_widget(&mut g, &widget);
+            let ring = rgba(theme.colors.ring);
+            let frames: Vec<_> = paint
+                .clipped_quads
+                .iter()
+                .filter(|q| q.quad.border_color == ring && q.quad.border_width == 2.0)
+                .collect();
+            assert_eq!(frames.len(), 1, "one 2px ring frame (dark={dark}, F{host})");
+            assert!(
+                acme_theme::contrast_ratio(theme.colors.ring, theme.colors.background) >= 3.0,
+                "ring vs background, dark={dark}"
+            );
+            let accent = rgba(theme.colors.accent);
+            assert!(
+                paint
+                    .clipped_quads
+                    .iter()
+                    .all(|q| q.quad.border_color != accent),
+                "no accent-coloured border"
+            );
+        }
+    }
+}
+
+#[test]
+fn gallery_theme_packs_ring_contrast_against_surface_and_background() {
+    let mut report = Vec::new();
+    let mut failing = Vec::new();
+    let mut names = vec!["default".to_string()];
+    names.extend(available_themes().iter().map(|s| s.to_string()));
+    for name in &names {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            let theme = if name == "default" {
+                match mode {
+                    ThemeMode::Dark => Theme::dark(),
+                    ThemeMode::Light => Theme::light(),
+                }
+            } else {
+                match theme_by_name(name, mode) {
+                    Some(t) => t,
+                    None => continue,
+                }
+            };
+            let s = acme_theme::contrast_ratio(theme.colors.ring, theme.colors.surface);
+            let b = acme_theme::contrast_ratio(theme.colors.ring, theme.colors.background);
+            report.push(format!("{name} {mode:?}: surface {s:.2} background {b:.2}"));
+            if s < 3.0 || b < 3.0 {
+                failing.push(format!("{name} {mode:?}"));
+            }
+            if name == "default" {
+                assert!(s >= 3.0 && b >= 3.0, "default {mode:?}: {s} {b}");
+            }
+        }
+    }
+    println!(
+        "{}",
+        report.join(
+            "
+"
+        )
+    );
+    println!("FAILING PACKS: {failing:?}");
+}
+
+#[test]
+fn gallery_layout_hit_rects_are_stable_across_f6_f7_escape() {
+    let mut g = layout();
+    let rects = |g: &Gallery| -> Vec<(GalleryMessage, [f32; 4])> {
+        g.button_info
+            .iter()
+            .filter(|h| {
+                matches!(
+                    h.message,
+                    GalleryMessage::NavMenuSelect(_) | GalleryMessage::SidebarSelect(_)
+                )
+            })
+            .map(|h| (h.message, h.rect))
+            .collect()
+    };
+    let before = rects(&g);
+    assert!(!before.is_empty());
+    for step in [
+        PlatformKey::Function(6),
+        PlatformKey::Function(7),
+        PlatformKey::Escape,
+    ] {
+        key(&mut g, step);
+        frame(&mut g);
+        assert_eq!(rects(&g), before, "hit rects shifted after {step:?}");
+    }
+}

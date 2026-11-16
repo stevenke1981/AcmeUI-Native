@@ -77,7 +77,18 @@ impl Gallery {
                 .wrap(acme_widgets::LabelWrap::Word)
                 .build(),
             )
-            .child(self.sidebar_demo_builder())
+            .child(
+                // Always present: only the variant changes, never the layout.
+                card()
+                    .key("gallery_layout_sidebar_focus")
+                    .variant(if self.side_nav.active {
+                        CardVariant::Interactive
+                    } else {
+                        CardVariant::Plain
+                    })
+                    .padding(8.0)
+                    .child(self.sidebar_demo_builder()),
+            )
             .child(label(format!(
                 "目前項目：{}",
                 ITEMS[self.side_nav.current as usize].1
@@ -92,11 +103,11 @@ impl Gallery {
                 }
             )))
             .child(label(format!(
-                "Keyboard group: {}",
+                "鍵盤群組：{}",
                 if self.side_nav.active {
-                    "active"
+                    "使用中"
                 } else {
-                    "inactive"
+                    "未使用"
                 }
             )))
             .build()
@@ -116,6 +127,13 @@ impl Gallery {
         self.nav_menu.active = false;
         self.reset_hover_press();
         true
+    }
+
+    /// Pointer press over the Snackbar overlay: neither Layout keyboard host
+    /// owns the keyboard any more. Changes nothing else.
+    pub(super) fn layout_keyboard_release(&mut self) {
+        self.nav_menu.active = false;
+        self.side_nav.active = false;
     }
 
     /// Arrow navigation: reveal the current item only when it is hidden.
@@ -150,6 +168,9 @@ impl Gallery {
             PlatformEvent::Key {
                 key: PlatformKey::Function(6),
                 pressed: true,
+                ctrl: false,
+                alt: false,
+                meta: false,
                 ..
             } => {
                 // The NavigationMenu hook takes over; an ignored (composing)
@@ -162,6 +183,9 @@ impl Gallery {
             PlatformEvent::Key {
                 key: PlatformKey::Function(7),
                 pressed: true,
+                ctrl: false,
+                alt: false,
+                meta: false,
                 ..
             } => {
                 if !self.search.input.preedit.is_empty() {
@@ -174,8 +198,15 @@ impl Gallery {
                 self.reveal_sidebar_group();
                 Some(true)
             }
+            // Ctrl / Alt / Meta chords (e.g. Alt+Space, the system menu) are not ours.
             PlatformEvent::Key {
-                key, pressed: true, ..
+                key,
+                pressed: true,
+                ctrl: false,
+                alt: false,
+                meta: false,
+                repeat,
+                ..
             } if self.side_nav.active => {
                 if !matches!(
                     key,
@@ -190,6 +221,10 @@ impl Gallery {
                     return None;
                 }
                 if !self.search.input.preedit.is_empty() {
+                    return Some(false);
+                }
+                // OS auto-repeat must not re-confirm; arrows still rove.
+                if *repeat && matches!(key, PlatformKey::Enter | PlatformKey::Space) {
                     return Some(false);
                 }
                 match key {

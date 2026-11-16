@@ -90,7 +90,7 @@ impl<M: Clone + 'static> CheckboxCardsBuilder<M> {
 
     /// Mark the keyboard-focused option.
     ///
-    /// In handler mode the focused card uses the Elevated variant (others stay
+    /// In handler mode the focused card uses the Interactive variant (others stay
     /// Outlined) and its title is prefixed with `▸ `. Keys do not depend on
     /// focus. Ignored without an `on_toggle` handler; an unknown value marks
     /// nothing.
@@ -133,7 +133,7 @@ impl<M: Clone + 'static> From<CheckboxCardsBuilder<M>> for WidgetNode<M> {
                 let is_focused = b.focused.as_deref() == Some(option.value.as_str());
                 let (card_variant, title) = if is_focused {
                     (
-                        acme_widgets::CardVariant::Elevated,
+                        acme_widgets::CardVariant::Interactive,
                         format!("▸ {} {}", marker, option.title),
                     )
                 } else {
@@ -368,11 +368,11 @@ mod tests {
     }
 
     #[test]
-    fn checkbox_cards_focused_is_elevated_and_marked() {
+    fn checkbox_cards_focused_card_uses_interactive_variant_and_marker() {
         let node: WidgetNode<Msg> = group("f", &["a", "b", "c"], &["c"], Some("b")).into();
         assert_eq!(
             card_variant(&node, "f:card:b"),
-            acme_widgets::CardVariant::Elevated
+            acme_widgets::CardVariant::Interactive
         );
         for other in ["a", "c"] {
             assert_eq!(
@@ -397,10 +397,10 @@ mod tests {
         );
         assert_eq!(
             card_variant(&node, "f:card:c"),
-            acme_widgets::CardVariant::Elevated
+            acme_widgets::CardVariant::Interactive
         );
 
-        // An unknown focused value elevates nothing.
+        // An unknown focused value marks nothing.
         let node: WidgetNode<Msg> = group("f", &["a", "b"], &[], Some("zz")).into();
         for v in ["a", "b"] {
             assert_eq!(

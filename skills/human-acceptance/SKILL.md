@@ -17,6 +17,7 @@ A real-window run is valid only if all of the following hold. Check them first a
 2. The app under test is the build at the SHA you report. Build it yourself (`cargo build --locked -p <app>`), launch that exact binary, and record the commit.
 3. The target window is not elevated (UIPI blocks input into elevated windows), or the driver runs elevated too.
 4. Nothing else is fighting for focus. Close or avoid windows you would type into by accident. **Never type into a window you did not launch**, such as the user's editor holding an open file.
+   The driver enforces this: before every input or `shot` step it checks the target is still the foreground window, and before every pointer step it checks the point is over the target. If another window came to the front mid-run, it aborts with `aborted: ... no input sent` instead of clicking or capturing someone else's window. Treat an abort as "the desktop is busy": do not add `focus` steps to force your way back; find out what took focus first.
 
 ## Why naive automation lies
 

@@ -1,0 +1,48 @@
+# painter-green (ROADMAP 059 P2-4) 2026-11-16T23:10:23+08:00 HEAD=4b9e7ad + uncommitted working tree
+## RED (new test, before impl)
+   Compiling acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.45s
+     Running unittests src\lib.rs (target\debug\deps\acme_widgets-17de930e70b6e965.exe)
+
+running 1 test
+test painter_bridge::tests::interactive_card_draws_ring_border_and_other_variants_are_unchanged ... FAILED
+
+failures:
+
+---- painter_bridge::tests::interactive_card_draws_ring_border_and_other_variants_are_unchanged stdout ----
+
+thread 'painter_bridge::tests::interactive_card_draws_ring_border_and_other_variants_are_unchanged' panicked at crates\acme-widgets\src\painter_bridge.rs:918:9:
+assertion `left == right` failed
+  left: (1.0, Color { r: 0.8862745, g: 0.8980392, b: 0.91764706, a: 1.0 })
+ right: (2.0, Color { r: 0.14509805, g: 0.3882353, b: 0.92156863, a: 1.0 })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    painter_bridge::tests::interactive_card_draws_ring_border_and_other_variants_are_unchanged
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 177 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-widgets --lib`
+## GREEN: cargo test --locked -p acme-widgets
+test painter_bridge::tests::interactive_card_draws_ring_border_and_other_variants_are_unchanged ... ok
+test result: ok. 178 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+exit=0
+## cargo clippy --locked -p acme-widgets --all-targets --no-deps -- -D warnings
+    Checking acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.26s
+exit=0
+## cargo fmt -p acme-widgets -- --check
+exit=0
+## cargo test --locked -p acme-ui --all-features
+test result: ok. 914 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+exit=0
+## cargo test --locked --workspace
+exit=0
+ok result lines: 52
+total passed=2136 failed=0

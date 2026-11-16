@@ -1,5 +1,10 @@
 # Todos
 
+## ROADMAP 059 — Layout keyboard hosts polish (2026-11-16)
+
+- [x] Snackbar release, Ctrl/Alt/Meta and auto-repeat guards, disabled-parent guard, keyboard-owner frame drawn with the `ring` token (Gallery and shared painter), zh-TW status labels, reveal margin 80 and minimal child reveal; [report](../team/roadmap-059/REPORT.md), [GUI](../team/roadmap-059/GUI.md).
+- [ ] Ring contrast < 3:1 in dracula light and gruvbox dark (062); Inputs hosts Snackbar/frame; `focus_ring` light-theme colour; dropdown-close scroll clamp. 注音 IME, screen reader — NOT_RUN.
+
 ## ROADMAP 058 — CheckboxCards typed toggling and roving keyboard focus (2026-11-16)
 
 - [x] Bind `on_toggle` with colon keys, add `focused`/`navigate_focus`; legacy tree unchanged. Gallery Inputs F7 host (Space toggles, repeat/modifiers ignored, reveal only when hidden), F6/F7 exclusive with RadioCards; [report](../team/roadmap-058/REPORT.md), [GUI](../team/roadmap-058/GUI.md).

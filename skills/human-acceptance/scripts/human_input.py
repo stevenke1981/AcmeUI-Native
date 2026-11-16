@@ -201,6 +201,28 @@ def activate(hwnd):
         raise SystemExit("could not bring the target window to the foreground")
 
 
+def guard(hwnd):
+    """Stop before any input or capture if another window took the foreground.
+
+    Input is sent at screen coordinates, so if another app (or the person at
+    the machine) brings a window to the front mid-run, clicks, keys and
+    screenshots would land on that window instead. Never re-activate silently:
+    the other window may be in use.
+    """
+    fg = user32.GetForegroundWindow()
+    if fg != hwnd:
+        buf = ctypes.create_unicode_buffer(256)
+        user32.GetWindowTextW(fg, buf, 256)
+        raise SystemExit(f"aborted: foreground is '{buf.value}', not the target window; no input sent")
+
+
+def _guard_point(hwnd, sx, sy):
+    """The window under a screen point must belong to the target (GA_ROOT)."""
+    under = user32.WindowFromPoint(wintypes.POINT(sx, sy))
+    if user32.GetAncestor(under, 2) != hwnd:
+        raise SystemExit(f"aborted: point ({sx},{sy}) is over another window; no input sent")
+
+
 def place(hwnd, x, y, w, h):
     user32.ShowWindow(hwnd, 9)
     user32.MoveWindow(hwnd, x, y, w, h, True)
@@ -217,6 +239,7 @@ def _cursor():
 def move(hwnd, x, y, steps=14):
     r = window_rect(hwnd)
     tx, ty = r.left + x, r.top + y
+    _guard_point(hwnd, tx, ty)
     sx, sy = _cursor()
     for i in range(1, steps + 1):
         t = i / steps
@@ -341,6 +364,8 @@ def run(hwnd, steps):
     for step in steps:
         op, _, arg = step.partition(":")
         print(f"> {step}")
+        if op not in ("wait", "focus", "place"):
+            guard(hwnd)
         if op == "place":
             place(hwnd, *_ints(arg, 4))
         elif op == "move":
