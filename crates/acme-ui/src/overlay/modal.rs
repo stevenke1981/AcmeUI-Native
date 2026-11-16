@@ -82,24 +82,41 @@ impl<M: Clone + 'static> ModalBuilder<M> {
     pub fn build(self) -> WidgetNode<M> {
         let mut body = crate::column::<M>().gap(16.0);
 
-        // Header row: title + optional close button
-        let mut header =
-            crate::row::<M>().child(crate::label_builder(&self.title).font_size(20.0).build());
+        // Header row: title + optional close control
+        // Title row keeps stable key so body/title identity is preserved when close is toggled
+        let title_row = crate::row::<M>()
+            .key(format!("{}_title_row", self.id.as_str()))
+            .child(crate::label_builder(&self.title).font_size(20.0).build());
+
+        // Close control: instance-keyed Button when closable + on_close, passive Label otherwise
+        let mut header = crate::row::<M>().child(title_row.build());
 
         if self.closable {
-            header = header.child(crate::row::<M>().child(crate::label::<M>("✕")).build());
+            let close_key = format!("{}_close", self.id.as_str());
+            let close = if let Some(message) = self.on_close {
+                crate::button(close_key.as_str(), "✕").on_click(message)
+            } else {
+                crate::label::<M>("✕")
+            };
+            header = header.child(close);
         }
 
         body = body.child(header.build());
 
-        // Body content
+        // Body content - keyed so it retains identity when header changes
+        let mut body_col = crate::column::<M>()
+            .key(format!("{}_body", self.id.as_str()))
+            .gap(8.0);
         for child in self.children {
-            body = body.child(child);
+            body_col = body_col.child(child);
         }
+        body = body.child(body_col.build());
 
-        // Footer actions
+        // Footer actions - keyed so they retain identity
         if !self.footer_actions.is_empty() {
-            let mut footer = crate::row::<M>().gap(8.0);
+            let mut footer = crate::row::<M>()
+                .key(format!("{}_footer", self.id.as_str()))
+                .gap(8.0);
             for action in self.footer_actions {
                 footer = footer.child(action);
             }
@@ -191,3 +208,7 @@ mod tests {
         assert!((m.width - 640.0).abs() < f32::EPSILON);
     }
 }
+
+#[cfg(test)]
+#[path = "modal_tests.rs"]
+mod conversion_tests;

@@ -106,8 +106,8 @@ mod tests {
             .on_select(Msg::Select)
             .into();
         let layout = node.to_layout(NodeId::new(1));
-        // Dialog leaf
-        assert_eq!(layout.style.kind, acme_layout::LayoutKind::Leaf);
+        // Dialog content container
+        assert_eq!(layout.style.kind, acme_layout::LayoutKind::Column);
         assert_eq!(layout.style.width, crate::Length::px(480.0));
     }
 
@@ -115,7 +115,7 @@ mod tests {
     fn command_palette_empty_commands() {
         let node: WidgetNode<Msg> = command_palette::<Msg>("p").open(true).build();
         let layout = node.to_layout(NodeId::new(1));
-        assert_eq!(layout.style.kind, acme_layout::LayoutKind::Leaf);
+        assert_eq!(layout.style.kind, acme_layout::LayoutKind::Column);
     }
 
     #[test]

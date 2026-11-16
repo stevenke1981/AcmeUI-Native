@@ -1,10 +1,33 @@
 # Delivery Status
 
+## 2026-11-16 — Landed stacked ROADMAP 052a–054a
+
+- PRs #61/#62/#64 had merged into stacked base branches, not `master`. Landed onto `master` via `chore/land-stacked-052-054`; their reports moved to `docs/team/roadmap-05{2,3,4}-*/` because the numbers were reused on `master`.
+
 ## 2026-11-15 — ROADMAP 052 Immediate-mode Painter, HitTestLayer & backlog completion
 
 - Implemented immediate-mode `Painter` / `Canvas` / `painter_bridge` and `HitTestLayer` / `ClickDetector` / `hit_bridge`, migrating `apps/playground`, `apps/gallery`, and `apps/acme-gallery` off `Frame`/`scene_from_frame` while keeping `confirm_dialog.rs`, `modal.rs`, `context_menu.rs`, and `Cargo.lock` untouched.
 - Added `HighContrastPack`, zero-dependency `Theme::to_json`/`from_json` + token validation, `acme-platform` `KeyModifiers`/`KeyInput`, `LiveRegion`, `FrameDirtyTracker`, UTF-8 clamping in `acme-textinput`, `ProgressRing`, `QRCode`, chart migrations, `DropdownMenu`, `Drawer`, `DatePicker`, `Combobox`, `SliderMarks`, `BottomNav`, `PullToRefresh`, and `MobileTabBar`/`MobileDrawer`/`MobileCarousel`.
 - Resolved all P1/P2 findings (`Dialog`/`Popover`/`Table`/`DataGrid` overlay & compound-cell geometry, `Drawer`/`MobileDrawer` scrim stack sizing + gallery hover/press alignment, `SceneClipGuard` + `finish_checked()`, UTF-8 offsets, AA tone contrast); [report](../team/roadmap-052/REPORT.md). Live GPU window, Windows 注音 IME, physical DPI/touch, and screen readers remain NOT_RUN.
+
+## 2026-11-14 — ROADMAP 054a ContextMenu typed item-message conversion
+
+- RED guards prove ContextMenu ignored `MenuItem.message` and rendered unkeyed Labels. Open menus now emit instance-keyed Buttons with the current message; missing callbacks and disabled items stay passive Labels, and separators stay Separator nodes. A stable dropdown Card key preserves anchor identity through item changes.
+- Added conversion/focus/geometry guards and a host-controlled Overlay Gallery Cut/Copy/restore preview with stale-message rejection and pointer/theme/scale/layout tests. [Report](../team/roadmap-054-context-menu/REPORT.md); Reviewer-run gates PASS (incl. workspace tests).
+- Execution: Codex CLI (OpenRouter nvidia/nemotron-3-ultra-550b-a55b:free) + author review. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU, screen reader, native X11 capture and SDK CPU profile NOT_RUN.
+
+
+## 2026-11-13 — ROADMAP 053a Modal typed Close conversion
+
+- RED guards prove Modal ignored `on_close` and rendered an unkeyed ✕ Label. Closable modals now emit an instance-keyed Button with the current message; a missing callback stays a passive Label and `closable(false)` hides the control. Title/body/footer keys preserve identity through optional close and footer changes.
+- Added conversion/focus/geometry guards and a host-controlled Overlay Gallery close/restore preview with stale-message rejection and pointer/theme/scale/layout tests. [Report](../team/roadmap-053-modal-close/REPORT.md); Reviewer-run gates PASS (incl. workspace tests).
+- Execution: Codex CLI (OpenRouter nvidia/nemotron-3-ultra-550b-a55b:free) single writer + author review. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU, screen reader, native X11 capture and SDK CPU profile NOT_RUN.
+
+## 2026-11-13 — ROADMAP 052a ConfirmDialog typed Confirm/Cancel reachability
+
+- RED guards prove Dialog omitted content from layout. Both paths now include content, preserving Length/public API and retained binding; accessibility numbering follows the new layout.
+- Typed/passive messages and retained Confirm focus were already green. Added geometry, child/ID alignment, Length and accessibility bounds guards. Four old Leaf assertions updated; optional Gallery preview skipped. [Report](../team/roadmap-052-confirm-dialog/REPORT.md); Reviewer-run gates PASS (incl. workspace tests).
+- Execution: Codex CLI single writer + author review. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU, screen reader, native X11 capture and SDK CPU profile NOT_RUN.
 
 ## 2026-11-13 — ROADMAP 051 Notification typed action/Close identity
 
