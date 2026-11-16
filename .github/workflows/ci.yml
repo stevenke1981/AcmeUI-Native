@@ -111,7 +111,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.88.0
-      - run: cargo install --locked cargo-deny cargo-audit
+      # Pinned: cargo-deny 0.21+ requires rustc 1.89; this workspace pins 1.88.
+      - run: cargo install --locked cargo-deny@0.20.2 cargo-audit@0.23.0
       - run: cargo deny check bans licenses sources
       - name: Package every library crate (no publish)
         run: python scripts/check_package.py
