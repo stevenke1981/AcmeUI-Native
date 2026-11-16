@@ -1,0 +1,132 @@
+   Compiling acme-style v0.2.0 (F:\AcmeUI-Native\crates\acme-style)
+   Compiling acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+   Compiling acme-textinput v0.2.0 (F:\AcmeUI-Native\crates\acme-textinput)
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (F:\AcmeUI-Native\apps\acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.02s
+     Running unittests src\main.rs (target\debug\deps\acme_ui_gallery-fd6ef7608e1ada32.exe)
+
+running 3 tests
+
+thread 'shell_contrast_tests::gallery_selected_category_has_marker_and_stable_hit_rects' panicked at apps\acme-gallery\src\shell_contrast_tests.rs:147:5:
+assertion failed: category_label("Inputs", true).starts_with("▸ ")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test shell_contrast_tests::gallery_selected_category_has_marker_and_stable_hit_rects ... FAILED
+selected default/light: 1.15
+selected default/dark: 1.26
+hovered default/light: 16.51
+unselected default/light: 18.51
+selected apple/light: 1.18
+selected apple/dark: 14.80
+hovered default/dark: 14.43
+unselected default/dark: 15.44
+selected windows10/light: 1.20
+selected windows10/dark: 1.40
+hovered apple/light: 16.73
+unselected apple/light: 21.00
+selected windows11/light: 1.25
+selected windows11/dark: 1.40
+hovered apple/dark: 13.94
+unselected apple/dark: 17.01
+selected ubuntu/light: 9.43
+selected ubuntu/dark: 5.94
+selected material/light: 1.29
+hovered windows10/light: 18.10
+unselected windows10/light: 18.93
+selected material/dark: 1.39
+selected nord/light: 1.17
+hovered windows10/dark: 12.27
+unselected windows10/dark: 14.16
+selected nord/dark: 1.45
+selected dracula/light: 11.52
+hovered windows11/light: 15.00
+unselected windows11/light: 16.82
+selected dracula/dark: 1.56
+selected solarized/light: 1.09
+hovered windows11/dark: 12.27
+unselected windows11/dark: 14.16
+selected solarized/dark: 12.05
+selected gruvbox/light: 3.41
+hovered ubuntu/light: 16.28
+unselected ubuntu/light: 18.88
+selected gruvbox/dark: 3.41
+selected one-dark/light: 6.11
+hovered ubuntu/dark: 9.15
+unselected ubuntu/dark: 11.03
+selected one-dark/dark: 5.23
+selected high-contrast/light: 1.28
+selected high-contrast/dark: 1.73
+worst selected contrast: 1.09 (solarized/light)
+
+thread 'shell_contrast_tests::gallery_selected_category_text_contrast_meets_aa_all_packs' panicked at apps\acme-gallery\src\shell_contrast_tests.rs:113:5:
+selected category text below 4.5:1: ["default/light 1.15:1", "default/dark 1.26:1", "apple/light 1.18:1", "windows10/light 1.20:1", "windows10/dark 1.40:1", "windows11/light 1.25:1", "windows11/dark 1.40:1", "material/light 1.29:1", "material/dark 1.39:1", "nord/light 1.17:1", "nord/dark 1.45:1", "dracula/dark 1.56:1", "solarized/light 1.09:1", "gruvbox/light 3.41:1", "gruvbox/dark 3.41:1", "high-contrast/light 1.28:1", "high-contrast/dark 1.73:1"]
+test shell_contrast_tests::gallery_selected_category_text_contrast_meets_aa_all_packs ... FAILED
+hovered material/light: 13.24
+unselected material/light: 16.71
+hovered material/dark: 7.31
+unselected material/dark: 13.27
+hovered nord/light: 10.26
+unselected nord/light: 10.26
+hovered nord/dark: 7.49
+unselected nord/dark: 8.73
+hovered dracula/light: 11.91
+unselected dracula/light: 14.24
+hovered dracula/dark: 8.59
+unselected dracula/dark: 8.59
+hovered solarized/light: 3.64
+unselected solarized/light: 3.64
+hovered solarized/dark: 4.11
+unselected solarized/dark: 4.11
+hovered gruvbox/light: 8.45
+unselected gruvbox/light: 8.45
+hovered gruvbox/dark: 8.45
+unselected gruvbox/dark: 8.45
+hovered one-dark/light: 9.96
+unselected one-dark/light: 11.34
+hovered one-dark/dark: 7.22
+unselected one-dark/dark: 7.22
+hovered high-contrast/light: 15.91
+unselected high-contrast/light: 19.26
+hovered high-contrast/dark: 15.52
+unselected high-contrast/dark: 19.44
+
+thread 'shell_contrast_tests::gallery_unselected_and_hovered_category_text_meets_aa_all_packs' panicked at apps\acme-gallery\src\shell_contrast_tests.rs:139:5:
+category text below 4.5:1: ["solarized/light hovered 3.64:1", "solarized/light unselected 3.64:1", "solarized/dark hovered 4.11:1", "solarized/dark unselected 4.11:1"]
+test shell_contrast_tests::gallery_unselected_and_hovered_category_text_meets_aa_all_packs ... FAILED
+
+failures:
+
+failures:
+    shell_contrast_tests::gallery_selected_category_has_marker_and_stable_hit_rects
+    shell_contrast_tests::gallery_selected_category_text_contrast_meets_aa_all_packs
+    shell_contrast_tests::gallery_unselected_and_hovered_category_text_meets_aa_all_packs
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 168 filtered out; finished in 2.44s
+
+error: test failed, to rerun pass `-p acme-ui-gallery --bin acme-ui-gallery`
+=== apps/gallery RED (frame.rs at HEAD) ===
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.74s
+     Running unittests src\main.rs (target\debug\deps\acme_gallery-5f19982ec8ddc705.exe)
+
+running 2 tests
+selected default/light: 1.15
+selected default/dark: 1.26
+
+thread 'shell_contrast_tests::gallery_selected_category_text_contrast_meets_aa' panicked at apps\gallery\src\shell_contrast_tests.rs:84:5:
+selected category text below 4.5:1: ["dark=false 1.15:1", "dark=true 1.26:1"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test shell_contrast_tests::gallery_selected_category_text_contrast_meets_aa ... FAILED
+
+thread 'shell_contrast_tests::gallery_selected_category_has_marker_and_stable_hit_rects' panicked at apps\gallery\src\shell_contrast_tests.rs:108:5:
+selected label paints the marker (7 vs 7)
+test shell_contrast_tests::gallery_selected_category_has_marker_and_stable_hit_rects ... FAILED
+
+failures:
+
+failures:
+    shell_contrast_tests::gallery_selected_category_has_marker_and_stable_hit_rects
+    shell_contrast_tests::gallery_selected_category_text_contrast_meets_aa
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.12s
+
+error: test failed, to rerun pass `-p acme-gallery --bin acme-gallery`

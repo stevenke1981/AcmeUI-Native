@@ -2595,17 +2595,12 @@ impl Application for Gallery {
                 pressed: self.pressed == Some(i),
                 focused: false,
             };
-            let bg = if is_selected {
-                colors.accent
+            let (bg, fg) = if is_selected {
+                theme.selected_item_colors()
             } else if st.hovered {
-                colors.ghost_hover
+                (colors.ghost_hover, colors.foreground)
             } else {
-                colors.surface
-            };
-            let fg = if is_selected {
-                colors.primary_foreground
-            } else {
-                colors.foreground
+                (colors.surface, colors.foreground)
             };
             painter.rect(
                 Rect::new(r.x, r.y, r.width, r.height),
@@ -2629,6 +2624,19 @@ impl Application for Gallery {
             // then add baseline so origin_y (the baseline position)
             // correctly positions all glyphs.
             let oy = r.y + (r.height - measured.height) / 2.0 + measured.baseline;
+            if is_selected {
+                // Marker lives in a fixed left gutter so the label origin is
+                // identical whether or not the category is selected.
+                painter.text_primitive(build_text_primitive(
+                    &mut self.fonts,
+                    &mut self.atlas,
+                    CATEGORY_MARKER,
+                    ([r.x + CATEGORY_MARKER_GUTTER, oy], theme.typography.label),
+                    fg,
+                    context.scale_factor,
+                    theme.typography.line_height,
+                ));
+            }
             painter.text_primitive(build_text_primitive(
                 &mut self.fonts,
                 &mut self.atlas,
@@ -3845,6 +3853,13 @@ fn paint_card_shadow_painter(
     }
 }
 
+/// Marker painted for the selected category so selection is not conveyed by
+/// colour alone (WCAG 1.4.1). Painted as its own text run in a fixed gutter at
+/// the button's left edge; the label text never moves and hit rects come from
+/// layout.
+const CATEGORY_MARKER: &str = "▸";
+const CATEGORY_MARKER_GUTTER: f32 = 8.0;
+
 fn build_text_primitive(
     fonts: &mut FontSystem,
     atlas: &mut GlyphAtlas,
@@ -3998,6 +4013,9 @@ mod retained_tests;
 
 #[cfg(test)]
 mod mobile_card_tests;
+
+#[cfg(test)]
+mod shell_contrast_tests;
 
 #[cfg(test)]
 mod mobile_progress_tests;

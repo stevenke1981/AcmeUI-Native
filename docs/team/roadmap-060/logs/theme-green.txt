@@ -1,0 +1,47 @@
+ROADMAP 060 theme-green (review P1 fix, Lead option B)
+Executor: Opus 5.5 theme implementer (Claude Code agent). Base HEAD a14c243 + uncommitted working tree.
+Lease: crates/acme-theme/src/lib.rs (tests), crates/acme-theme/src/packs/gruvbox.rs.
+
+Change: gruvbox DARK only
+  accent            #AF3A03 (175,58,3)   -> #FE8019 (254,128,25)  gruvbox bright orange
+  accent_foreground #FBF1C7 (251,241,199) -> #282828 (40,40,40)
+  gruvbox LIGHT unchanged: accent #AF3A03.
+
+Ratios after (WCAG formula as in contrast_ratio):
+  gruvbox/Dark  selected text (accent_foreground on accent) 5.84   (>= 4.5)
+  gruvbox/Dark  accent vs background (40,40,40)             5.84   (>= 3.0; was 2.41 with #AF3A03)
+  gruvbox/Dark  accent vs surface (60,56,54)                4.59   (>= 3.0; was 1.89 with #AF3A03)
+  gruvbox/Light selected text                               5.40
+  gruvbox/Light accent vs background (251,241,199)          5.40   (>= 3.0)
+  gruvbox/Light accent vs surface (235,219,178)             4.46
+
+Retune table (roadmap_060_pack_retune_reaches_aa), D1 ratio before -> after:
+  solarized/Light accent_foreground (108,113,196)->(95,99,172)                       3.78 -> >=4.6
+  gruvbox/Light   accent (214,93,14)->(175,58,3)                                       3.41 -> >=5.3
+  gruvbox/Dark    accent (214,93,14)->(254,128,25), accent_fg (251,241,199)->(40,40,40) 3.41 -> >=5.8
+
+New tests:
+  gruvbox_accent_meets_non_text_contrast
+  accent_vs_background_non_text_guard (enforced for gruvbox only; others pinned in KNOWN_BELOW_3)
+
+Packs failing accent vs background >= 3:1 (NOT retuned; ROADMAP 062 backlog):
+  default/light 1.11   default/dark 1.28
+  apple/Light 1.05     apple/Dark 1.42
+  windows10/Light 1.20 windows10/Dark 1.09
+  windows11/Light 1.12 windows11/Dark 1.09
+  ubuntu/Dark 2.35
+  material/Light 1.26  material/Dark 1.81
+  nord/Light 1.17      nord/Dark 1.45
+  dracula/Light 1.16   dracula/Dark 1.56
+  solarized/Light 1.09 solarized/Dark 1.15
+  high-contrast/Light 1.28 high-contrast/Dark 1.73
+  Passing: gruvbox/Light, gruvbox/Dark, ubuntu/Light.
+
+Gates:
+  cargo test --locked -p acme-theme                         PASS (38 passed, 0 failed)
+  cargo clippy --locked -p acme-theme --all-targets -D warnings PASS
+  cargo fmt -p acme-theme --check                           PASS
+  cargo test --locked --workspace                           FAIL outside acme-theme:
+    acme-ui-gallery (bin test) does not compile: E0425 `category_label` not found,
+    apps/acme-gallery/src/shell_contrast_tests.rs:153-154 (parallel Gallery worker, in progress).
+  cargo test --locked --workspace --exclude acme-ui-gallery PASS (51 test binaries, 1729 tests, 0 failed)

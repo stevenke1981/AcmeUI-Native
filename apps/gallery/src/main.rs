@@ -96,6 +96,8 @@ mod focus_tests;
 mod hover_press_tests;
 #[cfg(test)]
 mod retained_ids_tests;
+#[cfg(test)]
+mod shell_contrast_tests;
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
