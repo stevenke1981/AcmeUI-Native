@@ -5,7 +5,7 @@ use acme_ui::layout::{NavMenuItem, NavigationMenuBuilder, nav_menu_item, navigat
 
 /// Flat demo entries: (value, label, parent value, disabled).
 /// The flat index is the payload of `GalleryMessage::NavMenuSelect`.
-const ENTRIES: [(&str, &str, Option<&str>, bool); 7] = [
+const ENTRIES: [(&str, &str, Option<&str>, bool); 8] = [
     ("home", "首頁", None, false),
     ("products", "產品", None, false),
     ("desktop", "桌面版", Some("products"), false),
@@ -13,7 +13,15 @@ const ENTRIES: [(&str, &str, Option<&str>, bool); 7] = [
     ("enterprise", "企業版", Some("products"), true),
     ("docs", "文件", None, false),
     ("support", "支援", None, true),
+    // Child of a disabled parent: only reachable by a direct call, never by keys.
+    ("priority", "優先支援", Some("support"), false),
 ];
+
+/// Pixels kept above a revealed top-level item so the section heading stays
+/// visible (same value as the Sidebar group reveal).
+const GROUP_REVEAL_MARGIN: f32 = 80.0;
+/// Pixels kept below a child revealed from under the viewport bottom.
+const CHILD_REVEAL_GAP: f32 = 8.0;
 
 /// Sentinel for a value that is not in `ENTRIES`; the handler rejects it.
 const UNKNOWN: u8 = u8::MAX;
@@ -39,7 +47,7 @@ impl Default for NavMenuDemo {
     }
 }
 
-fn flat_index(value: &str) -> Option<u8> {
+pub(super) fn flat_index(value: &str) -> Option<u8> {
     ENTRIES.iter().position(|e| e.0 == value).map(|i| i as u8)
 }
 
@@ -90,14 +98,25 @@ impl Gallery {
                 .wrap(acme_widgets::LabelWrap::Word)
                 .build(),
             )
-            .child(self.nav_menu_builder())
+            .child(
+                // Always present: only the variant changes, never the layout.
+                card()
+                    .key("gallery_nav_menu_focus")
+                    .variant(if self.nav_menu.active {
+                        CardVariant::Interactive
+                    } else {
+                        CardVariant::Plain
+                    })
+                    .padding(8.0)
+                    .child(self.nav_menu_builder()),
+            )
             .child(label(format!("目前目的地：{destination}")))
             .child(label(format!(
-                "Keyboard menu: {}",
+                "鍵盤選單：{}",
                 if self.nav_menu.active {
-                    "active"
+                    "使用中"
                 } else {
-                    "inactive"
+                    "未使用"
                 }
             )))
             .build()
@@ -109,6 +128,14 @@ impl Gallery {
             return false;
         };
         if disabled {
+            return false;
+        }
+        // A child of a disabled parent is unreachable by pointer; reject it here too.
+        if parent
+            .and_then(flat_index)
+            .and_then(|p| ENTRIES.get(p as usize))
+            .is_some_and(|p| p.3)
+        {
             return false;
         }
         match parent {
@@ -152,19 +179,63 @@ impl Gallery {
         }
     }
 
-    /// Reveals the focused child, falling back to the selected item when the
-    /// child has no hit region yet (its dropdown opens on the next frame).
+    /// Minimal scroll that brings `message` fully into view (top edge wins).
+    fn reveal_minimal(&mut self, message: GalleryMessage) {
+        let Some(hit) = self.button_info.iter().find(|h| h.message == message) else {
+            return;
+        };
+        let [_, view_top, _, view_height] = self.viewport_clip;
+        let top = hit.rect[1] - self.scroll;
+        let bottom = top + hit.rect[3];
+        if top < view_top {
+            self.scroll -= view_top - top;
+        } else if bottom > view_top + view_height {
+            self.scroll += bottom - (view_top + view_height);
+        }
+        self.scroll = self.scroll.clamp(0.0, self.max_scroll);
+    }
+
+    /// Reveals the focused child with the smallest scroll that keeps its parent
+    /// row in view; without a child (or before its dropdown has a hit region)
+    /// the selected item is revealed under the group margin.
     fn reveal_nav_menu(&mut self) {
+        let parent = flat_index(self.nav_menu.item).map(GalleryMessage::NavMenuSelect);
         let child = self
             .nav_menu
             .child
             .and_then(flat_index)
             .map(GalleryMessage::NavMenuSelect)
             .filter(|m| self.hit_is_hidden(*m).is_some());
-        let target =
-            child.or_else(|| flat_index(self.nav_menu.item).map(GalleryMessage::NavMenuSelect));
-        if let Some(target) = target {
-            self.reveal_if_hidden(target, 8.0);
+        if let Some(child) = child {
+            if self.hit_is_hidden(child) == Some(true) {
+                let hit = self.button_info.iter().find(|h| h.message == child);
+                let [_, view_top, _, view_height] = self.viewport_clip;
+                let top = hit.map_or(0.0, |h| h.rect[1] - self.scroll);
+                let bottom = hit.map_or(0.0, |h| h.rect[1] + h.rect[3] - self.scroll);
+                if top < view_top {
+                    if let Some(parent) = parent {
+                        self.reveal_at(parent, GROUP_REVEAL_MARGIN);
+                    }
+                } else {
+                    self.scroll = (self.scroll + bottom - (view_top + view_height)
+                        + CHILD_REVEAL_GAP)
+                        .clamp(0.0, self.max_scroll);
+                }
+                // A viewport too short for both: the child wins.
+                if self.hit_is_hidden(child) == Some(true) {
+                    self.reveal_minimal(child);
+                }
+                return;
+            }
+        }
+        if let Some(parent) = parent {
+            self.reveal_if_hidden(parent, GROUP_REVEAL_MARGIN);
+        }
+        // A short viewport: revealing the parent may have hidden the child.
+        if let Some(child) = child
+            && self.hit_is_hidden(child) == Some(true)
+        {
+            self.reveal_minimal(child);
         }
     }
 
@@ -184,6 +255,9 @@ impl Gallery {
             PlatformEvent::Key {
                 key: PlatformKey::Function(6),
                 pressed: true,
+                ctrl: false,
+                alt: false,
+                meta: false,
                 ..
             } => {
                 // Do not steal a navigation key from an active composition.
@@ -196,8 +270,15 @@ impl Gallery {
                 self.reveal_nav_menu();
                 Some(true)
             }
+            // Ctrl / Alt / Meta chords (e.g. Alt+Space, the system menu) are not ours.
             PlatformEvent::Key {
-                key, pressed: true, ..
+                key,
+                pressed: true,
+                ctrl: false,
+                alt: false,
+                meta: false,
+                repeat,
+                ..
             } if self.nav_menu.active => {
                 // Keys the host does not handle are never consumed.
                 if !matches!(
@@ -213,6 +294,15 @@ impl Gallery {
                     return None;
                 }
                 if !self.search.input.preedit.is_empty() {
+                    return Some(false);
+                }
+                // OS auto-repeat must not re-confirm or leave; arrows still rove.
+                if *repeat
+                    && matches!(
+                        key,
+                        PlatformKey::Enter | PlatformKey::Space | PlatformKey::Escape
+                    )
+                {
                     return Some(false);
                 }
                 match key {

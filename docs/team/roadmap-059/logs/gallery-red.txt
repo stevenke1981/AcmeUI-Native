@@ -1,0 +1,40 @@
+$ cargo test --locked -p acme-ui-gallery  (RED, before implementation; HEAD 4b9e7ad; 11 acceptance tests fail, 3 pins pass)
+test navigation_menu_tests::gallery_navigation_menu_arrow_up_without_child_enters_last_enabled_child ... ok
+test navigation_menu_tests::gallery_navigation_menu_category_change_by_real_click_deactivates ... ok
+test navigation_menu_tests::gallery_navigation_menu_child_hidden_above_reveals_parent_row ... FAILED
+test navigation_menu_tests::gallery_navigation_menu_child_reveal_is_minimal_and_keeps_parent_visible ... FAILED
+test navigation_menu_tests::gallery_navigation_menu_ignores_ctrl_alt_meta_chords ... FAILED
+test navigation_menu_tests::gallery_navigation_menu_f6_reveal_keeps_section_heading_visible ... FAILED
+test navigation_menu_tests::gallery_navigation_menu_enter_space_escape_ignore_os_auto_repeat ... FAILED
+test navigation_menu_tests::gallery_navigation_menu_rejects_child_of_disabled_parent ... FAILED
+test navigation_menu_tests::gallery_navigation_menu_unhandled_key_passes_through_and_keeps_menu_active ... ok
+test sidebar_tests::gallery_keyboard_status_labels_are_zh_tw ... FAILED
+test sidebar_tests::gallery_layout_keyboard_owner_frame_is_interactive_only_while_active ... FAILED
+test sidebar_tests::gallery_layout_hosts_snackbar_press_deactivates_menu_and_sidebar ... FAILED
+test sidebar_tests::gallery_sidebar_enter_space_ignore_os_auto_repeat ... FAILED
+test sidebar_tests::gallery_sidebar_ignores_ctrl_alt_meta_chords ... FAILED
+failures:
+failures:
+    sidebar_tests::gallery_keyboard_status_labels_are_zh_tw
+    sidebar_tests::gallery_layout_hosts_snackbar_press_deactivates_menu_and_sidebar
+    sidebar_tests::gallery_layout_keyboard_owner_frame_is_interactive_only_while_active
+    sidebar_tests::gallery_sidebar_enter_space_ignore_os_auto_repeat
+    sidebar_tests::gallery_sidebar_ignores_ctrl_alt_meta_chords
+test result: FAILED. 153 passed; 11 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.50s
+--- mutation checks (pins) ---
+M1 forward=true
+test navigation_menu_tests::gallery_navigation_menu_arrow_up_without_child_enters_last_enabled_child ... FAILED
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 163 filtered out; finished in 0.08s
+M2 unhandled key deactivates
+test navigation_menu_tests::gallery_navigation_menu_unhandled_key_passes_through_and_keeps_menu_active ... FAILED
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 163 filtered out; finished in 0.08s
+M3 pointer press no longer deactivates
+test navigation_menu_tests::gallery_navigation_menu_category_change_by_real_click_deactivates ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 163 filtered out; finished in 0.15s
+M3b activate(SelectCategory) no longer clears nav_menu.active (pointer arm intact): survives, two independent layers
+test navigation_menu_tests::gallery_navigation_menu_category_change_by_real_click_deactivates ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 163 filtered out; finished in 0.09s
+M3c both layers removed
+test navigation_menu_tests::gallery_navigation_menu_category_change_by_real_click_deactivates ... FAILED
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 163 filtered out; finished in 0.09s
+M4 guard (parent disabled) neutralised: gallery_navigation_menu_rejects_child_of_disabled_parent FAILED (restored)

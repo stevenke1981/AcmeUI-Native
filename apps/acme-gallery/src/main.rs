@@ -2342,6 +2342,7 @@ impl Application for Gallery {
         };
         if overlay_pointer && matches!(event, PlatformEvent::PointerButton { pressed: true, .. }) {
             self.search.blur();
+            self.layout_keyboard_release();
         }
         if self.selected_category == 2 && !overlay_pointer {
             if let Some(changed) = self.inputs_keyboard_event(&event) {
@@ -2957,6 +2958,16 @@ impl Drop for SceneClipGuard<'_, '_> {
     }
 }
 
+/// Default Card border width: the Interactive variant (keyboard-owner frame,
+/// focused card) is drawn 2px so the ring colour reads as a focus indicator.
+fn card_default_border_width(variant: CardVariant) -> f32 {
+    if variant == CardVariant::Interactive {
+        2.0
+    } else {
+        1.0
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn render_content_painter(
     painter: &mut Painter<'_>,
@@ -3163,7 +3174,7 @@ fn render_content_painter(
                     match c.variant {
                         CardVariant::Elevated => (colors.surface, colors.border),
                         CardVariant::Outlined => (colors.background, colors.border),
-                        CardVariant::Interactive => (colors.surface, colors.accent),
+                        CardVariant::Interactive => (colors.surface, colors.ring),
                         _ => (colors.surface, colors.border),
                     }
                 };
@@ -3178,9 +3189,12 @@ fn render_content_painter(
                 }
                 painter.rect(
                     Rect::new(rect.x, y, rect.width, rect.height),
-                    RectStyle::solid(theme_color(bg))
-                        .radius(radius)
-                        .border(c.style.border_width.unwrap_or(1.0), theme_color(border)),
+                    RectStyle::solid(theme_color(bg)).radius(radius).border(
+                        c.style
+                            .border_width
+                            .unwrap_or(card_default_border_width(c.variant)),
+                        theme_color(border),
+                    ),
                 );
             }
             let wc = widget.children();
@@ -3506,7 +3520,7 @@ fn render_content(
                     match c.variant {
                         CardVariant::Elevated => (colors.surface, colors.border),
                         CardVariant::Outlined => (colors.background, colors.border),
-                        CardVariant::Interactive => (colors.surface, colors.accent),
+                        CardVariant::Interactive => (colors.surface, colors.ring),
                         _ => (colors.surface, colors.border),
                     }
                 };
@@ -3526,7 +3540,9 @@ fn render_content(
                         [rect.x, y, rect.width, rect.height],
                         bg,
                         radius,
-                        c.style.border_width.unwrap_or(1.0),
+                        c.style
+                            .border_width
+                            .unwrap_or(card_default_border_width(c.variant)),
                         border,
                     ),
                     clip,

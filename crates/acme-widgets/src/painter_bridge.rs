@@ -494,7 +494,13 @@ fn paint_tree_inner<M>(
                     _ => theme.colors.surface,
                 });
                 let (border_width, border_color) = match card.variant {
-                    CardVariant::Outlined | CardVariant::Elevated | CardVariant::Interactive => {
+                    // Interactive marks the keyboard-owner / focused card: draw the
+                    // focus ring token, 2px unless the card styles its own width.
+                    CardVariant::Interactive => (
+                        card.style.border_width.unwrap_or(2.0),
+                        theme_color(theme.colors.ring),
+                    ),
+                    CardVariant::Outlined | CardVariant::Elevated => {
                         (1.0, theme_color(theme.colors.border))
                     }
                     CardVariant::Plain | CardVariant::Muted => (0.0, Color::TRANSPARENT),
@@ -877,6 +883,71 @@ mod tests {
         let scene = painter.finish();
 
         assert_eq!(scene.commands().len(), 1);
+    }
+
+    /// Paints a single fixed-size card and returns its chrome quad's
+    /// (border_width, border_color).
+    fn card_chrome(builder: crate::CardBuilder<()>, theme: &Theme) -> (f32, Color) {
+        use acme_layout::Length;
+        use acme_style::prelude::*;
+        let root = builder.w(Length::px(120.0)).h(Length::px(60.0)).build();
+        let layout = root.to_layout(NodeId::new(1));
+        let snapshot = LayoutEngine::new()
+            .compute(&layout, (200.0, 200.0))
+            .unwrap();
+        let mut painter = Painter::new();
+        paint_widget_tree_overlays_or_primitives(&root, &layout, &snapshot, theme, &mut painter);
+        let scene = painter.finish();
+        let quad = scene
+            .commands()
+            .iter()
+            .find_map(|cmd| match cmd {
+                DrawCommand::Quad(q) => Some(q),
+                _ => None,
+            })
+            .expect("card chrome quad");
+        (quad.border_width, quad.border_color)
+    }
+
+    #[test]
+    fn interactive_card_draws_ring_border_and_other_variants_are_unchanged() {
+        use acme_style::prelude::*;
+        let theme = Theme::light();
+        let ring = theme_color(theme.colors.ring);
+        let border = theme_color(theme.colors.border);
+        assert_ne!(ring, border, "test needs distinct ring/border tokens");
+
+        // Interactive: focus ring colour at the default 2px.
+        assert_eq!(
+            card_chrome(card::<()>().variant(CardVariant::Interactive), &theme),
+            (2.0, ring)
+        );
+        // Interactive honours an explicit style border width.
+        assert_eq!(
+            card_chrome(
+                card::<()>()
+                    .variant(CardVariant::Interactive)
+                    .border_width(3.0),
+                &theme
+            ),
+            (3.0, ring)
+        );
+        // Outlined / Elevated keep the 1px theme border.
+        for variant in [CardVariant::Outlined, CardVariant::Elevated] {
+            assert_eq!(
+                card_chrome(card::<()>().variant(variant), &theme),
+                (1.0, border),
+                "{variant:?}"
+            );
+        }
+        // Plain / Muted stay borderless.
+        for variant in [CardVariant::Plain, CardVariant::Muted] {
+            assert_eq!(
+                card_chrome(card::<()>().variant(variant), &theme).0,
+                0.0,
+                "{variant:?}"
+            );
+        }
     }
 
     #[test]

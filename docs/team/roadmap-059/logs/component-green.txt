@@ -1,0 +1,40 @@
+HEAD 4b9e7ad + working-tree change to crates/acme-ui/src/inputs/checkbox_cards.rs
+$ cargo test --locked -p acme-ui --all-features checkbox_cards
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.09s
+     Running unittests src\lib.rs (target\debug\deps\acme_ui-81a09332650d76b5.exe)
+
+running 11 tests
+test inputs::checkbox_cards::tests::checkbox_cards_on_toggle_emits_toggled_with_value ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_selected_default_empty ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_navigate_focus_unknown_current_starts_at_edge ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_navigate_focus_wraps_and_handles_none_and_empty ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_child_count ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_produces_column ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_without_handler_matches_legacy_tree ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_on_toggle_binds_instance_keyed_buttons ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_focused_card_uses_interactive_variant_and_marker ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_keys_stable_across_checked_and_focus ... ok
+test inputs::checkbox_cards::tests::checkbox_cards_checked_is_primary_unchecked_ghost ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 903 filtered out; finished in 0.00s
+
+     Running tests\minimal_features.rs (target\debug\deps\minimal_features-8faaa38af1ed31d3.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+exit=0
+$ cargo clippy --locked -p acme-ui --all-features --all-targets --no-deps -- -D warnings
+    Checking acme-core v0.2.0 (F:\AcmeUI-Native\crates\acme-core)
+    Checking acme-text v0.2.0 (F:\AcmeUI-Native\crates\acme-text)
+    Checking acme-theme v0.2.0 (F:\AcmeUI-Native\crates\acme-theme)
+    Checking acme-layout v0.2.0 (F:\AcmeUI-Native\crates\acme-layout)
+    Checking acme-style v0.2.0 (F:\AcmeUI-Native\crates\acme-style)
+    Checking acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+    Checking acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.76s
+exit=0
+$ cargo fmt -p acme-ui -- --check
+exit=0

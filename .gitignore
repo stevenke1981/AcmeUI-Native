@@ -17,3 +17,4 @@
 /docs/CBM_*
 /.codebase-memory/
 acme-gallery-theme.conf
+__pycache__/
