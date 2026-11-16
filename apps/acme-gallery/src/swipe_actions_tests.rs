@@ -109,6 +109,10 @@ fn vertical_cancel_and_unmatched_pointer_release_preserve_the_item() {
             lines: false,
             x: 400.0,
             y: 300.0,
+            shift: false,
+            ctrl: false,
+            alt: false,
+            meta: false,
         },
     ] {
         frame(&mut g);
