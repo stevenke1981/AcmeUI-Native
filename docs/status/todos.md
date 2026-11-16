@@ -1,5 +1,10 @@
 # Todos
 
+## ROADMAP 058 — CheckboxCards typed toggling and roving keyboard focus (2026-11-16)
+
+- [x] Bind `on_toggle` with colon keys, add `focused`/`navigate_focus`; legacy tree unchanged. Gallery Inputs F7 host (Space toggles, repeat/modifiers ignored, reveal only when hidden), F6/F7 exclusive with RadioCards; [report](../team/roadmap-058/REPORT.md), [GUI](../team/roadmap-058/GUI.md).
+- [ ] Weak focus visual on checked cards (059), ☑ glyph fallback, category contrast (060). Windows 注音 IME, screen reader, touch — NOT_RUN.
+
 ## ROADMAP 057 — Sidebar typed activation and roving keyboard navigation (2026-11-16)
 
 - [x] Add `on_select`/`navigate`, `SidebarItem::value`/`disabled`, colon keys; legacy tree unchanged. Gallery Layout F7 host, F6/F7 mutually exclusive, reveal only when hidden; [report](../team/roadmap-057/REPORT.md), [GUI](../team/roadmap-057/GUI.md).

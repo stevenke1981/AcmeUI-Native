@@ -83,9 +83,22 @@ impl Gallery {
         self.radio_cards.selected = Some(index);
         self.radio_cards.confirmed = Some(index);
         self.radio_cards.active = true;
-        self.pressed = None;
-        self.hovered = None;
+        self.checkbox_cards.active = false;
+        self.reset_hover_press();
         true
+    }
+
+    /// F6 entry: when the first or last card is out of view, scroll to the
+    /// group top; a fully visible group never moves the page.
+    fn reveal_radio_group(&mut self) {
+        let last = (PLANS.len() - 1) as u8;
+        let first = GalleryMessage::RadioCardSelect(0);
+        let last = GalleryMessage::RadioCardSelect(last);
+        if self.hit_is_hidden(last) == Some(true) {
+            self.reveal_at(first, 80.0);
+        } else {
+            self.reveal_if_hidden(first, 80.0);
+        }
     }
 
     pub(super) fn radio_cards_event(&mut self, event: &PlatformEvent) -> Option<bool> {
@@ -104,6 +117,9 @@ impl Gallery {
             PlatformEvent::Key {
                 key: PlatformKey::Function(6),
                 pressed: true,
+                ctrl: false,
+                alt: false,
+                meta: false,
                 ..
             } => {
                 // Do not steal a navigation key from an active composition.
@@ -112,20 +128,33 @@ impl Gallery {
                 }
                 self.search.blur();
                 self.radio_cards.active = true;
+                self.checkbox_cards.active = false;
+                self.reset_hover_press();
+                self.reveal_radio_group();
                 Some(true)
             }
             PlatformEvent::Key {
-                key, pressed: true, ..
+                key,
+                pressed: true,
+                ctrl: false,
+                alt: false,
+                meta: false,
+                ..
             } if self.radio_cards.active && self.search.input.preedit.is_empty() => {
                 let forward = match key {
                     PlatformKey::ArrowDown | PlatformKey::ArrowRight => true,
                     PlatformKey::ArrowUp | PlatformKey::ArrowLeft => false,
                     PlatformKey::Enter | PlatformKey::Space => {
                         self.radio_cards.confirmed = self.radio_cards.selected;
-                        return Some(self.radio_cards.selected.is_some());
+                        let changed = self.radio_cards.selected.is_some();
+                        if changed {
+                            self.reset_hover_press();
+                        }
+                        return Some(changed);
                     }
                     PlatformKey::Escape => {
                         self.radio_cards.active = false;
+                        self.reset_hover_press();
                         return Some(true);
                     }
                     _ => return None,
@@ -136,8 +165,7 @@ impl Gallery {
                     return Some(false);
                 };
                 self.radio_cards.selected = Some(index);
-                self.pressed = None;
-                self.hovered = None;
+                self.reset_hover_press();
                 Some(true)
             }
             _ => None,

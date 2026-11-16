@@ -1,0 +1,29 @@
+cargo fmt -p acme-ui-gallery: ok
+
+running 150 tests
+test checkbox_cards_tests::gallery_checkbox_cards_preedit_guard_passes_unhandled_keys ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_space_toggles_enter_passes_through ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_space_ignores_os_auto_repeat ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_arrows_move_focus_without_toggling ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_unknown_value_is_rejected ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_pointer_press_and_focus_loss_return_none ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_f7_reveals_focus_in_short_viewport ... ok
+test checkbox_cards_tests::gallery_radio_cards_enter_space_without_selection_keeps_hover ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_space_reveals_hidden_focus ... ok
+test checkbox_cards_tests::gallery_radio_cards_preedit_blocks_arrows ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_arrow_reveals_hidden_focus ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_hit_and_paint_slots_match_across_themes_and_scales ... ok
+test checkbox_cards_tests::gallery_cards_keyboard_resets_hover_and_press_everywhere ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_ignores_ctrl_alt_meta_chords ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_f6_f7_mutually_exclusive_with_radio_cards ... ok
+test checkbox_cards_tests::gallery_radio_cards_pointer_off_card_deactivates ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_escape_blur_category_and_pointer_off_deactivate ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_f7_enters_and_reveals_only_when_hidden ... ok
+test checkbox_cards_tests::gallery_radio_cards_f6_reveals_only_when_hidden ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_pointer_toggles_each_option_with_real_events ... ok
+test result: ok. 150 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.63s
+
+cargo clippy --locked -p acme-ui-gallery --all-targets --no-deps -- -D warnings (exit 0)
+    Checking acme-textinput v0.2.0 (F:\AcmeUI-Native\crates\acme-textinput)
+    Checking acme-ui-gallery v0.2.0 (F:\AcmeUI-Native\apps\acme-gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 23.01s
