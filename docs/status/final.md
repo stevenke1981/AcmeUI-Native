@@ -1,5 +1,10 @@
 # Delivery Status
 
+## 2026-11-16 — ROADMAP 055 RadioCards typed selection and arrow-key navigation
+
+- `RadioCards::on_select` was stored but never wired. Options are now instance-keyed Buttons, and `navigate(forward)` is added; there is a Gallery Inputs demo with pointer and keyboard (F6/arrows/Enter/Space/Esc) host. Workspace tests 2050 passed / 0 failed; clippy/fmt PASS; [report](../team/roadmap-055/REPORT.md).
+- Execution: Claude Code agent team (Fable 5.2 adviser/reviewer; Opus 5.5 component; Sonnet 5.5 Gallery; Haiku 5.5 verification). Human Gallery, Windows 注音 IME, DPI/touch, GPU, screen reader NOT_RUN.
+
 ## 2026-11-16 — Landed stacked ROADMAP 052a–054a
 
 - PRs #61/#62/#64 had merged into stacked base branches, not `master`. Landed onto `master` via `chore/land-stacked-052-054`; their reports moved to `docs/team/roadmap-05{2,3,4}-*/` because the numbers were reused on `master`.

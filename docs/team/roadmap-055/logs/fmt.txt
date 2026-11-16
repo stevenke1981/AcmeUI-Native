@@ -1,0 +1,2 @@
+COMMAND: cargo fmt -p acme-ui -p acme-ui-gallery -- --check | START_UTC: 2026-11-16T12:52:41Z
+EXIT_CODE: 0 | END_UTC: 2026-11-16T12:52:42Z
