@@ -61,3 +61,9 @@ Real-window GUI: [GUI.md](GUI.md).
 
 ## Rollback
 Revert the commit. No manifest or lockfile change.
+
+## CI follow-up (PR #77)
+- `rust (ubuntu-latest)` failed `gallery_layout_owner_frame_border_is_ring_with_3_to_1_contrast`.
+- **Root cause:** a pre-existing test-isolation flake. `Gallery::new()` read `acme-gallery-theme.conf` from the package directory, while theme-cycling tests running in parallel wrote that file. The test could therefore run against another pack; locally it fails under dracula, nord and solarized, whose rings are below 3:1, already a 062 item.
+- **Fix:** under `cfg(test)` the theme preference is neither loaded nor saved. New test: `gallery_tests_ignore_persisted_theme_preference`.
+- **Verification:** with a hostile `pack=dracula` file present, `cargo test -p acme-ui-gallery` passes 173/0 and the file is left unchanged.

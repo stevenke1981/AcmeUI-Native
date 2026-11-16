@@ -251,6 +251,12 @@ const THEME_PREF_FILE: &str = "acme-gallery-theme.conf";
 /// Returns `None` if the file is missing or unparseable; callers fall back to
 /// the default theme.
 fn load_theme_pref() -> Option<(String, bool)> {
+    // Unit tests run in parallel in the package directory; reading a file another
+    // test just wrote would make results depend on scheduling, so tests always
+    // start from the default theme.
+    if cfg!(test) {
+        return None;
+    }
     let content = std::fs::read_to_string(THEME_PREF_FILE).ok()?;
     let mut pack = None;
     let mut dark = None;
@@ -266,6 +272,9 @@ fn load_theme_pref() -> Option<(String, bool)> {
 
 /// Persist the theme preference to disk (best-effort; ignore write errors).
 fn save_theme_pref(pack: &str, dark: bool) {
+    if cfg!(test) {
+        return;
+    }
     let content = format!("pack={pack}\ndark={dark}\n");
     let _ = std::fs::write(THEME_PREF_FILE, content);
 }
