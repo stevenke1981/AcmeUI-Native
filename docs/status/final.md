@@ -1,5 +1,10 @@
 # Delivery Status
 
+## 2026-11-17 — ROADMAP 061 Sidenav keyboard navigation
+
+- Sidenav gains typed activation and cross-section keyboard roving; the Gallery demonstrates it with F8 under one Layout keyboard owner (F6/F7/F8). Pre-existing `desktop`/`overlay` feature-isolation build breaks are fixed and guarded in CI. Workspace tests 2174 passed / 0 failed; [report](../team/roadmap-061/REPORT.md).
+- Execution: Claude Code agent team (Opus 5.5 component and Lead; Sonnet 5.5 Gallery; Fable 5.2 reviewer). Screen reader NOT_RUN.
+
 ## 2026-11-17 — ROADMAP 060 Readable selected category
 
 - The selected Gallery category was painted at 1.09–1.15:1. A new `Theme::selected_item_colors()` picks a readable token pair, three tokens were retuned, and both Gallery shells now reach ≥ 4.5:1 in every pack and mode with a `▸` marker. Workspace tests 2150 passed / 0 failed; clippy and fmt PASS; [report](../team/roadmap-060/REPORT.md).

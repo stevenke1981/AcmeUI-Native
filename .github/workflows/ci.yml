@@ -46,6 +46,7 @@ jobs:
         run: |
           cargo test --locked -p acme-ui --no-default-features --features inputs
           cargo test --locked -p acme-ui --no-default-features --features layout
+          for f in foundations overlay charts desktop mobile browser; do cargo check --locked -p acme-ui --no-default-features --features "$f"; done
 
   sdk-consumer:
     # Builds the standalone external-consumer example against the SDK crates

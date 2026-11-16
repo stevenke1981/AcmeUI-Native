@@ -1,0 +1,898 @@
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+   Compiling acme-ui-gallery v0.2.0 (F:\AcmeUI-Native\apps\acme-gallery)
+error[E0433]: failed to resolve: unresolved import
+   --> apps\acme-gallery\src\sidenav_tests.rs:157:23
+    |
+157 |     assert_eq!(crate::sidenav::sidenav_message("nope"), sn(u8::MAX));
+    |                       ^^^^^^^
+    |                       |
+    |                       unresolved import
+    |                       help: a similar path exists: `acme_ui::desktop::sidenav`
+
+error[E0599]: no variant or associated item named `SidenavSelect` found for enum `GalleryMessage` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:48:21
+    |
+48  |     GalleryMessage::SidenavSelect(i)
+    |                     ^^^^^^^^^^^^^ variant or associated item not found in `GalleryMessage`
+    |
+   ::: apps\acme-gallery\src\main.rs:157:1
+    |
+157 | enum GalleryMessage {
+    | ------------------- variant or associated item `SidenavSelect` not found for this enum
+    |
+help: there is a variant with a similar name
+    |
+48  -     GalleryMessage::SidenavSelect(i)
+48  +     GalleryMessage::SidebarSelect(i)
+    |
+
+error[E0599]: no variant or associated item named `SidenavSelect` found for enum `GalleryMessage` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:125:49
+    |
+125 |         .filter(|m| matches!(m, GalleryMessage::SidenavSelect(_)))
+    |                                                 ^^^^^^^^^^^^^ variant or associated item not found in `GalleryMessage`
+    |
+   ::: apps\acme-gallery\src\main.rs:157:1
+    |
+157 | enum GalleryMessage {
+    | ------------------- variant or associated item `SidenavSelect` not found for this enum
+    |
+help: there is a variant with a similar name
+    |
+125 -         .filter(|m| matches!(m, GalleryMessage::SidenavSelect(_)))
+125 +         .filter(|m| matches!(m, GalleryMessage::SidebarSelect(_)))
+    |
+
+error[E0609]: no field `sidenav` on type `&Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:130:46
+    |
+130 |     (g.nav_menu.active, g.side_nav.active, g.sidenav.active)
+    |                                              ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+130 |     (g.nav_menu.active, g.side_nav.active, g.side_nav.active)
+    |                                                  +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:136:19
+    |
+136 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (0, None));
+    |                   ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+136 |     assert_eq!((g.side_nav.current, g.sidenav.confirmed), (0, None));
+    |                       +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:136:38
+    |
+136 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (0, None));
+    |                                      ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+136 |     assert_eq!((g.sidenav.current, g.side_nav.confirmed), (0, None));
+    |                                          +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:138:19
+    |
+138 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (1, Some(1)));
+    |                   ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+138 |     assert_eq!((g.side_nav.current, g.sidenav.confirmed), (1, Some(1)));
+    |                       +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:138:38
+    |
+138 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (1, Some(1)));
+    |                                      ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+138 |     assert_eq!((g.sidenav.current, g.side_nav.confirmed), (1, Some(1)));
+    |                                          +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:139:15
+    |
+139 |     assert!(g.sidenav.active);
+    |               ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+139 |     assert!(g.side_nav.active);
+    |                   +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:141:19
+    |
+141 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (2, Some(2)));
+    |                   ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+141 |     assert_eq!((g.side_nav.current, g.sidenav.confirmed), (2, Some(2)));
+    |                       +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:141:38
+    |
+141 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (2, Some(2)));
+    |                                      ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+141 |     assert_eq!((g.sidenav.current, g.side_nav.confirmed), (2, Some(2)));
+    |                                          +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:143:19
+    |
+143 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (0, Some(0)));
+    |                   ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+143 |     assert_eq!((g.side_nav.current, g.sidenav.confirmed), (0, Some(0)));
+    |                       +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:143:38
+    |
+143 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (0, Some(0)));
+    |                                      ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+143 |     assert_eq!((g.sidenav.current, g.side_nav.confirmed), (0, Some(0)));
+    |                                          +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:151:21
+    |
+151 |     let before = (g.sidenav.current, g.sidenav.confirmed);
+    |                     ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+151 |     let before = (g.side_nav.current, g.sidenav.confirmed);
+    |                         +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:151:40
+    |
+151 |     let before = (g.sidenav.current, g.sidenav.confirmed);
+    |                                        ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+151 |     let before = (g.sidenav.current, g.side_nav.confirmed);
+    |                                            +
+
+error[E0599]: no method named `sidenav_select` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:154:20
+    |
+154 |         assert!(!g.sidenav_select(index), "index {index}");
+    |                    ^^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_select` not found for this struct
+    |
+help: there is a method `sidebar_select` with a similar name
+    |
+154 -         assert!(!g.sidenav_select(index), "index {index}");
+154 +         assert!(!g.sidebar_select(index), "index {index}");
+    |
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:156:27
+    |
+156 |     assert_eq!(before, (g.sidenav.current, g.sidenav.confirmed));
+    |                           ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+156 |     assert_eq!(before, (g.side_nav.current, g.sidenav.confirmed));
+    |                               +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:156:46
+    |
+156 |     assert_eq!(before, (g.sidenav.current, g.sidenav.confirmed));
+    |                                              ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+156 |     assert_eq!(before, (g.sidenav.current, g.side_nav.confirmed));
+    |                                                  +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:158:16
+    |
+158 |     assert!(!g.sidenav.active);
+    |                ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+158 |     assert!(!g.side_nav.active);
+    |                    +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:166:15
+    |
+166 |     assert!(g.sidenav.active);
+    |               ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+166 |     assert!(g.side_nav.active);
+    |                   +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:194:37
+    |
+194 |     assert_eq!(g.hit_is_hidden(sn(g.sidenav.current)), Some(true));
+    |                                     ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+194 |     assert_eq!(g.hit_is_hidden(sn(g.side_nav.current)), Some(true));
+    |                                         +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:198:37
+    |
+198 |     assert_eq!(g.hit_is_hidden(sn(g.sidenav.current)), Some(false));
+    |                                     ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+198 |     assert_eq!(g.hit_is_hidden(sn(g.side_nav.current)), Some(false));
+    |                                         +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:209:22
+    |
+209 |         assert_eq!(g.sidenav.current, expected, "Security is disabled");
+    |                      ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+209 |         assert_eq!(g.side_nav.current, expected, "Security is disabled");
+    |                          +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:213:22
+    |
+213 |         assert_eq!(g.sidenav.current, expected);
+    |                      ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+213 |         assert_eq!(g.side_nav.current, expected);
+    |                          +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:215:18
+    |
+215 |     assert_eq!(g.sidenav.confirmed, None, "arrows move without confirming");
+    |                  ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+215 |     assert_eq!(g.side_nav.confirmed, None, "arrows move without confirming");
+    |                      +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:218:18
+    |
+218 |     assert_eq!(g.sidenav.confirmed, Some(1));
+    |                  ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+218 |     assert_eq!(g.side_nav.confirmed, Some(1));
+    |                      +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:221:18
+    |
+221 |     assert_eq!(g.sidenav.confirmed, Some(2));
+    |                  ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+221 |     assert_eq!(g.side_nav.confirmed, Some(2));
+    |                      +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:222:15
+    |
+222 |     assert!(g.sidenav.active);
+    |               ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+222 |     assert!(g.side_nav.active);
+    |                   +
+
+error[E0599]: no method named `sidenav_examples` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:223:34
+    |
+223 |     let text = format!("{:?}", g.sidenav_examples());
+    |                                  ^^^^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_examples` not found for this struct
+    |
+help: there is a method `sidebar_examples` with a similar name
+    |
+223 -     let text = format!("{:?}", g.sidenav_examples());
+223 +     let text = format!("{:?}", g.sidebar_examples());
+    |
+
+error[E0599]: no method named `sidenav_event` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:237:15
+    |
+237 |             g.sidenav_event(&chord_event(PlatformKey::Function(8), chord, false)),
+    |               ^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_event` not found for this struct
+    |
+help: there is a method `sidebar_event` with a similar name
+    |
+237 -             g.sidenav_event(&chord_event(PlatformKey::Function(8), chord, false)),
+237 +             g.sidebar_event(&chord_event(PlatformKey::Function(8), chord, false)),
+    |
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:240:20
+    |
+240 |         assert!(!g.sidenav.active, "{chord:?}");
+    |                    ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+240 |         assert!(!g.side_nav.active, "{chord:?}");
+    |                        +
+
+error[E0599]: no method named `sidenav_event` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:252:19
+    |
+252 |                 g.sidenav_event(&chord_event(k, chord, false)),
+    |                   ^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_event` not found for this struct
+    |
+help: there is a method `sidebar_event` with a similar name
+    |
+252 -                 g.sidenav_event(&chord_event(k, chord, false)),
+252 +                 g.sidebar_event(&chord_event(k, chord, false)),
+    |
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:257:19
+    |
+257 |         assert!(g.sidenav.active, "chords never leave the group ({chord:?})");
+    |                   ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+257 |         assert!(g.side_nav.active, "chords never leave the group ({chord:?})");
+    |                       +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:258:23
+    |
+258 |         assert_eq!((g.sidenav.current, g.sidenav.confirmed), (0, None));
+    |                       ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+258 |         assert_eq!((g.side_nav.current, g.sidenav.confirmed), (0, None));
+    |                           +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:258:42
+    |
+258 |         assert_eq!((g.sidenav.current, g.sidenav.confirmed), (0, None));
+    |                                          ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+258 |         assert_eq!((g.sidenav.current, g.side_nav.confirmed), (0, None));
+    |                                              +
+
+error[E0599]: no method named `sidenav_event` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:266:15
+    |
+266 |             g.sidenav_event(&chord_event(k, (false, false, false), true)),
+    |               ^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_event` not found for this struct
+    |
+help: there is a method `sidebar_event` with a similar name
+    |
+266 -             g.sidenav_event(&chord_event(k, (false, false, false), true)),
+266 +             g.sidebar_event(&chord_event(k, (false, false, false), true)),
+    |
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:270:22
+    |
+270 |         assert_eq!(g.sidenav.confirmed, None);
+    |                      ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+270 |         assert_eq!(g.side_nav.confirmed, None);
+    |                          +
+
+error[E0599]: no method named `sidenav_event` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:273:11
+    |
+273 |         g.sidenav_event(&chord_event(
+    |         --^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_event` not found for this struct
+    |
+help: there is a method `sidebar_event` with a similar name
+    |
+273 -         g.sidenav_event(&chord_event(
+273 +         g.sidebar_event(&chord_event(
+    |
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:280:18
+    |
+280 |     assert_eq!(g.sidenav.current, 1);
+    |                  ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+280 |     assert_eq!(g.side_nav.current, 1);
+    |                      +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:282:18
+    |
+282 |     assert_eq!(g.sidenav.confirmed, Some(1));
+    |                  ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+282 |     assert_eq!(g.side_nav.confirmed, Some(1));
+    |                      +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:289:15
+    |
+289 |     assert!(g.sidenav.active);
+    |               ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+289 |     assert!(g.side_nav.active);
+    |                   +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:292:16
+    |
+292 |     assert!(!g.sidenav.active);
+    |                ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+292 |     assert!(!g.side_nav.active);
+    |                    +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:294:18
+    |
+294 |     assert_eq!(g.sidenav.current, 0);
+    |                  ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+294 |     assert_eq!(g.side_nav.current, 0);
+    |                      +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:297:15
+    |
+297 |     assert!(g.sidenav.active);
+    |               ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+297 |     assert!(g.side_nav.active);
+    |                   +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:309:16
+    |
+309 |     assert!(!g.sidenav.active);
+    |                ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+309 |     assert!(!g.side_nav.active);
+    |                    +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:312:15
+    |
+312 |     assert!(g.sidenav.active);
+    |               ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+312 |     assert!(g.side_nav.active);
+    |                   +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:319:19
+    |
+319 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (1, Some(1)));
+    |                   ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+319 |     assert_eq!((g.side_nav.current, g.sidenav.confirmed), (1, Some(1)));
+    |                       +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:319:38
+    |
+319 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (1, Some(1)));
+    |                                      ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+319 |     assert_eq!((g.sidenav.current, g.side_nav.confirmed), (1, Some(1)));
+    |                                          +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:328:16
+    |
+328 |     assert!(!g.sidenav.active, "F8 off the Layout page is ignored");
+    |                ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+328 |     assert!(!g.side_nav.active, "F8 off the Layout page is ignored");
+    |                    +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:337:18
+    |
+337 |     assert_eq!(g.sidenav.current, 0);
+    |                  ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+337 |     assert_eq!(g.side_nav.current, 0);
+    |                      +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:343:16
+    |
+343 |     assert!(!g.sidenav.active);
+    |                ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+343 |     assert!(!g.side_nav.active);
+    |                    +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:346:18
+    |
+346 |     assert_eq!(g.sidenav.current, 0);
+    |                  ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+346 |     assert_eq!(g.side_nav.current, 0);
+    |                      +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:350:16
+    |
+350 |     assert!(!g.sidenav.active);
+    |                ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+350 |     assert!(!g.side_nav.active);
+    |                    +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:355:15
+    |
+355 |     assert!(g.sidenav.active);
+    |               ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+355 |     assert!(g.side_nav.active);
+    |                   +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:363:16
+    |
+363 |     assert!(!g.sidenav.active);
+    |                ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+363 |     assert!(!g.side_nav.active);
+    |                    +
+
+error[E0599]: no method named `sidenav_event` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:368:18
+    |
+368 |     assert_eq!(g.sidenav_event(&key_event(PlatformKey::Tab)), None);
+    |                  ^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_event` not found for this struct
+    |
+help: there is a method `sidebar_event` with a similar name
+    |
+368 -     assert_eq!(g.sidenav_event(&key_event(PlatformKey::Tab)), None);
+368 +     assert_eq!(g.sidebar_event(&key_event(PlatformKey::Tab)), None);
+    |
+
+error[E0599]: no method named `sidenav_event` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:369:18
+    |
+369 |     assert_eq!(g.sidenav_event(&key_event(PlatformKey::ArrowLeft)), None);
+    |                  ^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_event` not found for this struct
+    |
+help: there is a method `sidebar_event` with a similar name
+    |
+369 -     assert_eq!(g.sidenav_event(&key_event(PlatformKey::ArrowLeft)), None);
+369 +     assert_eq!(g.sidebar_event(&key_event(PlatformKey::ArrowLeft)), None);
+    |
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:370:15
+    |
+370 |     assert!(g.sidenav.active);
+    |               ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+370 |     assert!(g.side_nav.active);
+    |                   +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:376:16
+    |
+376 |     assert!(!g.sidenav.active);
+    |                ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+376 |     assert!(!g.side_nav.active);
+    |                    +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:389:15
+    |
+389 |     assert!(g.sidenav.active);
+    |               ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+389 |     assert!(g.side_nav.active);
+    |                   +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:390:19
+    |
+390 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (0, None));
+    |                   ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+390 |     assert_eq!((g.side_nav.current, g.sidenav.confirmed), (0, None));
+    |                       +
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:390:38
+    |
+390 |     assert_eq!((g.sidenav.current, g.sidenav.confirmed), (0, None));
+    |                                      ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+390 |     assert_eq!((g.sidenav.current, g.side_nav.confirmed), (0, None));
+    |                                          +
+
+error[E0599]: no method named `sidenav_event` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:391:18
+    |
+391 |     assert_eq!(g.sidenav_event(&key_event(PlatformKey::Tab)), None);
+    |                  ^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_event` not found for this struct
+    |
+help: there is a method `sidebar_event` with a similar name
+    |
+391 -     assert_eq!(g.sidenav_event(&key_event(PlatformKey::Tab)), None);
+391 +     assert_eq!(g.sidebar_event(&key_event(PlatformKey::Tab)), None);
+    |
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:412:19
+    |
+412 |     assert_eq!((g.sidenav.current, g.side_nav.current), (1, 0));
+    |                   ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+412 |     assert_eq!((g.side_nav.current, g.side_nav.current), (1, 0));
+    |                       +
+
+error[E0599]: no method named `sidenav_event` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:422:18
+    |
+422 |     assert_eq!(g.sidenav_event(&key_event(PlatformKey::Function(8))), Some(true));
+    |                  ^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_event` not found for this struct
+    |
+help: there is a method `sidebar_event` with a similar name
+    |
+422 -     assert_eq!(g.sidenav_event(&key_event(PlatformKey::Function(8))), Some(true));
+422 +     assert_eq!(g.sidebar_event(&key_event(PlatformKey::Function(8))), Some(true));
+    |
+
+error[E0599]: no method named `sidenav_examples` found for reference `&Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:461:24
+    |
+461 |         let widget = g.sidenav_examples();
+    |                        ^^^^^^^^^^^^^^^^
+    |
+help: there is a method `sidebar_examples` with a similar name
+    |
+461 -         let widget = g.sidenav_examples();
+461 +         let widget = g.sidebar_examples();
+    |
+
+error[E0599]: no method named `sidenav_examples` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:470:31
+    |
+470 |     assert!(format!("{:?}", g.sidenav_examples()).contains("鍵盤導覽：未使用"));
+    |                               ^^^^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_examples` not found for this struct
+    |
+help: there is a method `sidebar_examples` with a similar name
+    |
+470 -     assert!(format!("{:?}", g.sidenav_examples()).contains("鍵盤導覽：未使用"));
+470 +     assert!(format!("{:?}", g.sidebar_examples()).contains("鍵盤導覽：未使用"));
+    |
+
+error[E0599]: no method named `sidenav_examples` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:475:31
+    |
+475 |     assert!(format!("{:?}", g.sidenav_examples()).contains("鍵盤導覽：使用中"));
+    |                               ^^^^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_examples` not found for this struct
+    |
+help: there is a method `sidebar_examples` with a similar name
+    |
+475 -     assert!(format!("{:?}", g.sidenav_examples()).contains("鍵盤導覽：使用中"));
+475 +     assert!(format!("{:?}", g.sidebar_examples()).contains("鍵盤導覽：使用中"));
+    |
+
+error[E0599]: no method named `sidenav_examples` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:478:34
+    |
+478 |     let page = format!("{:?}", g.sidenav_examples());
+    |                                  ^^^^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_examples` not found for this struct
+    |
+help: there is a method `sidebar_examples` with a similar name
+    |
+478 -     let page = format!("{:?}", g.sidenav_examples());
+478 +     let page = format!("{:?}", g.sidebar_examples());
+    |
+
+error[E0599]: no method named `sidenav_examples` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:480:28
+    |
+480 |     assert!(find_widget(&g.sidenav_examples(), "gallery_layout_sidenav").is_some());
+    |                            ^^^^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_examples` not found for this struct
+    |
+help: there is a method `sidebar_examples` with a similar name
+    |
+480 -     assert!(find_widget(&g.sidenav_examples(), "gallery_layout_sidenav").is_some());
+480 +     assert!(find_widget(&g.sidebar_examples(), "gallery_layout_sidenav").is_some());
+    |
+
+error[E0609]: no field `sidenav` on type `Gallery`
+   --> apps\acme-gallery\src\sidenav_tests.rs:491:19
+    |
+491 |                 g.sidenav.current = current;
+    |                   ^^^^^^^ unknown field
+    |
+help: a field with a similar name exists
+    |
+491 |                 g.side_nav.current = current;
+    |                       +
+
+error[E0599]: no method named `sidenav_examples` found for struct `Gallery` in the current scope
+   --> apps\acme-gallery\src\sidenav_tests.rs:492:32
+    |
+492 |                 let widget = g.sidenav_examples();
+    |                                ^^^^^^^^^^^^^^^^
+    |
+   ::: apps\acme-gallery\src\main.rs:292:1
+    |
+292 | struct Gallery {
+    | -------------- method `sidenav_examples` not found for this struct
+    |
+help: there is a method `sidebar_examples` with a similar name
+    |
+492 -                 let widget = g.sidenav_examples();
+492 +                 let widget = g.sidebar_examples();
+    |
+
+Some errors have detailed explanations: E0433, E0599, E0609.
+For more information about an error, try `rustc --explain E0433`.
+error: could not compile `acme-ui-gallery` (bin "acme-ui-gallery" test) due to 72 previous errors

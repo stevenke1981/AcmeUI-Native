@@ -1,0 +1,11 @@
+# gallery-green 2026-11-16T17:11:57Z
+## cargo fmt -p acme-ui-gallery --check
+exit 0
+## cargo test --locked -p acme-ui-gallery
+test result: ok. 187 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.12s
+## cargo clippy --locked -p acme-ui-gallery --all-targets --no-deps -- -D warnings
+    Checking acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+    Checking acme-textinput v0.2.0 (F:\AcmeUI-Native\crates\acme-textinput)
+    Checking acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Checking acme-ui-gallery v0.2.0 (F:\AcmeUI-Native\apps\acme-gallery)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.49s
