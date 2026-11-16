@@ -192,6 +192,12 @@ pub enum PlatformEvent {
         lines: bool,
         x: f32,
         y: f32,
+        /// Keyboard modifiers held when the wheel event was delivered
+        /// (tracked from winit `ModifiersChanged`).
+        shift: bool,
+        ctrl: bool,
+        alt: bool,
+        meta: bool,
     },
     Key {
         window: WindowId,
@@ -321,10 +327,23 @@ impl KeyInput {
 }
 
 impl PlatformEvent {
-    /// Extract keyboard modifiers from [`PlatformEvent::Key`] or
-    /// [`PlatformEvent::PointerButton`], returning `None` for other variants.
+    /// Extract keyboard modifiers from [`PlatformEvent::Key`],
+    /// [`PlatformEvent::PointerButton`] or [`PlatformEvent::Scroll`],
+    /// returning `None` for other variants.
     pub fn key_modifiers(&self) -> Option<KeyModifiers> {
         match self {
+            Self::Scroll {
+                shift,
+                ctrl,
+                alt,
+                meta,
+                ..
+            } => Some(KeyModifiers {
+                shift: *shift,
+                control: *ctrl,
+                alt: *alt,
+                meta: *meta,
+            }),
             Self::Key {
                 shift,
                 ctrl,
@@ -1087,6 +1106,31 @@ mod tests {
         assert_eq!(
             resolve_min_window_size(&override_cfg, None),
             Some((640.0, 480.0))
+        );
+    }
+
+    #[test]
+    fn scroll_event_exposes_modifiers() {
+        let scroll = PlatformEvent::Scroll {
+            window: WindowId(1),
+            delta_x: 0.0,
+            delta_y: -1.0,
+            lines: true,
+            x: 0.0,
+            y: 0.0,
+            shift: true,
+            ctrl: true,
+            alt: false,
+            meta: false,
+        };
+        assert_eq!(
+            scroll.key_modifiers(),
+            Some(KeyModifiers {
+                shift: true,
+                control: true,
+                alt: false,
+                meta: false,
+            })
         );
     }
 
@@ -1895,8 +1939,13 @@ fn handle_scroll(
     id: WinitWindowId,
     delta: MouseScrollDelta,
 ) {
-    let (scale, win_id, (x, y)) = match windows.get(&id) {
-        Some(state) => (state.window.scale_factor() as f32, state.id, state.cursor),
+    let (scale, win_id, (x, y), (shift, ctrl, alt, meta)) = match windows.get(&id) {
+        Some(state) => (
+            state.window.scale_factor() as f32,
+            state.id,
+            state.cursor,
+            (state.shift, state.ctrl, state.alt, state.meta),
+        ),
         None => return,
     };
     let (delta_x, delta_y, lines) = resolve_scroll_delta(delta, scale);
@@ -1907,6 +1956,10 @@ fn handle_scroll(
         lines,
         x,
         y,
+        shift,
+        ctrl,
+        alt,
+        meta,
     });
     if let Some(state) = windows.get_mut(&id) {
         state.dirty |= dirty;

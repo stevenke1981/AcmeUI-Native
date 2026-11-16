@@ -2,11 +2,13 @@
 
 use acme_core::{Color, NodeId, Painter, Rect, RectStyle};
 use acme_layout::{LayoutNode, LayoutSnapshot};
-use acme_text::{FontSystem, GlyphAtlas};
+use acme_text::{FontSystem, GlyphAtlas, TextConstraints, TextStyle};
 use acme_theme::Theme;
 use acme_widgets::ButtonState;
 use acme_widgets::WidgetNode;
+use acme_widgets::label_align_offset;
 use acme_widgets::painter_bridge::paint_canvas_with_theme;
+use acme_widgets::style::TextAlign;
 
 use crate::render::geometry::{rect_from_array, rect_style, rgba};
 use crate::render::style::push_widget_style;
@@ -53,6 +55,23 @@ pub fn render_content(
                     .or(l.line_height)
                     .unwrap_or(fs * theme.typography.line_height);
                 let y_text = rect.y - scroll_y + (rect.height - line_h).max(0.0) * 0.5;
+                // Single-line labels honour `text_align`; wrapped text stays left.
+                let alignment = l.style.text_align.unwrap_or(TextAlign::Left);
+                let text_x =
+                    if l.wrap == acme_widgets::LabelWrap::None && alignment != TextAlign::Left {
+                        let shaped = fonts.shape(
+                            &l.text,
+                            &TextStyle {
+                                font_size: fs,
+                                ..TextStyle::default()
+                            },
+                            TextConstraints::default(),
+                            scale,
+                        );
+                        rect.x + label_align_offset(alignment, rect.width, shaped.width)
+                    } else {
+                        rect.x + 4.0
+                    };
                 let text_color = l.color.unwrap_or_else(|| {
                     let s = &l.style;
                     s.text_color
@@ -65,7 +84,7 @@ pub fn render_content(
                     atlas,
                     painter,
                     &l.text,
-                    ([rect.x + 4.0, y_text], fs),
+                    ([text_x, y_text], fs),
                     text_color,
                     scale,
                     Some(clip),
