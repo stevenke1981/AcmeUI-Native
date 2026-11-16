@@ -1,0 +1,212 @@
+{
+  "source_sha": "2133f7c4191d9ba63a90a8fdc41af4b685abc890",
+  "execution": "single Codex agent; author self-review",
+  "independent_review": "NOT_RUN",
+  "manual_validation": "NOT_RUN",
+  "checks": [
+    {
+      "name": "format",
+      "command": [
+        "rustfmt",
+        "--edition",
+        "2024",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "crates/acme-ui/src/overlay/speed_dial.rs",
+        "crates/acme-ui/src/overlay/speed_dial_tests.rs",
+        "apps/acme-gallery/src/main.rs",
+        "apps/acme-gallery/src/speed_dial.rs",
+        "apps/acme-gallery/src/speed_dial_tests.rs"
+      ],
+      "started_at": "2026-11-16T08:53:55.565984+00:00",
+      "finished_at": "2026-11-16T08:53:55.669926+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "log": "logs/format.txt"
+    },
+    {
+      "name": "targeted-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "acme-ui",
+        "--all-features",
+        "-p",
+        "acme-ui-gallery"
+      ],
+      "started_at": "2026-11-16T08:53:55.670240+00:00",
+      "finished_at": "2026-11-16T08:54:09.634391+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "log": "logs/targeted-tests.txt"
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "acme-ui",
+        "--all-features",
+        "-p",
+        "acme-ui-gallery",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "started_at": "2026-11-16T08:54:09.635074+00:00",
+      "finished_at": "2026-11-16T08:54:16.454517+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "log": "logs/clippy.txt"
+    },
+    {
+      "name": "cpu",
+      "command": [
+        "python3",
+        "scripts/verify_sdk.py",
+        "--profile",
+        "cpu",
+        "--output",
+        "target/roadmap-053/cpu"
+      ],
+      "started_at": "2026-11-16T08:54:16.454805+00:00",
+      "finished_at": "2026-11-16T08:54:18.957516+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "log": "logs/cpu.txt"
+    },
+    {
+      "name": "gallery-build",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "-p",
+        "acme-ui-gallery"
+      ],
+      "started_at": "2026-11-16T08:54:18.958117+00:00",
+      "finished_at": "2026-11-16T08:54:23.477073+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "log": "logs/gallery-build.txt"
+    },
+    {
+      "name": "workspace-check",
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--workspace",
+        "--all-targets"
+      ],
+      "started_at": "2026-11-16T09:57:36.504419+00:00",
+      "finished_at": "2026-11-16T09:57:54.996008+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "log": "logs/workspace-check.txt"
+    },
+    {
+      "name": "workspace-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace"
+      ],
+      "started_at": "2026-11-16T09:57:54.996418+00:00",
+      "finished_at": "2026-11-16T09:58:43.335511+00:00",
+      "exit_code": 0,
+      "status": "PASS",
+      "log": "logs/workspace-tests.txt"
+    }
+  ],
+  "environment": {
+    "os": "Linux-6.12.113+-x86_64-with-glibc2.41",
+    "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)",
+    "cargo": "cargo 1.88.0 (873a06493 2025-05-10)"
+  },
+  "artifacts": [
+    {
+      "path": "gallery-speed-dial-down.png",
+      "sha256": "c04be3d36c30fe2a3c955198d2e17e9512320a60e71b0b9c0a409fd1b61adcb5"
+    },
+    {
+      "path": "gallery-speed-dial-left.png",
+      "sha256": "a8e41aed85ebad1ce007be8a1b43ed80de67d9d4f1b5842f26bcd83700d9588e"
+    },
+    {
+      "path": "gallery-speed-dial-right-dark-action.png",
+      "sha256": "3ea15386d0c89c292d358c737f7dd7d433339831662e5d285fd7807807b708ae"
+    },
+    {
+      "path": "gallery-speed-dial-right.png",
+      "sha256": "cf809dc929c17292db20e09fdc9c08e72f642ef4ed59b5edc23c2cbb9c01063e"
+    },
+    {
+      "path": "gallery-speed-dial-up.png",
+      "sha256": "54aaadc5e347136bbdebcda96f0a216d32e233976a16c51d11e2f57475067f64"
+    },
+    {
+      "path": "logs/capture.py",
+      "sha256": "abc071eda56a6069bb78db96424b03505af66e119dbaf55e9c04ff1d7a1670d8"
+    },
+    {
+      "path": "logs/clippy.txt",
+      "sha256": "9f1049491ee37ac5994f845bb17b8ac8fe1bb4650bf3852f997f08e28984e2f7"
+    },
+    {
+      "path": "logs/cpu/01.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "logs/cpu/02.log",
+      "sha256": "cb9d0ed50c08fd2d828d26d3e0673800356d4dc06e970554da752a871329d1a8"
+    },
+    {
+      "path": "logs/cpu/03.log",
+      "sha256": "fbd1a8d7ccba07e1d6ab11c55ac359811766007b8d895bb403ea6547afb39e03"
+    },
+    {
+      "path": "logs/cpu/report.json",
+      "sha256": "fd4258a2720756acd3d3f801f71437fc6dddf6be849febed2476b6b7b0a66b4b"
+    },
+    {
+      "path": "logs/cpu.txt",
+      "sha256": "df2f45cb54fca716ff015d8e0a2c825ff422c618a18a4af339aebb4621c18559"
+    },
+    {
+      "path": "logs/format.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "logs/gallery-build.txt",
+      "sha256": "0a17f95bc5b798364410ee2cbe00c7d9506600041afa6825b6190ba2f7573ebb"
+    },
+    {
+      "path": "logs/native-window.json",
+      "sha256": "4fa99ca26f06ed952854a0564027469e7654d04c2a78d6030db085939beeb8e8"
+    },
+    {
+      "path": "logs/native-window.txt",
+      "sha256": "18b994563c61904f959cb44346126933ebd488bf232ed5ab5e7f9fab0cd38b2c"
+    },
+    {
+      "path": "logs/targeted-tests.txt",
+      "sha256": "401f560621241e171594755e14c2ae01f3ec209f9769f359cedc54e2e0c1f7c8"
+    },
+    {
+      "path": "logs/workspace-check.txt",
+      "sha256": "a5ad86ecc462f96bb05d791d30a01974c63a5163ad227e6f77dca63226c52c53"
+    },
+    {
+      "path": "logs/workspace-tests.txt",
+      "sha256": "9722f0d18627e80d40cbfa00658e3ea68aa2050ca5f503346515f9227a3085cb"
+    }
+  ]
+}
