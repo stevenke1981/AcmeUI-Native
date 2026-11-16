@@ -160,17 +160,48 @@ impl<M> Button<M> {
             background,
             foreground: if self.disabled {
                 c.disabled_text
-            } else if self.variant == ButtonVariant::Primary {
-                c.primary_foreground
-            } else if self.variant == ButtonVariant::Danger {
-                ThemeColor::rgb(255, 255, 255)
             } else {
-                c.foreground
+                let candidates = match self.variant {
+                    ButtonVariant::Primary | ButtonVariant::Danger => {
+                        [c.primary_foreground, c.background, c.foreground]
+                    }
+                    ButtonVariant::Secondary if !(state.pressed || state.hovered) => {
+                        [c.secondary_foreground, c.foreground, c.background]
+                    }
+                    ButtonVariant::Secondary | ButtonVariant::Ghost => {
+                        [c.foreground, c.background, c.secondary_foreground]
+                    }
+                };
+                let painted =
+                    if self.variant == ButtonVariant::Ghost && !(state.pressed || state.hovered) {
+                        c.background
+                    } else {
+                        background
+                    };
+                readable_foreground(theme, painted, candidates)
             },
             border: c.border,
             focus: c.ring,
         }
     }
+}
+
+/// First candidate token reaching WCAG AA (4.5:1) on `bg`, else the highest
+/// ratio. Mirrors `Theme::selected_item_colors`; only existing tokens are used.
+fn readable_foreground(theme: &Theme, bg: ThemeColor, candidates: [ThemeColor; 3]) -> ThemeColor {
+    candidates
+        .iter()
+        .copied()
+        .find(|fg| theme.contrast(*fg, bg) >= 4.5)
+        .unwrap_or_else(|| {
+            candidates.iter().copied().fold(candidates[0], |best, fg| {
+                if theme.contrast(fg, bg) > theme.contrast(best, bg) {
+                    fg
+                } else {
+                    best
+                }
+            })
+        })
 }
 
 impl<M> From<Button<M>> for WidgetNode<M> {

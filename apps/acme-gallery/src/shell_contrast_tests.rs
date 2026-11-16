@@ -12,21 +12,6 @@ use acme_theme::contrast_ratio;
 
 const AA: f32 = 4.5;
 
-/// Solarized's plain `foreground` on `surface` / `ghost_hover` is below AA.
-/// That palette defect is outside ROADMAP 060 (the shell uses the unchanged
-/// unselected/hover tokens) and is a ROADMAP 062 item. Rather than exempt the
-/// pack, pin floors at the current values so any further regression fails.
-const SOLARIZED_UNSELECTED_FLOOR_LIGHT: f32 = 3.6;
-const SOLARIZED_UNSELECTED_FLOOR_DARK: f32 = 4.1;
-
-fn unselected_floor(pack: &str, dark: bool) -> f32 {
-    match (pack, dark) {
-        ("solarized", false) => SOLARIZED_UNSELECTED_FLOOR_LIGHT,
-        ("solarized", true) => SOLARIZED_UNSELECTED_FLOOR_DARK,
-        _ => AA,
-    }
-}
-
 fn packs() -> Vec<String> {
     let mut all = vec!["default".to_string()];
     all.extend(available_themes().iter().map(|s| s.to_string()));
@@ -172,16 +157,15 @@ fn gallery_unselected_and_hovered_category_text_meets_aa_all_packs() {
                 let Painted { bg, fg, .. } = painted(&scene, rect, &ctx);
                 let ratio = contrast_ratio(fg, bg);
                 println!("{state} {ctx}: {ratio:.2}");
-                let floor = unselected_floor(&pack, dark);
-                if ratio < floor {
-                    failures.push(format!("{ctx} {state} {ratio:.2}:1 < {floor}"));
+                if ratio < AA {
+                    failures.push(format!("{ctx} {state} {ratio:.2}:1 < {AA}"));
                 }
             }
         }
     }
     assert!(
         failures.is_empty(),
-        "category text below its floor (AA {AA}:1 except pinned solarized): {failures:?}"
+        "category text below AA {AA}:1 in some pack: {failures:?}"
     );
 }
 

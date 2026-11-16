@@ -1,0 +1,219 @@
+   Compiling acme-theme v0.2.0 (F:\AcmeUI-Native\crates\acme-theme)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.58s
+     Running unittests src\lib.rs (target\debug\deps\acme_theme-d129c26b4be2f36c.exe)
+
+running 39 tests
+test json::tests::error_implements_std_error_and_display ... ok
+test json::tests::rejects_non_ascii_unicode_escape_without_panicking ... ok
+test json::tests::partial_json_defaults_from_mode_and_applies_overrides ... ok
+test json::tests::partial_shadow_and_typography_and_spacing_overrides_work ... ok
+test json::tests::rejects_non_finite_numbers_and_invalid_colors ... ok
+test json::tests::rejects_wrong_field_types_and_invalid_mode ... ok
+test packs::apple::tests::apple_primary_is_system_blue ... ok
+test packs::high_contrast::tests::high_contrast_pack_name_and_variants_validate ... ok
+test packs::high_contrast::tests::high_contrast_pack_meets_wcag_aa_everywhere_and_aaa_on_primary_surfaces ... ok
+test json::tests::rejects_malformed_json_syntax ... ok
+test packs::tests::unknown_theme_returns_none ... ok
+test packs::tests::high_contrast_aliases_resolve_identically ... ok
+test tests::border_color_focused_returns_ring ... ok
+test tests::builtins_are_complete_and_valid ... ok
+test tests::builtin_themes_main_text_meets_wcag_aa ... ok
+test packs::tests::light_and_dark_variants_differ ... ok
+test tests::color_lerp_and_darken_produce_valid_color ... ok
+test tests::contrast_level_classification ... ok
+test packs::tests::all_registered_themes_resolve_and_validate ... ok
+test tests::contrast_ratio_black_white_is_21 ... ok
+test tests::accent_vs_background_non_text_guard ... FAILED
+test json::tests::round_trip_builtin_light_preserves_exact_fields ... ok
+test tests::contrast_ratio_identical_is_1 ... ok
+test json::tests::round_trip_builtin_dark_preserves_exact_fields ... ok
+test tests::control_heights_are_monotonic ... ok
+test tests::gruvbox_accent_meets_non_text_contrast ... ok
+test tests::light_dark_have_distinct_palettes ... ok
+test tests::rejects_invalid_custom_values ... ok
+test tests::relative_luminance_extremes ... ok
+test tests::roadmap_060_pack_retune_reaches_aa ... ok
+test tests::selected_item_colors_prefer_first_qualifying_candidate ... ok
+test tests::selected_item_colors_meet_aa_in_every_pack_and_mode ... ok
+test json::tests::round_trip_high_contrast_light_and_dark_preserves_exact_fields ... ok
+test tests::selected_item_colors_use_theme_tokens_only ... ok
+test tests::spacing_get_returns_expected_values ... ok
+test tests::wcag_report_covers_key_pairs ... ok
+test tests::roadmap_062_every_pack_meets_aa_gate ... FAILED
+test tests::wcag_report_includes_selected_item_pair ... ok
+test json::tests::round_trip_all_registered_theme_packs_preserves_exact_fields ... ok
+
+failures:
+
+---- tests::accent_vs_background_non_text_guard stdout ----
+
+thread 'tests::accent_vs_background_non_text_guard' panicked at crates\acme-theme\src\lib.rs:1159:17:
+dracula/Light: primary vs background 2.26
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::roadmap_062_every_pack_meets_aa_gate stdout ----
+
+thread 'tests::roadmap_062_every_pack_meets_aa_gate' panicked at crates\acme-theme\src\lib.rs:1193:9:
+38 WCAG gate failure(s):
+default/light: muted_fg/muted 4.43 < 4.5
+apple/Light: primary_fg/primary 4.02 < 4.5
+apple/Light: muted_fg/muted 2.92 < 4.5
+apple/Light: accent_fg/accent 3.41 < 4.5
+apple/Dark: primary_fg/primary 3.65 < 4.5
+apple/Dark: accent_fg/accent 4.06 < 4.5
+ubuntu/Light: primary_fg/primary 3.65 < 4.5
+ubuntu/Dark: primary_fg/primary 3.65 < 4.5
+nord/Light: primary_fg/primary 3.50 < 4.5
+nord/Light: accent_fg/accent 2.98 < 4.5
+nord/Dark: accent_fg/accent 4.31 < 4.5
+dracula/Light: muted_fg/muted 3.93 < 4.5
+dracula/Light: accent_fg/accent 4.49 < 4.5
+dracula/Light: ring/background 2.26 < 3
+dracula/Light: ring/surface 2.41 < 3
+dracula/Light: primary/background 2.26 < 3
+dracula/Dark: muted_fg/muted 1.94 < 4.5
+dracula/Dark: accent_fg/accent 3.84 < 4.5
+solarized/Light: foreground/background 4.13 < 4.5
+solarized/Light: surface_fg/surface 3.64 < 4.5
+solarized/Light: primary_fg/primary 3.41 < 4.5
+solarized/Light: secondary_fg/secondary 2.93 < 4.5
+solarized/Light: muted_fg/muted 2.18 < 4.5
+solarized/Light: foreground/surface 3.64 < 4.5
+solarized/Dark: surface_fg/surface 4.11 < 4.5
+solarized/Dark: primary_fg/primary 3.41 < 4.5
+solarized/Dark: secondary_fg/secondary 4.11 < 4.5
+solarized/Dark: muted_fg/muted 2.42 < 4.5
+solarized/Dark: accent_fg/accent 4.12 < 4.5
+solarized/Dark: foreground/surface 4.11 < 4.5
+gruvbox/Light: primary_fg/primary 3.73 < 4.5
+gruvbox/Light: muted_fg/muted 3.55 < 4.5
+gruvbox/Dark: primary_fg/primary 3.73 < 4.5
+gruvbox/Dark: muted_fg/muted 4.17 < 4.5
+gruvbox/Dark: ring/surface 2.74 < 3
+one-dark/Light: primary_fg/primary 4.05 < 4.5
+one-dark/Light: muted_fg/muted 2.26 < 4.5
+one-dark/Dark: muted_fg/muted 2.55 < 4.5
+
+
+failures:
+    tests::accent_vs_background_non_text_guard
+    tests::roadmap_062_every_pack_meets_aa_gate
+
+test result: FAILED. 37 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p acme-theme --lib`
+
+
+# Review fixes (Fable 5.2 review P1-2, P1-3, P2): RED before retune
+## cargo test --locked -p acme-theme (new tests, palette unchanged; tree based on ffd7e51, uncommitted)
+running 45 tests
+test tests::gruvbox_dark_teals_are_unified ... FAILED
+test tests::roadmap_062_danger_fills_have_aa_ink ... FAILED
+test tests::roadmap_062_every_pack_meets_aa_gate ... FAILED
+test tests::roadmap_062_primary_states_keep_text_aa ... FAILED
+test tests::solarized_muted_text_keeps_a_hierarchy ... FAILED
+test tests::roadmap_062_state_fills_give_feedback ... FAILED
+
+failures:
+
+---- tests::gruvbox_dark_teals_are_unified stdout ----
+
+thread 'tests::gruvbox_dark_teals_are_unified' panicked at crates\acme-theme\src\lib.rs:1642:9:
+assertion `left == right` failed: ring = primary
+  left: ThemeColor { red: 0.3529412, green: 0.5882353, blue: 0.6, alpha: 1.0 }
+ right: ThemeColor { red: 0.31764707, green: 0.6117647, blue: 0.62352943, alpha: 1.0 }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::roadmap_062_danger_fills_have_aa_ink stdout ----
+
+thread 'tests::roadmap_062_danger_fills_have_aa_ink' panicked at crates\acme-theme\src\lib.rs:1580:9:
+nord/Light: danger best ink 3.55 < 4.5
+nord/Light: danger_hover best ink 4.23 < 4.5
+nord/Dark: danger best ink 3.88 < 4.5
+nord/Dark: danger_hover best ink 3.97 < 4.5
+nord/Dark: danger_pressed best ink 3.55 < 4.5
+dracula/Light: danger_pressed best ink 4.14 < 4.5
+dracula/Dark: danger_pressed best ink 4.14 < 4.5
+solarized/Light: danger best ink 4.29 < 4.5
+solarized/Light: danger_hover best ink 3.51 < 4.5
+solarized/Dark: danger best ink 4.05 < 4.5
+solarized/Dark: danger_hover best ink 4.48 < 4.5
+solarized/Dark: danger_pressed best ink 2.84 < 4.5
+gruvbox/Light: danger_hover best ink 4.04 < 4.5
+gruvbox/Dark: danger best ink 4.29 < 4.5
+gruvbox/Dark: danger_hover best ink 3.34 < 4.5
+one-dark/Light: danger best ink 3.67 < 4.5
+one-dark/Light: danger_hover best ink 3.73 < 4.5
+one-dark/Dark: danger_pressed best ink 3.51 < 4.5
+
+---- tests::roadmap_062_every_pack_meets_aa_gate stdout ----
+
+thread 'tests::roadmap_062_every_pack_meets_aa_gate' panicked at crates\acme-theme\src\lib.rs:1425:9:
+1 WCAG gate failure(s):
+one-dark/Dark: muted_fg/background 4.19 < 4.5
+
+---- tests::roadmap_062_primary_states_keep_text_aa stdout ----
+
+thread 'tests::roadmap_062_primary_states_keep_text_aa' panicked at crates\acme-theme\src\lib.rs:1556:9:
+default/dark: primary_fg/primary_pressed 4.20 < 4.5
+apple/Dark: primary_fg/primary_hover 2.83 < 4.5
+windows11/Dark: primary_fg/primary_pressed 3.70 < 4.5
+ubuntu/Dark: primary_fg/primary_pressed 4.10 < 4.5
+material/Dark: primary_fg/primary_pressed 2.04 < 4.5
+nord/Light: primary_fg/primary_hover 2.34 < 4.5
+nord/Dark: primary_fg/primary_pressed 3.10 < 4.5
+dracula/Light: primary_fg/primary_pressed 4.07 < 4.5
+dracula/Dark: primary_fg/primary_pressed 3.77 < 4.5
+solarized/Light: primary_fg/primary_hover 2.82 < 4.5
+solarized/Dark: primary_fg/primary_pressed 3.12 < 4.5
+gruvbox/Light: primary_fg/primary_hover 2.96 < 4.5
+gruvbox/Dark: primary_fg/primary_hover 4.39 < 4.5
+gruvbox/Dark: primary_fg/primary_pressed 2.39 < 4.5
+one-dark/Light: primary_fg/primary_hover 3.23 < 4.5
+
+---- tests::solarized_muted_text_keeps_a_hierarchy stdout ----
+
+thread 'tests::solarized_muted_text_keeps_a_hierarchy' panicked at crates\acme-theme\src\lib.rs:1621:13:
+solarized/Light fg vs muted_fg 1.005 < 1.1
+
+---- tests::roadmap_062_state_fills_give_feedback stdout ----
+
+thread 'tests::roadmap_062_state_fills_give_feedback' panicked at crates\acme-theme\src\lib.rs:1602:9:
+apple/Light danger: a state moves toward the ink (ink on rest 5.92, hover 4.33, pressed 3.10)
+apple/Dark primary: pressed 1.175 is nearer rest than hover 1.630; a state moves toward the ink (ink on rest 4.62, hover 2.83, pressed 5.42)
+apple/Dark danger: a state moves toward the ink (ink on rest 6.16, hover 7.45, pressed 4.33)
+ubuntu/Light primary: hover vs rest 1.005 < 1.15; a state moves toward the ink (ink on rest 4.62, hover 4.60, pressed 5.85)
+ubuntu/Dark primary: a state moves toward the ink (ink on rest 5.17, hover 6.10, pressed 4.10)
+ubuntu/Dark danger: a state moves toward the ink (ink on rest 6.49, hover 7.83, pressed 3.81)
+nord/Light primary: pressed 1.383 is nearer rest than hover 1.982; a state moves toward the ink (ink on rest 4.63, hover 2.34, pressed 6.40)
+nord/Dark primary: hover vs rest 1.042 < 1.15; a state moves toward the ink (ink on rest 6.24, hover 5.99, pressed 3.10)
+nord/Dark danger: hover vs rest 1.023 < 1.15; a state moves toward the ink (ink on rest 3.88, hover 3.97, pressed 3.05)
+dracula/Light primary: pressed vs rest 1.138 < 1.15; pressed 1.138 is nearer rest than hover 1.615; a state moves toward the ink (ink on rest 4.63, hover 7.49, pressed 4.07)
+dracula/Light danger: a state moves toward the ink (ink on rest 4.64, hover 5.65, pressed 3.48)
+dracula/Dark primary: a state moves toward the ink (ink on rest 5.90, hover 6.93, pressed 3.77)
+dracula/Dark danger: hover vs rest 1.080 < 1.15; a state moves toward the ink (ink on rest 4.84, hover 5.23, pressed 3.22)
+solarized/Light primary: pressed vs rest 1.085 < 1.15; pressed 1.085 is nearer rest than hover 1.652; a state moves toward the ink (ink on rest 4.65, hover 2.82, pressed 5.04)
+solarized/Light danger: a state moves toward the ink (ink on rest 4.29, hover 3.51, pressed 5.53)
+solarized/Dark primary: a state moves toward the ink (ink on rest 4.61, hover 5.58, pressed 3.12)
+solarized/Dark danger: hover vs rest 1.107 < 1.15; a state moves toward the ink (ink on rest 4.05, hover 4.48, pressed 2.84)
+gruvbox/Light primary: pressed 1.181 is nearer rest than hover 1.559; a state moves toward the ink (ink on rest 4.61, hover 2.96, pressed 5.44)
+gruvbox/Light danger: a state moves toward the ink (ink on rest 4.82, hover 4.04, pressed 6.36)
+gruvbox/Dark primary: hover vs rest 1.056 < 1.15; a state moves toward the ink (ink on rest 4.64, hover 4.39, pressed 2.39)
+gruvbox/Dark danger: a state moves toward the ink (ink on rest 4.29, hover 3.22, pressed 2.04)
+one-dark/Light primary: pressed 1.193 is nearer rest than hover 1.434; a state moves toward the ink (ink on rest 4.63, hover 3.23, pressed 5.52)
+one-dark/Light danger: a state moves toward the ink (ink on rest 3.67, hover 3.04, pressed 4.90)
+one-dark/Dark primary: a state moves toward the ink (ink on rest 6.51, hover 7.68, pressed 4.58)
+one-dark/Dark danger: a state moves toward the ink (ink on rest 4.82, hover 5.86, pressed 3.51)
+
+
+failures:
+    tests::gruvbox_dark_teals_are_unified
+    tests::roadmap_062_danger_fills_have_aa_ink
+    tests::roadmap_062_every_pack_meets_aa_gate
+    tests::roadmap_062_primary_states_keep_text_aa
+    tests::roadmap_062_state_fills_give_feedback
+    tests::solarized_muted_text_keeps_a_hierarchy
+
+test result: FAILED. 39 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p acme-theme --lib`

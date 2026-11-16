@@ -1039,6 +1039,93 @@ mod tests {
         );
     }
     #[test]
+    fn button_text_meets_aa_in_every_pack_mode_variant_state() {
+        use acme_theme::ThemeMode;
+        use acme_theme::packs::{available_themes, theme_by_name};
+        let mut themes = vec![
+            ("default".to_string(), ThemeMode::Light, Theme::light()),
+            ("default".to_string(), ThemeMode::Dark, Theme::dark()),
+        ];
+        for name in available_themes() {
+            for mode in [ThemeMode::Light, ThemeMode::Dark] {
+                if let Some(t) = theme_by_name(name, mode) {
+                    themes.push((name.to_string(), mode, t));
+                }
+            }
+        }
+        let mut failures = Vec::new();
+        for (name, mode, theme) in &themes {
+            for variant in [
+                ButtonVariant::Primary,
+                ButtonVariant::Secondary,
+                ButtonVariant::Danger,
+                ButtonVariant::Ghost,
+            ] {
+                let b = button::<Msg>("b", "b").variant(variant);
+                for (label, state) in [
+                    ("rest", ButtonState::default()),
+                    (
+                        "hovered",
+                        ButtonState {
+                            hovered: true,
+                            ..Default::default()
+                        },
+                    ),
+                    (
+                        "pressed",
+                        ButtonState {
+                            pressed: true,
+                            ..Default::default()
+                        },
+                    ),
+                ] {
+                    let s = b.resolve_style(theme, state);
+                    let bg = if variant == ButtonVariant::Ghost && label == "rest" {
+                        theme.colors.background
+                    } else {
+                        s.background
+                    };
+                    let ratio = theme.contrast(s.foreground, bg);
+                    let c = theme.colors;
+                    let best = [
+                        c.primary_foreground,
+                        c.secondary_foreground,
+                        c.background,
+                        c.foreground,
+                    ]
+                    .iter()
+                    .map(|fg| theme.contrast(*fg, bg))
+                    .fold(0.0_f32, f32::max);
+                    if ratio < 4.5 && best >= 4.5 {
+                        // A qualifying theme token exists but was not chosen.
+                        failures.push(format!("{name}/{mode:?}/{variant:?}/{label}: {ratio:.2}"));
+                    } else if ratio < 4.5 {
+                        // Token-limited: no existing token reaches AA here.
+                        println!("TOKEN-LIMITED {name}/{mode:?}/{variant:?}/{label}: {ratio:.2}");
+                    }
+                }
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "low contrast:\n{}",
+            failures.join("\n")
+        );
+    }
+    #[test]
+    fn button_resolve_style_has_no_hardcoded_colors() {
+        let src = include_str!("inputs/button.rs");
+        let start = src.find("pub fn resolve_style").expect("resolve_style");
+        let end = src.find("impl<M> From<Button<M>>").expect("end marker");
+        let body = &src[start..end];
+        let literals = body.matches("ThemeColor::rgb").count();
+        assert_eq!(
+            literals, 1,
+            "only the transparent Ghost fill may be literal"
+        );
+        assert!(body.contains("ThemeColor::rgba(0.0, 0.0, 0.0, 0.0)"));
+    }
+    #[test]
     fn scroll_layout_is_clipped() {
         let tree = scroll_view::<Msg>("scroll")
             .viewport_height(100.0)

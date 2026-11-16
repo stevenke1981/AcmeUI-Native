@@ -629,7 +629,7 @@ impl Theme {
             accent: ThemeColor::rgb(232, 240, 254), // #E8F0FE
             accent_foreground: ThemeColor::rgb(29, 78, 216), // #1D4ED8
             muted: ThemeColor::rgb(244, 245, 247), // #F4F5F7
-            muted_foreground: ThemeColor::rgb(107, 114, 128), // #6B7280
+            muted_foreground: ThemeColor::rgb(104, 111, 125), // #686F7D, #6B7280 darkened for AA on muted (062)
 
             // Border & ring
             border: ThemeColor::rgb(226, 229, 234), // #E2E5EA
@@ -745,11 +745,11 @@ impl Theme {
 
             // Interactive states
             primary_hover: ThemeColor::rgb(115, 161, 242), // #73A1F2
-            primary_pressed: ThemeColor::rgb(64, 114, 230), // #4072E6
-            danger_hover: ThemeColor::rgb(252, 129, 129),  // #FC8181
-            danger_pressed: ThemeColor::rgb(235, 80, 80),  // #EB5050
-            ghost_hover: ThemeColor::rgb(28, 33, 40),      // #1C2128
-            ghost_pressed: ThemeColor::rgb(45, 51, 59),    // #2D333B
+            primary_pressed: ThemeColor::rgb(74, 122, 231), // #4072E6 lightened, AA dark text (062 review)
+            danger_hover: ThemeColor::rgb(252, 129, 129),   // #FC8181
+            danger_pressed: ThemeColor::rgb(235, 80, 80),   // #EB5050
+            ghost_hover: ThemeColor::rgb(28, 33, 40),       // #1C2128
+            ghost_pressed: ThemeColor::rgb(45, 51, 59),     // #2D333B
 
             // Disabled
             disabled_bg: ThemeColor::rgb(28, 33, 40), // #1C2128
@@ -1029,6 +1029,374 @@ mod tests {
         }
     }
 
+    type Rgb062 = (u8, u8, u8);
+    /// ROADMAP 062 retune record: `(pack/mode, token, before, after, pair,
+    /// pair ratio before, pair ratio after)`. "Before" ratios are measured on
+    /// the pre-062 palette (every 062 change for that pack/mode reverted).
+    /// The table is the source of truth for `logs/token-changes.md`.
+    #[allow(clippy::type_complexity, clippy::approx_constant)] // measured ratios, e.g. 3.14
+    #[rustfmt::skip]
+    const ROADMAP_062_CHANGES: &[(&str, &str, Rgb062, Rgb062, &str, f32, f32)] = &[
+        ("default/light", "muted_foreground", (107, 114, 128), (104, 111, 125), "muted_fg/muted", 4.43, 4.63),
+        ("default/dark", "primary_pressed", (64, 114, 230), (74, 122, 231), "primary_fg/primary_pressed", 4.20, 4.61),
+        ("default/dark", "primary_pressed", (64, 114, 230), (74, 122, 231), "primary_pressed/primary", 1.36, 1.24),
+        ("apple/Light", "primary", (0, 122, 255), (0, 112, 235), "primary_fg/primary", 4.02, 4.65),
+        ("apple/Light", "primary", (0, 122, 255), (0, 112, 235), "primary/background", 3.60, 4.17),
+        ("apple/Light", "accent_foreground", (0, 122, 255), (0, 102, 214), "accent_fg/accent", 3.41, 4.61),
+        ("apple/Light", "muted_foreground", (142, 142, 147), (109, 109, 114), "muted_fg/muted", 2.92, 4.61),
+        ("apple/Light", "success", (52, 199, 89), (41, 157, 70), "success/surface", 2.22, 3.50),
+        ("apple/Light", "success", (52, 199, 89), (41, 157, 70), "success/background", 1.99, 3.13),
+        ("apple/Light", "warning", (255, 149, 0), (201, 117, 0), "warning/surface", 2.20, 3.48),
+        ("apple/Light", "warning", (255, 149, 0), (201, 117, 0), "warning/background", 1.97, 3.12),
+        ("apple/Light", "info", (90, 200, 250), (6, 146, 210), "info/surface", 1.90, 3.47),
+        ("apple/Light", "info", (90, 200, 250), (6, 146, 210), "info/background", 1.70, 3.11),
+        ("apple/Light", "danger_hover", (214, 49, 40), (255, 105, 97), "best_ink/danger_hover", 4.85, 7.45),
+        ("apple/Light", "danger_hover", (214, 49, 40), (255, 105, 97), "danger_hover/danger", 1.37, 1.26),
+        ("apple/Light", "danger_pressed", (173, 40, 32), (255, 128, 121), "best_ink/danger_pressed", 6.77, 8.62),
+        ("apple/Light", "danger_pressed", (173, 40, 32), (255, 128, 121), "danger_pressed/danger", 1.91, 1.46),
+        ("apple/Dark", "primary", (10, 132, 255), (0, 114, 230), "primary_fg/primary", 3.65, 4.62),
+        ("apple/Dark", "primary", (10, 132, 255), (0, 114, 230), "primary/background", 5.76, 4.55),
+        ("apple/Dark", "accent_foreground", (10, 132, 255), (64, 156, 255), "accent_fg/accent", 4.06, 5.23),
+        ("apple/Dark", "primary_hover", (64, 156, 255), (0, 102, 214), "primary_fg/primary_hover", 2.83, 5.42),
+        ("apple/Dark", "primary_hover", (64, 156, 255), (0, 102, 214), "primary_hover/primary", 1.29, 1.18),
+        ("apple/Dark", "primary_pressed", (0, 102, 214), (0, 82, 173), "primary_fg/primary_pressed", 5.42, 7.47),
+        ("apple/Dark", "primary_pressed", (0, 102, 214), (0, 82, 173), "primary_pressed/primary", 1.49, 1.62),
+        ("apple/Dark", "danger_pressed", (214, 49, 40), (255, 128, 121), "best_ink/danger_pressed", 4.85, 8.62),
+        ("apple/Dark", "danger_pressed", (214, 49, 40), (255, 128, 121), "danger_pressed/danger", 1.42, 1.40),
+        ("dracula/Light", "primary", (189, 147, 249), (168, 112, 247), "primary_fg/primary", 5.90, 4.63),
+        ("dracula/Light", "primary", (189, 147, 249), (168, 112, 247), "primary/background", 2.26, 3.11),
+        ("dracula/Light", "primary_foreground", (40, 42, 54), (35, 36, 47), "primary_fg/primary", 5.90, 4.63),
+        ("dracula/Light", "accent_foreground", (120, 80, 200), (118, 78, 199), "accent_fg/accent", 4.49, 4.61),
+        ("dracula/Light", "muted_foreground", (98, 114, 164), (88, 103, 152), "muted_fg/muted", 3.93, 4.61),
+        ("dracula/Light", "ring", (189, 147, 249), (168, 112, 247), "ring/background", 2.26, 3.11),
+        ("dracula/Light", "ring", (189, 147, 249), (168, 112, 247), "ring/surface", 2.41, 3.32),
+        ("dracula/Light", "success", (80, 250, 123), (5, 164, 45), "success/surface", 1.37, 3.30),
+        ("dracula/Light", "success", (80, 250, 123), (5, 164, 45), "success/background", 1.29, 3.10),
+        ("dracula/Light", "warning", (241, 250, 140), (137, 148, 6), "warning/surface", 1.12, 3.33),
+        ("dracula/Light", "warning", (241, 250, 140), (137, 148, 6), "warning/background", 1.05, 3.13),
+        ("dracula/Light", "danger", (255, 85, 85), (255, 74, 74), "danger/surface", 3.14, 3.32),
+        ("dracula/Light", "danger", (255, 85, 85), (255, 74, 74), "danger/background", 2.95, 3.11),
+        ("dracula/Light", "danger", (255, 85, 85), (255, 74, 74), "best_ink/danger", 4.53, 4.64),
+        ("dracula/Light", "info", (139, 233, 253), (3, 154, 186), "info/surface", 1.38, 3.31),
+        ("dracula/Light", "info", (139, 233, 253), (3, 154, 186), "info/background", 1.30, 3.11),
+        ("dracula/Light", "primary_pressed", (150, 110, 220), (210, 182, 251), "primary_fg/primary_pressed", 3.77, 8.66),
+        ("dracula/Light", "primary_pressed", (150, 110, 220), (210, 182, 251), "primary_pressed/primary", 1.57, 1.87),
+        ("dracula/Light", "danger_pressed", (220, 60, 60), (255, 132, 132), "best_ink/danger_pressed", 4.14, 6.51),
+        ("dracula/Light", "danger_pressed", (220, 60, 60), (255, 132, 132), "danger_pressed/danger", 1.41, 1.40),
+        ("dracula/Dark", "accent_foreground", (255, 121, 198), (255, 151, 211), "accent_fg/accent", 3.84, 4.63),
+        ("dracula/Dark", "muted_foreground", (98, 114, 164), (175, 184, 209), "muted_fg/muted", 1.94, 4.62),
+        ("dracula/Dark", "danger", (255, 85, 85), (255, 97, 97), "danger/surface", 2.91, 3.11),
+        ("dracula/Dark", "danger", (255, 85, 85), (255, 97, 97), "danger/background", 4.53, 4.84),
+        ("dracula/Dark", "danger", (255, 85, 85), (255, 97, 97), "best_ink/danger", 4.53, 4.84),
+        ("dracula/Dark", "primary_pressed", (150, 110, 220), (210, 182, 251), "primary_fg/primary_pressed", 3.77, 8.02),
+        ("dracula/Dark", "primary_pressed", (150, 110, 220), (210, 182, 251), "primary_pressed/primary", 1.57, 1.36),
+        ("dracula/Dark", "danger_hover", (255, 110, 110), (255, 123, 123), "best_ink/danger_hover", 5.23, 5.68),
+        ("dracula/Dark", "danger_hover", (255, 110, 110), (255, 123, 123), "danger_hover/danger", 1.15, 1.17),
+        ("dracula/Dark", "danger_pressed", (220, 60, 60), (255, 144, 144), "best_ink/danger_pressed", 4.14, 6.54),
+        ("dracula/Dark", "danger_pressed", (220, 60, 60), (255, 144, 144), "danger_pressed/danger", 1.41, 1.35),
+        ("gruvbox/Light", "primary", (69, 133, 136), (61, 117, 120), "primary_fg/primary", 3.73, 4.61),
+        ("gruvbox/Light", "primary", (69, 133, 136), (61, 117, 120), "primary/background", 3.73, 4.61),
+        ("gruvbox/Light", "muted_foreground", (124, 111, 100), (102, 92, 84), "muted_fg/muted", 3.55, 4.75),
+        ("gruvbox/Light", "success", (152, 151, 26), (121, 116, 14), "success/surface", 2.26, 3.55),
+        ("gruvbox/Light", "success", (152, 151, 26), (121, 116, 14), "success/background", 2.73, 4.29),
+        ("gruvbox/Light", "warning", (215, 153, 33), (161, 114, 25), "warning/surface", 1.81, 3.10),
+        ("gruvbox/Light", "warning", (215, 153, 33), (161, 114, 25), "warning/background", 2.19, 3.75),
+        ("gruvbox/Light", "primary_hover", (90, 150, 153), (55, 105, 108), "primary_fg/primary_hover", 2.96, 5.44),
+        ("gruvbox/Light", "primary_hover", (90, 150, 153), (55, 105, 108), "primary_hover/primary", 1.26, 1.18),
+        ("gruvbox/Light", "primary_pressed", (55, 105, 108), (50, 95, 98), "primary_fg/primary_pressed", 5.44, 6.28),
+        ("gruvbox/Light", "primary_pressed", (55, 105, 108), (50, 95, 98), "primary_pressed/primary", 1.46, 1.36),
+        ("gruvbox/Light", "danger_hover", (215, 60, 52), (184, 33, 26), "best_ink/danger_hover", 4.04, 5.66),
+        ("gruvbox/Light", "danger_hover", (215, 60, 52), (184, 33, 26), "danger_hover/danger", 1.19, 1.17),
+        ("gruvbox/Dark", "primary", (69, 133, 136), (81, 156, 159), "primary_fg/primary", 3.73, 4.64),
+        ("gruvbox/Dark", "primary", (69, 133, 136), (81, 156, 159), "primary/background", 3.48, 4.64),
+        ("gruvbox/Dark", "primary_foreground", (251, 241, 199), (40, 40, 40), "primary_fg/primary", 3.73, 4.64),
+        ("gruvbox/Dark", "muted_foreground", (168, 153, 132), (189, 174, 147), "muted_fg/muted", 4.17, 5.32),
+        ("gruvbox/Dark", "ring", (69, 133, 136), (81, 156, 159), "ring/background", 3.48, 4.64),
+        ("gruvbox/Dark", "ring", (69, 133, 136), (81, 156, 159), "ring/surface", 2.74, 3.65),
+        ("gruvbox/Dark", "danger", (204, 36, 29), (251, 88, 69), "danger/surface", 2.12, 3.64),
+        ("gruvbox/Dark", "danger", (204, 36, 29), (251, 88, 69), "danger/background", 2.69, 4.62),
+        ("gruvbox/Dark", "danger", (204, 36, 29), (251, 88, 69), "best_ink/danger", 4.82, 4.62),
+        ("gruvbox/Dark", "info", (69, 133, 136), (81, 156, 159), "info/surface", 2.74, 3.65),
+        ("gruvbox/Dark", "info", (69, 133, 136), (81, 156, 159), "info/background", 3.48, 4.64),
+        ("gruvbox/Dark", "primary_hover", (90, 150, 153), (93, 169, 172), "primary_fg/primary_hover", 2.96, 5.43),
+        ("gruvbox/Dark", "primary_hover", (90, 150, 153), (93, 169, 172), "primary_hover/primary", 1.26, 1.17),
+        ("gruvbox/Dark", "primary_pressed", (55, 105, 108), (113, 180, 182), "primary_fg/primary_pressed", 5.44, 6.25),
+        ("gruvbox/Dark", "primary_pressed", (55, 105, 108), (113, 180, 182), "primary_pressed/primary", 1.46, 1.35),
+        ("gruvbox/Dark", "danger_hover", (215, 60, 52), (252, 114, 97), "best_ink/danger_hover", 4.04, 5.42),
+        ("gruvbox/Dark", "danger_hover", (215, 60, 52), (252, 114, 97), "danger_hover/danger", 1.19, 1.17),
+        ("gruvbox/Dark", "danger_pressed", (170, 30, 24), (252, 135, 121), "best_ink/danger_pressed", 6.36, 6.23),
+        ("gruvbox/Dark", "danger_pressed", (170, 30, 24), (252, 135, 121), "danger_pressed/danger", 1.32, 1.35),
+        ("material/Dark", "primary_pressed", (103, 80, 164), (160, 145, 201), "primary_fg/primary_pressed", 2.04, 4.63),
+        ("material/Dark", "primary_pressed", (103, 80, 164), (160, 145, 201), "primary_pressed/primary", 3.78, 1.67),
+        ("nord/Light", "primary", (94, 129, 172), (77, 109, 149), "primary_fg/primary", 3.50, 4.63),
+        ("nord/Light", "primary", (94, 129, 172), (77, 109, 149), "primary/background", 3.50, 4.63),
+        ("nord/Light", "accent_foreground", (94, 129, 172), (76, 86, 106), "accent_fg/accent", 2.98, 5.46),
+        ("nord/Light", "success", (163, 190, 140), (107, 140, 79), "success/surface", 1.67, 3.14),
+        ("nord/Light", "success", (163, 190, 140), (107, 140, 79), "success/background", 1.77, 3.32),
+        ("nord/Light", "warning", (235, 203, 139), (170, 123, 29), "warning/surface", 1.28, 3.10),
+        ("nord/Light", "warning", (235, 203, 139), (170, 123, 29), "warning/background", 1.35, 3.28),
+        ("nord/Light", "info", (136, 192, 208), (64, 141, 163), "info/surface", 1.64, 3.10),
+        ("nord/Light", "info", (136, 192, 208), (64, 141, 163), "info/background", 1.74, 3.28),
+        ("nord/Light", "danger", (191, 97, 106), (178, 72, 82), "danger/surface", 3.36, 4.38),
+        ("nord/Light", "danger", (191, 97, 106), (178, 72, 82), "danger/background", 3.55, 4.62),
+        ("nord/Light", "danger", (191, 97, 106), (178, 72, 82), "best_ink/danger", 3.55, 4.62),
+        ("nord/Light", "primary_hover", (129, 161, 193), (70, 98, 135), "primary_fg/primary_hover", 2.34, 5.43),
+        ("nord/Light", "primary_hover", (129, 161, 193), (70, 98, 135), "primary_hover/primary", 1.50, 1.17),
+        ("nord/Light", "danger_hover", (176, 85, 94), (160, 65, 74), "best_ink/danger_hover", 4.23, 5.44),
+        ("nord/Light", "danger_hover", (176, 85, 94), (160, 65, 74), "danger_hover/danger", 1.19, 1.18),
+        ("nord/Light", "danger_pressed", (155, 74, 83), (145, 59, 67), "best_ink/danger_pressed", 5.21, 6.26),
+        ("nord/Light", "danger_pressed", (155, 74, 83), (145, 59, 67), "danger_pressed/danger", 1.47, 1.35),
+        ("nord/Dark", "accent_foreground", (136, 192, 208), (147, 198, 212), "accent_fg/accent", 4.31, 4.63),
+        ("nord/Dark", "danger", (191, 97, 106), (208, 139, 145), "danger/surface", 2.46, 3.73),
+        ("nord/Dark", "danger", (191, 97, 106), (208, 139, 145), "danger/background", 3.05, 4.63),
+        ("nord/Dark", "danger", (191, 97, 106), (208, 139, 145), "best_ink/danger", 3.55, 4.63),
+        ("nord/Dark", "primary_hover", (143, 188, 187), (162, 206, 218), "primary_fg/primary_hover", 5.99, 7.36),
+        ("nord/Dark", "primary_hover", (143, 188, 187), (162, 206, 218), "primary_hover/primary", 1.04, 1.18),
+        ("nord/Dark", "primary_pressed", (94, 129, 172), (186, 219, 228), "primary_fg/primary_pressed", 3.10, 8.53),
+        ("nord/Dark", "primary_pressed", (94, 129, 172), (186, 219, 228), "primary_pressed/primary", 2.01, 1.37),
+        ("nord/Dark", "danger_hover", (208, 120, 128), (215, 156, 161), "best_ink/danger_hover", 3.97, 5.45),
+        ("nord/Dark", "danger_hover", (208, 120, 128), (215, 156, 161), "danger_hover/danger", 1.30, 1.18),
+        ("nord/Dark", "danger_pressed", (191, 97, 106), (221, 172, 176), "best_ink/danger_pressed", 3.55, 6.31),
+        ("nord/Dark", "danger_pressed", (191, 97, 106), (221, 172, 176), "danger_pressed/danger", 1.00, 1.36),
+        ("one-dark/Light", "primary", (64, 120, 242), (47, 108, 241), "primary_fg/primary", 4.05, 4.63),
+        ("one-dark/Light", "primary", (64, 120, 242), (47, 108, 241), "primary/background", 3.88, 4.44),
+        ("one-dark/Light", "muted_foreground", (160, 161, 167), (106, 108, 115), "muted_fg/muted", 2.26, 4.61),
+        ("one-dark/Light", "danger", (228, 86, 73), (221, 49, 33), "danger/surface", 3.67, 4.63),
+        ("one-dark/Light", "danger", (228, 86, 73), (221, 49, 33), "danger/background", 3.51, 4.44),
+        ("one-dark/Light", "danger", (228, 86, 73), (221, 49, 33), "best_ink/danger", 3.67, 4.63),
+        ("one-dark/Light", "primary_hover", (90, 140, 245), (26, 93, 240), "primary_fg/primary_hover", 3.23, 5.43),
+        ("one-dark/Light", "primary_hover", (90, 140, 245), (26, 93, 240), "primary_hover/primary", 1.25, 1.17),
+        ("one-dark/Light", "danger_hover", (234, 110, 98), (201, 44, 30), "best_ink/danger_hover", 3.73, 5.44),
+        ("one-dark/Light", "danger_hover", (234, 110, 98), (201, 44, 30), "danger_hover/danger", 1.21, 1.17),
+        ("one-dark/Light", "danger_pressed", (198, 68, 57), (184, 40, 27), "best_ink/danger_pressed", 4.90, 6.25),
+        ("one-dark/Light", "danger_pressed", (198, 68, 57), (184, 40, 27), "danger_pressed/danger", 1.34, 1.35),
+        ("one-dark/Dark", "muted_foreground", (92, 99, 112), (141, 149, 162), "muted_fg/muted", 2.55, 5.10),
+        ("one-dark/Dark", "muted_foreground", (92, 99, 112), (141, 149, 162), "muted_fg/background", 2.32, 4.64),
+        ("one-dark/Dark", "primary_pressed", (70, 145, 210), (146, 203, 247), "primary_fg/primary_pressed", 4.58, 8.88),
+        ("one-dark/Dark", "primary_pressed", (70, 145, 210), (146, 203, 247), "primary_pressed/primary", 1.42, 1.36),
+        ("one-dark/Dark", "danger_pressed", (195, 85, 94), (235, 148, 155), "best_ink/danger_pressed", 3.51, 6.77),
+        ("one-dark/Dark", "danger_pressed", (195, 85, 94), (235, 148, 155), "danger_pressed/danger", 1.37, 1.41),
+        ("solarized/Light", "foreground", (101, 123, 131), (80, 97, 104), "foreground/background", 4.13, 5.99),
+        ("solarized/Light", "foreground", (101, 123, 131), (80, 97, 104), "foreground/surface", 3.64, 5.27),
+        ("solarized/Light", "foreground", (101, 123, 131), (80, 97, 104), "foreground/muted_fg", 1.67, 1.15),
+        ("solarized/Light", "foreground", (101, 123, 131), (80, 97, 104), "foreground/ghost_pressed", 3.19, 4.63),
+        ("solarized/Light", "surface_foreground", (101, 123, 131), (80, 97, 104), "surface_fg/surface", 3.64, 5.27),
+        ("solarized/Light", "primary", (38, 139, 210), (32, 116, 176), "primary_fg/primary", 3.41, 4.65),
+        ("solarized/Light", "primary", (38, 139, 210), (32, 116, 176), "primary/background", 3.41, 4.65),
+        ("solarized/Light", "secondary", (42, 161, 152), (32, 124, 117), "secondary_fg/secondary", 2.93, 4.63),
+        ("solarized/Light", "muted_foreground", (147, 161, 161), (92, 106, 106), "muted_fg/muted", 2.18, 4.60),
+        ("solarized/Light", "success", (133, 153, 0), (121, 139, 0), "success/surface", 2.62, 3.11),
+        ("solarized/Light", "success", (133, 153, 0), (121, 139, 0), "success/background", 2.97, 3.54),
+        ("solarized/Light", "warning", (181, 137, 0), (164, 124, 0), "warning/surface", 2.62, 3.14),
+        ("solarized/Light", "warning", (181, 137, 0), (164, 124, 0), "warning/background", 2.98, 3.56),
+        ("solarized/Light", "info", (42, 161, 152), (38, 145, 137), "info/surface", 2.58, 3.12),
+        ("solarized/Light", "info", (42, 161, 152), (38, 145, 137), "info/background", 2.93, 3.54),
+        ("solarized/Light", "danger", (220, 50, 47), (215, 39, 36), "danger/surface", 3.77, 4.08),
+        ("solarized/Light", "danger", (220, 50, 47), (215, 39, 36), "danger/background", 4.29, 4.63),
+        ("solarized/Light", "danger", (220, 50, 47), (215, 39, 36), "best_ink/danger", 4.29, 4.63),
+        ("solarized/Light", "primary_hover", (60, 155, 220), (29, 105, 159), "primary_fg/primary_hover", 2.82, 5.45),
+        ("solarized/Light", "primary_hover", (60, 155, 220), (29, 105, 159), "primary_hover/primary", 1.21, 1.17),
+        ("solarized/Light", "primary_pressed", (28, 110, 170), (26, 95, 144), "primary_fg/primary_pressed", 5.04, 6.31),
+        ("solarized/Light", "primary_pressed", (28, 110, 170), (26, 95, 144), "primary_pressed/primary", 1.48, 1.36),
+        ("solarized/Light", "danger_hover", (228, 80, 77), (190, 40, 37), "best_ink/danger_hover", 3.51, 5.53),
+        ("solarized/Light", "danger_hover", (228, 80, 77), (190, 40, 37), "danger_hover/danger", 1.22, 1.19),
+        ("solarized/Light", "danger_pressed", (190, 40, 37), (173, 36, 34), "best_ink/danger_pressed", 5.53, 6.38),
+        ("solarized/Light", "danger_pressed", (190, 40, 37), (173, 36, 34), "danger_pressed/danger", 1.29, 1.38),
+        ("solarized/Dark", "foreground", (131, 148, 150), (157, 170, 170), "foreground/background", 4.75, 6.27),
+        ("solarized/Dark", "foreground", (131, 148, 150), (157, 170, 170), "foreground/surface", 4.11, 5.43),
+        ("solarized/Dark", "foreground", (131, 148, 150), (157, 170, 170), "foreground/muted_fg", 1.70, 1.12),
+        ("solarized/Dark", "surface_foreground", (131, 148, 150), (157, 170, 170), "surface_fg/surface", 4.11, 5.43),
+        ("solarized/Dark", "primary_foreground", (253, 246, 227), (0, 32, 41), "primary_fg/primary", 3.41, 4.61),
+        ("solarized/Dark", "secondary_foreground", (131, 148, 150), (147, 161, 161), "secondary_fg/secondary", 4.11, 4.86),
+        ("solarized/Dark", "accent_foreground", (42, 161, 152), (45, 171, 161), "accent_fg/accent", 4.12, 4.61),
+        ("solarized/Dark", "muted_foreground", (88, 110, 117), (147, 161, 161), "muted_fg/muted", 2.42, 4.86),
+        ("solarized/Dark", "danger", (220, 50, 47), (226, 87, 84), "danger/surface", 2.81, 3.54),
+        ("solarized/Dark", "danger", (220, 50, 47), (226, 87, 84), "danger/background", 3.25, 4.09),
+        ("solarized/Dark", "danger", (220, 50, 47), (226, 87, 84), "best_ink/danger", 4.29, 4.62),
+        ("solarized/Dark", "primary_pressed", (28, 110, 170), (82, 167, 224), "primary_fg/primary_pressed", 5.04, 6.43),
+        ("solarized/Dark", "primary_pressed", (28, 110, 170), (82, 167, 224), "primary_pressed/primary", 1.48, 1.40),
+        ("solarized/Dark", "danger_hover", (228, 80, 77), (230, 108, 105), "best_ink/danger_hover", 3.97, 5.42),
+        ("solarized/Dark", "danger_hover", (228, 80, 77), (230, 108, 105), "danger_hover/danger", 1.22, 1.17),
+        ("solarized/Dark", "danger_pressed", (190, 40, 37), (233, 126, 123), "best_ink/danger_pressed", 5.53, 6.24),
+        ("solarized/Dark", "danger_pressed", (190, 40, 37), (233, 126, 123), "danger_pressed/danger", 1.29, 1.35),
+        ("ubuntu/Light", "primary", (233, 84, 32), (208, 69, 21), "primary_fg/primary", 3.65, 4.62),
+        ("ubuntu/Light", "primary", (233, 84, 32), (208, 69, 21), "primary/background", 3.50, 4.43),
+        ("ubuntu/Light", "warning", (249, 154, 0), (203, 125, 0), "warning/surface", 2.18, 3.24),
+        ("ubuntu/Light", "warning", (249, 154, 0), (203, 125, 0), "warning/background", 2.08, 3.11),
+        ("ubuntu/Light", "primary_hover", (205, 73, 27), (188, 62, 19), "primary_fg/primary_hover", 4.60, 5.47),
+        ("ubuntu/Light", "primary_hover", (205, 73, 27), (188, 62, 19), "primary_hover/primary", 1.26, 1.18),
+        ("ubuntu/Dark", "primary_foreground", (255, 255, 255), (17, 17, 17), "primary_fg/primary", 3.65, 5.17),
+        ("ubuntu/Dark", "primary_pressed", (205, 73, 27), (242, 125, 84), "primary_fg/primary_pressed", 4.60, 7.05),
+        ("ubuntu/Dark", "primary_pressed", (205, 73, 27), (242, 125, 84), "primary_pressed/primary", 1.26, 1.36),
+        ("ubuntu/Dark", "danger_pressed", (218, 34, 34), (255, 150, 150), "best_ink/danger_pressed", 4.96, 9.04),
+        ("ubuntu/Dark", "danger_pressed", (218, 34, 34), (255, 150, 150), "danger_pressed/danger", 1.70, 1.39),
+        ("windows11/Dark", "primary_pressed", (0, 103, 192), (0, 120, 212), "primary_fg/primary_pressed", 3.70, 4.64),
+        ("windows11/Dark", "primary_pressed", (0, 103, 192), (0, 120, 212), "primary_pressed/primary", 2.83, 2.26),
+    ];
+
+    fn color_token_mut<'a>(c: &'a mut ColorTokens, token: &str) -> &'a mut ThemeColor {
+        match token {
+            "foreground" => &mut c.foreground,
+            "surface_foreground" => &mut c.surface_foreground,
+            "primary" => &mut c.primary,
+            "primary_foreground" => &mut c.primary_foreground,
+            "secondary" => &mut c.secondary,
+            "secondary_foreground" => &mut c.secondary_foreground,
+            "accent" => &mut c.accent,
+            "accent_foreground" => &mut c.accent_foreground,
+            "muted_foreground" => &mut c.muted_foreground,
+            "ring" => &mut c.ring,
+            "success" => &mut c.success,
+            "warning" => &mut c.warning,
+            "danger" => &mut c.danger,
+            "info" => &mut c.info,
+            "primary_hover" => &mut c.primary_hover,
+            "primary_pressed" => &mut c.primary_pressed,
+            "danger_hover" => &mut c.danger_hover,
+            "danger_pressed" => &mut c.danger_pressed,
+            other => panic!("unexpected token {other}"),
+        }
+    }
+
+    /// `(ratio, rule minimum)` for a 062 gate pair. `best_ink/<fill>` is the
+    /// best of the danger ink candidates on that danger fill.
+    fn gate_pair_ratio(c: &ColorTokens, pair: &str) -> (f32, f32) {
+        if let Some(fill) = pair.strip_prefix("best_ink/") {
+            let fill = match fill {
+                "danger" => c.danger,
+                "danger_hover" => c.danger_hover,
+                "danger_pressed" => c.danger_pressed,
+                other => panic!("unexpected fill {other}"),
+            };
+            let best = [c.primary_foreground, c.background, c.foreground]
+                .into_iter()
+                .map(|ink| contrast_ratio(ink, fill))
+                .fold(0.0_f32, f32::max);
+            return (best, 4.5);
+        }
+        let (fg, bg, min) = match pair {
+            "foreground/background" => (c.foreground, c.background, 4.5),
+            "surface_fg/surface" => (c.surface_foreground, c.surface, 4.5),
+            "primary_fg/primary" => (c.primary_foreground, c.primary, 4.5),
+            "secondary_fg/secondary" => (c.secondary_foreground, c.secondary, 4.5),
+            "muted_fg/muted" => (c.muted_foreground, c.muted, 4.5),
+            "accent_fg/accent" => (c.accent_foreground, c.accent, 4.5),
+            "foreground/surface" => (c.foreground, c.surface, 4.5),
+            "ring/background" => (c.ring, c.background, 3.0),
+            "ring/surface" => (c.ring, c.surface, 3.0),
+            "primary/background" => (c.primary, c.background, 3.0),
+            "success/surface" => (c.success, c.surface, 3.0),
+            "success/background" => (c.success, c.background, 3.0),
+            "warning/surface" => (c.warning, c.surface, 3.0),
+            "warning/background" => (c.warning, c.background, 3.0),
+            "danger/surface" => (c.danger, c.surface, 3.0),
+            "danger/background" => (c.danger, c.background, 3.0),
+            "info/surface" => (c.info, c.surface, 3.0),
+            "info/background" => (c.info, c.background, 3.0),
+            "primary_fg/primary_hover" => (c.primary_foreground, c.primary_hover, 4.5),
+            "primary_fg/primary_pressed" => (c.primary_foreground, c.primary_pressed, 4.5),
+            "muted_fg/background" => (c.muted_foreground, c.background, 4.5),
+            "foreground/ghost_pressed" => (c.foreground, c.ghost_pressed, 4.5),
+            // State steps and text hierarchy (luminance distance).
+            "primary_hover/primary" => (c.primary_hover, c.primary, 1.15),
+            "primary_pressed/primary" => (c.primary_pressed, c.primary, 1.15),
+            "danger_hover/danger" => (c.danger_hover, c.danger, 1.15),
+            "danger_pressed/danger" => (c.danger_pressed, c.danger, 1.15),
+            "foreground/muted_fg" => (c.foreground, c.muted_foreground, 1.1),
+            other => panic!("unexpected pair {other}"),
+        };
+        (contrast_ratio(fg, bg), min)
+    }
+
+    /// Restore the pre-062 palette for `label` (e.g. `"solarized/Light"`).
+    fn revert_roadmap_062(c: &mut ColorTokens, label: &str) {
+        for (l, token, before, _, _, _, _) in ROADMAP_062_CHANGES {
+            if *l == label {
+                *color_token_mut(c, token) = ThemeColor::rgb(before.0, before.1, before.2);
+            }
+        }
+    }
+
+    /// ROADMAP 062: each changed token old -> new, with its pair ratio before
+    /// and after. After ratios keep the brief's 0.1 margin (>= 4.6 / >= 3.1).
+    #[test]
+    fn roadmap_062_pack_retune_reaches_aa() {
+        let themes = all_pack_themes();
+        let mut tokens: Vec<(&str, &str)> = ROADMAP_062_CHANGES
+            .iter()
+            .map(|(label, token, ..)| (*label, *token))
+            .collect();
+        tokens.sort_unstable();
+        tokens.dedup();
+        assert_eq!(
+            tokens.len(),
+            104,
+            "062 changed-token count (38 + 21 status + 45 review fixes)"
+        );
+        // Packs outside the brief's retune: only the review P1-2 text gate
+        // (primary_fg on primary_pressed) moved one state token each.
+        for untouched in [
+            "default/dark",
+            "windows10/",
+            "windows11/",
+            "material/",
+            "high-contrast/",
+        ] {
+            let moved: Vec<_> = tokens
+                .iter()
+                .filter(|(l, _)| l.starts_with(untouched))
+                .collect();
+            assert!(
+                moved.iter().all(|(_, t)| *t == "primary_pressed"),
+                "{untouched} may only move primary_pressed: {moved:?}"
+            );
+        }
+        let state_only: Vec<&str> = tokens
+            .iter()
+            .filter(|(l, _)| !ROADMAP_062_RETUNED.contains(l))
+            .map(|(l, _)| *l)
+            .collect();
+        assert_eq!(
+            state_only,
+            ["default/dark", "material/Dark", "windows11/Dark"]
+        );
+        for (label, token, before, after, pair, ratio_before, ratio_after) in ROADMAP_062_CHANGES {
+            let theme = &themes
+                .iter()
+                .find(|(l, _)| l == label)
+                .unwrap_or_else(|| panic!("{label} resolves"))
+                .1;
+            let mut current = theme.colors;
+            assert_eq!(
+                *color_token_mut(&mut current, token),
+                ThemeColor::rgb(after.0, after.1, after.2),
+                "{label} {token} after value"
+            );
+            let mut old = theme.colors;
+            revert_roadmap_062(&mut old, label);
+            assert_eq!(
+                *color_token_mut(&mut old, token),
+                ThemeColor::rgb(before.0, before.1, before.2)
+            );
+            let (old_ratio, min) = gate_pair_ratio(&old, pair);
+            let (new_ratio, _) = gate_pair_ratio(&theme.colors, pair);
+            assert!(
+                (old_ratio - ratio_before).abs() < 0.01,
+                "{label} {pair} before {old_ratio:.2} != {ratio_before}"
+            );
+            assert!(
+                (new_ratio - ratio_after).abs() < 0.01,
+                "{label} {pair} after {new_ratio:.2} != {ratio_after}"
+            );
+            // 0.1 margin for 4.5 / 3 rules; ~1.5% for the 1.15 / 1.1 steps.
+            let margin = if min >= 3.0 { 0.095 } else { 0.01 };
+            assert!(
+                new_ratio >= min + margin,
+                "{label} {pair} after {new_ratio:.3} lacks the margin over {min}"
+            );
+        }
+    }
+
     /// ROADMAP 060 retune record: D1 selected-item ratio before -> after.
     /// Only solarized light `accent_foreground`, gruvbox light `accent`, and
     /// gruvbox dark `accent` + `accent_foreground` changed; every other pack's
@@ -1082,8 +1450,10 @@ mod tests {
         for (name, mode, changes, before_ratio, min_after) in retunes {
             let theme = packs::theme_by_name(name, mode).expect("pack resolves");
 
-            // Reconstruct the pre-060 pair and confirm it failed.
+            // Reconstruct the pre-060 pair and confirm it failed. 062 changes
+            // (e.g. solarized light foreground, a D1 fallback) are reverted first.
             let mut old = theme.clone();
+            revert_roadmap_062(&mut old.colors, &format!("{name}/{mode:?}"));
             for (token, before, after) in changes {
                 let mut current = theme.colors;
                 assert_eq!(
@@ -1136,50 +1506,306 @@ mod tests {
         );
     }
 
-    /// General accent-vs-background 3:1 guard across every pack and mode.
-    /// Only gruvbox is enforced here; packs listed in `KNOWN_BELOW_3` are
-    /// deferred to ROADMAP 062 and must not be retuned in 060. A pack that
-    /// newly passes or newly fails also trips this test so the list stays true.
+    /// Accent is a soft selection tint, not a graphic token (ROADMAP 062).
+    ///
+    /// This guard documents that semantics instead of pinning a list of
+    /// packs: `accent` is not required to reach 3:1 against the background,
+    /// so non-text marks (charts, focus, graphics) must use `primary` or
+    /// `ring`, which [`roadmap_062_every_pack_meets_aa_gate`] guarantees.
+    /// The only accent graphic guarantee is gruvbox's (060 review P1), which
+    /// stays enforced here and in [`gruvbox_accent_meets_non_text_contrast`].
     #[test]
     fn accent_vs_background_non_text_guard() {
-        const ENFORCED: &[&str] = &["gruvbox"];
-        // Measured on 060 (accent is a soft tint in most packs).
-        const KNOWN_BELOW_3: &[&str] = &[
-            "default/light",
-            "default/dark",
-            "apple/Light",
-            "apple/Dark",
-            "windows10/Light",
-            "windows10/Dark",
-            "windows11/Light",
-            "windows11/Dark",
-            "ubuntu/Dark",
-            "material/Light",
-            "material/Dark",
-            "nord/Light",
-            "nord/Dark",
-            "dracula/Light",
-            "dracula/Dark",
-            "solarized/Light",
-            "solarized/Dark",
-            "high-contrast/Light",
-            "high-contrast/Dark",
-        ];
-        let mut failing = Vec::new();
         for (label, theme) in all_pack_themes() {
-            let ratio = contrast_ratio(theme.colors.accent, theme.colors.background);
-            let pack = label.split('/').next().unwrap_or_default();
-            if ENFORCED.contains(&pack) {
+            let c = &theme.colors;
+            let ratio = contrast_ratio(c.accent, c.background);
+            if label.starts_with("gruvbox/") {
                 assert!(ratio >= 3.0, "{label}: accent vs background {ratio:.2}");
             }
-            if ratio < 3.0 {
-                failing.push((label, ratio));
+            // Everywhere, the graphic tokens charts must use instead of the
+            // tint reach 3:1 against the background.
+            for (token, color) in [("primary", c.primary), ("ring", c.ring)] {
+                let r = contrast_ratio(color, c.background);
+                assert!(r >= 3.0, "{label}: {token} vs background {r:.2}");
             }
         }
-        let labels: Vec<&str> = failing.iter().map(|(l, _)| l.as_str()).collect();
-        assert_eq!(
-            labels, KNOWN_BELOW_3,
-            "accent vs background < 3:1 (062 backlog): {failing:?}"
+    }
+
+    /// ROADMAP 062 gate: every pack and mode meets WCAG AA for the report
+    /// pairs and WCAG 1.4.11 (3:1) for the focus ring, the primary graphic,
+    /// and the status colours (`success`, `warning`, `danger`, `info`), which
+    /// charts and icons paint as non-text marks on `surface` or `background`.
+    #[test]
+    fn roadmap_062_every_pack_meets_aa_gate() {
+        let themes = all_pack_themes();
+        assert_eq!(themes.len(), 24, "2 built-ins + 11 packs x 2 modes");
+        let mut failures = Vec::new();
+        for (label, theme) in &themes {
+            let c = &theme.colors;
+            if !theme.meets_wcag_aa() {
+                for (pair, ratio, level) in theme.wcag_report() {
+                    if !level.meets_aa() {
+                        failures.push(format!("{label}: {pair} {ratio:.2} < 4.5"));
+                    }
+                }
+            }
+            let checks = [
+                ("ring/background", c.ring, c.background, 3.0),
+                ("ring/surface", c.ring, c.surface, 3.0),
+                ("primary/background", c.primary, c.background, 3.0),
+                ("foreground/surface", c.foreground, c.surface, 4.5),
+                // Captions and helper text paint muted_foreground directly on
+                // the window background, not only on the muted fill (review P2).
+                ("muted_fg/background", c.muted_foreground, c.background, 4.5),
+                // Secondary and ghost buttons paint foreground on their
+                // hovered and pressed fills (review, button painted pairs).
+                ("foreground/ghost_hover", c.foreground, c.ghost_hover, 4.5),
+                (
+                    "foreground/ghost_pressed",
+                    c.foreground,
+                    c.ghost_pressed,
+                    4.5,
+                ),
+                ("success/surface", c.success, c.surface, 3.0),
+                ("success/background", c.success, c.background, 3.0),
+                ("warning/surface", c.warning, c.surface, 3.0),
+                ("warning/background", c.warning, c.background, 3.0),
+                ("danger/surface", c.danger, c.surface, 3.0),
+                ("danger/background", c.danger, c.background, 3.0),
+                ("info/surface", c.info, c.surface, 3.0),
+                ("info/background", c.info, c.background, 3.0),
+            ];
+            for (pair, fg, bg, min) in checks {
+                let ratio = contrast_ratio(fg, bg);
+                if ratio < min {
+                    failures.push(format!("{label}: {pair} {ratio:.2} < {min}"));
+                }
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} WCAG gate failure(s):\n{}",
+            failures.len(),
+            failures.join("\n")
         );
+    }
+
+    /// Pack/modes retuned by ROADMAP 062 before the review fixes. The
+    /// state-feedback rule ([`roadmap_062_state_fills_give_feedback`]) is
+    /// asserted on these; untouched packs are listed instead.
+    const ROADMAP_062_RETUNED: [&str; 15] = [
+        "default/light",
+        "apple/Light",
+        "apple/Dark",
+        "ubuntu/Light",
+        "ubuntu/Dark",
+        "nord/Light",
+        "nord/Dark",
+        "dracula/Light",
+        "dracula/Dark",
+        "solarized/Light",
+        "solarized/Dark",
+        "gruvbox/Light",
+        "gruvbox/Dark",
+        "one-dark/Light",
+        "one-dark/Dark",
+    ];
+
+    /// Untouched pack families that fail the state-feedback rule. 062 does
+    /// not retune them for this rule (review P1-3 scope). The test checks
+    /// that this list is exact, so it cannot go stale.
+    const STATE_FEEDBACK_UNTOUCHED_EXCEPTIONS: &[(&str, &str)] = &[
+        ("default/dark", "primary"),
+        ("default/dark", "danger"),
+        ("high-contrast/Dark", "primary"),
+        ("high-contrast/Dark", "danger"),
+        ("material/Dark", "primary"),
+        ("material/Dark", "danger"),
+        ("windows10/Dark", "primary"),
+        ("windows10/Dark", "danger"),
+        ("windows11/Light", "primary"),
+        ("windows11/Light", "danger"),
+        ("windows11/Dark", "primary"),
+        ("windows11/Dark", "danger"),
+    ];
+
+    /// Ink a danger button paints on `fill`: the first of
+    /// `primary_foreground`, `background`, `foreground` reaching 4.5:1.
+    fn danger_ink(c: &ColorTokens, fill: ThemeColor) -> Option<ThemeColor> {
+        [c.primary_foreground, c.background, c.foreground]
+            .into_iter()
+            .find(|ink| contrast_ratio(*ink, fill) >= 4.5)
+    }
+
+    /// `(rest, hover, pressed, ink)` for a button family. The danger ink is
+    /// the one chosen for the rest fill.
+    fn state_family(
+        c: &ColorTokens,
+        family: &str,
+    ) -> (ThemeColor, ThemeColor, ThemeColor, ThemeColor) {
+        match family {
+            "primary" => (
+                c.primary,
+                c.primary_hover,
+                c.primary_pressed,
+                c.primary_foreground,
+            ),
+            "danger" => (
+                c.danger,
+                c.danger_hover,
+                c.danger_pressed,
+                danger_ink(c, c.danger).unwrap_or(c.primary_foreground),
+            ),
+            other => panic!("unexpected family {other}"),
+        }
+    }
+
+    /// State-feedback rule for one button family, or why it fails.
+    ///
+    /// - Hover and pressed each differ from the rest fill by >= 1.15:1.
+    /// - Pressed is at least as far from the rest fill as hover.
+    /// - Direction: both states step away from the family's ink, so the ink
+    ///   gains contrast on hover and on pressed. Under light ink the states
+    ///   are darker; under dark ink they are lighter. Hover and pressed sit on
+    ///   the same side of the rest fill, and one ink stays readable in every
+    ///   state.
+    fn state_feedback_failure(c: &ColorTokens, family: &str) -> Option<String> {
+        let (rest, hover, pressed, ink) = state_family(c, family);
+        let d_hover = contrast_ratio(rest, hover);
+        let d_pressed = contrast_ratio(rest, pressed);
+        let ink_rest = contrast_ratio(ink, rest);
+        let ink_hover = contrast_ratio(ink, hover);
+        let ink_pressed = contrast_ratio(ink, pressed);
+        let mut why = Vec::new();
+        if d_hover < 1.15 {
+            why.push(format!("hover vs rest {d_hover:.3} < 1.15"));
+        }
+        if d_pressed < 1.15 {
+            why.push(format!("pressed vs rest {d_pressed:.3} < 1.15"));
+        }
+        if d_pressed + 1e-4 < d_hover {
+            why.push(format!(
+                "pressed {d_pressed:.3} is nearer rest than hover {d_hover:.3}"
+            ));
+        }
+        if ink_hover <= ink_rest || ink_pressed <= ink_rest {
+            why.push(format!(
+                "a state moves toward the ink (ink on rest {ink_rest:.2}, hover {ink_hover:.2}, pressed {ink_pressed:.2})"
+            ));
+        }
+        (!why.is_empty()).then(|| why.join("; "))
+    }
+
+    /// Review P1-2: the button paints `primary_foreground` on every primary
+    /// state fill, so the text must stay AA on hover and pressed in every pack.
+    #[test]
+    fn roadmap_062_primary_states_keep_text_aa() {
+        let mut failures = Vec::new();
+        for (label, theme) in all_pack_themes() {
+            let c = &theme.colors;
+            for (state, fill) in [
+                ("primary_hover", c.primary_hover),
+                ("primary_pressed", c.primary_pressed),
+            ] {
+                let ratio = contrast_ratio(c.primary_foreground, fill);
+                if ratio < 4.5 {
+                    failures.push(format!("{label}: primary_fg/{state} {ratio:.2} < 4.5"));
+                }
+            }
+        }
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
+    }
+
+    /// Review: every danger fill (rest, hover, pressed) has an AA ink among
+    /// `primary_foreground`, `background` and `foreground` in every pack.
+    #[test]
+    fn roadmap_062_danger_fills_have_aa_ink() {
+        let mut failures = Vec::new();
+        for (label, theme) in all_pack_themes() {
+            let c = &theme.colors;
+            for (state, fill) in [
+                ("danger", c.danger),
+                ("danger_hover", c.danger_hover),
+                ("danger_pressed", c.danger_pressed),
+            ] {
+                if danger_ink(c, fill).is_none() {
+                    let best = [c.primary_foreground, c.background, c.foreground]
+                        .into_iter()
+                        .map(|ink| contrast_ratio(ink, fill))
+                        .fold(0.0_f32, f32::max);
+                    failures.push(format!("{label}: {state} best ink {best:.2} < 4.5"));
+                }
+            }
+        }
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
+    }
+
+    /// Review P1-3: primary and danger hover and pressed give visible,
+    /// ordered feedback in the 062-retuned packs. Untouched-pack failures
+    /// are listed exactly in [`STATE_FEEDBACK_UNTOUCHED_EXCEPTIONS`].
+    #[test]
+    fn roadmap_062_state_fills_give_feedback() {
+        let mut failures = Vec::new();
+        let mut untouched_failing = Vec::new();
+        for (label, theme) in all_pack_themes() {
+            for family in ["primary", "danger"] {
+                let Some(why) = state_feedback_failure(&theme.colors, family) else {
+                    continue;
+                };
+                if ROADMAP_062_RETUNED.contains(&label.as_str()) {
+                    failures.push(format!("{label} {family}: {why}"));
+                } else {
+                    untouched_failing.push((label.clone(), family));
+                }
+            }
+        }
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
+        let mut expected: Vec<(String, &str)> = STATE_FEEDBACK_UNTOUCHED_EXCEPTIONS
+            .iter()
+            .map(|(l, f)| (l.to_string(), *f))
+            .collect();
+        expected.sort();
+        untouched_failing.sort();
+        assert_eq!(untouched_failing, expected, "untouched exception list");
+    }
+
+    /// Review P2: Solarized muted text stays AA but reads as secondary to
+    /// body text (>= 1.1:1 apart) in both modes.
+    #[test]
+    fn solarized_muted_text_keeps_a_hierarchy() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            let c = packs::theme_by_name("solarized", mode)
+                .expect("solarized")
+                .colors;
+            let apart = contrast_ratio(c.foreground, c.muted_foreground);
+            assert!(
+                apart >= 1.1,
+                "solarized/{mode:?} fg vs muted_fg {apart:.3} < 1.1"
+            );
+            let body = contrast_ratio(c.foreground, c.muted);
+            let muted = contrast_ratio(c.muted_foreground, c.muted);
+            assert!(body > muted, "solarized/{mode:?} muted text must be dimmer");
+            for (pair, bg) in [("muted", c.muted), ("background", c.background)] {
+                let r = contrast_ratio(c.muted_foreground, bg);
+                assert!(r >= 4.6, "solarized/{mode:?} muted_fg/{pair} {r:.2} < 4.6");
+            }
+        }
+    }
+
+    /// Review P2: gruvbox dark uses one teal for primary, ring and info, and
+    /// hover is a visible step from it.
+    #[test]
+    fn gruvbox_dark_teals_are_unified() {
+        let c = packs::theme_by_name("gruvbox", ThemeMode::Dark)
+            .expect("gruvbox")
+            .colors;
+        assert_eq!(c.ring, c.primary, "ring = primary");
+        assert_eq!(c.info, c.primary, "info = primary");
+        for (pair, bg) in [("surface", c.surface), ("background", c.background)] {
+            let r = contrast_ratio(c.primary, bg);
+            assert!(r >= 3.0, "gruvbox/Dark primary/{pair} {r:.2} < 3");
+        }
+        let step = contrast_ratio(c.primary, c.primary_hover);
+        assert!(step >= 1.15, "gruvbox/Dark hover step {step:.3} < 1.15");
     }
 }

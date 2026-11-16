@@ -1,5 +1,10 @@
 # Todos
 
+## ROADMAP 062 — WCAG AA gate across all theme packs (2026-11-17)
+
+- [x] Every-pack gate (7 AA rows; ring/primary/status ≥ 3:1; text on hover/pressed/ghost fills ≥ 4.5; danger ink); minimal brand-preserving retune (104 values, recorded); `Button::resolve_style` paints text for the actual fill; chart marks and palette; [report](../team/roadmap-062/REPORT.md).
+- [ ] Follow-ups: soft-badge text below 4.5 in several light packs; hover/pressed step in 6 untouched pack-modes; primary == info in 9 pack-modes; Design System demo box text token. Other packs in the real window and screen reader — NOT_RUN.
+
 ## ROADMAP 061 — Sidenav typed activation and keyboard navigation (2026-11-17)
 
 - [x] `SidenavBuilder::on_select` / `navigate` (identical tree without a handler); Gallery F8 host (cross-section rove, skips disabled, Enter/Space confirm, Esc, guards); F6/F7/F8 mutually exclusive; `desktop`/`overlay` feature manifests fixed and checked in CI; [report](../team/roadmap-061/REPORT.md).
