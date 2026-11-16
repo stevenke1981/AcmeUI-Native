@@ -1,5 +1,11 @@
 # Todos
 
+## ROADMAP 054 — Calendar range highlighting (2026-11-16)
+
+- [x] Add inclusive same-month visual ranges with reversed-endpoint normalization, build-time day validation and last-setter selection semantics; preserve passive single-day/today behavior and retained day identity through header/range changes.
+- [x] Add Gallery range/clear/restore preview, measured slot alignment, pointer/theme/scale/clip tests and automated native CPU evidence; exact checks and source in [report](../team/roadmap-054/REPORT.md).
+- [ ] Cross-month selection, date-cell input, month navigation and calendar accessibility semantics remain separate; human Gallery, Windows 注音 IME, physical DPI/touch, GPU and screen-reader acceptance — NOT_RUN.
+
 ## ROADMAP 053 — SpeedDial directional expansion (2026-11-16)
 
 - [x] Add Up/Down/Left/Right with existing Up default, declaration-ordered typed actions, passive fallback and retained control/focus continuity through direction and keyed instance reorders.
@@ -539,7 +545,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 ### Remaining enhancements
 - [ ] Add Gallery page showcasing shadcn-aligned components
 - [ ] Add async search to Combobox (command-style filtering)
-- [ ] Add range mode to Calendar (visual range highlight)
+- [x] Add same-month range mode to Calendar (inclusive visual range highlight), with validation, retained identity, equal weekday/day slots and Gallery pointer/theme/scale/clip/CPU evidence (ROADMAP 054). Cross-month selection and date-cell input remain separate.
 - [ ] Add drag-and-drop reordering to Data Table
 - [ ] Add keyboard navigation to Sidebar and Navigation Menu
 
