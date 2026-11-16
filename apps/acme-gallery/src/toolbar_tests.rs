@@ -130,3 +130,37 @@ fn gallery_tests_ignore_persisted_theme_preference() {
     assert_eq!(g.theme_pack, "default");
     assert!(!g.dark);
 }
+
+/// ROADMAP 062: the toolbar AA badge reads the passing form for every pack and
+/// mode. The label is read back from the built toolbar widget tree.
+#[test]
+fn gallery_toolbar_aa_badge_reads_pass_for_every_pack_and_mode() {
+    let mut packs = vec!["default".to_string()];
+    packs.extend(available_themes().iter().map(|s| s.to_string()));
+    let mut failures = Vec::new();
+    for pack in &packs {
+        for dark in [false, true] {
+            let mut g = Gallery::new();
+            g.theme_pack = pack.clone();
+            g.dark = dark;
+            let WidgetNode::Row(row) = g.toolbar() else {
+                panic!("toolbar is a row");
+            };
+            let label = row
+                .children
+                .iter()
+                .find_map(|c| match c {
+                    WidgetNode::Button(b) if b.key.as_str() == "pack_btn" => Some(b.label.clone()),
+                    _ => None,
+                })
+                .expect("pack_btn in toolbar");
+            if !label.ends_with("\u{2713}AA") || label.contains('\u{26a0}') {
+                failures.push(format!(
+                    "{pack}/{}: {label:?}",
+                    if dark { "dark" } else { "light" }
+                ));
+            }
+        }
+    }
+    assert!(failures.is_empty(), "AA badge not passing: {failures:?}");
+}

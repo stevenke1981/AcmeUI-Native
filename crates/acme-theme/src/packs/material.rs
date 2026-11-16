@@ -103,7 +103,7 @@ impl ThemePack for MaterialPack {
             surface_tooltip: ThemeColor::rgb(73, 69, 79),
 
             primary_hover: ThemeColor::rgb(218, 203, 255),
-            primary_pressed: ThemeColor::rgb(103, 80, 164),
+            primary_pressed: ThemeColor::rgb(160, 145, 201), // primary40 lightened, AA on-primary text (062 review)
             danger_hover: ThemeColor::rgb(247, 200, 197),
             danger_pressed: ThemeColor::rgb(179, 38, 30),
             ghost_hover: ThemeColor::rgb(74, 66, 92),

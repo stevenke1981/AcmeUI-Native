@@ -121,7 +121,7 @@ impl<M: Clone + 'static> LineChartBuilder<M> {
                 let max_v = data.iter().map(|p| p.value).fold(0.0f32, f32::max).max(1.0);
                 let denom = (data.len().saturating_sub(1)).max(1) as f32;
                 let line_color = theme_color(theme.colors.primary);
-                let dot_color = theme_color(theme.colors.accent);
+                let dot_color = theme_color(theme.colors.primary);
 
                 let points: Vec<Point<acme_core::Logical>> = data
                     .iter()

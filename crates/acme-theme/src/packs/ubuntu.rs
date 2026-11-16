@@ -18,7 +18,7 @@ impl ThemePack for UbuntuPack {
             surface: ThemeColor::rgb(255, 255, 255),
             surface_foreground: ThemeColor::rgb(17, 17, 17),
 
-            primary: ThemeColor::rgb(233, 84, 32), // Ubuntu orange #E95420
+            primary: ThemeColor::rgb(208, 69, 21), // Ubuntu orange #E95420 darkened to #D04515 for AA white text (062)
             primary_foreground: ThemeColor::rgb(255, 255, 255),
             secondary: ThemeColor::rgb(238, 238, 238),
             secondary_foreground: ThemeColor::rgb(17, 17, 17),
@@ -32,7 +32,7 @@ impl ThemePack for UbuntuPack {
             ring: ThemeColor::rgb(233, 84, 32),
 
             success: ThemeColor::rgb(14, 134, 78),
-            warning: ThemeColor::rgb(249, 154, 0),
+            warning: ThemeColor::rgb(203, 125, 0), // darkened to #CB7D00 for 3:1 graphic (062)
             danger: ThemeColor::rgb(218, 34, 34),
             info: ThemeColor::rgb(0, 115, 229),
 
@@ -45,7 +45,7 @@ impl ThemePack for UbuntuPack {
             surface_overlay: ThemeColor::rgb(255, 255, 255),
             surface_tooltip: ThemeColor::rgb(51, 51, 51),
 
-            primary_hover: ThemeColor::rgb(205, 73, 27),
+            primary_hover: ThemeColor::rgb(188, 62, 19), // darker under white text (062 review)
             primary_pressed: ThemeColor::rgb(177, 63, 23),
             danger_hover: ThemeColor::rgb(190, 30, 30),
             danger_pressed: ThemeColor::rgb(160, 25, 25),
@@ -75,7 +75,7 @@ impl ThemePack for UbuntuPack {
             surface_foreground: ThemeColor::rgb(255, 255, 255),
 
             primary: ThemeColor::rgb(233, 84, 32), // Ubuntu orange
-            primary_foreground: ThemeColor::rgb(255, 255, 255),
+            primary_foreground: ThemeColor::rgb(17, 17, 17), // Yaru ink #111111 on orange, AA (062)
             secondary: ThemeColor::rgb(72, 72, 72),
             secondary_foreground: ThemeColor::rgb(255, 255, 255),
             accent: ThemeColor::rgb(153, 73, 110), // lighter aubergine
@@ -102,9 +102,9 @@ impl ThemePack for UbuntuPack {
             surface_tooltip: ThemeColor::rgb(80, 80, 80),
 
             primary_hover: ThemeColor::rgb(240, 105, 58),
-            primary_pressed: ThemeColor::rgb(205, 73, 27),
+            primary_pressed: ThemeColor::rgb(242, 125, 84), // lighter than hover, away from dark ink (062 review)
             danger_hover: ThemeColor::rgb(255, 129, 129),
-            danger_pressed: ThemeColor::rgb(218, 34, 34),
+            danger_pressed: ThemeColor::rgb(255, 150, 150), // lighter than hover, away from dark ink (062 review)
             ghost_hover: ThemeColor::rgb(72, 72, 72),
             ghost_pressed: ThemeColor::rgb(80, 80, 80),
 

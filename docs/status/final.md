@@ -1,5 +1,10 @@
 # Delivery Status
 
+## 2026-11-17 — ROADMAP 062 WCAG AA across all theme packs
+
+- All 24 pack/mode combinations now meet AA, with 3:1 graphics, gated by tests with no exemptions. A real-window check found that Secondary buttons painted the wrong text token; `Button::resolve_style` now picks text for the painted fill, and the hardcoded white is gone. Workspace tests 2190 passed / 0 failed; [report](../team/roadmap-062/REPORT.md).
+- Execution: Claude Code agent team (Opus 5.5 theme and Lead; Sonnet 5.5 charts and widgets; Fable 5.2 reviewer). Screen reader NOT_RUN.
+
 ## 2026-11-17 — ROADMAP 061 Sidenav keyboard navigation
 
 - Sidenav gains typed activation and cross-section keyboard roving; the Gallery demonstrates it with F8 under one Layout keyboard owner (F6/F7/F8). Pre-existing `desktop`/`overlay` feature-isolation build breaks are fixed and guarded in CI. Workspace tests 2174 passed / 0 failed; [report](../team/roadmap-061/REPORT.md).

@@ -1,0 +1,533 @@
+$ cargo test --locked -p acme-theme -p acme-widgets -p acme-ui-gallery -p acme-gallery (start 2026-11-16T18:18:37Z)
+   Compiling acme-style v0.2.0 (F:\AcmeUI-Native\crates\acme-style)
+   Compiling acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+   Compiling acme-textinput v0.2.0 (F:\AcmeUI-Native\crates\acme-textinput)
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+   Compiling acme-accessibility v0.2.0 (F:\AcmeUI-Native\crates\acme-accessibility)
+   Compiling acme-gallery v0.2.0 (F:\AcmeUI-Native\apps\gallery)
+   Compiling acme-ui-gallery v0.2.0 (F:\AcmeUI-Native\apps\acme-gallery)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.83s
+     Running unittests src\main.rs (target\debug\deps\acme_gallery-5f19982ec8ddc705.exe)
+
+running 44 tests
+test dpi_tests::measure_drift_report ... ignored, measurement report; run with --ignored --nocapture
+test focus::tests::empty_regions_resolve_to_zero_without_target ... ok
+test focus::tests::clamps_previous_index_when_the_target_is_gone ... ok
+test focus::tests::non_synthetic_node_match_wins_even_when_the_index_moved ... ok
+test focus::tests::shared_node_is_disambiguated_by_message ... ok
+test focus::tests::no_target_keeps_an_in_range_previous_index ... ok
+test focus::tests::target_at_is_none_out_of_range ... ok
+test focus::tests::message_fallback_when_the_node_is_gone ... ok
+test focus::tests::synthetic_node_is_not_identity_so_message_decides ... ok
+test events::ime::tests::unscrolled_anchor_is_unchanged_by_the_clamp ... ok
+test focus_tests::enter_with_a_stale_focus_index_and_no_regions_is_ignored ... ok
+test events::dispatch::tests::text_edit_history_flows_through_gallery_key_dispatch ... ok
+test events::dispatch::tests::gallery_forwards_the_platform_preedit_cursor ... ok
+test events::ime::tests::wide_composition_keeps_the_candidate_anchor_inside_the_field ... ok
+test retained_ids_tests::bound_layout_ids_are_unique_on_every_page ... ok
+test container_actions_tests::nested_button_pointer_action_does_not_activate_parent_container ... ok
+test hover_press_tests::press_and_release_on_the_same_region_across_a_frame_still_activates ... ok
+test retained_ids_tests::every_page_reconciles_and_binds_without_mismatch ... ok
+test retained_ids_tests::sidebar_keeps_its_ids_when_the_category_changes ... ok
+test focus_tests::space_activates_the_focused_region_like_enter ... ok
+test container_actions_tests::focus_demo_keyboard_resolves_current_typed_action_instead_of_cached_hit_message ... ok
+test retained_ids_tests::repeated_frame_keeps_every_layout_id ... ok
+test stage3_tests::painter_canvas_and_hit_layer_integrate_under_scroll_clip ... ok
+test focus_tests::accessibility_focus_follows_keyboard_focus ... ok
+test shell_contrast_tests::gallery_longest_selected_category_label_fits_inside_button ... ok
+test focus_tests::sidebar_focus_stays_on_its_button_when_the_category_changes ... ok
+test shell_contrast_tests::gallery_selected_category_text_contrast_meets_aa ... ok
+test container_actions_tests::container_focus_ring_and_following_button_use_the_actual_hit_indices ... ok
+test hover_press_tests::release_after_a_page_switch_does_not_activate_the_new_page ... ok
+test hover_press_tests::hover_after_a_page_switch_is_the_region_under_the_pointer ... ok
+test shell_contrast_tests::gallery_selected_category_has_marker_and_stable_hit_rects ... ok
+test focus_tests::tab_and_shift_tab_wrap_around_a_page ... ok
+test dpi_tests::ime_caret_stays_inside_the_field_when_text_overflows ... ok
+test retained_ids_tests::frame_uses_retained_ids_for_layout_and_accessibility ... ok
+test dpi_tests::ime_caret_bottom_edge_stays_inside_the_text_input_at_every_scale ... ok
+test dpi_tests::ime_caret_left_and_top_edges_stay_inside_the_focused_text_input_at_every_scale ... ok
+test retained_ids_tests::accessibility_bounds_match_the_bound_layout_rects ... ok
+test retained_ids_tests::bound_layout_has_the_same_shape_as_sequential_layout_on_every_page ... ok
+test focus_tests::enter_after_switching_to_a_smaller_page_does_not_panic ... ok
+test container_actions_tests::all_container_and_child_rings_follow_theme_scale_and_scroll_clip ... ok
+test retained_ids_tests::all_gallery_frames_pass_shared_scene_preflight ... ok
+test dpi_tests::logical_layout_is_scale_invariant_on_every_page ... ok
+test dpi_tests::every_page_lays_out_finite_rects_at_every_scale ... ok
+test focus_tests::reported_accessibility_focus_is_always_a_tree_node ... ok
+
+test result: ok. 43 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 14.93s
+
+     Running unittests src\lib.rs (target\debug\deps\acme_theme-d129c26b4be2f36c.exe)
+
+running 45 tests
+test json::tests::error_implements_std_error_and_display ... ok
+test json::tests::rejects_non_ascii_unicode_escape_without_panicking ... ok
+test json::tests::partial_json_defaults_from_mode_and_applies_overrides ... ok
+test json::tests::partial_shadow_and_typography_and_spacing_overrides_work ... ok
+test json::tests::rejects_malformed_json_syntax ... ok
+test json::tests::rejects_wrong_field_types_and_invalid_mode ... ok
+test json::tests::rejects_non_finite_numbers_and_invalid_colors ... ok
+test packs::high_contrast::tests::high_contrast_pack_meets_wcag_aa_everywhere_and_aaa_on_primary_surfaces ... ok
+test packs::apple::tests::apple_ring_is_system_blue_and_primary_is_darkened_for_aa ... ok
+test packs::high_contrast::tests::high_contrast_pack_name_and_variants_validate ... ok
+test packs::tests::high_contrast_aliases_resolve_identically ... ok
+test packs::tests::all_registered_themes_resolve_and_validate ... ok
+test packs::tests::light_and_dark_variants_differ ... ok
+test packs::tests::unknown_theme_returns_none ... ok
+test tests::border_color_focused_returns_ring ... ok
+test tests::builtin_themes_main_text_meets_wcag_aa ... ok
+test tests::builtins_are_complete_and_valid ... ok
+test tests::color_lerp_and_darken_produce_valid_color ... ok
+test json::tests::round_trip_builtin_dark_preserves_exact_fields ... ok
+test tests::contrast_level_classification ... ok
+test tests::accent_vs_background_non_text_guard ... ok
+test json::tests::round_trip_builtin_light_preserves_exact_fields ... ok
+test tests::contrast_ratio_black_white_is_21 ... ok
+test tests::contrast_ratio_identical_is_1 ... ok
+test tests::control_heights_are_monotonic ... ok
+test tests::gruvbox_accent_meets_non_text_contrast ... ok
+test tests::gruvbox_dark_teals_are_unified ... ok
+test tests::light_dark_have_distinct_palettes ... ok
+test json::tests::round_trip_high_contrast_light_and_dark_preserves_exact_fields ... ok
+test tests::rejects_invalid_custom_values ... ok
+test tests::relative_luminance_extremes ... ok
+test tests::roadmap_060_pack_retune_reaches_aa ... ok
+test tests::roadmap_062_danger_fills_have_aa_ink ... ok
+test tests::roadmap_062_every_pack_meets_aa_gate ... ok
+test tests::roadmap_062_primary_states_keep_text_aa ... ok
+test tests::selected_item_colors_prefer_first_qualifying_candidate ... ok
+test tests::selected_item_colors_meet_aa_in_every_pack_and_mode ... ok
+test tests::roadmap_062_state_fills_give_feedback ... ok
+test tests::selected_item_colors_use_theme_tokens_only ... ok
+test tests::solarized_muted_text_keeps_a_hierarchy ... ok
+test tests::spacing_get_returns_expected_values ... ok
+test tests::wcag_report_covers_key_pairs ... ok
+test tests::wcag_report_includes_selected_item_pair ... ok
+test tests::roadmap_062_pack_retune_reaches_aa ... ok
+test json::tests::round_trip_all_registered_theme_packs_preserves_exact_fields ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src\main.rs (target\debug\deps\acme_ui_gallery-1406d07dba0a1fe5.exe)
+
+running 188 tests
+test checkbox_cards_tests::gallery_checkbox_cards_arrows_move_focus_without_toggling ... ok
+test about_dialog_tests::about_demo_hit_and_paint_slots_match_theme_scale_and_visibility ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_pointer_press_and_focus_loss_return_none ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_preedit_guard_passes_unhandled_keys ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_space_ignores_os_auto_repeat ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_space_toggles_enter_passes_through ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_unknown_value_is_rejected ... ok
+test anchor_tests::anchor_demo_has_bounded_distinct_hit_slots_and_clipped_themed_paint ... ok
+test bottom_navigation_tests::bottom_navigation_gallery_paint_and_hits_match_across_theme_scale_and_selection ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_f7_reveals_focus_in_short_viewport ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_space_reveals_hidden_focus ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_arrow_reveals_hidden_focus ... ok
+test fab_tests::passive_buttons_never_acquire_hover_or_press_from_absent_hit_indices ... ok
+test calendar_range::tests::gallery_calendar_range_pointer_can_clear_and_restore_the_preview ... ok
+test checkbox_cards_tests::gallery_radio_cards_enter_space_without_selection_keeps_hover ... ok
+test checkbox_cards_tests::gallery_radio_cards_preedit_blocks_arrows ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_hit_and_paint_slots_match_across_themes_and_scales ... ok
+test checkbox_cards_tests::gallery_cards_keyboard_resets_hover_and_press_everywhere ... ok
+test fab_tests::fab_examples_paint_live_shapes_elevation_clips_and_correct_action_indices ... ok
+test mobile_avatar_tests::avatars_paint_themed_circles_before_centered_clipped_initials ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_ignores_ctrl_alt_meta_chords ... ok
+test anchor_tests::anchor_pointer_dispatches_parent_and_child_hrefs_once_each ... ok
+test collapsible_tests::collapsible_demo_layout_paint_and_hit_slots_follow_enabled_state_theme_and_scale ... ok
+test fullscreen_tests::fullscreen_demo_hit_and_paint_slots_match_theme_scale_and_visibility ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_escape_blur_category_and_pointer_off_deactivate ... ok
+test context_menu_tests::context_menu_demo_hit_and_paint_slots_match_theme_scale_and_visibility ... ok
+test mobile_avatar_tests::explicit_single_line_alignment_uses_existing_style_and_bounds_long_text ... ok
+test mobile_avatar_tests::mobile_page_has_all_avatar_sizes_placeholder_and_complete_binding ... ok
+test bottom_navigation_tests::gallery_bottom_navigation_pointer_selects_and_preserves_controlled_selection ... ok
+test about_dialog_tests::about_card_close_dispatches_once_and_host_can_restore_it ... ok
+test data_list_examples::tests::density_gallery_keeps_real_extents_live_theme_and_clipped_text ... ok
+test mobile_card_tests::a_card_surface_is_painted_before_its_interactive_media ... ok
+test checkbox_cards_tests::gallery_radio_cards_pointer_off_card_deactivates ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_f6_f7_mutually_exclusive_with_radio_cards ... ok
+test mobile_card_tests::mobile_page_has_all_card_variants_and_media_before_text ... ok
+test mobile_chip_tests::chip_surface_precedes_actions_and_keeps_theme_and_scroll_clips ... ok
+test mobile_banner_tests::all_banner_tones_paint_before_text_with_theme_tokens_and_viewport_clips ... ok
+test calendar_range::tests::gallery_calendar_range_paints_theme_accents_with_matching_hit_slots_and_clips ... ok
+test mobile_action_tests::action_paint_indices_semantic_label_colours_and_clips_follow_live_theme ... ok
+test mobile_notification_tests::host_deadline_boundaries_restart_and_manual_cancel_are_deterministic ... ok
+test fullscreen_tests::fullscreen_close_dispatches_once_and_host_can_restore_it ... ok
+test mobile_loader_tests::gallery_label_paint_respects_existing_wrap_modes_and_line_height ... ok
+test fab_tests::gallery_fab_pointer_press_release_and_cancel_dispatch_once ... ok
+test context_menu_tests::context_menu_item_dispatches_once_and_host_can_restore_it ... ok
+test mobile_loader_tests::loader_messages_paint_multiple_lines_with_themed_foreground_and_scroll_clips ... ok
+test mobile_list_item_tests::list_row_hits_and_paint_indices_preserve_following_buttons_theme_and_scroll_clips ... ok
+test mobile_loader_tests::mobile_page_has_distinct_indicator_short_and_long_message_examples ... ok
+test mobile_progress_tests::progress_paints_track_before_fill_with_semantic_colours_and_viewport_clips ... ok
+test mobile_progress_tests::mobile_page_exposes_empty_partial_and_complete_progress_with_readable_labels ... ok
+test mobile_progress_tests::shaped_percentage_glyphs_stay_below_the_progress_track ... ok
+test mobile_progress_tests::stepper_activation_rebuilds_quantity_progress ... ok
+test collapsible_tests::collapsible_pointer_toggles_once_and_disabled_header_rejects_stale_actions ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_f7_enters_and_reveals_only_when_hidden ... ok
+test mobile_notification_tests::notification_surface_text_and_actions_keep_themed_paint_order_and_scroll_clips ... ok
+test checkbox_cards_tests::gallery_radio_cards_f6_reveals_only_when_hidden ... ok
+test mobile_search_tests::search_action_labels_are_centered_inside_their_touch_targets ... ok
+test mobile_sheet_handle_tests::sheet_handles_paint_live_themed_rounded_bars_without_hits_or_index_drift ... ok
+test modal_tests::modal_demo_hit_and_paint_slots_match_theme_scale_and_visibility ... ok
+test navigation_menu_tests::gallery_navigation_menu_arrow_up_without_child_enters_last_enabled_child ... ok
+test navigation_menu_tests::gallery_navigation_menu_category_change_by_real_click_deactivates ... ok
+test mobile_card_tests::card_surfaces_use_theme_tokens_and_keep_the_viewport_clip_when_scrolled ... ok
+test mobile_list_item_tests::keyboard_scrolled_page_text_retains_the_viewport_clip_in_the_actual_scene ... ok
+test modal_tests::modal_close_dispatches_once_and_host_can_restore_it ... ok
+test mobile_action_tests::pointer_actions_dispatch_and_disabled_rows_have_no_hit ... ok
+test mobile_search_tests::preedit_blocks_submission_and_category_changes_blur_and_reject_late_commits ... ok
+test checkbox_cards_tests::gallery_checkbox_cards_pointer_toggles_each_option_with_real_events ... ok
+test navigation_menu_tests::gallery_navigation_menu_down_enter_activates_child_and_escape_steps_out ... ok
+test mobile_search_tests::keyboard_focus_visits_input_search_clear_in_both_directions ... ok
+test navigation_menu_tests::gallery_navigation_menu_f6_reveal_keeps_section_heading_visible ... ok
+test navigation_menu_tests::gallery_navigation_menu_child_hidden_above_reveals_parent_row ... ok
+test navigation_menu_tests::gallery_navigation_menu_enter_space_escape_ignore_os_auto_repeat ... ok
+test navigation_menu_tests::gallery_navigation_menu_child_reveal_is_minimal_and_keeps_parent_visible ... ok
+test navigation_menu_tests::gallery_navigation_menu_f6_reveals_offscreen_menu_and_arrows_rove_skipping_disabled ... ok
+test navigation_menu_tests::gallery_navigation_menu_preedit_blocks_f6_and_arrow_keys ... ok
+test navigation_menu_tests::gallery_navigation_menu_disabled_items_have_no_hit_region ... ok
+test mobile_contract_tests::all_fifteen_p3_builders_have_gallery_examples_with_stable_bound_roots ... ok
+test navigation_menu_tests::gallery_navigation_menu_rejects_child_of_disabled_parent ... ok
+test navigation_menu_tests::gallery_navigation_menu_hit_and_paint_slots_match_across_themes_and_scales ... ok
+test notification_tests::notification_demo_hit_and_paint_slots_match_theme_scale_and_visibility ... ok
+test paper_examples::tests::paper_examples_paint_the_requested_corners_with_live_theme_and_clip ... ok
+test mobile_search_tests::tab_reveals_an_offscreen_search_field ... ok
+test page_header_tests::page_header_gallery_keeps_action_paint_hits_and_bounds_across_subtitle_theme_and_scale ... ok
+test navigation_menu_tests::gallery_navigation_menu_unhandled_key_passes_through_and_keeps_menu_active ... ok
+test navigation_menu_tests::gallery_navigation_menu_pointer_press_off_menu_deactivates_group ... ok
+test radio_cards_tests::gallery_radio_cards_f6_arrow_keys_wrap_and_enter_space_confirm ... ok
+test retained_tests::actual_sidebar_keys_survive_insertion_and_reorder ... ok
+test mobile_loader_tests::gallery_spinner_viewport_polling_pointer_policy_and_other_timers_are_independent ... ok
+test retained_tests::category_replacement_keeps_chrome_ids_and_replaces_page_identity ... ok
+test navigation_menu_tests::gallery_navigation_menu_keys_ignored_off_page_and_after_blur_or_category_change ... ok
+test retained_tests::duplicate_sidebar_key_falls_back_and_next_valid_frame_recovers ... ok
+test retained_tests::every_category_has_complete_binding_and_unique_retained_layout_ids ... ok
+test mobile_notification_tests::asynchronous_expiry_cancels_pointer_press_and_hover_before_rebuilding_hits ... ok
+test retained_tests::partial_binding_uses_sequential_ids_for_the_entire_layout ... ok
+test navigation_menu_tests::gallery_navigation_menu_ignores_ctrl_alt_meta_chords ... ok
+test notification_tests::notification_pointer_action_close_restore_and_stale_action_guard ... ok
+test radio_cards_tests::gallery_radio_cards_hit_and_paint_slots_match_across_themes_and_scales ... ok
+test page_header_tests::gallery_page_header_actions_survive_pointer_description_changes ... ok
+test sidebar_tests::gallery_keyboard_status_labels_are_zh_tw ... ok
+test mobile_search_tests::pointer_edit_submit_clear_and_undo_use_the_real_gallery_event_path ... ok
+test radio_cards_tests::gallery_radio_cards_keys_ignored_off_page_and_after_escape_or_blur ... ok
+test shell_contrast_tests::gallery_selected_category_has_marker_and_stable_hit_rects ... ok
+test sidebar_tests::gallery_layout_keyboard_owner_frame_is_interactive_only_while_active ... ok
+test mobile_list_item_tests::gallery_list_keyboard_navigation_activation_reorder_and_composition_guard_use_real_events ... ok
+test retained_tests::mobile_message_updates_keep_ids_and_disabled_button_out_of_hits ... ok
+test shell_contrast_tests::gallery_longest_selected_category_label_fits_inside_button ... ok
+test sidebar_tests::gallery_navigation_menu_activation_deactivates_sidebar ... ok
+test radio_cards_tests::gallery_radio_cards_pointer_selects_each_option_with_real_events ... ok
+test sidebar_tests::gallery_layout_hit_rects_are_stable_across_f6_f7_escape ... ok
+test sidebar_tests::gallery_navigation_menu_preedit_passes_unhandled_keys_through ... ok
+test sidebar_tests::gallery_layout_owner_frame_border_is_ring_with_3_to_1_contrast ... ok
+test sidebar_tests::gallery_sidebar_enter_space_ignore_os_auto_repeat ... ok
+test navigation_menu_tests::gallery_navigation_menu_short_viewport_keeps_child_visible_without_oscillating ... ok
+test sidebar_tests::gallery_sidebar_disabled_item_has_no_hit_region ... ok
+test navigation_menu_tests::gallery_navigation_menu_pointer_activates_items_and_children_with_real_events ... ok
+test sidebar_tests::gallery_sidebar_f6_during_preedit_keeps_sidebar_active ... ok
+test sidebar_tests::gallery_layout_hosts_snackbar_press_deactivates_menu_and_sidebar ... ok
+test mobile_banner_tests::banner_action_dismiss_and_restore_use_actual_pointer_dispatch_and_keep_other_tones ... ok
+test sidebar_tests::gallery_navigation_menu_reveals_focused_child_below_the_fold ... ok
+test sidebar_tests::gallery_sidebar_keys_ignored_during_preedit ... ok
+test sidebar_tests::gallery_sidebar_f7_with_late_current_item_reveals_whole_group ... ok
+test sidebar_tests::gallery_theme_packs_ring_contrast_against_surface_and_background ... ok
+test retained_tests::repeated_frames_and_theme_pack_transitions_preserve_all_ids ... ok
+test mobile_notification_tests::notification_actions_dismiss_show_and_expiry_clear_hits_without_replacing_other_cards ... ok
+test sidebar_tests::gallery_navigation_menu_pointer_click_does_not_reveal_when_content_height_is_stable ... ok
+test sidenav_tests::gallery_layout_sidenav_owner_frame_and_status_labels ... ok
+test sidenav_tests::gallery_sidebar_and_nav_menu_selection_deactivate_sidenav ... ok
+test sidenav_tests::gallery_sidenav_disabled_item_has_no_hit_region ... ok
+test sidebar_tests::gallery_sidebar_up_down_wrap_skip_disabled_and_enter_space_confirm ... ok
+test sidebar_tests::gallery_sidebar_left_right_collapse_expand_keep_selection_and_node_ids ... ok
+test sidebar_tests::gallery_sidebar_hit_and_paint_slots_match_across_themes_scales_and_states ... ok
+test mobile_chip_tests::chip_tap_dismiss_restore_and_filter_use_actual_pointer_dispatch ... ok
+test sidenav_tests::gallery_sidenav_f8_repeat_is_ignored ... ok
+test sidebar_tests::gallery_sidebar_ignores_ctrl_alt_meta_chords ... ok
+test mobile_chip_tests::chip_examples_have_complete_binding_and_filter_identity_survives_other_chip_removal ... ok
+test snackbar_tests::snackbar_deadlines_restart_cancel_and_expire_once ... ok
+test sidebar_tests::gallery_sidebar_f7_and_navigation_menu_f6_are_mutually_exclusive ... ok
+test sidebar_tests::gallery_sidebar_f7_reveals_group_into_view ... ok
+test sidebar_tests::gallery_sidebar_keys_ignored_off_page_and_after_escape_or_blur ... ok
+test sidenav_tests::gallery_sidenav_hit_and_paint_slots_match_across_themes_and_scales ... ok
+test sidebar_tests::gallery_sidebar_pointer_press_off_group_deactivates ... ok
+test spinner_motion::tests::spinner_polling_stops_when_hidden_or_reduced_and_resumes_with_current_time ... ok
+test retained_tests::real_frames_keep_hits_and_drawn_buttons_on_the_retained_geometry ... ok
+test sidenav_tests::gallery_sidenav_up_down_cross_sections_wrap_skip_disabled_and_enter_space_confirm ... ok
+test style_sizing_tests::full_sizing_example_fills_only_the_padded_parent_and_keeps_theme_and_clip ... ok
+test sidebar_tests::gallery_sidebar_pointer_selects_each_enabled_item_with_real_events ... ok
+test sidenav_tests::gallery_sidenav_pointer_press_on_disabled_row_changes_nothing_and_deactivates ... ok
+test tests::disabled_button_renders_without_consuming_hit_index ... ok
+test tests::interactive_button_consumes_hit_index ... ok
+test sidebar_tests::gallery_navigation_menu_reveal_only_when_out_of_view_and_not_on_leaving_escape ... ok
+test tests::mobile_stepper_limits_do_not_leave_ghost_hit_indices ... ok
+test sidenav_tests::gallery_layout_f6_f7_f8_groups_are_mutually_exclusive ... ok
+test tests::mobile_controls_dispatch_and_rebuild_their_state ... ok
+test sidenav_tests::gallery_sidenav_pointer_press_off_group_deactivates ... ok
+test speed_dial_tests::speed_dial_gallery_paint_and_hit_slots_match_across_theme_scale_and_open_state ... ok
+test sidenav_tests::gallery_sidenav_f8_reveals_only_when_hidden ... ok
+test sidenav_tests::gallery_sidenav_repeat_and_modifier_chords_ignored ... ok
+test tests::mobile_toggle_paint_keeps_the_scroll_view_clip ... ok
+test tests::mobile_toggle_frame_contains_themed_track_and_thumb ... ok
+test tests::sidebar_ids_follow_category_catalog ... ok
+test swipe_actions_tests::swipe_action_paint_indices_states_theme_and_clips_match_hits ... ok
+test toolbar_tests::gallery_tests_ignore_persisted_theme_preference ... ok
+test sidenav_tests::gallery_sidenav_keys_ignored_off_page_after_escape_blur_and_preedit ... ok
+test theme_pack_examples::tests::preview_contains_every_registered_pack_and_no_interactive_controls ... ok
+test sidenav_tests::gallery_sidenav_pointer_selects_each_enabled_item_with_real_events ... ok
+test tests::stage3_painter_emits_canvas_commands_for_charts_and_foundations ... ok
+test speed_dial_tests::gallery_speed_dial_opens_selects_independent_actions_and_rejects_closed_stale_actions ... ok
+test mobile_list_item_tests::list_rows_dispatch_pointer_taps_and_keep_identity_after_detail_changes_and_reordering ... ok
+test toolbar_tests::scrolled_gallery_toolbar_pointer_slots_remain_above_page_actions ... ok
+test retained_tests::mobile_drawer_open_hover_press_and_scrim_close_stay_aligned ... ok
+test tour_tests::tour_gallery_keeps_themed_clipped_paint_and_hit_slots_for_every_stage ... ok
+test tests::stage3_high_contrast_theme_pack_selection_works ... ok
+test swipe_actions_tests::keyboard_alternative_is_scoped_and_does_not_steal_composition ... ok
+test theme_pack_examples::tests::palette_paint_uses_each_pack_mode_and_keeps_bounds_clips_and_retained_ids ... ok
+test tour_tests::tour_scroll_does_not_shrink_the_gallery_toolbar ... ok
+test swipe_actions_tests::vertical_cancel_and_unmatched_pointer_release_preserve_the_item ... ok
+test tour_tests::gallery_tour_pointer_previous_next_finish_restart_and_stale_messages_are_controlled ... ok
+test shell_contrast_tests::gallery_selected_category_text_contrast_meets_aa_all_packs ... ok
+test toolbar_tests::gallery_toolbar_aa_badge_reads_pass_for_every_pack_and_mode ... ok
+test snackbar_tests::snackbar_pointer_action_plain_dismiss_and_async_expiry_use_real_host ... ok
+test speed_dial_tests::gallery_speed_dial_direction_cycle_keeps_pointer_actions_and_clears_old_press ... ok
+test swipe_actions_tests::real_pointer_reveal_close_archive_delete_and_restore_never_fire_on_swipe ... ok
+test sidenav_tests::gallery_sidenav_f8_short_viewport_falls_back_to_current_item ... ok
+test retained_tests::retained_layout_preserves_computed_geometry_in_all_categories_and_modes ... ok
+test tests::stage3_hit_layer_routes_canvas_clicks_and_respects_scroll_and_scrim_clip ... ok
+test shell_contrast_tests::gallery_unselected_and_hovered_category_text_meets_aa_all_packs ... ok
+test snackbar_tests::snackbar_is_bottom_fixed_clipped_above_page_and_blocks_click_through ... ok
+test mobile_search_tests::long_query_scrolls_and_paints_inside_viewport_across_themes_and_scales ... ok
+test toolbar_tests::gallery_toolbar_paint_is_invariant_through_page_scroll_and_tour_transitions ... ok
+
+test result: ok. 188 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.74s
+
+     Running unittests src\lib.rs (target\debug\deps\acme_widgets-9ff92c08ef4f84b9.exe)
+
+running 180 tests
+test canvas::tests::canvas_disabled_blocks_activate ... ok
+test canvas::tests::canvas_paint_invokes_with_theme_and_produces_commands ... ok
+test canvas::tests::canvas_builder_sets_fields_and_converts ... ok
+test data::datagrid::tests::clear_selection_resets ... ok
+test data::datagrid::tests::datagrid_state_default_is_normal ... ok
+test data::datagrid::tests::datagrid_creates_columns_and_rows ... ok
+test data::datagrid::tests::frozen_rows_and_cols ... ok
+test data::datagrid::tests::row_number_is_optional ... ok
+test data::datagrid::tests::scroll_to_cell_adjusts_scroll ... ok
+test data::datagrid::tests::cell_merge_origin ... ok
+test data::datagrid::tests::datagrid_total_width_and_height ... ok
+test data::datagrid::tests::visible_rows_at_start ... ok
+test data::datagrid::tests::visible_columns_at_start ... ok
+test canvas::tests::canvas_debug_clone_and_partial_eq_work ... ok
+test data::datagrid::tests::select_cell_and_navigate ... ok
+test data::table::tests::clear_selection_resets ... ok
+test data::table::tests::column_resize_lifecycle ... ok
+test data::table::tests::keyboard_navigation_cell_mode ... ok
+test data::table::tests::column_resize_clamps_to_min_max ... ok
+test canvas::tests::canvas_layout_computes_non_zero_rect ... ok
+test data::table::tests::keyboard_navigation_row_mode ... ok
+test data::table::tests::non_resizable_column_ignores_resize ... ok
+test data::table::tests::non_sortable_column_ignores_toggle ... ok
+test data::table::tests::select_cell_works ... ok
+test data::table::tests::select_row_works ... ok
+test data::table::tests::table_content_height ... ok
+test data::table::tests::table_creates_columns_and_rows ... ok
+test data::table::tests::table_scroll_to_row ... ok
+test data::table::tests::table_state_default_is_normal ... ok
+test data::table::tests::test_table_state_empty ... ok
+test data::table::tests::test_table_state_error ... ok
+test data::table::tests::test_table_state_loading ... ok
+test data::table::tests::toggle_sort_cycles_direction ... ok
+test data::table::tests::visible_rows_at_start ... ok
+test data::table::tests::visible_rows_empty ... ok
+test data::table::tests::visible_rows_scrolled ... ok
+test data::tree::tests::expand_and_collapse_selected ... ok
+test data::tree::tests::find_node_works ... ok
+test data::tree::tests::select_first_and_last ... ok
+test data::tree::tests::select_next_and_prev ... ok
+test data::tree::tests::toggle_selected ... ok
+test data::tree::tests::tree_creates_nodes ... ok
+test data::tree::tests::typeahead_matches_first_char ... ok
+test data::tree::tests::visible_count_matches ... ok
+test data::tree::tests::visible_nodes_shows_only_expanded ... ok
+test data::tree::tests::visible_nodes_with_expansion ... ok
+test data::virtual_list::tests::content_height_empty ... ok
+test data::virtual_list::tests::clear_anchor_resets ... ok
+test data::virtual_list::tests::content_height_fixed ... ok
+test data::virtual_list::tests::item_offset_fixed ... ok
+test data::virtual_list::tests::scroll_to_item_brings_it_into_view ... ok
+test data::virtual_list::tests::variable_cache_clear ... ok
+test data::virtual_list::tests::save_and_restore_anchor ... ok
+test data::virtual_list::tests::variable_cache_default_get ... ok
+test data::virtual_list::tests::variable_cache_len ... ok
+test data::virtual_list::tests::variable_cache_set_and_get ... ok
+test data::virtual_list::tests::variable_cache_total ... ok
+test data::virtual_list::tests::visible_range_at_end ... ok
+test data::virtual_list::tests::visible_range_empty ... ok
+test data::virtual_list::tests::visible_range_at_start ... ok
+test data::virtual_list::tests::visible_range_scrolled ... ok
+test data::virtual_list::tests::visible_range_variable_height ... ok
+test dirty_tracker::tests::external_invalidation_methods_work_and_clear_on_commit ... ok
+test dirty_tracker::tests::paint_only_dirty_flag_gates_layout_and_hit_rebuild ... ok
+test dirty_tracker::tests::theme_color_switch_triggers_paint_without_layout ... ok
+test dirty_tracker::tests::initial_frame_is_all_dirty_then_unchanged_frame_is_clean ... ok
+test dirty_tracker::tests::viewport_change_triggers_layout_paint_and_hit_rebuild ... ok
+test foundations::label::align_tests::center_and_right_distribute_spare_width ... ok
+test foundations::label::align_tests::left_alignment_has_no_offset ... ok
+test foundations::card::layout_tests::card_existing_style_is_honoured_in_both_layout_paths_and_empty_style_keeps_defaults ... ok
+test foundations::label::align_tests::overflowing_text_stays_anchored_left ... ok
+test label_style_tests::label_dimensions_are_honoured_in_both_layout_paths ... ok
+test hit_bridge::tests::disabled_button_and_disabled_canvas_block_activation_and_show_not_allowed ... ok
+test hit_bridge::tests::stack_z_order_occlusion_picks_topmost_child ... ok
+test hit_bridge::tests::scroll_view_clips_outside_items_and_shifts_scrolled_items ... ok
+test painter_bridge::tests::paint_widget_tree_canvases_skips_button_and_card_chrome ... ok
+test painter_bridge::tests::paint_widget_tree_invokes_canvas_with_theme_tokens ... ok
+test hit_bridge::tests::clickable_containers_text_input_and_navigation_widgets_dispatch ... ok
+test painter_bridge::tests::paint_widget_tree_clips_scroll_view_and_skips_offscreen_canvas ... ok
+test painter_bridge::tests::interactive_card_draws_ring_border_and_other_variants_are_unchanged ... ok
+test hit_bridge::tests::open_modal_dialog_scrim_blocks_underlying_clicks ... ok
+test hit_bridge::tests::open_popover_places_overlay_above_anchor_without_stealing_anchor_children ... ok
+test hit_bridge::tests::open_modal_dialog_allows_clicking_confirm_button_and_blocks_underlay ... ok
+test painter_bridge::tests::theme_color_and_rect_helpers_convert_cleanly ... ok
+test retained_binding::tests::binds_every_view_node_without_mismatch ... ok
+test hit_bridge::tests::headerless_table_and_compound_cells_register_clickable_regions ... ok
+test retained_binding::tests::insertion_before_existing_keys_does_not_shift_their_ids ... ok
+test painter_bridge::tests::paint_widget_tree_renders_open_dialog_content_and_popover_overlay ... ok
+test retained_binding::tests::keyed_reorder_keeps_ids_with_their_widgets ... ok
+test retained_binding::tests::stale_tree_is_reported_as_mismatch ... ok
+test retained_binding::tests::synthetic_ids_never_collide_with_retained_ids ... ok
+test painter_bridge::tests::paint_widget_tree_renders_headerless_table_and_compound_cells ... ok
+test retained_binding::tests::view_child_widgets_matches_view_bridge_child_counts ... ok
+test tests::breadcrumb_builder_and_separators ... ok
+test tests::breadcrumb_custom_separator_and_clickable_segment ... ok
+test tests::builders_make_expected_tree ... ok
+test tests::button_disabled_uses_disabled_bg ... ok
+test tests::button_layout_measures_label_and_reserves_padding ... ok
+test tests::button_new_fields_default ... ok
+test tests::button_resolve_style_has_no_hardcoded_colors ... ok
+test tests::button_size_fluent_methods ... ok
+test tests::button_uses_theme_tokens ... ok
+test tests::card_builder_creates_card ... ok
+test tests::datagrid_children_returns_cells ... ok
+test tests::datagrid_creates_columns_and_rows ... ok
+test tests::datagrid_from_conversion ... ok
+test tests::datagrid_frozen_rows_and_cols ... ok
+test tests::datagrid_key_is_accessible ... ok
+test tests::button_text_meets_aa_in_every_pack_mode_variant_state ... ok
+test tests::datagrid_to_layout_produces_correct_structure ... ok
+test tests::dialog_children_returns_content ... ok
+test tests::dialog_default_is_modal ... ok
+test tests::dialog_from_conversion ... ok
+test tests::dialog_has_correct_title_and_size ... ok
+test tests::dialog_key_is_accessible ... ok
+test tests::dialog_to_layout_defaults ... ok
+test tests::dialog_to_layout_uses_width_and_height ... ok
+test tests::dialog_wraps_content ... ok
+test tests::disabled_button_does_not_activate ... ok
+test tests::menu_children_is_empty ... ok
+test tests::menu_creates_items_with_labels_and_separators ... ok
+test tests::menu_from_conversion ... ok
+test tests::menu_item_activation_returns_correct_message ... ok
+test tests::full_width_button_fills_the_parent_and_allows_an_explicit_override ... ok
+test tests::menu_item_disabled_does_not_activate ... ok
+test tests::menu_key_is_accessible ... ok
+test tests::menu_separator_does_not_activate ... ok
+test tests::menu_to_layout_produces_leaf ... ok
+test tests::nav_rail_builder_and_layout ... ok
+test tests::nav_rail_collapsed_width_and_short_labels ... ok
+test tests::navigation_widgets_convert_via_from ... ok
+test tests::overlay_manager_dismiss_and_raise ... ok
+test tests::overlay_manager_push_and_top_of ... ok
+test tests::popover_children_returns_both ... ok
+test tests::popover_from_conversion ... ok
+test tests::popover_key_and_placement_accessible ... ok
+test tests::popover_to_layout_delegates_to_anchor ... ok
+test tests::popover_wraps_anchor_and_content ... ok
+test tests::scroll_layout_is_clipped ... ok
+test tests::sidebar_builder_width_header_children ... ok
+test tests::sidebar_default_width ... ok
+test tests::tab_bar_builder_selected_and_layout ... ok
+test tests::tab_bar_item_with_message ... ok
+test tests::table_children_returns_flat_cells ... ok
+test tests::table_creates_columns_and_rows ... ok
+test tests::table_from_conversion ... ok
+test tests::table_key_is_accessible ... ok
+test tests::table_to_layout_produces_correct_structure ... ok
+test tests::text_input_build_creates_widget_node ... ok
+test tests::text_input_builder_sets_all_fields ... ok
+test tests::tooltip_key_is_accessible ... ok
+test tests::tooltip_to_layout_delegates_to_child ... ok
+test tests::tooltip_wraps_child_correctly ... ok
+test tests::tree_children_is_empty ... ok
+test tests::tree_creates_nodes ... ok
+test tests::tree_from_conversion ... ok
+test tests::tree_key_is_accessible ... ok
+test tests::tree_to_layout_creates_column_with_children ... ok
+test tests::virtual_list_content_height ... ok
+test tests::virtual_list_content_height_empty ... ok
+test tests::virtual_list_key_is_accessible ... ok
+test tests::virtual_list_to_layout_has_viewport_height ... ok
+test tests::virtual_list_visible_range_at_end ... ok
+test tests::virtual_list_visible_range_empty_list ... ok
+test tests::virtual_list_visible_range_at_start ... ok
+test tests::virtual_list_visible_range_scrolled ... ok
+test tests::visual_state_enum_has_expected_variants ... ok
+test text_input_style_tests::text_input_style_is_applied_in_both_layout_paths ... ok
+test view_bridge::tests::button_has_explicit_key ... ok
+test view_bridge::container_focus_tests::container_handlers_join_retained_focus_order_and_survive_reorders ... ok
+test view_bridge::tests::column_contains_child_labels ... ok
+test view_bridge::tests::container_auto_keys_differ_by_index ... ok
+test view_bridge::tests::disabled_button_reflected ... ok
+test view_bridge::tests::duplicate_label_keys_detected ... ok
+test view_bridge::tests::empty_root_produces_empty_views ... ok
+test view_bridge::tests::row_with_keyed_container ... ok
+test view_bridge::tests::scroll_view_children_are_preserved ... ok
+test view_bridge::tests::separator_has_auto_key ... ok
+test view_bridge::tests::single_label_has_auto_key ... ok
+test view_bridge::tests::text_input_is_focusable ... ok
+
+test result: ok. 180 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\integration.rs (target\debug\deps\integration-4d07659ba2238b12.exe)
+
+running 5 tests
+test theme_switch_preserves_structure ... ok
+test reconciliation_removes_deleted_child ... ok
+test reconciliation_preserves_identity ... ok
+test widget_to_layout_pipeline ... ok
+test nested_layout_computes ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\layout_binding.rs (target\debug\deps\layout_binding-162cc331baf2fe99.exe)
+
+running 13 tests
+test sequential_ids_shift_on_insertion_where_bound_ids_do_not ... ok
+test popover_layout_node_carries_anchor_retained_id ... ok
+test tooltip_at_root_layout_is_the_child_node ... ok
+test tooltip_layout_node_carries_child_retained_id ... ok
+test layout_only_widgets_take_their_retained_ids ... ok
+test keyed_insertion_before_existing_keys_keeps_their_layout_ids ... ok
+test keyed_removal_keeps_surviving_layout_ids ... ok
+test dialog_content_and_following_sibling_keep_layout_id_alignment_and_lengths ... ok
+test keyed_reorder_keeps_each_layout_id ... ok
+test unbound_layout_uses_only_synthetic_unique_ids ... ok
+test bound_layout_matches_sequential_layout_when_nothing_is_bound ... ok
+test bound_layout_matches_sequential_layout_ignoring_ids ... ok
+test bound_layout_ids_are_unique_and_non_synthetic_ids_are_retained_ids ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests acme_theme
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests acme_widgets
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+exit code: 0

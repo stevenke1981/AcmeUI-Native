@@ -19,14 +19,14 @@ impl ThemePack for OneDarkPack {
             surface: ThemeColor::rgb(255, 255, 255),
             surface_foreground: ThemeColor::rgb(56, 58, 66),
 
-            primary: ThemeColor::rgb(64, 120, 242), // blue
+            primary: ThemeColor::rgb(47, 108, 241), // blue #4078F2 darkened to #2F6CF1 for AA white text (062)
             primary_foreground: ThemeColor::rgb(255, 255, 255),
             secondary: ThemeColor::rgb(240, 240, 242),
             secondary_foreground: ThemeColor::rgb(56, 58, 66),
             accent: ThemeColor::rgb(166, 38, 164), // purple
             accent_foreground: ThemeColor::rgb(255, 255, 255),
             muted: ThemeColor::rgb(240, 240, 242),
-            muted_foreground: ThemeColor::rgb(160, 161, 167),
+            muted_foreground: ThemeColor::rgb(106, 108, 115), // #6A6C73, AA on muted (062)
 
             border: ThemeColor::rgb(219, 219, 220),
             input: ThemeColor::rgb(219, 219, 220),
@@ -34,8 +34,8 @@ impl ThemePack for OneDarkPack {
 
             success: ThemeColor::rgb(80, 161, 79), // green
             warning: ThemeColor::rgb(193, 132, 1), // yellow
-            danger: ThemeColor::rgb(228, 86, 73),  // red
-            info: ThemeColor::rgb(1, 132, 188),    // cyan
+            danger: ThemeColor::rgb(221, 49, 33), // red darkened to #DD3121, AA white ink (062 review)
+            info: ThemeColor::rgb(1, 132, 188),   // cyan
 
             success_soft: ThemeColor::rgb(224, 240, 222),
             warning_soft: ThemeColor::rgb(248, 238, 214),
@@ -46,10 +46,10 @@ impl ThemePack for OneDarkPack {
             surface_overlay: ThemeColor::rgb(255, 255, 255),
             surface_tooltip: ThemeColor::rgb(56, 58, 66),
 
-            primary_hover: ThemeColor::rgb(90, 140, 245),
+            primary_hover: ThemeColor::rgb(26, 93, 240), // darker under white text (062 review)
             primary_pressed: ThemeColor::rgb(48, 98, 210),
-            danger_hover: ThemeColor::rgb(234, 110, 98),
-            danger_pressed: ThemeColor::rgb(198, 68, 57),
+            danger_hover: ThemeColor::rgb(201, 44, 30), // darker (062 review)
+            danger_pressed: ThemeColor::rgb(184, 40, 27), // darker again (062 review)
             ghost_hover: ThemeColor::rgb(240, 240, 242),
             ghost_pressed: ThemeColor::rgb(225, 225, 228),
 
@@ -77,7 +77,7 @@ impl ThemePack for OneDarkPack {
             accent: ThemeColor::rgb(198, 120, 221), // purple
             accent_foreground: ThemeColor::rgb(40, 44, 52),
             muted: ThemeColor::rgb(33, 37, 43),
-            muted_foreground: ThemeColor::rgb(92, 99, 112),
+            muted_foreground: ThemeColor::rgb(141, 149, 162), // comment lightened to #8D95A2, AA on background (062 review)
 
             border: ThemeColor::rgb(62, 68, 81),
             input: ThemeColor::rgb(62, 68, 81),
@@ -98,9 +98,9 @@ impl ThemePack for OneDarkPack {
             surface_tooltip: ThemeColor::rgb(62, 68, 81),
 
             primary_hover: ThemeColor::rgb(120, 190, 245),
-            primary_pressed: ThemeColor::rgb(70, 145, 210),
+            primary_pressed: ThemeColor::rgb(146, 203, 247), // lighter than hover, away from dark ink (062 review)
             danger_hover: ThemeColor::rgb(232, 130, 138),
-            danger_pressed: ThemeColor::rgb(195, 85, 94),
+            danger_pressed: ThemeColor::rgb(235, 148, 155), // lighter than hover, away from dark ink (062 review)
             ghost_hover: ThemeColor::rgb(33, 37, 43),
             ghost_pressed: ThemeColor::rgb(62, 68, 81),
 

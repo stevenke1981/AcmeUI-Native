@@ -112,10 +112,10 @@ impl<M: Clone + 'static> BarChartBuilder<M> {
 
                 let palette = [
                     theme.colors.primary,
-                    theme.colors.info,
                     theme.colors.success,
+                    theme.colors.info,
                     theme.colors.warning,
-                    theme.colors.accent,
+                    theme.colors.danger,
                 ];
                 let slot_w = inner_w / bars.len() as f32;
                 let gap = (slot_w * 0.25).min(theme.spacing.px2);

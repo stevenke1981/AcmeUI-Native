@@ -1,0 +1,263 @@
+# ROADMAP 062 theme GREEN (tree based on ffd7e51, uncommitted; includes lead status-colour extension)
+## cargo fmt -p acme-theme -- --check
+exit=0
+## cargo clippy --locked -p acme-theme --all-targets --no-deps -- -D warnings
+    Blocking waiting for file lock on package cache
+    Checking acme-core v0.2.0 (F:\AcmeUI-Native\crates\acme-core)
+    Checking acme-theme v0.2.0 (F:\AcmeUI-Native\crates\acme-theme)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.19s
+exit=0
+## cargo test --locked -p acme-theme
+   Compiling acme-theme v0.2.0 (F:\AcmeUI-Native\crates\acme-theme)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.07s
+     Running unittests src\lib.rs (target\debug\deps\acme_theme-d129c26b4be2f36c.exe)
+
+running 40 tests
+test json::tests::error_implements_std_error_and_display ... ok
+test json::tests::rejects_malformed_json_syntax ... ok
+test json::tests::rejects_non_ascii_unicode_escape_without_panicking ... ok
+test json::tests::partial_shadow_and_typography_and_spacing_overrides_work ... ok
+test json::tests::partial_json_defaults_from_mode_and_applies_overrides ... ok
+test json::tests::rejects_non_finite_numbers_and_invalid_colors ... ok
+test json::tests::rejects_wrong_field_types_and_invalid_mode ... ok
+test packs::high_contrast::tests::high_contrast_pack_name_and_variants_validate ... ok
+test packs::high_contrast::tests::high_contrast_pack_meets_wcag_aa_everywhere_and_aaa_on_primary_surfaces ... ok
+test packs::apple::tests::apple_primary_is_system_blue ... ok
+test packs::tests::all_registered_themes_resolve_and_validate ... ok
+test packs::tests::high_contrast_aliases_resolve_identically ... ok
+test tests::border_color_focused_returns_ring ... ok
+test packs::tests::light_and_dark_variants_differ ... ok
+test packs::tests::unknown_theme_returns_none ... ok
+test json::tests::round_trip_builtin_dark_preserves_exact_fields ... ok
+test tests::builtin_themes_main_text_meets_wcag_aa ... ok
+test tests::color_lerp_and_darken_produce_valid_color ... ok
+test json::tests::round_trip_builtin_light_preserves_exact_fields ... ok
+test tests::builtins_are_complete_and_valid ... ok
+test tests::contrast_level_classification ... ok
+test tests::accent_vs_background_non_text_guard ... ok
+test tests::contrast_ratio_black_white_is_21 ... ok
+test tests::contrast_ratio_identical_is_1 ... ok
+test tests::control_heights_are_monotonic ... ok
+test tests::gruvbox_accent_meets_non_text_contrast ... ok
+test json::tests::round_trip_high_contrast_light_and_dark_preserves_exact_fields ... ok
+test tests::light_dark_have_distinct_palettes ... ok
+test tests::rejects_invalid_custom_values ... ok
+test tests::relative_luminance_extremes ... ok
+test tests::roadmap_060_pack_retune_reaches_aa ... ok
+test tests::roadmap_062_every_pack_meets_aa_gate ... ok
+test tests::selected_item_colors_prefer_first_qualifying_candidate ... ok
+test tests::selected_item_colors_meet_aa_in_every_pack_and_mode ... ok
+test tests::spacing_get_returns_expected_values ... ok
+test tests::roadmap_062_pack_retune_reaches_aa ... ok
+test tests::wcag_report_covers_key_pairs ... ok
+test tests::selected_item_colors_use_theme_tokens_only ... ok
+test tests::wcag_report_includes_selected_item_pair ... ok
+test json::tests::round_trip_all_registered_theme_packs_preserves_exact_fields ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests acme_theme
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+exit=0
+## cargo test --locked -p acme-ui --all-features charts::contrast_tests
+   Compiling acme-style v0.2.0 (F:\AcmeUI-Native\crates\acme-style)
+   Compiling acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.80s
+     Running unittests src\lib.rs (target\debug\deps\acme_ui-81a09332650d76b5.exe)
+
+running 5 tests
+test charts::contrast_tests::bar_chart_fifth_bar_differs_from_neighbours ... ok
+test charts::contrast_tests::bar_chart_marks_reach_3_to_1_on_every_pack ... ok
+test charts::contrast_tests::sparkline_marks_reach_3_to_1_on_every_pack ... ok
+test charts::contrast_tests::gauge_marks_reach_3_to_1_on_every_pack ... ok
+test charts::contrast_tests::line_chart_marks_reach_3_to_1_on_every_pack ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 923 filtered out; finished in 0.04s
+
+     Running tests\minimal_features.rs (target\debug\deps\minimal_features-8faaa38af1ed31d3.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+exit=0
+## cargo test --locked --workspace --no-fail-fast (summary)
+     Running unittests src\lib.rs (target\debug\deps\acme_accessibility-a2f09da2e5948b39.exe)
+test result: ok. 130 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+     Running unittests src\lib.rs (target\debug\deps\acme_animation-f89c0d9536b6a757.exe)
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+     Running unittests src\main.rs (target\debug\deps\acme_benchmark-45fe0f1ddf7c56c1.exe)
+test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+     Running tests\quick_suite.rs (target\debug\deps\quick_suite-4d54ab37bad39ebe.exe)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.68s
+     Running unittests src\lib.rs (target\debug\deps\acme_core-dbc3e92e6f209540.exe)
+test result: ok. 83 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests\focus_navigation.rs (target\debug\deps\focus_navigation-38a9ad2d06cf6276.exe)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running unittests src\lib.rs (target\debug\deps\acme_devtools-151064a26afd8dfd.exe)
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running unittests src\main.rs (target\debug\deps\acme_gallery-7fdb24b661f8b811.exe)
+test result: ok. 43 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 19.04s
+     Running unittests src\lib.rs (target\debug\deps\acme_layout-874ca97c7269ac9f.exe)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+     Running unittests src\lib.rs (target\debug\deps\acme_platform-9da90d9444f686c8.exe)
+test result: ok. 66 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running unittests src\main.rs (target\debug\deps\acme_playground-9cc57e2f087502e6.exe)
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+     Running unittests src\lib.rs (target\debug\deps\acme_render_cpu-777244612ef7c461.exe)
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.56s
+     Running tests\atlas_pages.rs (target\debug\deps\atlas_pages-82c8a5c0c06270c8.exe)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests\clip_area.rs (target\debug\deps\clip_area-e2fc70158b55df65.exe)
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests\coverage.rs (target\debug\deps\coverage-2736c282a3d42fb0.exe)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests\dpi.rs (target\debug\deps\dpi-f48ec9525d1c78c4.exe)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests\frame_timing.rs (target\debug\deps\frame_timing-50046f72b18e20eb.exe)
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests\golden.rs (target\debug\deps\golden-0ffd76f713712b7a.exe)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+     Running tests\regression.rs (target\debug\deps\regression-be41c39cb942aeae.exe)
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src\lib.rs (target\debug\deps\acme_render_wgpu-78e3a3907dd95e96.exe)
+test result: ok. 73 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running unittests src\lib.rs (target\debug\deps\acme_style-08a44afa5616b94b.exe)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests\full_sizing.rs (target\debug\deps\full_sizing-81071b7091751be7.exe)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src\lib.rs (target\debug\deps\acme_text-b22b99bfaed09a23.exe)
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+     Running tests\atlas_lifecycle.rs (target\debug\deps\atlas_lifecycle-2570e2d991eb562c.exe)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+     Running tests\atlas_pages.rs (target\debug\deps\atlas_pages-e8965e6475781b21.exe)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+     Running unittests src\lib.rs (target\debug\deps\acme_textinput-41b859416cfa507f.exe)
+test result: ok. 112 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+     Running tests\ime_dpi.rs (target\debug\deps\ime_dpi-10ec66eb57855c16.exe)
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+     Running tests\multipage_e2e.rs (target\debug\deps\multipage_e2e-4c1b7739e23595f0.exe)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+     Running tests\preedit_render.rs (target\debug\deps\preedit_render-05e17c0d5876f925.exe)
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+     Running tests\preedit_scroll.rs (target\debug\deps\preedit_scroll-6b50a3a9fe9cdc60.exe)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+     Running tests\scroll_caret.rs (target\debug\deps\scroll_caret-414373de390463b3.exe)
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+     Running unittests src\lib.rs (target\debug\deps\acme_theme-d129c26b4be2f36c.exe)
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running unittests src\lib.rs (target\debug\deps\acme_ui-286f1075a131b869.exe)
+test result: ok. 928 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+     Running tests\minimal_features.rs (target\debug\deps\minimal_features-9ea89e5159ebe44f.exe)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src\main.rs (target\debug\deps\acme_ui_gallery-48d4f03428574fff.exe)
+test result: ok. 188 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.71s
+     Running unittests src\lib.rs (target\debug\deps\acme_widgets-79301d9c3c399437.exe)
+test result: ok. 178 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests\integration.rs (target\debug\deps\integration-8ff8aac57f0c83d7.exe)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests\layout_binding.rs (target\debug\deps\layout_binding-1930d0e13fc22c83.exe)
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+# Review fixes GREEN (tree based on ffd7e51, uncommitted; parallel button/charts edits present)
+## cargo fmt -p acme-theme -- --check
+exit=0
+## cargo clippy --locked -p acme-theme --all-targets --no-deps -- -D warnings
+    Checking acme-core v0.2.0 (F:\AcmeUI-Native\crates\acme-core)
+    Checking acme-theme v0.2.0 (F:\AcmeUI-Native\crates\acme-theme)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.71s
+exit=0
+## cargo test --locked -p acme-theme
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.18s
+     Running unittests src\lib.rs (target\debug\deps\acme_theme-d129c26b4be2f36c.exe)
+
+running 45 tests
+test json::tests::error_implements_std_error_and_display ... ok
+test json::tests::partial_shadow_and_typography_and_spacing_overrides_work ... ok
+test json::tests::rejects_malformed_json_syntax ... ok
+test json::tests::rejects_non_ascii_unicode_escape_without_panicking ... ok
+test json::tests::partial_json_defaults_from_mode_and_applies_overrides ... ok
+test json::tests::rejects_non_finite_numbers_and_invalid_colors ... ok
+test json::tests::rejects_wrong_field_types_and_invalid_mode ... ok
+test packs::high_contrast::tests::high_contrast_pack_meets_wcag_aa_everywhere_and_aaa_on_primary_surfaces ... ok
+test packs::apple::tests::apple_ring_is_system_blue_and_primary_is_darkened_for_aa ... ok
+test packs::tests::high_contrast_aliases_resolve_identically ... ok
+test packs::high_contrast::tests::high_contrast_pack_name_and_variants_validate ... ok
+test packs::tests::light_and_dark_variants_differ ... ok
+test packs::tests::all_registered_themes_resolve_and_validate ... ok
+test packs::tests::unknown_theme_returns_none ... ok
+test tests::border_color_focused_returns_ring ... ok
+test tests::builtin_themes_main_text_meets_wcag_aa ... ok
+test tests::builtins_are_complete_and_valid ... ok
+test tests::color_lerp_and_darken_produce_valid_color ... ok
+test tests::accent_vs_background_non_text_guard ... ok
+test tests::contrast_level_classification ... ok
+test json::tests::round_trip_builtin_light_preserves_exact_fields ... ok
+test tests::contrast_ratio_black_white_is_21 ... ok
+test tests::contrast_ratio_identical_is_1 ... ok
+test json::tests::round_trip_builtin_dark_preserves_exact_fields ... ok
+test tests::control_heights_are_monotonic ... ok
+test tests::gruvbox_accent_meets_non_text_contrast ... ok
+test tests::gruvbox_dark_teals_are_unified ... ok
+test tests::light_dark_have_distinct_palettes ... ok
+test tests::rejects_invalid_custom_values ... ok
+test tests::relative_luminance_extremes ... ok
+test tests::roadmap_060_pack_retune_reaches_aa ... ok
+test json::tests::round_trip_high_contrast_light_and_dark_preserves_exact_fields ... ok
+test tests::roadmap_062_danger_fills_have_aa_ink ... ok
+test tests::roadmap_062_every_pack_meets_aa_gate ... ok
+test tests::roadmap_062_primary_states_keep_text_aa ... ok
+test tests::selected_item_colors_prefer_first_qualifying_candidate ... ok
+test tests::roadmap_062_state_fills_give_feedback ... ok
+test tests::selected_item_colors_meet_aa_in_every_pack_and_mode ... ok
+test tests::solarized_muted_text_keeps_a_hierarchy ... ok
+test tests::selected_item_colors_use_theme_tokens_only ... ok
+test tests::spacing_get_returns_expected_values ... ok
+test tests::wcag_report_covers_key_pairs ... ok
+test tests::wcag_report_includes_selected_item_pair ... ok
+test tests::roadmap_062_pack_retune_reaches_aa ... ok
+test json::tests::round_trip_all_registered_theme_packs_preserves_exact_fields ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests acme_theme
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+exit=0
+## cargo test --locked -p acme-widgets --lib button_text_meets_aa -- --nocapture (TOKEN-LIMITED lines expected: none)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s
+     Running unittests src\lib.rs (target\debug\deps\acme_widgets-17de930e70b6e965.exe)
+
+running 1 test
+test tests::button_text_meets_aa_in_every_pack_mode_variant_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 179 filtered out; finished in 0.00s
+
+exit=0
+## cargo test --locked --workspace (summary)
+exit=0
+ok test-result lines: 52
+FAILED lines: 0

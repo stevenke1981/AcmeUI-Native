@@ -87,8 +87,29 @@ fn fab_examples_paint_live_shapes_elevation_clips_and_correct_action_indices() {
                     20
                 );
                 // Five button labels precede the ordinary status label.
-                for (text, button) in frame.text.iter().take(5).zip(buttons) {
-                    assert_eq!(text.color, rgba(theme.colors.primary_foreground));
+                for (i, (text, button)) in frame.text.iter().take(5).zip(buttons).enumerate() {
+                    // Label colour follows the painted background (first AA token).
+                    let bg = match i {
+                        1 => theme.colors.primary_hover,
+                        2 => theme.colors.primary_pressed,
+                        _ => theme.colors.primary,
+                    };
+                    let c = theme.colors;
+                    let cands = [c.primary_foreground, c.background, c.foreground];
+                    let want = cands
+                        .iter()
+                        .copied()
+                        .find(|f| theme.contrast(*f, bg) >= 4.5)
+                        .unwrap_or_else(|| {
+                            cands.iter().copied().fold(cands[0], |b, f| {
+                                if theme.contrast(f, bg) > theme.contrast(b, bg) {
+                                    f
+                                } else {
+                                    b
+                                }
+                            })
+                        });
+                    assert_eq!(text.color, rgba(want));
                     assert_eq!(text.clip, Some(intersect_clip(button.quad.rect, clip)));
                 }
             }

@@ -49,3 +49,6 @@ pub use sparkline::*;
 pub use timeline_chart::*;
 pub use treemap::*;
 pub use waterfall::*;
+
+#[cfg(test)]
+mod contrast_tests;

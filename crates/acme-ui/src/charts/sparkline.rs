@@ -100,7 +100,7 @@ impl<M: Clone + 'static> SparklineBuilder<M> {
 
                 painter.polyline(&points, 2.0, stroke);
                 if let Some(&last) = points.last() {
-                    painter.circle(last, 2.5, theme_color(theme.colors.accent));
+                    painter.circle(last, 2.5, theme_color(theme.colors.primary));
                 }
             })
             .build()

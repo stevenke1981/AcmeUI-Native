@@ -19,12 +19,12 @@ impl ThemePack for NordPack {
             surface: ThemeColor::rgb(229, 233, 240),    // nord5
             surface_foreground: ThemeColor::rgb(46, 52, 64),
 
-            primary: ThemeColor::rgb(94, 129, 172), // nord9 (frost)
+            primary: ThemeColor::rgb(77, 109, 149), // nord10 #5E81AC darkened to #4D6D95 for AA text (062)
             primary_foreground: ThemeColor::rgb(236, 239, 244),
             secondary: ThemeColor::rgb(216, 222, 233), // nord4
             secondary_foreground: ThemeColor::rgb(46, 52, 64),
             accent: ThemeColor::rgb(216, 222, 233),
-            accent_foreground: ThemeColor::rgb(94, 129, 172),
+            accent_foreground: ThemeColor::rgb(76, 86, 106), // nord3 (polar night), AA on accent (062)
             muted: ThemeColor::rgb(229, 233, 240),
             muted_foreground: ThemeColor::rgb(76, 86, 106), // nord3
 
@@ -32,10 +32,10 @@ impl ThemePack for NordPack {
             input: ThemeColor::rgb(216, 222, 233),
             ring: ThemeColor::rgb(94, 129, 172),
 
-            success: ThemeColor::rgb(163, 190, 140), // nord14
-            warning: ThemeColor::rgb(235, 203, 139), // nord13
-            danger: ThemeColor::rgb(191, 97, 106),   // nord11
-            info: ThemeColor::rgb(136, 192, 208),    // nord8
+            success: ThemeColor::rgb(107, 140, 79), // nord14 darkened to #6B8C4F for 3:1 graphic (062)
+            warning: ThemeColor::rgb(170, 123, 29), // nord13 darkened to #AA7B1D for 3:1 graphic (062)
+            danger: ThemeColor::rgb(178, 72, 82), // nord11 darkened to #B24852, AA nord6 ink (062 review)
+            info: ThemeColor::rgb(64, 141, 163),  // nord8 darkened to #408DA3 for 3:1 graphic (062)
 
             success_soft: ThemeColor::rgb(224, 233, 219),
             warning_soft: ThemeColor::rgb(246, 238, 214),
@@ -46,10 +46,10 @@ impl ThemePack for NordPack {
             surface_overlay: ThemeColor::rgb(236, 239, 244),
             surface_tooltip: ThemeColor::rgb(59, 66, 82),
 
-            primary_hover: ThemeColor::rgb(129, 161, 193), // nord10
+            primary_hover: ThemeColor::rgb(70, 98, 135), // darker under nord6 text (062 review)
             primary_pressed: ThemeColor::rgb(76, 86, 106),
-            danger_hover: ThemeColor::rgb(176, 85, 94),
-            danger_pressed: ThemeColor::rgb(155, 74, 83),
+            danger_hover: ThemeColor::rgb(160, 65, 74), // darker (062 review)
+            danger_pressed: ThemeColor::rgb(145, 59, 67), // darker again (062 review)
             ghost_hover: ThemeColor::rgb(229, 233, 240),
             ghost_pressed: ThemeColor::rgb(216, 222, 233),
 
@@ -75,7 +75,7 @@ impl ThemePack for NordPack {
             secondary: ThemeColor::rgb(67, 76, 94), // nord2
             secondary_foreground: ThemeColor::rgb(229, 233, 240),
             accent: ThemeColor::rgb(67, 76, 94),
-            accent_foreground: ThemeColor::rgb(136, 192, 208),
+            accent_foreground: ThemeColor::rgb(147, 198, 212), // nord8 lightened to #93C6D4 for AA on accent (062)
             muted: ThemeColor::rgb(59, 66, 82),
             muted_foreground: ThemeColor::rgb(216, 222, 233), // nord4
 
@@ -85,8 +85,8 @@ impl ThemePack for NordPack {
 
             success: ThemeColor::rgb(163, 190, 140), // nord14
             warning: ThemeColor::rgb(235, 203, 139), // nord13
-            danger: ThemeColor::rgb(191, 97, 106),   // nord11
-            info: ThemeColor::rgb(129, 161, 193),    // nord10
+            danger: ThemeColor::rgb(208, 139, 145), // nord11 lightened to #D08B91, AA dark ink (062 review)
+            info: ThemeColor::rgb(129, 161, 193),   // nord10
 
             success_soft: ThemeColor::rgb(40, 52, 45),
             warning_soft: ThemeColor::rgb(52, 47, 33),
@@ -97,10 +97,10 @@ impl ThemePack for NordPack {
             surface_overlay: ThemeColor::rgb(76, 86, 106),
             surface_tooltip: ThemeColor::rgb(76, 86, 106),
 
-            primary_hover: ThemeColor::rgb(143, 188, 187), // nord7
-            primary_pressed: ThemeColor::rgb(94, 129, 172),
-            danger_hover: ThemeColor::rgb(208, 120, 128),
-            danger_pressed: ThemeColor::rgb(191, 97, 106),
+            primary_hover: ThemeColor::rgb(162, 206, 218), // nord8 lightened, away from dark ink (062 review)
+            primary_pressed: ThemeColor::rgb(186, 219, 228), // lighter again (062 review)
+            danger_hover: ThemeColor::rgb(215, 156, 161),  // lighter (062 review)
+            danger_pressed: ThemeColor::rgb(221, 172, 176), // lighter again (062 review)
             ghost_hover: ThemeColor::rgb(67, 76, 94),
             ghost_pressed: ThemeColor::rgb(76, 86, 106),
 

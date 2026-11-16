@@ -113,7 +113,7 @@ impl<M: Clone + 'static> GaugeBuilder<M> {
                 painter.circle(
                     center,
                     (thickness * 0.55).max(3.0),
-                    theme_color(theme.colors.accent),
+                    theme_color(theme.colors.primary),
                 );
             })
             .build()

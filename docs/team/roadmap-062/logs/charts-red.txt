@@ -1,0 +1,147 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4m 22s
+     Running unittests src\lib.rs (target\debug\deps\acme_ui-81a09332650d76b5.exe)
+
+running 6 tests
+test charts::contrast_tests::bar_chart_marks_reach_3_to_1_on_every_pack ... ok
+test charts::contrast_tests::bar_chart_palette_is_distinct_including_wrap ... FAILED
+test charts::contrast_tests::sparkline_marks_reach_3_to_1_on_every_pack ... ok
+test charts::contrast_tests::gauge_marks_reach_3_to_1_on_every_pack ... ok
+test charts::contrast_tests::line_chart_marks_reach_3_to_1_on_every_pack ... ok
+test charts::contrast_tests::line_sparkline_gauge_marks_use_primary ... FAILED
+
+failures:
+
+---- charts::contrast_tests::bar_chart_palette_is_distinct_including_wrap stdout ----
+CLOSE-PAIR default-light: slots 1/4 distance 0.000
+CLOSE-PAIR windows10/Light: slots 1/4 distance 0.000
+CLOSE-PAIR windows10/Dark: slots 1/4 distance 0.000
+CLOSE-PAIR windows11/Light: slots 1/4 distance 0.000
+CLOSE-PAIR windows11/Dark: slots 1/4 distance 0.000
+CLOSE-PAIR material/Light: slots 1/4 distance 0.000
+CLOSE-PAIR material/Dark: slots 1/4 distance 0.000
+CLOSE-PAIR gruvbox/Light: slots 1/4 distance 0.000
+CLOSE-PAIR gruvbox/Dark: slots 1/4 distance 0.000
+CLOSE-PAIR high-contrast/Light: slots 1/4 distance 0.000
+
+thread 'charts::contrast_tests::bar_chart_palette_is_distinct_including_wrap' panicked at crates\acme-ui\src\charts\contrast_tests.rs:173:5:
+default-light: palette slots 0/1 distance 0.000 (contrast 1.00:1)
+default-light: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+default-light: palette slots 1/4 distance 0.000 (contrast 1.00:1)
+default-dark: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+apple/Light: palette slots 0/4 distance 0.088 (contrast 1.16:1)
+windows10/Light: palette slots 0/1 distance 0.000 (contrast 1.00:1)
+windows10/Light: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+windows10/Light: palette slots 1/4 distance 0.000 (contrast 1.00:1)
+windows10/Dark: palette slots 0/1 distance 0.000 (contrast 1.00:1)
+windows10/Dark: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+windows10/Dark: palette slots 1/4 distance 0.000 (contrast 1.00:1)
+windows11/Light: palette slots 0/1 distance 0.000 (contrast 1.00:1)
+windows11/Light: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+windows11/Light: palette slots 1/4 distance 0.000 (contrast 1.00:1)
+windows11/Dark: palette slots 0/1 distance 0.000 (contrast 1.00:1)
+windows11/Dark: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+windows11/Dark: palette slots 1/4 distance 0.000 (contrast 1.00:1)
+ubuntu/Dark: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+material/Light: palette slots 0/1 distance 0.000 (contrast 1.00:1)
+material/Light: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+material/Light: palette slots 1/4 distance 0.000 (contrast 1.00:1)
+material/Dark: palette slots 0/1 distance 0.000 (contrast 1.00:1)
+material/Dark: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+material/Dark: palette slots 1/4 distance 0.000 (contrast 1.00:1)
+nord/Dark: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+dracula/Light: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+dracula/Dark: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+solarized/Dark: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+gruvbox/Light: palette slots 0/1 distance 0.094 (contrast 1.24:1)
+gruvbox/Light: palette slots 0/4 distance 0.094 (contrast 1.24:1)
+gruvbox/Light: palette slots 1/4 distance 0.000 (contrast 1.00:1)
+gruvbox/Dark: palette slots 0/1 distance 0.049 (contrast 1.06:1)
+gruvbox/Dark: palette slots 0/4 distance 0.049 (contrast 1.06:1)
+gruvbox/Dark: palette slots 1/4 distance 0.000 (contrast 1.00:1)
+one-dark/Light: palette slots 0/4 distance 0.082 (contrast 1.14:1)
+one-dark/Dark: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+high-contrast/Light: palette slots 0/1 distance 0.000 (contrast 1.00:1)
+high-contrast/Light: palette slots 0/4 distance 0.000 (contrast 1.00:1)
+high-contrast/Light: palette slots 1/4 distance 0.000 (contrast 1.00:1)
+high-contrast/Dark: palette slots 0/1 distance 0.000 (contrast 1.00:1)
+high-contrast/Dark: palette slots 3/4 distance 0.078 (contrast 1.14:1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- charts::contrast_tests::line_sparkline_gauge_marks_use_primary stdout ----
+
+thread 'charts::contrast_tests::line_sparkline_gauge_marks_use_primary' panicked at crates\acme-ui\src\charts\contrast_tests.rs:222:5:
+line_chart on apple/Light: mark (0.00,0.48,1.00) is neither primary nor foreground
+line_chart on apple/Light: mark (0.00,0.48,1.00) is neither primary nor foreground
+line_chart on apple/Light: mark (0.00,0.48,1.00) is neither primary nor foreground
+line_chart on apple/Light: mark (0.00,0.48,1.00) is neither primary nor foreground
+line_chart on apple/Light: mark (0.00,0.48,1.00) is neither primary nor foreground
+sparkline on apple/Light: mark (0.00,0.48,1.00) is neither primary nor foreground
+gauge on apple/Light: mark (0.00,0.48,1.00) is neither primary nor foreground
+line_chart on apple/Dark: mark (0.04,0.52,1.00) is neither primary nor foreground
+line_chart on apple/Dark: mark (0.04,0.52,1.00) is neither primary nor foreground
+line_chart on apple/Dark: mark (0.04,0.52,1.00) is neither primary nor foreground
+line_chart on apple/Dark: mark (0.04,0.52,1.00) is neither primary nor foreground
+line_chart on apple/Dark: mark (0.04,0.52,1.00) is neither primary nor foreground
+sparkline on apple/Dark: mark (0.04,0.52,1.00) is neither primary nor foreground
+gauge on apple/Dark: mark (0.04,0.52,1.00) is neither primary nor foreground
+line_chart on ubuntu/Light: mark (0.91,0.33,0.13) is neither primary nor foreground
+line_chart on ubuntu/Light: mark (0.91,0.33,0.13) is neither primary nor foreground
+line_chart on ubuntu/Light: mark (0.91,0.33,0.13) is neither primary nor foreground
+line_chart on ubuntu/Light: mark (0.91,0.33,0.13) is neither primary nor foreground
+line_chart on ubuntu/Light: mark (0.91,0.33,0.13) is neither primary nor foreground
+sparkline on ubuntu/Light: mark (0.91,0.33,0.13) is neither primary nor foreground
+gauge on ubuntu/Light: mark (0.91,0.33,0.13) is neither primary nor foreground
+line_chart on nord/Light: mark (0.37,0.51,0.67) is neither primary nor foreground
+line_chart on nord/Light: mark (0.37,0.51,0.67) is neither primary nor foreground
+line_chart on nord/Light: mark (0.37,0.51,0.67) is neither primary nor foreground
+line_chart on nord/Light: mark (0.37,0.51,0.67) is neither primary nor foreground
+line_chart on nord/Light: mark (0.37,0.51,0.67) is neither primary nor foreground
+sparkline on nord/Light: mark (0.37,0.51,0.67) is neither primary nor foreground
+gauge on nord/Light: mark (0.37,0.51,0.67) is neither primary nor foreground
+line_chart on solarized/Light: mark (0.15,0.55,0.82) is neither primary nor foreground
+line_chart on solarized/Light: mark (0.15,0.55,0.82) is neither primary nor foreground
+line_chart on solarized/Light: mark (0.15,0.55,0.82) is neither primary nor foreground
+line_chart on solarized/Light: mark (0.15,0.55,0.82) is neither primary nor foreground
+line_chart on solarized/Light: mark (0.15,0.55,0.82) is neither primary nor foreground
+sparkline on solarized/Light: mark (0.15,0.55,0.82) is neither primary nor foreground
+gauge on solarized/Light: mark (0.15,0.55,0.82) is neither primary nor foreground
+line_chart on gruvbox/Light: mark (0.27,0.52,0.53) is neither primary nor foreground
+line_chart on gruvbox/Light: mark (0.27,0.52,0.53) is neither primary nor foreground
+line_chart on gruvbox/Light: mark (0.27,0.52,0.53) is neither primary nor foreground
+line_chart on gruvbox/Light: mark (0.27,0.52,0.53) is neither primary nor foreground
+line_chart on gruvbox/Light: mark (0.27,0.52,0.53) is neither primary nor foreground
+sparkline on gruvbox/Light: mark (0.27,0.52,0.53) is neither primary nor foreground
+gauge on gruvbox/Light: mark (0.27,0.52,0.53) is neither primary nor foreground
+line_chart on gruvbox/Dark: mark (0.35,0.59,0.60) is neither primary nor foreground
+line_chart on gruvbox/Dark: mark (0.35,0.59,0.60) is neither primary nor foreground
+line_chart on gruvbox/Dark: mark (0.35,0.59,0.60) is neither primary nor foreground
+line_chart on gruvbox/Dark: mark (0.35,0.59,0.60) is neither primary nor foreground
+line_chart on gruvbox/Dark: mark (0.35,0.59,0.60) is neither primary nor foreground
+sparkline on gruvbox/Dark: mark (0.35,0.59,0.60) is neither primary nor foreground
+gauge on gruvbox/Dark: mark (0.35,0.59,0.60) is neither primary nor foreground
+line_chart on one-dark/Light: mark (0.25,0.47,0.95) is neither primary nor foreground
+line_chart on one-dark/Light: mark (0.25,0.47,0.95) is neither primary nor foreground
+line_chart on one-dark/Light: mark (0.25,0.47,0.95) is neither primary nor foreground
+line_chart on one-dark/Light: mark (0.25,0.47,0.95) is neither primary nor foreground
+line_chart on one-dark/Light: mark (0.25,0.47,0.95) is neither primary nor foreground
+sparkline on one-dark/Light: mark (0.25,0.47,0.95) is neither primary nor foreground
+gauge on one-dark/Light: mark (0.25,0.47,0.95) is neither primary nor foreground
+line_chart on high-contrast/Dark: mark (1.00,1.00,0.00) is neither primary nor foreground
+line_chart on high-contrast/Dark: mark (1.00,1.00,0.00) is neither primary nor foreground
+line_chart on high-contrast/Dark: mark (1.00,1.00,0.00) is neither primary nor foreground
+line_chart on high-contrast/Dark: mark (1.00,1.00,0.00) is neither primary nor foreground
+line_chart on high-contrast/Dark: mark (1.00,1.00,0.00) is neither primary nor foreground
+sparkline on high-contrast/Dark: mark (1.00,1.00,0.00) is neither primary nor foreground
+gauge on high-contrast/Dark: mark (1.00,1.00,0.00) is neither primary nor foreground
+
+
+failures:
+    charts::contrast_tests::bar_chart_palette_is_distinct_including_wrap
+    charts::contrast_tests::line_sparkline_gauge_marks_use_primary
+
+test result: FAILED. 4 passed; 2 failed; 0 ignored; 0 measured; 923 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p acme-ui --lib`

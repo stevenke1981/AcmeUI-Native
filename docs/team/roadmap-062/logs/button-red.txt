@@ -1,0 +1,99 @@
+   Compiling acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 29.93s
+     Running unittests src\lib.rs (target\debug\deps\acme_widgets-17de930e70b6e965.exe)
+
+running 14 tests
+test tests::button_new_fields_default ... ok
+test tests::disabled_button_does_not_activate ... ok
+test tests::button_layout_measures_label_and_reserves_padding ... ok
+test tests::button_size_fluent_methods ... ok
+test view_bridge::tests::button_has_explicit_key ... ok
+test view_bridge::tests::disabled_button_reflected ... ok
+test tests::button_uses_theme_tokens ... ok
+test tests::button_disabled_uses_disabled_bg ... ok
+test painter_bridge::tests::paint_widget_tree_canvases_skips_button_and_card_chrome ... ok
+test tests::full_width_button_fills_the_parent_and_allows_an_explicit_override ... ok
+test tests::button_resolve_style_has_no_hardcoded_colors ... FAILED
+test hit_bridge::tests::disabled_button_and_disabled_canvas_block_activation_and_show_not_allowed ... ok
+test hit_bridge::tests::open_modal_dialog_allows_clicking_confirm_button_and_blocks_underlay ... ok
+test tests::button_text_meets_aa_in_every_pack_mode_variant_state ... FAILED
+
+failures:
+
+---- tests::button_resolve_style_has_no_hardcoded_colors stdout ----
+
+thread 'tests::button_resolve_style_has_no_hardcoded_colors' panicked at crates\acme-widgets\src\lib.rs:1106:9:
+assertion `left == right` failed: only the transparent Ghost fill may be literal
+  left: 2
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::button_text_meets_aa_in_every_pack_mode_variant_state stdout ----
+
+thread 'tests::button_text_meets_aa_in_every_pack_mode_variant_state' panicked at crates\acme-widgets\src\lib.rs:1097:9:
+low contrast:
+default/Dark/Primary/pressed: 4.20
+default/Dark/Danger/rest: 2.77
+default/Dark/Danger/hovered: 2.44
+default/Dark/Danger/pressed: 3.62
+apple/Light/Danger/rest: 3.55
+apple/Dark/Primary/hovered: 2.83
+apple/Dark/Danger/rest: 3.41
+apple/Dark/Danger/hovered: 2.82
+windows10/Dark/Danger/rest: 2.03
+windows10/Dark/Danger/hovered: 1.69
+windows11/Dark/Primary/pressed: 3.70
+windows11/Dark/Danger/rest: 2.03
+windows11/Dark/Danger/hovered: 1.69
+ubuntu/Dark/Primary/pressed: 4.10
+ubuntu/Dark/Danger/rest: 2.91
+ubuntu/Dark/Danger/hovered: 2.41
+material/Dark/Primary/pressed: 2.04
+material/Dark/Danger/rest: 1.71
+material/Dark/Danger/hovered: 1.50
+nord/Light/Primary/hovered: 2.34
+nord/Light/Danger/rest: 4.09
+nord/Dark/Primary/pressed: 3.10
+nord/Dark/Danger/rest: 3.22
+nord/Dark/Danger/hovered: 3.14
+nord/Dark/Danger/pressed: 4.09
+dracula/Light/Primary/pressed: 4.07
+dracula/Light/Danger/rest: 3.32
+dracula/Light/Danger/hovered: 2.72
+dracula/Light/Danger/pressed: 4.42
+dracula/Dark/Primary/pressed: 3.77
+dracula/Dark/Danger/rest: 2.94
+dracula/Dark/Danger/hovered: 2.72
+dracula/Dark/Danger/pressed: 4.42
+solarized/Light/Primary/hovered: 2.82
+solarized/Light/Secondary/rest: 1.13
+solarized/Light/Secondary/pressed: 4.06
+solarized/Light/Danger/hovered: 3.78
+solarized/Light/Ghost/pressed: 4.06
+solarized/Dark/Primary/pressed: 3.12
+solarized/Dark/Secondary/pressed: 4.46
+solarized/Dark/Danger/rest: 4.19
+solarized/Dark/Danger/hovered: 3.78
+solarized/Dark/Ghost/pressed: 4.46
+gruvbox/Light/Primary/hovered: 2.96
+gruvbox/Dark/Primary/hovered: 4.39
+gruvbox/Dark/Primary/pressed: 2.39
+gruvbox/Dark/Danger/rest: 3.44
+one-dark/Light/Primary/hovered: 3.23
+one-dark/Light/Danger/rest: 3.67
+one-dark/Light/Danger/hovered: 3.04
+one-dark/Dark/Danger/rest: 3.20
+one-dark/Dark/Danger/hovered: 2.63
+one-dark/Dark/Danger/pressed: 4.39
+high-contrast/Dark/Danger/rest: 2.83
+high-contrast/Dark/Danger/hovered: 2.25
+high-contrast/Dark/Danger/pressed: 3.86
+
+
+failures:
+    tests::button_resolve_style_has_no_hardcoded_colors
+    tests::button_text_meets_aa_in_every_pack_mode_variant_state
+
+test result: FAILED. 12 passed; 2 failed; 0 ignored; 0 measured; 166 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p acme-widgets --lib`

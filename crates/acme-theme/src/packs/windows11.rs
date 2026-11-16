@@ -103,7 +103,7 @@ impl ThemePack for Windows11Pack {
             surface_tooltip: ThemeColor::rgb(61, 61, 61),
 
             primary_hover: ThemeColor::rgb(102, 205, 255),
-            primary_pressed: ThemeColor::rgb(0, 103, 192),
+            primary_pressed: ThemeColor::rgb(0, 120, 212), // Windows blue #0078D4, AA black text (062 review)
             danger_hover: ThemeColor::rgb(255, 179, 187),
             danger_pressed: ThemeColor::rgb(196, 43, 28),
             ghost_hover: ThemeColor::rgb(53, 53, 53),

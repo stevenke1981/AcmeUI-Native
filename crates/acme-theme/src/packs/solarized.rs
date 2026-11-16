@@ -13,28 +13,28 @@ impl ThemePack for SolarizedPack {
 
     fn light(&self) -> Theme {
         let colors = ColorTokens {
-            background: ThemeColor::rgb(253, 246, 227), // base3
-            foreground: ThemeColor::rgb(101, 123, 131), // base00
-            surface: ThemeColor::rgb(238, 232, 213),    // base2
-            surface_foreground: ThemeColor::rgb(101, 123, 131),
+            background: ThemeColor::rgb(253, 246, 227),       // base3
+            foreground: ThemeColor::rgb(80, 97, 104), // base00 darkened to #506168: AA on base2 and ghost_pressed, 1.1:1 above muted (062 review)
+            surface: ThemeColor::rgb(238, 232, 213),  // base2
+            surface_foreground: ThemeColor::rgb(80, 97, 104), // = foreground (062 review)
 
-            primary: ThemeColor::rgb(38, 139, 210), // blue
+            primary: ThemeColor::rgb(32, 116, 176), // blue #268BD2 darkened to #2074B0 for AA base3 text (062)
             primary_foreground: ThemeColor::rgb(253, 246, 227),
-            secondary: ThemeColor::rgb(42, 161, 152), // cyan
+            secondary: ThemeColor::rgb(32, 124, 117), // cyan #2AA198 darkened to #207C75 for AA base3 text (062)
             secondary_foreground: ThemeColor::rgb(253, 246, 227),
             accent: ThemeColor::rgb(238, 235, 245),
             accent_foreground: ThemeColor::rgb(95, 99, 172), // violet, darkened for AA on accent (060)
             muted: ThemeColor::rgb(238, 232, 213),
-            muted_foreground: ThemeColor::rgb(147, 161, 161), // base1
+            muted_foreground: ThemeColor::rgb(92, 106, 106), // base1 darkened to #5C6A6A for AA on base2 (062)
 
             border: ThemeColor::rgb(238, 232, 213),
             input: ThemeColor::rgb(238, 232, 213),
             ring: ThemeColor::rgb(38, 139, 210),
 
-            success: ThemeColor::rgb(133, 153, 0), // green
-            warning: ThemeColor::rgb(181, 137, 0), // yellow
-            danger: ThemeColor::rgb(220, 50, 47),  // red
-            info: ThemeColor::rgb(42, 161, 152),   // cyan
+            success: ThemeColor::rgb(121, 139, 0), // green darkened to #798B00 for 3:1 graphic (062)
+            warning: ThemeColor::rgb(164, 124, 0), // yellow darkened to #A47C00 for 3:1 graphic (062)
+            danger: ThemeColor::rgb(215, 39, 36), // red darkened to #D72724, AA base3 ink (062 review)
+            info: ThemeColor::rgb(38, 145, 137),  // cyan darkened to #269189 for 3:1 graphic (062)
 
             success_soft: ThemeColor::rgb(238, 243, 208),
             warning_soft: ThemeColor::rgb(245, 238, 205),
@@ -45,10 +45,10 @@ impl ThemePack for SolarizedPack {
             surface_overlay: ThemeColor::rgb(253, 246, 227),
             surface_tooltip: ThemeColor::rgb(7, 54, 66), // base02
 
-            primary_hover: ThemeColor::rgb(60, 155, 220),
-            primary_pressed: ThemeColor::rgb(28, 110, 170),
-            danger_hover: ThemeColor::rgb(228, 80, 77),
-            danger_pressed: ThemeColor::rgb(190, 40, 37),
+            primary_hover: ThemeColor::rgb(29, 105, 159), // darker under base3 text (062 review)
+            primary_pressed: ThemeColor::rgb(26, 95, 144), // darker again (062 review)
+            danger_hover: ThemeColor::rgb(190, 40, 37), // darker: old pressed #BE2825 (062 review)
+            danger_pressed: ThemeColor::rgb(173, 36, 34), // darker again (062 review)
             ghost_hover: ThemeColor::rgb(238, 232, 213),
             ghost_pressed: ThemeColor::rgb(225, 218, 198),
 
@@ -64,19 +64,19 @@ impl ThemePack for SolarizedPack {
 
     fn dark(&self) -> Theme {
         let colors = ColorTokens {
-            background: ThemeColor::rgb(0, 43, 54),     // base03
-            foreground: ThemeColor::rgb(131, 148, 150), // base0
+            background: ThemeColor::rgb(0, 43, 54),             // base03
+            foreground: ThemeColor::rgb(157, 170, 170), // base1 lightened to #9DAAAA: 1.1:1 above muted (062 review)
             surface: ThemeColor::rgb(7, 54, 66),        // base02
-            surface_foreground: ThemeColor::rgb(131, 148, 150),
+            surface_foreground: ThemeColor::rgb(157, 170, 170), // = foreground (062 review)
 
             primary: ThemeColor::rgb(38, 139, 210), // blue
-            primary_foreground: ThemeColor::rgb(253, 246, 227),
+            primary_foreground: ThemeColor::rgb(0, 32, 41), // base03 darkened to #002029, AA on blue (062)
             secondary: ThemeColor::rgb(7, 54, 66),
-            secondary_foreground: ThemeColor::rgb(131, 148, 150),
+            secondary_foreground: ThemeColor::rgb(147, 161, 161), // base1 (062)
             accent: ThemeColor::rgb(7, 54, 66),
-            accent_foreground: ThemeColor::rgb(42, 161, 152), // cyan
+            accent_foreground: ThemeColor::rgb(45, 171, 161), // cyan lightened to #2DABA1 for AA (062)
             muted: ThemeColor::rgb(7, 54, 66),
-            muted_foreground: ThemeColor::rgb(88, 110, 117), // base01
+            muted_foreground: ThemeColor::rgb(147, 161, 161), // base1, AA on base02 (062)
 
             border: ThemeColor::rgb(7, 54, 66),
             input: ThemeColor::rgb(88, 110, 117),
@@ -84,8 +84,8 @@ impl ThemePack for SolarizedPack {
 
             success: ThemeColor::rgb(133, 153, 0), // green
             warning: ThemeColor::rgb(181, 137, 0), // yellow
-            danger: ThemeColor::rgb(220, 50, 47),  // red
-            info: ThemeColor::rgb(42, 161, 152),   // cyan
+            danger: ThemeColor::rgb(226, 87, 84), // red lightened to #E25754, AA dark ink (062 review)
+            info: ThemeColor::rgb(42, 161, 152),  // cyan
 
             success_soft: ThemeColor::rgb(10, 45, 30),
             warning_soft: ThemeColor::rgb(45, 40, 15),
@@ -97,9 +97,9 @@ impl ThemePack for SolarizedPack {
             surface_tooltip: ThemeColor::rgb(88, 110, 117),
 
             primary_hover: ThemeColor::rgb(60, 155, 220),
-            primary_pressed: ThemeColor::rgb(28, 110, 170),
-            danger_hover: ThemeColor::rgb(228, 80, 77),
-            danger_pressed: ThemeColor::rgb(190, 40, 37),
+            primary_pressed: ThemeColor::rgb(82, 167, 224), // lighter than hover, away from dark ink (062 review)
+            danger_hover: ThemeColor::rgb(230, 108, 105),   // lighter (062 review)
+            danger_pressed: ThemeColor::rgb(233, 126, 123), // lighter again (062 review)
             ghost_hover: ThemeColor::rgb(7, 54, 66),
             ghost_pressed: ThemeColor::rgb(15, 60, 72),
 
