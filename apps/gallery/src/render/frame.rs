@@ -98,17 +98,12 @@ pub fn render_sidebar(ctx: &mut RenderCtx) {
             pressed: ctx.pressed == Some(btn_idx),
             focused: ctx.focused == btn_idx,
         };
-        let bg = if is_selected {
-            colors.accent
+        let (bg, fg) = if is_selected {
+            ctx.theme.selected_item_colors()
         } else if st.hovered {
-            colors.ghost_hover
+            (colors.ghost_hover, colors.foreground)
         } else {
-            colors.surface
-        };
-        let fg = if is_selected {
-            colors.primary_foreground
-        } else {
-            colors.foreground
+            (colors.surface, colors.foreground)
         };
         painter.rect(
             rect_from_array([r.x, r.y, r.width, r.height]),
@@ -127,12 +122,33 @@ pub fn render_sidebar(ctx: &mut RenderCtx) {
                 },
             ),
         );
+        if is_selected {
+            // Marker lives in a fixed left gutter so the label origin is
+            // identical whether or not the category is selected.
+            add_text(
+                ctx.fonts,
+                ctx.atlas,
+                &mut painter,
+                CATEGORY_MARKER,
+                (
+                    [r.x + CATEGORY_MARKER_GUTTER, r.y + 9.0],
+                    ctx.theme.typography.label,
+                ),
+                fg,
+                ctx.scale,
+                None,
+                ctx.theme.typography.line_height,
+            );
+        }
         add_text(
             ctx.fonts,
             ctx.atlas,
             &mut painter,
             CATEGORIES[i].name,
-            ([r.x + 12.0, r.y + 9.0], ctx.theme.typography.label),
+            (
+                [r.x + CATEGORY_LABEL_INSET, r.y + 9.0],
+                ctx.theme.typography.label,
+            ),
             fg,
             ctx.scale,
             None,
@@ -141,6 +157,13 @@ pub fn render_sidebar(ctx: &mut RenderCtx) {
     }
     let _ = painter.finish();
 }
+
+/// Marker painted for the selected category so selection is not conveyed by
+/// colour alone (WCAG 1.4.1). It sits in a fixed gutter left of the label; the
+/// label origin is the same selected or not. Hit rects come from layout.
+const CATEGORY_MARKER: &str = "\u{25B8}";
+const CATEGORY_MARKER_GUTTER: f32 = 8.0;
+const CATEGORY_LABEL_INSET: f32 = 24.0;
 
 /// Render toolbar: background → 3 toggle buttons.
 pub fn render_toolbar(ctx: &mut RenderCtx) {

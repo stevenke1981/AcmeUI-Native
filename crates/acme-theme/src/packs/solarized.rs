@@ -23,7 +23,7 @@ impl ThemePack for SolarizedPack {
             secondary: ThemeColor::rgb(42, 161, 152), // cyan
             secondary_foreground: ThemeColor::rgb(253, 246, 227),
             accent: ThemeColor::rgb(238, 235, 245),
-            accent_foreground: ThemeColor::rgb(108, 113, 196), // violet
+            accent_foreground: ThemeColor::rgb(95, 99, 172), // violet, darkened for AA on accent (060)
             muted: ThemeColor::rgb(238, 232, 213),
             muted_foreground: ThemeColor::rgb(147, 161, 161), // base1
 

@@ -112,3 +112,21 @@ fn scrolled_gallery_toolbar_pointer_slots_remain_above_page_actions() {
         assert_eq!(g.button_info[index].message, message);
     }
 }
+
+/// Tests must not share theme state through `acme-gallery-theme.conf`: a
+/// persisted pack (e.g. from a theme-cycling test running in parallel) made
+/// unrelated tests run against another pack (CI flake on PR #77).
+#[test]
+fn gallery_tests_ignore_persisted_theme_preference() {
+    let path = std::path::Path::new(super::THEME_PREF_FILE);
+    let existed = path.exists();
+    if !existed {
+        std::fs::write(path, "pack=dracula\ndark=true\n").expect("write pref");
+    }
+    let g = super::Gallery::new();
+    if !existed {
+        let _ = std::fs::remove_file(path);
+    }
+    assert_eq!(g.theme_pack, "default");
+    assert!(!g.dark);
+}

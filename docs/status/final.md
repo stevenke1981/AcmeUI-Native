@@ -1,5 +1,10 @@
 # Delivery Status
 
+## 2026-11-17 — ROADMAP 060 Readable selected category
+
+- The selected Gallery category was painted at 1.09–1.15:1. A new `Theme::selected_item_colors()` picks a readable token pair, three tokens were retuned, and both Gallery shells now reach ≥ 4.5:1 in every pack and mode with a `▸` marker. Workspace tests 2150 passed / 0 failed; clippy and fmt PASS; [report](../team/roadmap-060/REPORT.md).
+- Execution: Claude Code agent team (Fable 5.2 adviser/reviewer; Opus 5.5 theme; Sonnet 5.5 Gallery; Opus 5.5 Lead gates and GUI). Screen reader NOT_RUN.
+
 ## 2026-11-16 — ROADMAP 059 Layout keyboard hosts polish
 
 - Remaining NavigationMenu/Sidebar host P2s fixed, plus a keyboard-owner frame. Real-window verification caught the frame painting at about 1.1:1 contrast; `Interactive` cards now draw a 2px `ring` border in both painters. Workspace tests 2136 passed / 0 failed; clippy and fmt PASS; [report](../team/roadmap-059/REPORT.md).

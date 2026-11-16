@@ -399,14 +399,43 @@ impl Theme {
         contrast_ratio(fg, bg)
     }
 
+    /// Token pair for a selected item in a list or nav, as `(bg, fg)`.
+    ///
+    /// The background is always [`ColorTokens::accent`]. The foreground is the
+    /// first of `accent_foreground`, `foreground`, `primary_foreground` whose
+    /// contrast against the background is at least 4.5:1 (WCAG AA for normal
+    /// text). If no candidate qualifies, the candidate with the highest ratio
+    /// is returned. Both colors are always existing theme tokens.
+    pub fn selected_item_colors(&self) -> (ThemeColor, ThemeColor) {
+        let c = &self.colors;
+        let bg = c.accent;
+        let candidates = [c.accent_foreground, c.foreground, c.primary_foreground];
+        let fg = candidates
+            .iter()
+            .copied()
+            .find(|fg| contrast_ratio(*fg, bg) >= 4.5)
+            .unwrap_or_else(|| {
+                candidates.iter().copied().fold(candidates[0], |best, fg| {
+                    if contrast_ratio(fg, bg) > contrast_ratio(best, bg) {
+                        fg
+                    } else {
+                        best
+                    }
+                })
+            });
+        (bg, fg)
+    }
+
     /// Audit the key foreground/background pairs for WCAG conformance.
     ///
     /// Returns a list of `(pair_name, ratio, level)` for the most important
-    /// text-on-surface combinations. Use this to surface accessibility issues
-    /// in a theme pack or a Gallery preview.
+    /// text-on-surface combinations, including the selected-item pair from
+    /// [`Theme::selected_item_colors`]. Use this to surface accessibility
+    /// issues in a theme pack or a Gallery preview.
     pub fn wcag_report(&self) -> Vec<(&'static str, f32, ContrastLevel)> {
         let c = &self.colors;
-        let pairs: [(&str, ThemeColor, ThemeColor); 6] = [
+        let (selected_bg, selected_fg) = self.selected_item_colors();
+        let pairs: [(&str, ThemeColor, ThemeColor); 7] = [
             ("foreground/background", c.foreground, c.background),
             ("surface_fg/surface", c.surface_foreground, c.surface),
             ("primary_fg/primary", c.primary_foreground, c.primary),
@@ -417,6 +446,7 @@ impl Theme {
             ),
             ("muted_fg/muted", c.muted_foreground, c.muted),
             ("accent_fg/accent", c.accent_foreground, c.accent),
+            ("selected_fg/selected_bg", selected_fg, selected_bg),
         ];
         pairs
             .into_iter()
@@ -910,11 +940,246 @@ mod tests {
     #[test]
     fn wcag_report_covers_key_pairs() {
         let report = Theme::light().wcag_report();
-        assert_eq!(report.len(), 6);
+        // 7 pairs: the six token pairs plus the ROADMAP 060 selected-item pair.
+        assert_eq!(report.len(), 7);
         assert!(
             report
                 .iter()
                 .any(|(name, _, _)| *name == "foreground/background")
+        );
+    }
+
+    /// Every built-in theme plus every registered pack, in both modes.
+    fn all_pack_themes() -> Vec<(String, Theme)> {
+        let mut themes = vec![
+            ("default/light".to_string(), Theme::light()),
+            ("default/dark".to_string(), Theme::dark()),
+        ];
+        for name in packs::available_themes() {
+            for mode in [ThemeMode::Light, ThemeMode::Dark] {
+                let theme = packs::theme_by_name(name, mode).expect("registered pack resolves");
+                themes.push((format!("{name}/{mode:?}"), theme));
+            }
+        }
+        themes
+    }
+
+    #[test]
+    fn selected_item_colors_meet_aa_in_every_pack_and_mode() {
+        let themes = all_pack_themes();
+        assert_eq!(themes.len(), 24, "2 built-ins + 11 packs x 2 modes");
+        for (label, theme) in themes {
+            let (bg, fg) = theme.selected_item_colors();
+            let ratio = contrast_ratio(fg, bg);
+            assert!(
+                ratio >= 4.5,
+                "{label}: selected item fg/bg ratio {ratio:.2} must be >= 4.5"
+            );
+        }
+    }
+
+    #[test]
+    fn selected_item_colors_use_theme_tokens_only() {
+        for (label, theme) in all_pack_themes() {
+            let c = &theme.colors;
+            let (bg, fg) = theme.selected_item_colors();
+            assert_eq!(bg, c.accent, "{label}: selected bg must be accent");
+            assert!(
+                [c.accent_foreground, c.foreground, c.primary_foreground].contains(&fg),
+                "{label}: selected fg must be one of the D1 candidate tokens"
+            );
+        }
+    }
+
+    #[test]
+    fn selected_item_colors_prefer_first_qualifying_candidate() {
+        // Default light: accent_foreground on accent already qualifies.
+        let t = Theme::light();
+        assert_eq!(
+            t.selected_item_colors(),
+            (t.colors.accent, t.colors.accent_foreground)
+        );
+
+        // accent_foreground unreadable -> falls through to foreground.
+        let mut t = Theme::light();
+        t.colors.accent_foreground = t.colors.accent;
+        assert_eq!(t.selected_item_colors().1, t.colors.foreground);
+
+        // Nothing qualifies -> highest-ratio candidate.
+        let mut t = Theme::light();
+        t.colors.accent = ThemeColor::rgb(128, 128, 128);
+        t.colors.accent_foreground = ThemeColor::rgb(120, 120, 120);
+        t.colors.foreground = ThemeColor::rgb(100, 100, 100);
+        t.colors.primary_foreground = ThemeColor::rgb(200, 200, 200);
+        assert_eq!(t.selected_item_colors().1, ThemeColor::rgb(200, 200, 200));
+    }
+
+    #[test]
+    fn wcag_report_includes_selected_item_pair() {
+        for (label, theme) in all_pack_themes() {
+            let (bg, fg) = theme.selected_item_colors();
+            let report = theme.wcag_report();
+            let row = report
+                .iter()
+                .find(|(name, _, _)| *name == "selected_fg/selected_bg")
+                .unwrap_or_else(|| panic!("{label}: selected_fg/selected_bg row missing"));
+            let expected = contrast_ratio(fg, bg);
+            assert!((row.1 - expected).abs() < f32::EPSILON, "{label}");
+            assert_eq!(row.2, ContrastLevel::from_ratio(expected));
+        }
+    }
+
+    /// ROADMAP 060 retune record: D1 selected-item ratio before -> after.
+    /// Only solarized light `accent_foreground`, gruvbox light `accent`, and
+    /// gruvbox dark `accent` + `accent_foreground` changed; every other pack's
+    /// D1 ratio is untouched.
+    ///
+    /// | pack/mode       | token(s)                  | before            | after             | D1 before | D1 after |
+    /// |-----------------|---------------------------|-------------------|-------------------|-----------|----------|
+    /// | solarized/Light | accent_foreground         | (108,113,196)     | (95,99,172)       | 3.78      | >= 4.6   |
+    /// | gruvbox/Light   | accent                    | (214,93,14)       | (175,58,3)        | 3.41      | >= 5.3   |
+    /// | gruvbox/Dark    | accent, accent_foreground | (214,93,14), (251,241,199) | (254,128,25), (40,40,40) | 3.41 | >= 5.8 |
+    #[test]
+    fn roadmap_060_pack_retune_reaches_aa() {
+        type Rgb = (u8, u8, u8);
+        // (token, before rgb, after rgb)
+        type TokenChange = (&'static str, Rgb, Rgb);
+        // (pack, mode, token changes, before D1 ratio, min after D1 ratio)
+        type Retune = (&'static str, ThemeMode, &'static [TokenChange], f32, f32);
+        let retunes: [Retune; 3] = [
+            (
+                "solarized",
+                ThemeMode::Light,
+                &[("accent_foreground", (108, 113, 196), (95, 99, 172))],
+                3.78,
+                4.6,
+            ),
+            (
+                "gruvbox",
+                ThemeMode::Light,
+                &[("accent", (214, 93, 14), (175, 58, 3))],
+                3.41,
+                5.3,
+            ),
+            (
+                "gruvbox",
+                ThemeMode::Dark,
+                &[
+                    ("accent", (214, 93, 14), (254, 128, 25)),
+                    ("accent_foreground", (251, 241, 199), (40, 40, 40)),
+                ],
+                3.41,
+                5.8,
+            ),
+        ];
+        fn token_mut<'a>(c: &'a mut ColorTokens, token: &str) -> &'a mut ThemeColor {
+            match token {
+                "accent" => &mut c.accent,
+                "accent_foreground" => &mut c.accent_foreground,
+                other => panic!("unexpected token {other}"),
+            }
+        }
+        for (name, mode, changes, before_ratio, min_after) in retunes {
+            let theme = packs::theme_by_name(name, mode).expect("pack resolves");
+
+            // Reconstruct the pre-060 pair and confirm it failed.
+            let mut old = theme.clone();
+            for (token, before, after) in changes {
+                let mut current = theme.colors;
+                assert_eq!(
+                    *token_mut(&mut current, token),
+                    ThemeColor::rgb(after.0, after.1, after.2),
+                    "{name}/{mode:?} {token} after value"
+                );
+                *token_mut(&mut old.colors, token) = ThemeColor::rgb(before.0, before.1, before.2);
+            }
+            let (ob, of) = old.selected_item_colors();
+            let old_ratio = contrast_ratio(of, ob);
+            assert!(
+                (old_ratio - before_ratio).abs() < 0.01 && old_ratio < 4.5,
+                "{name}/{mode:?} before ratio {old_ratio:.2}"
+            );
+
+            let (b, f) = theme.selected_item_colors();
+            let new_ratio = contrast_ratio(f, b);
+            assert!(
+                new_ratio >= min_after && new_ratio >= 4.5,
+                "{name}/{mode:?} after ratio {new_ratio:.2}"
+            );
+        }
+    }
+
+    /// Review P1 (060, option B): gruvbox accent graphics (chart dots, gauge
+    /// hub, selected fill) must meet WCAG 1.4.11 non-text 3:1 against the
+    /// background and surface, while the selected text pair stays AA.
+    #[test]
+    fn gruvbox_accent_meets_non_text_contrast() {
+        let dark = packs::theme_by_name("gruvbox", ThemeMode::Dark).expect("gruvbox dark");
+        let c = &dark.colors;
+        let (bg, fg) = dark.selected_item_colors();
+        let text = contrast_ratio(fg, bg);
+        let vs_bg = contrast_ratio(c.accent, c.background);
+        let vs_surface = contrast_ratio(c.accent, c.surface);
+        assert!(text >= 4.5, "gruvbox/Dark selected text {text:.2}");
+        assert!(vs_bg >= 3.0, "gruvbox/Dark accent vs background {vs_bg:.2}");
+        assert!(
+            vs_surface >= 3.0,
+            "gruvbox/Dark accent vs surface {vs_surface:.2}"
+        );
+
+        let light = packs::theme_by_name("gruvbox", ThemeMode::Light).expect("gruvbox light");
+        let c = &light.colors;
+        let vs_bg = contrast_ratio(c.accent, c.background);
+        assert!(
+            vs_bg >= 3.0,
+            "gruvbox/Light accent vs background {vs_bg:.2}"
+        );
+    }
+
+    /// General accent-vs-background 3:1 guard across every pack and mode.
+    /// Only gruvbox is enforced here; packs listed in `KNOWN_BELOW_3` are
+    /// deferred to ROADMAP 062 and must not be retuned in 060. A pack that
+    /// newly passes or newly fails also trips this test so the list stays true.
+    #[test]
+    fn accent_vs_background_non_text_guard() {
+        const ENFORCED: &[&str] = &["gruvbox"];
+        // Measured on 060 (accent is a soft tint in most packs).
+        const KNOWN_BELOW_3: &[&str] = &[
+            "default/light",
+            "default/dark",
+            "apple/Light",
+            "apple/Dark",
+            "windows10/Light",
+            "windows10/Dark",
+            "windows11/Light",
+            "windows11/Dark",
+            "ubuntu/Dark",
+            "material/Light",
+            "material/Dark",
+            "nord/Light",
+            "nord/Dark",
+            "dracula/Light",
+            "dracula/Dark",
+            "solarized/Light",
+            "solarized/Dark",
+            "high-contrast/Light",
+            "high-contrast/Dark",
+        ];
+        let mut failing = Vec::new();
+        for (label, theme) in all_pack_themes() {
+            let ratio = contrast_ratio(theme.colors.accent, theme.colors.background);
+            let pack = label.split('/').next().unwrap_or_default();
+            if ENFORCED.contains(&pack) {
+                assert!(ratio >= 3.0, "{label}: accent vs background {ratio:.2}");
+            }
+            if ratio < 3.0 {
+                failing.push((label, ratio));
+            }
+        }
+        let labels: Vec<&str> = failing.iter().map(|(l, _)| l.as_str()).collect();
+        assert_eq!(
+            labels, KNOWN_BELOW_3,
+            "accent vs background < 3:1 (062 backlog): {failing:?}"
         );
     }
 }

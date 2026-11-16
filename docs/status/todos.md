@@ -1,5 +1,10 @@
 # Todos
 
+## ROADMAP 060 — Readable selected category (2026-11-17)
+
+- [x] `Theme::selected_item_colors()` and a 7th `wcag_report` row; minimum retunes (solarized light accent_foreground; gruvbox accent light/dark); both Gallery shells paint the selected category from it with a fixed-gutter `▸`; selected ≥ 4.5:1 in all 24 pack-modes; [report](../team/roadmap-060/REPORT.md), [GUI](../team/roadmap-060/GUI.md).
+- [ ] 062: solarized light secondary button text nearly invisible; solarized unselected text 3.64/4.11 (pinned floors); accent < 3:1 vs background in 19/24 pack-modes while charts use it as a graphic; ring < 3:1 in dracula light and gruvbox dark. `apps/gallery` real window and screen reader — NOT_RUN.
+
 ## ROADMAP 059 — Layout keyboard hosts polish (2026-11-16)
 
 - [x] Snackbar release, Ctrl/Alt/Meta and auto-repeat guards, disabled-parent guard, keyboard-owner frame drawn with the `ring` token (Gallery and shared painter), zh-TW status labels, reveal margin 80 and minimal child reveal; [report](../team/roadmap-059/REPORT.md), [GUI](../team/roadmap-059/GUI.md).
@@ -897,7 +902,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [x] `ThemeColor::relative_luminance()` — WCAG 2.1 luminance
 - [x] `contrast_ratio(a, b) -> f32` — 1.0–21.0 contrast ratio
 - [x] `ContrastLevel` enum (Aaa ≥7 / Aa ≥4.5 / AaLarge ≥3 / Fail) + `from_ratio` / `meets_aa`
-- [x] `Theme::contrast()`, `Theme::wcag_report()` (6 key pairs), `Theme::meets_wcag_aa()`
+- [x] `Theme::contrast()`, `Theme::wcag_report()` (7 key pairs since ROADMAP 060, incl. selected_fg/selected_bg), `Theme::meets_wcag_aa()`
 - [x] Tests: black/white=21, identical=1, luminance extremes, level classification, built-in AA
 
 ### Gallery theme switcher (apps/acme-gallery)

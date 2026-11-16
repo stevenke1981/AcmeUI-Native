@@ -1,0 +1,32 @@
+# ROADMAP 060 theme RED — a14c243 + uncommitted tests; cargo test --locked -p acme-theme
+# Expected: compile failure, Theme::selected_item_colors missing (8 errors)
+error[E0599]: no method named `selected_item_colors` found for struct `Theme` in the current scope
+   --> crates\acme-theme\src\lib.rs:993:34
+    |
+347 | pub struct Theme {
+    | ---------------- method `selected_item_colors` not found for this struct
+...
+993 |             let (bg, fg) = theme.selected_item_colors();
+    |                                  ^^^^^^^^^^^^^^^^^^^^ method not found in `Theme`
+
+error[E0599]: no method named `selected_item_colors` found for struct `Theme` in the current scope
+    --> crates\acme-theme\src\lib.rs:1056:32
+     |
+347  | pub struct Theme {
+     | ---------------- method `selected_item_colors` not found for this struct
+...
+1056 |             let (ob, of) = old.selected_item_colors();
+     |                                ^^^^^^^^^^^^^^^^^^^^ method not found in `Theme`
+
+error[E0599]: no method named `selected_item_colors` found for struct `Theme` in the current scope
+    --> crates\acme-theme\src\lib.rs:1063:32
+     |
+347  | pub struct Theme {
+     | ---------------- method `selected_item_colors` not found for this struct
+...
+1063 |             let (b, f) = theme.selected_item_colors();
+     |                                ^^^^^^^^^^^^^^^^^^^^ method not found in `Theme`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `acme-theme` (lib test) due to 8 previous errors
+warning: build failed, waiting for other jobs to finish...

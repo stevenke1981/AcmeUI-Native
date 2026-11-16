@@ -1,0 +1,9 @@
+gallery-green (ROADMAP 060 review fixes) base a14c243 + uncommitted
+cargo fmt -p acme-ui-gallery -p acme-gallery: clean
+cargo test --locked -p acme-ui-gallery -p acme-gallery: acme-gallery 43 passed/1 ignored; acme-ui-gallery 172 passed
+cargo clippy --locked -p acme-ui-gallery -p acme-gallery --all-targets --no-deps -- -D warnings: clean
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.65s
+test result: ok. 43 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 19.59s
+test result: ok. 172 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.16s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.32s
