@@ -66,7 +66,9 @@ mod notification;
 mod page_header;
 mod tour;
 use tour::TourDemo;
+mod navigation_menu;
 mod radio_cards;
+use navigation_menu::NavMenuDemo;
 use radio_cards::RadioCardsDemo;
 mod speed_dial;
 use speed_dial::SpeedDialDemo;
@@ -193,6 +195,7 @@ enum GalleryMessage {
     CollapsibleDisable,
     CalendarRangeToggle,
     RadioCardSelect(u8),
+    NavMenuSelect(u8),
     SpeedDialToggle,
     SpeedDialDirection,
     SpeedDialAction(usize),
@@ -300,6 +303,7 @@ struct Gallery {
     fab_status: &'static str,
     speed_dial: SpeedDialDemo,
     radio_cards: RadioCardsDemo,
+    nav_menu: NavMenuDemo,
     bottom_selected: usize,
     header_description: bool,
     header_saves: usize,
@@ -391,6 +395,7 @@ impl Gallery {
             fab_status: "none",
             speed_dial: SpeedDialDemo::default(),
             radio_cards: RadioCardsDemo::default(),
+            nav_menu: NavMenuDemo::default(),
             bottom_selected: 0,
             header_description: true,
             header_saves: 0,
@@ -866,6 +871,10 @@ impl Gallery {
                 self.bottom_navigation_examples(),
             ))
             .child(self.page_section("PageHeader — retained actions", self.page_header_examples()))
+            .child(self.page_section(
+                "NavigationMenu — typed activation",
+                self.nav_menu_examples(),
+            ))
             .child(label("Paper: rounded, square elevated, square outlined"))
             .child(self.paper_examples())
             .child(
@@ -1826,6 +1835,7 @@ impl Gallery {
                     self.spinner.visible = false;
                     self.list_focus = None;
                     self.radio_cards.active = false;
+                    self.nav_menu.active = false;
                     self.search.blur();
                     self.search.rect = None;
                     self.swipe.cancel_pointer();
@@ -2013,6 +2023,7 @@ impl Gallery {
                 true
             }
             GalleryMessage::RadioCardSelect(index) => self.radio_card_select(index),
+            GalleryMessage::NavMenuSelect(index) => self.nav_menu_select(index),
             GalleryMessage::SpeedDialAction(index) => {
                 if !self.speed_dial.open || index > 1 {
                     return false;
@@ -2315,6 +2326,11 @@ impl Application for Gallery {
         }
         if self.selected_category == 2 && !overlay_pointer {
             if let Some(changed) = self.radio_cards_event(&event) {
+                return changed;
+            }
+        }
+        if self.selected_category == 3 && !overlay_pointer {
+            if let Some(changed) = self.nav_menu_event(&event) {
                 return changed;
             }
         }
@@ -4439,6 +4455,9 @@ mod style_sizing_tests;
 
 #[cfg(test)]
 mod radio_cards_tests;
+
+#[cfg(test)]
+mod navigation_menu_tests;
 
 #[cfg(test)]
 mod speed_dial_tests;

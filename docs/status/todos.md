@@ -1,5 +1,10 @@
 # Todos
 
+## ROADMAP 056 — NavigationMenu typed activation and roving keyboard navigation (2026-11-16)
+
+- [x] Add `on_select`/`active_child`/`navigate`/`navigate_child`, an opt-in colon key scheme, and disabled entries that never emit; the legacy tree is unchanged. Gallery Layout host with pointer and F6/arrows/Enter/Esc; [report](../team/roadmap-056/REPORT.md).
+- [ ] P2 follow-ups (scroll snap, preedit swallow and uniqueness doc are scheduled into 057); human Gallery, Windows 注音 IME, DPI/touch, GPU, screen reader — NOT_RUN.
+
 ## ROADMAP 055 — RadioCards typed selection and arrow-key navigation (2026-11-16)
 
 - [x] Bind `on_select` to instance-keyed option Buttons (Primary/Ghost + marker), keep the passive tree without a handler, add `navigate(forward)`; Gallery Inputs demo with pointer, F6/arrows/Enter/Space/Esc; [report](../team/roadmap-055/REPORT.md).

@@ -1,0 +1,260 @@
+   Compiling acme-widgets v0.2.0 (F:\AcmeUI-Native\crates\acme-widgets)
+   Compiling acme-ui v0.2.0 (F:\AcmeUI-Native\crates\acme-ui)
+error[E0599]: no method named `on_select` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:273:29
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `on_select` not found for this struct
+...
+273 |         base(key, selected).on_select(go)
+    |                             ^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `active_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:304:67
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `active_child` not found for this struct
+...
+304 |         let node: WidgetNode<Nav> = menu("nav", Some("products")).active_child("sub-c").build();
+    |                                                                   ^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `active_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:346:53
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `active_child` not found for this struct
+...
+346 |         let passive = base("nav", Some("products")).active_child("sub-c");
+    |                                                     ^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `active_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:382:52
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `active_child` not found for this struct
+...
+382 |             let node = menu("nav", Some(selected)).active_child("sub-b").build();
+    |                                                    ^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:412:50
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate` not found for this struct
+...
+412 |                 assert_ne!(menu("nav", selected).navigate(forward), Some(go("legal")));
+    |                                                  ^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:419:59
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate` not found for this struct
+...
+419 |         let nav = |s: Option<&str>, f: bool| menu("n", s).navigate(f);
+    |                                                           ^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `on_select` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:437:14
+    |
+40  |   pub struct NavigationMenuBuilder<M> {
+    |   ----------------------------------- method `on_select` not found for this struct
+...
+433 |           let single = navigation_menu::<Nav>("n")
+    |  ______________________-
+434 | |             .item(nav_menu_item("Only", "only"))
+435 | |             .item(nav_menu_item("Off", "off").disabled(true))
+436 | |             .selected("only")
+437 | |             .on_select(go);
+    | |             -^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+    | |_____________|
+    |
+
+error[E0599]: no method named `on_select` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:443:14
+    |
+40  |   pub struct NavigationMenuBuilder<M> {
+    |   ----------------------------------- method `on_select` not found for this struct
+...
+440 |           let all_disabled = navigation_menu::<Nav>("n")
+    |  ____________________________-
+441 | |             .item(nav_menu_item("A", "a").disabled(true))
+442 | |             .item(nav_menu_item("B", "b").disabled(true))
+443 | |             .on_select(go);
+    | |             -^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+    | |_____________|
+    |
+
+error[E0599]: no method named `on_select` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:446:63
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `on_select` not found for this struct
+...
+446 |         let empty = navigation_menu::<Nav>("n").selected("a").on_select(go);
+    |                                                               ^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:448:44
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate` not found for this struct
+...
+448 |         assert_eq!(base("n", Some("home")).navigate(true), None);
+    |                                            ^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:454:25
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+454 |         assert_eq!(open.navigate_child(None, true), Some("sub-a"));
+    |                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:455:25
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+455 |         assert_eq!(open.navigate_child(None, false), Some("sub-c"));
+    |                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:456:25
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+456 |         assert_eq!(open.navigate_child(Some("sub-a"), true), Some("sub-c"));
+    |                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:457:25
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+457 |         assert_eq!(open.navigate_child(Some("sub-c"), true), Some("sub-a"));
+    |                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:458:25
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+458 |         assert_eq!(open.navigate_child(Some("sub-c"), false), Some("sub-a"));
+    |                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:459:25
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+459 |         assert_eq!(open.navigate_child(Some("sub-a"), false), Some("sub-c"));
+    |                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:460:25
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+460 |         assert_eq!(open.navigate_child(Some("sub-b"), true), Some("sub-c"));
+    |                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:461:25
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+461 |         assert_eq!(open.navigate_child(Some("sub-b"), false), Some("sub-a"));
+    |                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:462:25
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+462 |         assert_eq!(open.navigate_child(Some("zz"), true), Some("sub-a"));
+    |                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:463:25
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+463 |         assert_eq!(open.navigate_child(Some("zz"), false), Some("sub-c"));
+    |                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:465:41
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+465 |             base("n", Some("products")).navigate_child(None, true),
+    |                                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:470:48
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+470 |                 assert_eq!(menu("n", selected).navigate_child(None, forward), None);
+    |                                                ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `navigate_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:472:41
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `navigate_child` not found for this struct
+...
+472 |                     menu("n", selected).navigate_child(Some("sub-a"), forward),
+    |                                         ^^^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `on_select` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:484:14
+    |
+40  |   pub struct NavigationMenuBuilder<M> {
+    |   ----------------------------------- method `on_select` not found for this struct
+...
+477 |           let dead = navigation_menu::<Nav>("n")
+    |  ____________________-
+478 | |             .item(
+479 | |                 nav_menu_item("P", "p")
+480 | |                     .child(nav_menu_item("X", "x").disabled(true))
+...   |
+483 | |             .selected("p")
+484 | |             .on_select(go);
+    | |             -^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+    | |_____________|
+    |
+
+error[E0599]: no method named `active_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:508:34
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `active_child` not found for this struct
+...
+508 |                     Some(a) => b.active_child(a).build(),
+    |                                  ^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+error[E0599]: no method named `active_child` found for struct `layout::navigation_menu::NavigationMenuBuilder` in the current scope
+   --> crates\acme-ui\src\layout\navigation_menu.rs:567:50
+    |
+40  | pub struct NavigationMenuBuilder<M> {
+    | ----------------------------------- method `active_child` not found for this struct
+...
+567 |         let node = menu("dup", Some("products")).active_child("sub-c").build();
+    |                                                  ^^^^^^^^^^^^ method not found in `NavigationMenuBuilder<Nav>`
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `acme-ui` (lib test) due to 26 previous errors
