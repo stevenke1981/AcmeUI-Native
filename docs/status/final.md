@@ -1,5 +1,10 @@
 # Delivery Status
 
+## 2026-11-16 — ROADMAP 056 NavigationMenu typed activation and roving keyboard navigation
+
+- NavigationMenu Buttons had no `on_click`. Items and children now emit typed messages, disabled entries never emit, and `navigate`/`navigate_child` are added, with a Gallery Layout pointer and keyboard host. Workspace tests 2065 passed / 0 failed; clippy and fmt PASS; [report](../team/roadmap-056/REPORT.md).
+- Execution: Claude Code agent team (Fable 5.2 adviser/reviewer; Opus 5.5 component; Sonnet 5.5 Gallery; Haiku 5.5 verification). Manual Gallery, 注音 IME, DPI/touch, GPU and screen reader NOT_RUN.
+
 ## 2026-11-16 — ROADMAP 055 RadioCards typed selection and arrow-key navigation
 
 - `RadioCards::on_select` was stored but never wired. Options are now instance-keyed Buttons, and `navigate(forward)` is added; there is a Gallery Inputs demo with pointer and keyboard (F6/arrows/Enter/Space/Esc) host. Workspace tests 2050 passed / 0 failed; clippy/fmt PASS; [report](../team/roadmap-055/REPORT.md).

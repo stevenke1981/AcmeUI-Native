@@ -1,0 +1,2 @@
+cargo fmt -p acme-ui -p acme-ui-gallery -- --check | UTC start: 2026-11-16T13:24:15Z
+exit code: 0
