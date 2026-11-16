@@ -158,8 +158,8 @@ mod tests {
             .on_cancel(Msg::Cancel)
             .into();
         let layout = node.to_layout(NodeId::new(1));
-        // Dialog layout leaf
-        assert_eq!(layout.style.kind, acme_layout::LayoutKind::Leaf);
+        // Dialog lays out its content inside the configured width.
+        assert_eq!(layout.style.kind, acme_layout::LayoutKind::Column);
         assert_eq!(layout.style.width, crate::Length::px(400.0));
     }
 
@@ -176,3 +176,7 @@ mod tests {
         assert_eq!(dlg.id.as_str(), "my-dialog");
     }
 }
+
+#[cfg(test)]
+#[path = "confirm_dialog_tests.rs"]
+mod reachability_tests;

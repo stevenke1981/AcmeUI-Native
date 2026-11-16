@@ -88,6 +88,11 @@ This is a prioritized plan, not a claim that all areas have been audited or impl
 
 | 052 | Agent Team (`team_chief_orchestrator`, parallel workers + `team_independent_reviewer`) | Immediate-mode Painter/Canvas/hit layer, app migrations, HighContrastPack, Theme JSON, platform `KeyModifiers`/`KeyInput`, LiveRegion, desktop/mobile controls & `FrameDirtyTracker` | Locked workspace, feature-matrix, external consumer, packaging, deny/audit & CPU evidence PASS; [report](../team/roadmap-052/REPORT.md); live GPU/IME/DPI/screen-reader NOT_RUN |
 
+| 052a | Codex CLI single writer + author review | ConfirmDialog typed Confirm/Cancel reachability; regression-first Dialog content layout and accessibility ID alignment | RED content omission reproduced; geometry/message/focus/Length guards; [brief](../team/roadmap-052-confirm-dialog/BRIEF.md); [report](../team/roadmap-052-confirm-dialog/REPORT.md); reviewer gates PASS, manual/native/SDK CPU NOT_RUN |
+
+| 053a | Codex CLI (OpenRouter nemotron-3-ultra-550b-a55b:free) single writer + author review | Modal typed Close conversion; controlled Overlay Gallery close/restore | RED ignored on_close / unkeyed Label reproduced; message/passive/identity/geometry guards; [brief](../team/roadmap-053-modal-close/BRIEF.md); [report](../team/roadmap-053-modal-close/REPORT.md); reviewer gates PASS, manual/native/SDK CPU NOT_RUN |
+| 054a | Codex CLI (OpenRouter nemotron-3-ultra-550b-a55b:free) + author review | ContextMenu typed item-message conversion; controlled Overlay Gallery Cut/Copy/restore | RED ignored MenuItem.message / unkeyed Label reproduced; message/passive/disabled/separator/identity/geometry guards; [brief](../team/roadmap-054-context-menu/BRIEF.md); [report](../team/roadmap-054-context-menu/REPORT.md); reviewer gates PASS, manual/native/SDK CPU NOT_RUN |
+
 ## Existing work to preserve
 
 The current `docs/status/todos.md` already records retained-tree invalidation fixes and glyph-atlas aging/eviction. Re-audit their integration and evidence before opening replacement tasks. Do not assume those features are absent from old summaries.
