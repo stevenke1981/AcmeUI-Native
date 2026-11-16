@@ -268,13 +268,18 @@ impl TextInputState {
         let clamped = floor_char_boundary(&self.text, offset);
         // Collect word-boundary indices
         let words: Vec<(usize, &str)> = self.text.split_word_bound_indices().collect();
-        for &(start, word) in &words {
+        // Half-open [start, end): an offset on a shared boundary belongs to the
+        // word that starts there. Only the text end (offset == len) also matches
+        // the last word, since no segment starts at len.
+        let hit = words.iter().find(|&&(start, word)| {
             let end = start + word.len();
-            if (start..=end).contains(&clamped) {
-                self.selection = Some((start, end));
-                self.cursor = end;
-                return;
-            }
+            (start..end).contains(&clamped) || (clamped == end && end == self.text.len())
+        });
+        if let Some(&(start, word)) = hit {
+            let end = start + word.len();
+            self.selection = Some((start, end));
+            self.cursor = end;
+            return;
         }
         // Fallback: no word found → just position the cursor
         self.cursor = clamped;

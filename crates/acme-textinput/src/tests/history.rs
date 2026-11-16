@@ -335,6 +335,51 @@ fn select_word_at_offset_empty_text() {
     assert_eq!(s.cursor, 0);
 }
 
+#[test]
+fn select_word_at_offset_cjk_interior_selects_containing_char() {
+    // Each CJK char is 3 bytes: 注(0..3) 音(3..6) 輸(6..9) 入(9..12)
+    let mut s = TextInputState::new();
+    s.text = "注音輸入".to_string();
+    s.select_word_at_offset(4); // inside 音
+    assert_eq!(s.selection, Some((3, 6)));
+    assert_eq!(s.cursor, 6);
+}
+
+#[test]
+fn select_word_at_offset_word_start_selects_that_word() {
+    let mut s = TextInputState::new();
+    s.text = "hello world".to_string();
+    s.select_word_at_offset(6); // 'w' start
+    assert_eq!(s.selection, Some((6, 11)));
+    assert_eq!(s.cursor, 11);
+}
+
+#[test]
+fn select_word_at_offset_text_end_selects_last_word() {
+    let mut s = TextInputState::new();
+    s.text = "hello world".to_string();
+    s.select_word_at_offset(11); // == len
+    assert_eq!(s.selection, Some((6, 11)));
+    assert_eq!(s.cursor, 11);
+
+    s.select_word_at_offset(99); // beyond len clamps to len
+    assert_eq!(s.selection, Some((6, 11)));
+    assert_eq!(s.cursor, 11);
+}
+
+#[test]
+fn select_word_at_offset_ascii_junction_prefers_following_segment() {
+    let mut s = TextInputState::new();
+    s.text = "ab cd".to_string();
+    s.select_word_at_offset(2); // boundary between "ab" and " "
+    assert_eq!(s.selection, Some((2, 3)));
+    assert_eq!(s.cursor, 3);
+
+    s.select_word_at_offset(1); // inside "ab"
+    assert_eq!(s.selection, Some((0, 2)));
+    assert_eq!(s.cursor, 2);
+}
+
 // ---- New: extended keyboard shortcuts ----
 
 #[test]
