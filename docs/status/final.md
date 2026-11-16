@@ -1,5 +1,12 @@
 # Delivery Status
 
+## 2026-11-14 — ROADMAP 054 ContextMenu typed item-message conversion
+
+- RED guards prove ContextMenu ignored `MenuItem.message` and rendered unkeyed Labels. Open menus now emit instance-keyed Buttons with the current message; missing callbacks and disabled items stay passive Labels, and separators stay Separator nodes. A stable dropdown Card key preserves anchor identity through item changes.
+- Added conversion/focus/geometry guards and a host-controlled Overlay Gallery Cut/Copy/restore preview with stale-message rejection and pointer/theme/scale/layout tests. [Report](../team/roadmap-054/REPORT.md); Reviewer-run gates PASS (incl. workspace tests).
+- Execution: Codex CLI (OpenRouter nvidia/nemotron-3-ultra-550b-a55b:free) + author review. Human Gallery, Windows 注音 IME, physical DPI/touch, GPU, screen reader, native X11 capture and SDK CPU profile NOT_RUN.
+
+
 ## 2026-11-13 — ROADMAP 053 Modal typed Close conversion
 
 - RED guards prove Modal ignored `on_close` and rendered an unkeyed ✕ Label. Closable modals now emit an instance-keyed Button with the current message; a missing callback stays a passive Label and `closable(false)` hides the control. Title/body/footer keys preserve identity through optional close and footer changes.

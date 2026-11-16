@@ -1,5 +1,12 @@
 # Todos
 
+## ROADMAP 054 — ContextMenu typed item-message conversion (2026-11-14)
+
+- [x] Prove ignored MenuItem.message / unkeyed Label regression-first; bind current item messages to instance-keyed Buttons, keep passive/disabled Labels and separators, and stabilize the dropdown Card key without public API changes.
+- [x] Add conversion/focus/geometry guards and a controlled Overlay Gallery Cut/Copy/restore preview with stale-click rejection; [report](../team/roadmap-054/REPORT.md). Execution: Codex CLI (OpenRouter nvidia/nemotron-3-ultra-550b-a55b:free) + author review.
+- [ ] Human Gallery, Windows 注音 IME, physical DPI/touch, GPU, screen reader, native X11 capture and SDK CPU profile NOT_RUN.
+
+
 ## ROADMAP 053 — Modal typed Close conversion (2026-11-13)
 
 - [x] Prove ignored on_close / unkeyed ✕ Label regression-first; bind current Close messages to an instance-keyed Button, keep passive Label and closable(false), and stabilize title/body/footer keys without public API changes.
@@ -463,7 +470,7 @@ Evidence and scope: [retained-tree-invalidation.md](../reports/retained-tree-inv
 - [ ] Decompose gallery `frame()` (244 lines in acme-gallery, 130 in gallery) into per-page helpers
 - [ ] Increase trait abstraction (only 27 IMPLEMENTS edges across 4343 symbols)
 - [x] Add Gallery "Mobile" page for all 15 P3 mobile_* builders — examples/evidence through ROADMAP 029; complete presence and retained-root inventory verified in ROADMAP 030. This does not claim demos or interaction acceptance for the five other legacy mobile composites.
-- [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions — SpeedDial converted action messages, retained toggle and real layout covered in ROADMAP 042; AboutDialog typed Close messages and optional-content identity covered in ROADMAP 043. BottomNavigation indexed typed selection and retained focus eligibility covered in ROADMAP 044. PageHeader action identity/focus through optional descriptions covered in ROADMAP 045. Tour invalid-step bounds, valid typed navigation and keyed-root layout covered in ROADMAP 046. Fullscreen Close messages, passive/hidden controls and body focus through optional header changes covered in ROADMAP 048. Anchor rendered parent/child href messages and retained focus covered in ROADMAP 049. Collapsible current typed toggle/disabled headers and retained focus covered in ROADMAP 050. Notification typed action/Close identity covered in ROADMAP 051. Modal typed Close messages, passive/hidden controls and title/body identity covered in ROADMAP 053. Other builders remain separate.
+- [ ] Add `#[cfg(test)]` coverage for overlay/layout/chart builder conversions — SpeedDial converted action messages, retained toggle and real layout covered in ROADMAP 042; AboutDialog typed Close messages and optional-content identity covered in ROADMAP 043. BottomNavigation indexed typed selection and retained focus eligibility covered in ROADMAP 044. PageHeader action identity/focus through optional descriptions covered in ROADMAP 045. Tour invalid-step bounds, valid typed navigation and keyed-root layout covered in ROADMAP 046. Fullscreen Close messages, passive/hidden controls and body focus through optional header changes covered in ROADMAP 048. Anchor rendered parent/child href messages and retained focus covered in ROADMAP 049. Collapsible current typed toggle/disabled headers and retained focus covered in ROADMAP 050. Notification typed action/Close identity covered in ROADMAP 051. Modal typed Close messages, passive/hidden controls and title/body identity covered in ROADMAP 053. ContextMenu typed item messages, passive/disabled items, separators and anchor identity covered in ROADMAP 054. Other builders remain separate.
 - [ ] Evaluate extracting `acme-gesture` crate for swipe/drag/long-press recognition
 - [x] Document public component-module inventory in both READMEs (200 after ROADMAP 034; counted from eight category mod.rs declarations, excluding test/support modules; does not imply interactive completeness). Historical pre-SwipeActions count was 199.
 
