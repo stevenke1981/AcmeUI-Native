@@ -254,7 +254,7 @@ consistent.
 Run `cargo run --locked -p acme-ui-gallery` for the component showcase.
 In **Foundations → Surface Finishes**, compare the metallic gradient and glass
 reflection. Choose the High Contrast theme to see the solid finish. In
-**Inputs → SegmentedControl**, use the pointer or press F8, then use the arrow
+**Inputs → Segmented Control**, use the pointer or press F8, then use the arrow
 keys to change the report period. Tab and Escape leave the group.
 
 - Use [`SurfaceFinish`](crates/acme-ui/src/foundations/surface_finish.rs) with a
