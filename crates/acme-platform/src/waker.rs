@@ -1,4 +1,4 @@
-use crate::{Application, WindowId};
+use crate::{Application, WindowConfig, WindowId};
 
 /// Cross-thread handle for waking the platform event loop.
 ///
@@ -135,6 +135,71 @@ pub enum WindowRequest {
         x: f32,
         y: f32,
     },
+    /// Open a new top-level window at runtime.
+    ///
+    /// May be queued in the request batch of any open window. The runtime creates
+    /// the window (with its own renderer) after the batch is drained, then reports
+    /// the outcome through [`Application::window_opened`] or
+    /// [`Application::window_open_failed`] carrying the same `token`.
+    ///
+    /// `owner` makes the new window an owned window of an open window. On Windows
+    /// an owned window always stays above its owner, minimizes with it, is
+    /// destroyed with it and has no taskbar button of its own; other platforms
+    /// ignore ownership. When `config.position` is `None` and an owner is given,
+    /// the new window is centred over the owner. An `owner` that is not open
+    /// fails the request.
+    Open {
+        token: u64,
+        config: WindowConfig,
+        owner: Option<WindowId>,
+    },
+    /// Mark the window whose request batch carries this request dirty and redraw
+    /// it, e.g. after shared state changed in another window.
+    RequestRedraw,
+}
+
+/// A [`WindowRequest::Open`] taken out of a request batch.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct OpenWindowRequest {
+    pub token: u64,
+    pub config: WindowConfig,
+    pub owner: Option<WindowId>,
+}
+
+/// One window's drained request batch, split by how the runtime applies it.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct WindowRequestPlan {
+    /// Requests applied directly to the window, in their original order.
+    pub immediate: Vec<WindowRequest>,
+    /// Windows to open after the whole batch has been applied, in request order.
+    pub opens: Vec<OpenWindowRequest>,
+    /// `true` when the batch contained [`WindowRequest::RequestRedraw`].
+    pub redraw: bool,
+    /// `true` when the batch contained [`WindowRequest::Close`]; applied last.
+    pub close: bool,
+}
+
+/// Split one window's request batch into immediate requests, window opens,
+/// a redraw flag and a close flag. Pure so it can be tested without windows.
+pub(crate) fn plan_window_requests(requests: Vec<WindowRequest>) -> WindowRequestPlan {
+    let mut plan = WindowRequestPlan::default();
+    for request in requests {
+        match request {
+            WindowRequest::Open {
+                token,
+                config,
+                owner,
+            } => plan.opens.push(OpenWindowRequest {
+                token,
+                config,
+                owner,
+            }),
+            WindowRequest::RequestRedraw => plan.redraw = true,
+            WindowRequest::Close => plan.close = true,
+            other => plan.immediate.push(other),
+        }
+    }
+    plan
 }
 
 /// Pure helper used by the runtime to drain pending [`WindowRequest`] batches
@@ -354,5 +419,77 @@ mod tests {
         let drained = drain_window_requests(&mut app, [WindowId(7)]);
         assert_eq!(drained, vec![(WindowId(7), queued)]);
         assert!(drain_window_requests(&mut app, [WindowId(7)]).is_empty());
+    }
+
+    #[test]
+    fn plan_window_requests_splits_opens_redraw_and_close() {
+        let child = WindowConfig {
+            title: "Child".into(),
+            width: 400.0,
+            height: 300.0,
+            ..Default::default()
+        };
+        let plan = plan_window_requests(vec![
+            WindowRequest::SetTitle("Main".into()),
+            WindowRequest::Open {
+                token: 7,
+                config: child.clone(),
+                owner: Some(WindowId(0)),
+            },
+            WindowRequest::Close,
+            WindowRequest::RequestRedraw,
+            WindowRequest::Focus,
+            WindowRequest::Open {
+                token: 8,
+                config: WindowConfig::default(),
+                owner: None,
+            },
+        ]);
+        assert_eq!(
+            plan.immediate,
+            vec![WindowRequest::SetTitle("Main".into()), WindowRequest::Focus]
+        );
+        assert_eq!(
+            plan.opens,
+            vec![
+                OpenWindowRequest {
+                    token: 7,
+                    config: child,
+                    owner: Some(WindowId(0)),
+                },
+                OpenWindowRequest {
+                    token: 8,
+                    config: WindowConfig::default(),
+                    owner: None,
+                },
+            ]
+        );
+        assert!(plan.redraw);
+        assert!(plan.close);
+    }
+
+    #[test]
+    fn plan_window_requests_without_special_requests_is_all_immediate() {
+        let requests = vec![WindowRequest::Minimize, WindowRequest::SetImeAllowed(false)];
+        let plan = plan_window_requests(requests.clone());
+        assert_eq!(plan.immediate, requests);
+        assert!(plan.opens.is_empty());
+        assert!(!plan.redraw);
+        assert!(!plan.close);
+        assert_eq!(
+            plan_window_requests(Vec::new()),
+            WindowRequestPlan::default()
+        );
+    }
+
+    #[test]
+    fn open_requests_with_equal_configs_compare_equal() {
+        let open = |token| WindowRequest::Open {
+            token,
+            config: WindowConfig::default(),
+            owner: None,
+        };
+        assert_eq!(open(1), open(1).clone());
+        assert_ne!(open(1), open(2));
     }
 }
