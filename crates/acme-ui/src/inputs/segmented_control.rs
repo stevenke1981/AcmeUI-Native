@@ -14,6 +14,9 @@ use std::collections::BTreeMap;
 /// Builder for a SegmentedControl component.
 pub struct SegmentedControlBuilder<M> {
     pub id: WidgetKey,
+    /// Item labels in declaration order. Direct edits are supported for plain
+    /// legacy items. To reorder, insert, or remove configured options, rebuild
+    /// the control with `keyed_item` and `disable_item` in the new order.
     pub items: Vec<String>,
     pub selected: usize,
     options: BTreeMap<usize, SegmentOptions>,
@@ -66,6 +69,8 @@ impl<M: Clone + 'static> SegmentedControlBuilder<M> {
     /// Map an enabled button's index to the application's selection message.
     ///
     /// The index refers to the current declaration order, even for keyed items.
+    /// Binding a handler also exposes each button's selected state to assistive
+    /// technology, including disabled options.
     pub fn on_select(mut self, handler: fn(usize) -> M) -> Self {
         self.on_select = Some(handler);
         self
@@ -125,6 +130,11 @@ impl<M: Clone + 'static> From<SegmentedControlBuilder<M>> for WidgetNode<M> {
                     ButtonVariant::Ghost
                 })
                 .disabled(disabled);
+            let button = if b.on_select.is_some() {
+                button.with_accessibility_toggled(i == b.selected)
+            } else {
+                button
+            };
             let button: WidgetNode<M> = match b.on_select {
                 Some(select) if !disabled => button.on_click(select(i)),
                 _ => button.into(),
@@ -236,6 +246,7 @@ mod tests {
             };
             assert_eq!(button.label, ["今日", "本月"][index]);
             assert_eq!(button.disabled, index == 1);
+            assert_eq!(button.accessibility_toggled(), Some(index == 0));
             let message = TestMsg::Select(index);
             assert_eq!(button.activate(), (index == 0).then_some(&message));
         }
@@ -312,6 +323,7 @@ mod tests {
             let id = binding.id_for(&roots[0].children()[index]).unwrap();
             assert_eq!(today.key.as_str(), "period:segment:today");
             assert_eq!(today.variant, ButtonVariant::Primary);
+            assert_eq!(today.accessibility_toggled(), Some(true));
             assert_eq!(today.activate(), Some(&TestMsg::Select(index)));
             assert_eq!(binding.mismatches(), 0);
             if let Some(previous) = previous {
