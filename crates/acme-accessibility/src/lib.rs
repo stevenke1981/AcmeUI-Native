@@ -9,7 +9,7 @@
 
 use accesskit::{
     Action, ActionData, ActionRequest, Invalid, Live, Node as AccessNode, NodeId as AccessNodeId,
-    Rect, Role, Tree, TreeUpdate,
+    Rect, Role, Toggled, Tree, TreeUpdate,
 };
 use acme_core::NodeId;
 use acme_layout::LayoutSnapshot;
@@ -992,6 +992,13 @@ fn apply_widget_state<M>(access_node: &mut AccessNode, node: &WidgetNode<M>, slo
             access_node.add_action(Action::Click);
         }
         WidgetNode::Button(button) => {
+            if let Some(toggled) = button.accessibility_toggled() {
+                access_node.set_toggled(if toggled {
+                    Toggled::True
+                } else {
+                    Toggled::False
+                });
+            }
             if button.disabled {
                 access_node.set_disabled();
             }
@@ -1218,6 +1225,45 @@ mod tests {
             .expect("expected a Button node");
         assert!(btn_node.1.supports_action(Action::Focus));
         assert!(btn_node.1.supports_action(Action::Click));
+    }
+
+    #[test]
+    fn toggle_button_state_is_exposed_without_changing_button_actions() {
+        let tree = column::<TestMsg>()
+            .child(
+                button("day", "Today")
+                    .with_accessibility_toggled(true)
+                    .on_click(TestMsg {}),
+            )
+            .child(
+                button("month", "This month")
+                    .with_accessibility_toggled(false)
+                    .on_click(TestMsg {}),
+            )
+            .child(
+                button("week", "This week")
+                    .with_accessibility_toggled(false)
+                    .disabled(true),
+            )
+            .child(button("go", "Go").on_click(TestMsg {}))
+            .build();
+        let update = build_tree_update(&tree, &LayoutSnapshot::default(), None, None);
+        for (label, toggled, disabled) in [
+            ("Today", Some(Toggled::True), false),
+            ("This month", Some(Toggled::False), false),
+            ("This week", Some(Toggled::False), true),
+            ("Go", None, false),
+        ] {
+            let (_, node) = update
+                .nodes
+                .iter()
+                .find(|(_, node)| node.label() == Some(label))
+                .unwrap();
+            assert_eq!(node.role(), Role::Button);
+            assert_eq!(node.toggled(), toggled, "{label}");
+            assert_eq!(node.is_disabled(), disabled, "{label}");
+            assert_eq!(node.supports_action(Action::Click), !disabled, "{label}");
+        }
     }
 
     #[test]

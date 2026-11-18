@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased - Surface finishes and segmented selection (2026-11-18)
+
+- Added opt-in `SurfaceFinish` swatches and painting for metallic, glass, and
+  solid surfaces. The Gallery demonstrates theme colors and high-contrast fallback.
+- Added controlled selection, stable item keys, disabled options, and arrow-key
+  navigation for `SegmentedControl`. The Gallery demonstrates scoped keyboard
+  input and reports the selected period.
+
+## Unreleased - Runtime window opening with owner windows (2026-11-17)
+
+- `WindowRequest::Open { token, config, owner }` opens a new top-level window
+  at runtime from any window's request batch. Start-up windows and runtime
+  windows share one window + renderer initialisation path. With `owner` set,
+  Windows creates an owned window (always above its owner, minimizes and is
+  destroyed with it, no own taskbar button); other platforms ignore ownership.
+  Without `config.position` an owned window is centred over its owner.
+- `Application::window_opened(token, WindowId)` and
+  `Application::window_open_failed(token, String)` report each open in request
+  order; a successfully opened window has a redraw pending.
+- `WindowRequest::RequestRedraw` marks the carrying window dirty and redraws it
+  (for cross-window state changes).
+- `Application::window_closed(WindowId)` is called after a window is removed via
+  `WindowRequest::Close`, an unvetoed close request, or OS destruction. Closing
+  any window but the last keeps the event loop running.
+- A user close dispatch drains pending requests while the window is still
+  live. A successful unowned replacement keeps the event loop running when
+  the previous final window closes. After OS destruction, requests queued by
+  `window_closed` are drained from surviving windows.
+- `WindowConfig` now derives `PartialEq`. All new trait methods have no-op
+  defaults; code that matches `WindowRequest` exhaustively must handle the two
+  new variants.
+
 ## Unreleased - Immediate-mode Painter, HitTestLayer, Theme JSON & widget completion (ROADMAP 052, 2026-11-15)
 
 - Added immediate-mode `acme_core::Painter`, `acme_widgets::Canvas`, and

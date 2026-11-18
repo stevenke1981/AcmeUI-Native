@@ -68,6 +68,7 @@ pub struct Button<M> {
     pub leading_icon: Option<String>,
     pub trailing_icon: Option<String>,
     message: Option<M>,
+    accessibility_toggled: Option<bool>,
     /// Accumulated GPUI‑inspired style (background, border, rounding, etc.).
     pub style: Style,
 }
@@ -85,6 +86,7 @@ pub fn button<M>(key: impl Into<WidgetKey>, label: impl Into<String>) -> Button<
         leading_icon: None,
         trailing_icon: None,
         message: None,
+        accessibility_toggled: None,
         style: Style::new(),
     }
 }
@@ -122,6 +124,18 @@ impl<M> Button<M> {
         self.trailing_icon = Some(icon.into());
         self
     }
+    /// Expose the current state of a toggle button to assistive technology.
+    /// This does not change the button's appearance or activation behavior.
+    pub fn with_accessibility_toggled(mut self, toggled: bool) -> Self {
+        self.accessibility_toggled = Some(toggled);
+        self
+    }
+
+    /// Current toggle state, or `None` for an ordinary button.
+    pub fn accessibility_toggled(&self) -> Option<bool> {
+        self.accessibility_toggled
+    }
+
     pub fn on_click(mut self, message: M) -> WidgetNode<M> {
         self.message = Some(message);
         WidgetNode::Button(self)
