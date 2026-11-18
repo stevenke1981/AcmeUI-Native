@@ -69,11 +69,13 @@ use tour::TourDemo;
 mod checkbox_cards;
 mod navigation_menu;
 mod radio_cards;
+mod segmented_control;
 mod sidebar;
 mod sidenav;
 use checkbox_cards::CheckboxCardsDemo;
 use navigation_menu::NavMenuDemo;
 use radio_cards::RadioCardsDemo;
+use segmented_control::SegmentedControlDemo;
 use sidebar::SidebarDemo;
 use sidenav::SidenavDemo;
 mod speed_dial;
@@ -201,6 +203,7 @@ enum GalleryMessage {
     CollapsibleDisable,
     CalendarRangeToggle,
     RadioCardSelect(u8),
+    SegmentSelect(usize),
     CheckboxCardToggle(u8),
     NavMenuSelect(u8),
     SidebarSelect(u8),
@@ -321,6 +324,7 @@ struct Gallery {
     fab_status: &'static str,
     speed_dial: SpeedDialDemo,
     radio_cards: RadioCardsDemo,
+    segments: SegmentedControlDemo,
     checkbox_cards: CheckboxCardsDemo,
     nav_menu: NavMenuDemo,
     side_nav: SidebarDemo,
@@ -416,6 +420,7 @@ impl Gallery {
             fab_status: "none",
             speed_dial: SpeedDialDemo::default(),
             radio_cards: RadioCardsDemo::default(),
+            segments: SegmentedControlDemo::default(),
             checkbox_cards: CheckboxCardsDemo::default(),
             nav_menu: NavMenuDemo::default(),
             side_nav: SidebarDemo::default(),
@@ -694,6 +699,7 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Inputs", 24.0))
             .child(separator())
+            .child(self.page_section("Segmented Control", self.segmented_control_example()))
             .child(self.page_section("RadioCards — typed selection", self.radio_cards_examples()))
             .child(self.page_section(
                 "CheckboxCards — typed toggling",
@@ -1865,6 +1871,7 @@ impl Gallery {
                     self.spinner.visible = false;
                     self.list_focus = None;
                     self.radio_cards.active = false;
+                    self.segments.active = false;
                     self.checkbox_cards.active = false;
                     self.nav_menu.active = false;
                     self.side_nav.active = false;
@@ -2056,6 +2063,7 @@ impl Gallery {
                 true
             }
             GalleryMessage::RadioCardSelect(index) => self.radio_card_select(index),
+            GalleryMessage::SegmentSelect(index) => self.select_segment(index),
             GalleryMessage::CheckboxCardToggle(index) => self.checkbox_card_toggle(index),
             GalleryMessage::NavMenuSelect(index) => self.nav_menu_select(index),
             GalleryMessage::SidebarSelect(index) => self.sidebar_select(index),
@@ -2360,8 +2368,12 @@ impl Application for Gallery {
         if overlay_pointer && matches!(event, PlatformEvent::PointerButton { pressed: true, .. }) {
             self.search.blur();
             self.layout_keyboard_release();
+            self.segments.active = false;
         }
         if self.selected_category == 2 && !overlay_pointer {
+            if let Some(changed) = self.segmented_control_event(&event) {
+                return changed;
+            }
             if let Some(changed) = self.inputs_keyboard_event(&event) {
                 return changed;
             }
@@ -4529,6 +4541,9 @@ mod style_sizing_tests;
 
 #[cfg(test)]
 mod radio_cards_tests;
+
+#[cfg(test)]
+mod segmented_control_tests;
 
 #[cfg(test)]
 mod checkbox_cards_tests;
