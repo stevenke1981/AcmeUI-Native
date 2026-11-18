@@ -494,6 +494,8 @@ pub trait Application: 'static {
     /// [`Application::event`]. Returning `false` keeps the window open so the
     /// application can confirm unsaved changes and close later with
     /// [`WindowRequest::Close`]. The default `true` preserves the previous behaviour.
+    /// Requests queued by either callback are drained while `window` is still live.
+    /// An independent replacement should use `owner: None`.
     fn close_requested(&mut self, _window: WindowId) -> bool {
         true
     }
@@ -870,11 +872,27 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
         let mut should_drain_requests = true;
         match event {
             WindowEvent::CloseRequested => {
-                handle_window_lifecycle(app, windows, id, event_loop, false);
+                let Some(state) = windows.get(&id) else {
+                    return;
+                };
+                if notify_close_requested(app, state.id) {
+                    // Let requests from the closing source use the normal open-before-close
+                    // order. Keep the post-event drain for window_closed on surviving sources.
+                    if fatal.is_none() {
+                        process_window_requests(app, windows, next_window_id, event_loop);
+                    }
+                    if windows.contains_key(&id) {
+                        remove_window(app, windows, id, event_loop);
+                    }
+                } else {
+                    state.window.request_redraw();
+                }
             }
             WindowEvent::Destroyed => {
-                handle_window_lifecycle(app, windows, id, event_loop, true);
-                should_drain_requests = false;
+                if !windows.contains_key(&id) {
+                    return;
+                }
+                remove_window(app, windows, id, event_loop);
             }
             WindowEvent::Resized(size) => {
                 handle_resize(app, windows, id, Some(size), None);
@@ -1695,6 +1713,140 @@ mod tests {
         assert!(finish_window_removal(&mut app, Some(WindowId(4)), 0));
     }
 
+    #[cfg(all(windows, feature = "cpu-renderer"))]
+    #[test]
+    #[ignore = "requires a Windows desktop session"]
+    fn native_close_opens_replacement_and_destroyed_drains_survivor() {
+        use winit::platform::windows::EventLoopBuilderExtWindows;
+
+        #[derive(Default)]
+        struct App {
+            pending: HashMap<WindowId, Vec<WindowRequest>>,
+            lifecycle: LifecycleApp,
+        }
+
+        impl Application for App {
+            fn render_backend(&self) -> RenderBackendPreference {
+                RenderBackendPreference::Cpu
+            }
+
+            fn event(&mut self, event: PlatformEvent) -> bool {
+                if let PlatformEvent::WindowCloseRequested(window) = event {
+                    self.pending
+                        .entry(window)
+                        .or_default()
+                        .push(WindowRequest::Open {
+                            token: 1,
+                            config: WindowConfig::default(),
+                            owner: None,
+                        });
+                }
+                false
+            }
+
+            fn close_requested(&mut self, window: WindowId) -> bool {
+                self.pending
+                    .entry(window)
+                    .or_default()
+                    .push(WindowRequest::Open {
+                        token: 2,
+                        config: WindowConfig::default(),
+                        owner: None,
+                    });
+                true
+            }
+
+            fn take_window_requests(&mut self, window: WindowId) -> Vec<WindowRequest> {
+                self.pending.remove(&window).unwrap_or_default()
+            }
+
+            fn window_opened(&mut self, token: u64, window: WindowId) {
+                self.lifecycle.window_opened(token, window);
+            }
+
+            fn window_open_failed(&mut self, token: u64, error: String) {
+                self.lifecycle.window_open_failed(token, error);
+            }
+
+            fn window_closed(&mut self, window: WindowId) {
+                self.lifecycle.window_closed(window);
+                if window == WindowId(2) {
+                    self.pending.entry(WindowId(1)).or_default().extend([
+                        WindowRequest::Open {
+                            token: 3,
+                            config: WindowConfig::default(),
+                            owner: Some(window),
+                        },
+                        WindowRequest::Open {
+                            token: 4,
+                            config: WindowConfig::default(),
+                            owner: Some(WindowId(1)),
+                        },
+                    ]);
+                }
+            }
+
+            fn frame(&mut self, _ctx: FrameContext) -> Scene {
+                Scene::new()
+            }
+        }
+
+        struct Driver {
+            runtime: Runtime<App>,
+            exit_after_close: Option<bool>,
+            exit_after_destroyed: Option<bool>,
+        }
+        impl ApplicationHandler for Driver {
+            fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+                let runtime = &mut self.runtime;
+                runtime.resumed(event_loop);
+                if let Some((&initial, _)) = runtime.windows.iter().next() {
+                    runtime.window_event(event_loop, initial, WindowEvent::CloseRequested);
+                    self.exit_after_close = Some(event_loop.exiting());
+                }
+                if let Some((&destroyed, _)) = runtime
+                    .windows
+                    .iter()
+                    .find(|(_, state)| state.id == WindowId(2))
+                {
+                    runtime.window_event(event_loop, destroyed, WindowEvent::Destroyed);
+                    runtime.window_event(event_loop, destroyed, WindowEvent::Destroyed);
+                    self.exit_after_destroyed = Some(event_loop.exiting());
+                }
+                event_loop.exit();
+            }
+
+            fn window_event(&mut self, _: &ActiveEventLoop, _: WinitWindowId, _: WindowEvent) {}
+        }
+
+        let event_loop = EventLoop::builder().with_any_thread(true).build().unwrap();
+        let mut driver = Driver {
+            runtime: Runtime::new(App::default()),
+            exit_after_close: None,
+            exit_after_destroyed: None,
+        };
+        event_loop.run_app(&mut driver).unwrap();
+        // Check outside the winit callback so an assertion propagates to the test harness.
+        assert_eq!(driver.exit_after_close, Some(false));
+        assert_eq!(driver.exit_after_destroyed, Some(false));
+        let mut live: Vec<_> = driver
+            .runtime
+            .windows
+            .values()
+            .map(|state| state.id.0)
+            .collect();
+        live.sort_unstable();
+        assert_eq!(live, [1, 3]);
+        let log = &driver.runtime.app.lifecycle.log;
+        assert_eq!(log.len(), 6);
+        assert_eq!(
+            &log[..4],
+            ["opened 1 -> 1", "opened 2 -> 2", "closed 0", "closed 2"]
+        );
+        assert!(log[4].starts_with("failed 3: owner window 2 is not open"));
+        assert_eq!(log[5], "opened 4 -> 3");
+    }
+
     #[test]
     fn window_open_results_are_reported_in_request_order() {
         let mut app = LifecycleApp::default();
@@ -1769,27 +1921,6 @@ mod tests {
 // ---------------------------------------------------------------------------
 // Helper functions for window_event dispatch (free functions)
 // ---------------------------------------------------------------------------
-
-fn handle_window_lifecycle(
-    app: &mut dyn Application,
-    windows: &mut HashMap<WinitWindowId, WindowState>,
-    id: WinitWindowId,
-    event_loop: &ActiveEventLoop,
-    destroy: bool,
-) {
-    if !destroy {
-        let win_id = windows.get(&id).map(|s| s.id);
-        if let Some(win_id) = win_id {
-            if !notify_close_requested(app, win_id) {
-                if let Some(state) = windows.get(&id) {
-                    state.window.request_redraw();
-                }
-                return;
-            }
-        }
-    }
-    remove_window(app, windows, id, event_loop);
-}
 
 /// Remove `id` from the runtime, notify [`Application::window_closed`] once the
 /// OS window is gone, and exit the loop only when no window remains.

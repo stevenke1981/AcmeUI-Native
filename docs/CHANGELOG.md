@@ -16,6 +16,10 @@
 - `Application::window_closed(WindowId)` is called after a window is removed via
   `WindowRequest::Close`, an unvetoed close request, or OS destruction. Closing
   any window but the last keeps the event loop running.
+- A user close dispatch drains pending requests while the window is still
+  live. A successful unowned replacement keeps the event loop running when
+  the previous final window closes. After OS destruction, requests queued by
+  `window_closed` are drained from surviving windows.
 - `WindowConfig` now derives `PartialEq`. All new trait methods have no-op
   defaults; code that matches `WindowRequest` exhaustively must handle the two
   new variants.
