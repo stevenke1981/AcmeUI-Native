@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - Surface finishes and segmented selection (2026-11-18)
+
+- Added opt-in `SurfaceFinish` swatches and painting for metallic, glass, and
+  solid surfaces. The Gallery demonstrates theme colors and high-contrast fallback.
+- Added controlled selection, stable item keys, disabled options, and arrow-key
+  navigation for `SegmentedControl`. The Gallery demonstrates scoped keyboard
+  input and reports the selected period.
+
 ## Unreleased - Runtime window opening with owner windows (2026-11-17)
 
 - `WindowRequest::Open { token, config, owner }` opens a new top-level window

@@ -85,6 +85,7 @@ use snackbar::SnackbarDemo;
 mod data_list_examples;
 mod paper_examples;
 mod spinner_motion;
+mod surface_finish_examples;
 mod swipe_actions;
 mod theme_pack_examples;
 use spinner_motion::SpinnerDemo;
@@ -586,6 +587,7 @@ impl Gallery {
             .padding(24.0)
             .child(label_with_size("Foundations", 24.0))
             .child(separator())
+            .child(self.page_section("Surface Finishes", self.surface_finish_examples()))
             .child(self.page_section("Collapsible — typed toggle", self.collapsible_examples()))
             .child(self.page_section("Calendar — date range", self.calendar_range_examples()))
             .child(

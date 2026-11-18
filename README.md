@@ -251,9 +251,25 @@ consistent.
 - Overlay: modal, drawer, dropdown menu, tooltip, toast, command palette.
 - Optional families: desktop chrome, charts, mobile surfaces, browser media.
 
-Run `cargo run -p acme-ui-gallery` for the broad component showcase and
-`cargo run -p acme-gallery` for the runtime, input, accessibility, and data
-component demonstrations.
+Run `cargo run --locked -p acme-ui-gallery` for the component showcase.
+In **Foundations → Surface Finishes**, compare the metallic gradient and glass
+reflection. Choose the High Contrast theme to see the solid finish. In
+**Inputs → SegmentedControl**, use the pointer or press F8, then use the arrow
+keys to change the report period. Tab and Escape leave the group.
+
+- Use [`SurfaceFinish`](crates/acme-ui/src/foundations/surface_finish.rs) with a
+  Canvas swatch or `Painter`. Keep text on an opaque theme surface and select
+  `Solid` for high contrast or reduced transparency.
+- Use [`segmented_control`](crates/acme-ui/src/inputs/segmented_control.rs)
+  with `selected` and `on_select` to keep selection in application state.
+  Give reordered options a stable key with `keyed_item`. Delegate scoped
+  arrow keys to `navigate`.
+
+Run `cargo run --locked -p acme-gallery` for runtime, input, accessibility, and
+data demonstrations. To build the Windows executables, run
+`cargo build --locked --release --workspace`. Copy binaries from
+`target/release` into the local `dist/` directory to retain them across
+`cargo clean`.
 
 ---
 

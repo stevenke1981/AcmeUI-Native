@@ -1,5 +1,16 @@
 # Todos
 
+## ROADMAP 064 — Surface finishes, segmented selection, and window lifetime (2026-11-18)
+
+- [x] Add themed metallic and glass finishes with an opt-in solid fallback and
+  a Foundation Gallery example.
+- [x] Add typed SegmentedControl messages, stable item keys, disabled options,
+  and an Inputs Gallery keyboard example.
+- [x] Preserve runtime window requests during native close and destruction.
+  Verify the sequencing with an opt-in Windows event-loop regression.
+- [ ] Native screen reader, hardware DPI matrix, touch, and Traditional Chinese
+  IME acceptance.
+
 ## ROADMAP 062 — WCAG AA gate across all theme packs (2026-11-17)
 
 - [x] Every-pack gate (7 AA rows; ring/primary/status ≥ 3:1; text on hover/pressed/ghost fills ≥ 4.5; danger ink); minimal brand-preserving retune (104 values, recorded); `Button::resolve_style` paints text for the actual fill; chart marks and palette; [report](../team/roadmap-062/REPORT.md).
