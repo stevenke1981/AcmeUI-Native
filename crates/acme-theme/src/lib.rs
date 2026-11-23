@@ -208,12 +208,6 @@ pub struct ColorTokens {
     pub disabled_foreground: ThemeColor,
 }
 
-impl Default for ColorTokens {
-    fn default() -> Self {
-        Theme::light_colors().0
-    }
-}
-
 // ═════════════════════════════════════════════════════════════════════════════
 // Spacing, Radius, Typography, Shadow, Animation
 // ═════════════════════════════════════════════════════════════════════════════
@@ -412,29 +406,10 @@ impl Theme {
 
     /// Token pair for a selected item in a list or nav, as `(bg, fg)`.
     ///
-    /// The background is always [`ColorTokens::accent`]. The foreground is the
-    /// first of `accent_foreground`, `foreground`, `primary_foreground` whose
-    /// contrast against the background is at least 4.5:1 (WCAG AA for normal
-    /// text). If no candidate qualifies, the candidate with the highest ratio
-    /// is returned. Both colors are always existing theme tokens.
+    /// Custom themes supply [`ColorTokens::selection_foreground`] with at least
+    /// 4.5:1 contrast on [`ColorTokens::accent`] for WCAG AA normal text.
     pub fn selected_item_colors(&self) -> (ThemeColor, ThemeColor) {
-        let c = &self.colors;
-        let bg = c.accent;
-        let candidates = [c.accent_foreground, c.foreground, c.primary_foreground];
-        let fg = candidates
-            .iter()
-            .copied()
-            .find(|fg| contrast_ratio(*fg, bg) >= 4.5)
-            .unwrap_or_else(|| {
-                candidates.iter().copied().fold(candidates[0], |best, fg| {
-                    if contrast_ratio(fg, bg) > contrast_ratio(best, bg) {
-                        fg
-                    } else {
-                        best
-                    }
-                })
-            });
-        (bg, fg)
+        (self.colors.accent, self.colors.selection_foreground)
     }
 
     /// Audit the key foreground/background pairs for WCAG conformance.
@@ -1029,39 +1004,21 @@ mod tests {
     }
 
     #[test]
-    fn selected_item_colors_use_theme_tokens_only() {
+    fn selected_item_colors_resolve_the_selection_foreground_token() {
         for (label, theme) in all_pack_themes() {
-            let c = &theme.colors;
-            let (bg, fg) = theme.selected_item_colors();
-            assert_eq!(bg, c.accent, "{label}: selected bg must be accent");
-            assert!(
-                [c.accent_foreground, c.foreground, c.primary_foreground].contains(&fg),
-                "{label}: selected fg must be one of the D1 candidate tokens"
+            let c = theme.colors;
+            assert_eq!(
+                theme.selected_item_colors(),
+                (c.accent, c.selection_foreground),
+                "{label}"
             );
         }
-    }
-
-    #[test]
-    fn selected_item_colors_prefer_first_qualifying_candidate() {
-        // Default light: accent_foreground on accent already qualifies.
-        let t = Theme::light();
+        let mut custom = Theme::light();
+        custom.colors.selection_foreground = ThemeColor::rgb(12, 34, 56);
         assert_eq!(
-            t.selected_item_colors(),
-            (t.colors.accent, t.colors.accent_foreground)
+            custom.selected_item_colors().1,
+            custom.colors.selection_foreground
         );
-
-        // accent_foreground unreadable -> falls through to foreground.
-        let mut t = Theme::light();
-        t.colors.accent_foreground = t.colors.accent;
-        assert_eq!(t.selected_item_colors().1, t.colors.foreground);
-
-        // Nothing qualifies -> highest-ratio candidate.
-        let mut t = Theme::light();
-        t.colors.accent = ThemeColor::rgb(128, 128, 128);
-        t.colors.accent_foreground = ThemeColor::rgb(120, 120, 120);
-        t.colors.foreground = ThemeColor::rgb(100, 100, 100);
-        t.colors.primary_foreground = ThemeColor::rgb(200, 200, 200);
-        assert_eq!(t.selected_item_colors().1, ThemeColor::rgb(200, 200, 200));
     }
 
     #[test]
@@ -1513,8 +1470,12 @@ mod tests {
                 );
                 *token_mut(&mut old.colors, token) = ThemeColor::rgb(before.0, before.1, before.2);
             }
-            let (ob, of) = old.selected_item_colors();
-            let old_ratio = contrast_ratio(of, ob);
+            // The old selection algorithm used its best candidate if none met AA.
+            let c = old.colors;
+            let old_ratio = [c.accent_foreground, c.foreground, c.primary_foreground]
+                .into_iter()
+                .map(|fg| contrast_ratio(fg, c.accent))
+                .fold(0.0, f32::max);
             assert!(
                 (old_ratio - before_ratio).abs() < 0.01 && old_ratio < 4.5,
                 "{name}/{mode:?} before ratio {old_ratio:.2}"

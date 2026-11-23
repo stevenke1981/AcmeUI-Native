@@ -70,7 +70,7 @@ impl<M: Clone + 'static> LinkBuilder<M> {
                 // Static link → Label with primary color
                 let mut lbl = crate::label_builder::<M>(self.text.as_str());
                 if self.disabled {
-                    lbl = lbl.color(theme.colors.disabled_text);
+                    lbl = lbl.color(theme.colors.disabled_foreground);
                 } else {
                     lbl = lbl.color(primary_color);
                 }
@@ -141,6 +141,18 @@ mod tests {
         };
         assert_eq!(l.text, "Home");
         assert!(l.color.is_some(), "label should have a primary color set");
+    }
+
+    #[test]
+    fn disabled_static_link_uses_disabled_foreground() {
+        let WidgetNode::Label(label) = link::<TestMsg>("del", "Delete").disabled(true).build()
+        else {
+            panic!("expected Label for a static link");
+        };
+        assert_eq!(
+            label.color,
+            Some(acme_theme::Theme::light().colors.disabled_foreground)
+        );
     }
 
     #[test]

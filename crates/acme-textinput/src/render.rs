@@ -28,7 +28,7 @@ pub(crate) fn intersect_rect(a: [f32; 4], b: [f32; 4]) -> [f32; 4] {
 pub(crate) struct TextInputColors {
     text_color: [f32; 4],
     border_color: [f32; 4],
-    disabled_text: [f32; 4],
+    disabled_foreground: [f32; 4],
     text_muted: [f32; 4],
     bg_color: [f32; 4],
 }
@@ -40,7 +40,7 @@ pub(crate) fn compute_text_input_colors(
     focused: bool,
 ) -> TextInputColors {
     let text_color = theme_color_to_array(&theme.colors.foreground);
-    let disabled_text = theme_color_to_array(&theme.colors.disabled_text);
+    let disabled_foreground = theme_color_to_array(&theme.colors.disabled_foreground);
     let text_muted = theme_color_to_array(&theme.colors.muted_foreground);
     let bg_color = theme_color_to_array(&theme.colors.surface);
 
@@ -64,7 +64,7 @@ pub(crate) fn compute_text_input_colors(
     TextInputColors {
         text_color,
         border_color,
-        disabled_text,
+        disabled_foreground,
         text_muted,
         bg_color,
     }
@@ -218,7 +218,7 @@ pub fn render_text_input(
     let render_color = if is_empty && has_placeholder && !composing {
         colors.text_muted
     } else if state.readonly {
-        colors.disabled_text
+        colors.disabled_foreground
     } else {
         colors.text_color
     };
