@@ -29,6 +29,8 @@ impl<M> ScrollView<M> {
         let mut layout = LayoutStyle {
             kind: LayoutKind::Column,
             height: self.viewport_height,
+            min_height: Length::px(0.0),
+            flex_shrink: 1.0,
             overflow: Overflow::Scroll,
             ..Default::default()
         };

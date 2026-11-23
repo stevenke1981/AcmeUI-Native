@@ -350,9 +350,7 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                let mut style = LayoutStyle::column();
-                v.style.clone().apply_to_layout(&mut style);
-                LayoutNode::container(id, style, child_nodes)
+                LayoutNode::container(id, data_viewport_layout(&v.style), child_nodes)
             }
             Self::DataGrid(v) => {
                 let mut child_nodes: Vec<LayoutNode> = Vec::new();
@@ -403,9 +401,7 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                let mut style = LayoutStyle::column();
-                v.style.clone().apply_to_layout(&mut style);
-                LayoutNode::container(id, style, child_nodes)
+                LayoutNode::container(id, data_viewport_layout(&v.style), child_nodes)
             }
             Self::NavRail(v) => LayoutNode::container(
                 id,
@@ -709,9 +705,7 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                let mut style = LayoutStyle::column();
-                v.style.clone().apply_to_layout(&mut style);
-                LayoutNode::container(id, style, child_nodes)
+                LayoutNode::container(id, data_viewport_layout(&v.style), child_nodes)
             }
             Self::DataGrid(v) => {
                 let mut child_nodes: Vec<LayoutNode> = Vec::new();
@@ -758,9 +752,7 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                let mut style = LayoutStyle::column();
-                v.style.clone().apply_to_layout(&mut style);
-                LayoutNode::container(id, style, child_nodes)
+                LayoutNode::container(id, data_viewport_layout(&v.style), child_nodes)
             }
             Self::NavRail(v) => LayoutNode::container(
                 id,
@@ -2033,6 +2025,17 @@ mod text_input_style_tests {
     }
 }
 
+fn data_viewport_layout(style: &acme_style::Style) -> LayoutStyle {
+    let mut layout = LayoutStyle::column();
+    if style.flex_grow.unwrap_or_default() > 0.0 || matches!(style.height, Some(Length::Percent(_)))
+    {
+        layout.flex_shrink = 1.0;
+        layout.min_height = Length::px(0.0);
+    }
+    style.clone().apply_to_layout(&mut layout);
+    layout
+}
+
 fn label_layout(label: &Label, id: NodeId, default_size: f32, default_height: f32) -> LayoutNode {
     let font_size = label
         .style
@@ -2240,6 +2243,52 @@ mod flex_container_tests {
                         .viewport_height,
                     expected
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn populated_scrollable_widgets_fit_their_column_and_keep_overflowing_content() {
+        let mut table = table::<()>("table").column(TableColumn::new("name", label("Name"), 100.0));
+        let mut grid =
+            datagrid::<()>("grid").column(DataGridColumn::new("name", label("Name"), 100.0));
+        let mut scroll = scroll_view::<()>("scroll");
+        for _ in 0..20 {
+            table = table.add_row(TableRow::new(vec![label("Row")]));
+            grid = grid.add_row(DataGridRow::new(vec![label("Row")]));
+        }
+        for _ in 0..10 {
+            scroll = scroll.child(label("Overflowing line"));
+        }
+        let cases = [
+            (table.clone().flex_1().build(), 100.0),
+            (grid.clone().flex_1().build(), 100.0),
+            (scroll.clone().flex_1().build(), 100.0),
+            (table.h(Length::Percent(0.5)).build(), 50.0),
+            (grid.h(Length::Percent(0.5)).build(), 50.0),
+            (scroll.h(Length::Percent(0.5)).build(), 50.0),
+        ];
+        let context = crate::painter_bridge::default_layout_context();
+        for (widget, height) in cases {
+            let is_scroll_view = matches!(&widget, WidgetNode::ScrollView(_));
+            let parent = column().size(200.0, 100.0).child(widget).build();
+            for layout in [
+                parent.to_layout(NodeId::new(1)),
+                parent.to_layout_with_context(NodeId::new(1), &context),
+            ] {
+                let snapshot = LayoutEngine::new()
+                    .compute(&layout, (200.0, 100.0))
+                    .unwrap();
+                let child = &layout.children[0];
+                let viewport = snapshot.get(child.id).unwrap();
+                assert_eq!(viewport.height, height);
+                let last = snapshot.get(child.children.last().unwrap().id).unwrap();
+                assert!(last.y + last.height > viewport.y + viewport.height);
+                if is_scroll_view {
+                    let metrics = snapshot.scroll_metrics(child.id).unwrap();
+                    assert_eq!(metrics.viewport_height, height);
+                    assert!(metrics.content_height > height);
+                }
             }
         }
     }

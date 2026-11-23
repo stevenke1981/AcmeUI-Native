@@ -163,7 +163,8 @@ pub struct DataGrid<M> {
     pub merged_cells: std::collections::HashMap<(usize, usize), CellMerge>,
     /// Total viewport width (set by layout).
     pub viewport_width: f32,
-    /// Total viewport height (set by layout).
+    /// Viewport height supplied by the host for row virtualization.
+    /// Independent of the laid-out grid height.
     pub viewport_height: f32,
     /// Optional style overrides for the table or grid's outer layout box.
     pub style: acme_style::Style,
@@ -321,7 +322,11 @@ impl<M> DataGrid<M> {
         self
     }
 
-    /// Set viewport height.
+    /// Set the virtualized row viewport height in logical pixels.
+    ///
+    /// Set this explicitly when using [`Self::visible_rows`], even when the
+    /// grid box is sized using `Styled::flex_1()` or a percentage height. A
+    /// host with dynamic sizing can use the grid's computed layout height.
     pub fn viewport_height(mut self, value: f32) -> Self {
         self.viewport_height = crate::finite(value).max(1.0);
         self
@@ -421,6 +426,7 @@ impl<M> DataGrid<M> {
     }
 
     /// Calculate visible row range `(first, one_past_last)`.
+    /// Returns `(0, 0)` until the host sets a positive [`Self::viewport_height`].
     pub fn visible_rows(&self) -> (usize, usize) {
         if self.rows.is_empty() || self.viewport_height <= 0.0 {
             return (0, 0);
@@ -589,6 +595,16 @@ mod tests {
         let (first, last) = g.visible_rows();
         assert_eq!(first, 0);
         assert!(last > 0);
+    }
+
+    #[test]
+    fn flex_sized_grid_needs_a_viewport_for_row_virtualization() {
+        use acme_style::Styled;
+
+        let mut grid = sample_grid().flex_1();
+        grid.overscan = 0;
+        assert_eq!(grid.visible_rows(), (0, 0));
+        assert_eq!(grid.viewport_height(56.0).visible_rows(), (0, 2));
     }
 
     #[test]

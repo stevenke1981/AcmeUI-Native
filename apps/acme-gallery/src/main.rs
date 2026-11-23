@@ -1015,7 +1015,9 @@ impl Gallery {
                                 .child(
                                     scroll_view("percent_height")
                                         .h(Length::Percent(0.5))
-                                        .child(label("ScrollView at 50% of an 80 px column"))
+                                        .child(label("40 px viewport"))
+                                        .child(label("Second line"))
+                                        .child(label("Below the viewport"))
                                         .build(),
                                 )
                                 .build(),
