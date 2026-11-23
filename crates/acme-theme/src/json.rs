@@ -4,7 +4,7 @@ use std::fmt::{self, Write as _};
 
 use crate::{
     AnimationTokens, ColorTokens, ControlHeights, RadiusTokens, ShadowDef, ShadowTokens,
-    SpacingTokens, Theme, ThemeColor, ThemeMode, TypographyTokens,
+    SpacingTokens, Theme, ThemeColor, ThemeMode, TypographyTokens, contrast_ratio,
 };
 
 const MAX_JSON_DEPTH: usize = 64;
@@ -106,6 +106,9 @@ impl Theme {
 
     /// Parse a [`Theme`] from JSON, allowing partial overrides over the resolved
     /// [`Theme::light`] or [`Theme::dark`] defaults.
+    /// When an accent color is overridden, an omitted `selection_foreground` inherits
+    /// `accent_foreground`. An omitted `disabled_foreground` keeps its default
+    /// when it meets 4.5:1 contrast on `disabled_bg`, or uses black or white.
     pub fn from_json(input: &str) -> Result<Theme, ThemeJsonError> {
         let root = parse_json(input)?;
         let entries = root
@@ -122,10 +125,28 @@ impl Theme {
             ThemeMode::Dark => Theme::dark(),
         };
 
+        let mut accent_overridden = false;
+        let mut selection_foreground_overridden = false;
+        let mut disabled_foreground_overridden = false;
         for (key, value) in entries {
             match key.as_str() {
                 "mode" => {} // Already resolved above.
-                "colors" => apply_colors(&mut theme.colors, value)?,
+                "colors" => {
+                    let colors = value
+                        .as_object()
+                        .ok_or_else(|| ThemeJsonError::new("section 'colors' must be an object"))?;
+                    for (name, color) in colors {
+                        if let Some(target) = color_field_mut(&mut theme.colors, name) {
+                            *target = parse_color(color, &format!("colors.{name}"))?;
+                            match name.as_str() {
+                                "accent" | "accent_foreground" => accent_overridden = true,
+                                "selection_foreground" => selection_foreground_overridden = true,
+                                "disabled_foreground" => disabled_foreground_overridden = true,
+                                _ => {}
+                            }
+                        }
+                    }
+                }
                 "spacing" => {
                     apply_f32_section(&mut theme.spacing, value, "spacing", spacing_field_mut)?
                 }
@@ -146,6 +167,24 @@ impl Theme {
                 )?,
                 _ => {}
             }
+        }
+
+        let colors = &mut theme.colors;
+        if accent_overridden && !selection_foreground_overridden {
+            colors.selection_foreground = colors.accent_foreground;
+        }
+        let disabled_bg = colors.disabled_bg;
+        if !disabled_foreground_overridden
+            && contrast_ratio(colors.disabled_foreground, disabled_bg) < 4.5
+        {
+            let black = ThemeColor::rgb(0, 0, 0);
+            let white = ThemeColor::rgb(255, 255, 255);
+            colors.disabled_foreground =
+                if contrast_ratio(black, disabled_bg) >= contrast_ratio(white, disabled_bg) {
+                    black
+                } else {
+                    white
+                };
         }
 
         theme
@@ -521,18 +560,6 @@ fn parse_color(value: &JsonValue, context: &str) -> Result<ThemeColor, ThemeJson
     let alpha = alpha.unwrap_or(1.0);
 
     Ok(ThemeColor::rgba(red, green, blue, alpha))
-}
-
-fn apply_colors(colors: &mut ColorTokens, value: &JsonValue) -> Result<(), ThemeJsonError> {
-    let entries = value
-        .as_object()
-        .ok_or_else(|| ThemeJsonError::new("section 'colors' must be an object"))?;
-    for (key, val) in entries {
-        if let Some(target) = color_field_mut(colors, key) {
-            *target = parse_color(val, &format!("colors.{key}"))?;
-        }
-    }
-    Ok(())
 }
 
 fn apply_f32_section<T>(
@@ -1002,6 +1029,55 @@ mod tests {
         expected.animation.fast_ms = 50;
         expected.control_heights.md = 36.0;
         assert_eq!(dark_override, expected);
+    }
+
+    #[test]
+    fn omitted_selection_foreground_follows_overridden_accent_colors() {
+        let theme = Theme::from_json(
+            r#"{"colors": {
+                "accent": { "red": 0.02, "green": 0.12, "blue": 0.3 },
+                "accent_foreground": { "red": 1, "green": 1, "blue": 1 }
+            }}"#,
+        )
+        .unwrap();
+        let (bg, fg) = theme.selected_item_colors();
+        assert_eq!(bg, ThemeColor::rgba(0.02, 0.12, 0.3, 1.0));
+        assert_eq!(fg, theme.colors.accent_foreground);
+        assert!(theme.contrast(fg, bg) >= 4.5);
+    }
+
+    #[test]
+    fn explicit_selection_foreground_is_preserved_and_validated() {
+        let input = r#"{"colors": {
+            "accent": { "red": 0, "green": 0, "blue": 0 },
+            "accent_foreground": { "red": 1, "green": 1, "blue": 1 },
+            "selection_foreground": { "red": 0.8, "green": 0.8, "blue": 0.8 }
+        }}"#;
+        let theme = Theme::from_json(input).unwrap();
+        assert_eq!(
+            theme.selected_item_colors().1,
+            ThemeColor::rgba(0.8, 0.8, 0.8, 1.0)
+        );
+        assert!(Theme::from_json(&input.replace("0.8", "0.02")).is_err());
+    }
+
+    #[test]
+    fn omitted_disabled_foreground_stays_readable_on_custom_backgrounds() {
+        for (mode, shade) in [("light", 0.05), ("dark", 0.95)] {
+            let theme = Theme::from_json(&format!(
+                r#"{{"mode": "{mode}", "colors": {{
+                    "disabled_bg": {{ "red": {shade}, "green": {shade}, "blue": {shade} }}
+                }}}}"#,
+            ))
+            .unwrap();
+            assert_eq!(
+                theme.colors.disabled_bg,
+                ThemeColor::rgba(shade, shade, shade, 1.0)
+            );
+            assert!(
+                theme.contrast(theme.colors.disabled_foreground, theme.colors.disabled_bg) >= 4.5
+            );
+        }
     }
 
     #[test]

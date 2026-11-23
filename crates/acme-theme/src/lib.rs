@@ -362,6 +362,7 @@ pub struct Theme {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ThemeValidationError {
+    /// A color channel is invalid or selected text fails AA contrast.
     InvalidColor,
     InvalidSpacing,
     InvalidRadius,
@@ -460,6 +461,7 @@ impl Theme {
             .all(|(_, _, level)| level.meets_aa())
     }
 
+    /// Validate token values and require 4.5:1 contrast for selected text on the accent.
     pub fn validate(&self) -> Result<(), ThemeValidationError> {
         let c = &self.colors;
         let color_fields = [
@@ -537,6 +539,10 @@ impl Theme {
         .any(|v| !v.is_finite() || v <= 0.0)
         {
             return Err(ThemeValidationError::InvalidTypography);
+        }
+        let (selected_bg, selected_fg) = self.selected_item_colors();
+        if !ContrastLevel::from_ratio(contrast_ratio(selected_fg, selected_bg)).meets_aa() {
+            return Err(ThemeValidationError::InvalidColor);
         }
         Ok(())
     }
@@ -894,6 +900,17 @@ mod tests {
             bad_type.validate(),
             Err(ThemeValidationError::InvalidTypography)
         );
+    }
+
+    #[test]
+    fn validate_rejects_selection_contrast_below_aa_for_normal_text() {
+        let mut theme = Theme::light();
+        theme.colors.accent = ThemeColor::rgb(0, 0, 0);
+        theme.colors.selection_foreground = ThemeColor::rgb(112, 112, 112);
+        assert!(theme.validate().is_err());
+
+        theme.colors.selection_foreground = ThemeColor::rgb(117, 117, 117);
+        assert_eq!(theme.validate(), Ok(()));
     }
 
     #[test]
