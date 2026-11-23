@@ -1740,7 +1740,13 @@ impl Gallery {
                     "Typography Scale",
                     column()
                         .gap(8.0)
-                        .child(label_with_size("Heading 1 (h1) — 28px  Page title", 28.0))
+                        .child(
+                            Styled::font_size(
+                                acme_widgets::label_builder("Heading 1 (h1) — 28px  Page title"),
+                                28.0,
+                            )
+                            .build(),
+                        )
                         .child(label_with_size(
                             "Heading 2 (h2) — 22px  Section title",
                             22.0,
@@ -3949,6 +3955,58 @@ fn intersect_clip(rect: [f32; 4], clip: [f32; 4]) -> [f32; 4] {
 #[cfg(test)]
 mod intrinsic_label_tests {
     use super::*;
+
+    #[test]
+    fn styled_font_size_changes_shaped_label_width_and_minimum_height() {
+        let text = "Styled label";
+        let normal = acme_widgets::label_builder::<()>(text)
+            .font_size(14.0)
+            .build();
+        let large = Styled::font_size(
+            acme_widgets::label_builder::<()>(text).font_size(14.0),
+            28.0,
+        )
+        .build();
+        let context = WidgetLayoutContext {
+            body_font_size: 14.0,
+            body_line_height: 21.0,
+            label_font_size: 13.0,
+            control_height: 36.0,
+            scale_factor: 1.0,
+        };
+        let mut fonts = acme_text::FontSystem::new();
+        let expected = acme_layout::measure_text(
+            text,
+            &mut fonts,
+            &acme_text::TextStyle {
+                font_size: 28.0,
+                line_height: context.body_line_height,
+                ..Default::default()
+            },
+            1.0,
+            None,
+        );
+        let id = NodeId::new(1);
+        let mut engine = acme_layout::LayoutEngine::new();
+        let normal_snapshot = engine
+            .compute_with_text(&normal.to_layout(id), (400.0, 100.0), &mut fonts, 1.0)
+            .unwrap();
+        let natural_width = normal_snapshot.get(id).unwrap().width;
+        assert!(natural_width > 0.0);
+
+        for layout in [
+            large.to_layout(id),
+            large.to_layout_with_context(id, &context),
+        ] {
+            let snapshot = engine
+                .compute_with_text(&layout, (400.0, 100.0), &mut fonts, 1.0)
+                .unwrap();
+            let bounds = snapshot.get(id).unwrap();
+            assert!((bounds.width - expected.width).abs() <= 1.0);
+            assert!(bounds.width > natural_width);
+            assert_eq!(bounds.height, 42.0);
+        }
+    }
 
     #[test]
     fn row_preserves_intrinsic_cjk_label_unless_truncation_is_enabled() {
