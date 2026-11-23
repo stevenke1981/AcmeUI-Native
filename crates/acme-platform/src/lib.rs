@@ -466,9 +466,9 @@ pub trait Application: 'static {
     /// Called when the application should update the IME cursor area for a window.
     ///
     /// `rect` is `[x, y, width, height]` in logical pixels relative to the window's
-    /// client area. The framework calls this during IME composition after resolving
-    /// the area via [`Application::ime_cursor_area`] (app-authoritative) with a
-    /// mouse-position fallback. Existing apps may ignore this notification.
+    /// client area. The framework calls this before updating the native candidate
+    /// window. IME disable and native window focus loss report a zero rectangle.
+    /// Existing apps may ignore this notification.
     fn set_ime_cursor_area(&mut self, _window: WindowId, _rect: [f32; 4]) {}
 
     /// Return the preferred IME candidate area for `window` in logical pixels
@@ -477,6 +477,10 @@ pub trait Application: 'static {
     /// `None` means the platform should use its fallback (mouse cursor position).
     /// Apps with a focused text field should return the caret rectangle so the
     /// system IME candidate window tracks the text caret rather than the pointer.
+    /// The runtime queries this after delivering IME enable, preedit (including
+    /// empty preedit), commit, and native window focus gain to [`Application::event`].
+    /// Update the caret geometry during that callback so it is available before
+    /// the next frame.
     fn ime_cursor_area(&self, _window: WindowId) -> Option<[f32; 4]> {
         None
     }
@@ -599,18 +603,26 @@ pub fn resolve_ime_cursor_area(app_rect: Option<[f32; 4]>, mouse: (f32, f32)) ->
     app_rect.unwrap_or([mouse.0, mouse.1, 1.0, 24.0])
 }
 
-fn apply_ime_cursor_area(
+fn dispatch_ime_cursor_event(
     app: &mut dyn Application,
-    window: &Window,
     win_id: WindowId,
+    event: PlatformEvent,
     mouse: (f32, f32),
-) {
-    let rect = resolve_ime_cursor_area(app.ime_cursor_area(win_id), mouse);
-    app.set_ime_cursor_area(win_id, rect);
-    window.set_ime_cursor_area(
-        LogicalPosition::new(rect[0] as f64, rect[1] as f64),
-        LogicalSize::new(rect[2] as f64, rect[3] as f64),
+    apply_area: impl FnOnce([f32; 4]),
+) -> bool {
+    let reset = matches!(
+        event,
+        PlatformEvent::ImeDisabled(_) | PlatformEvent::FocusChanged { gained: false, .. }
     );
+    let dirty = app.event(event);
+    let rect = if reset {
+        [0.0; 4]
+    } else {
+        resolve_ime_cursor_area(app.ime_cursor_area(win_id), mouse)
+    };
+    app.set_ime_cursor_area(win_id, rect);
+    apply_area(rect);
+    dirty
 }
 
 // Renderer dispatch is private: Application always emits the same backend-neutral Scene.
@@ -916,7 +928,11 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                 handle_cursor_left(app, windows, id);
             }
             WindowEvent::Focused(gained) => {
-                handle_focus(app, windows, id, gained);
+                handle_ime_cursor_event(app, windows, id, |window| PlatformEvent::FocusChanged {
+                    window,
+                    gained,
+                    node_id: 0,
+                });
             }
             WindowEvent::MouseInput {
                 state: ms_state,
@@ -937,17 +953,17 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
             } => {
                 handle_keyboard(app, windows, id, key_event);
             }
-            WindowEvent::Ime(Ime::Enabled) => {
-                handle_ime_enabled(app, windows, id);
-            }
-            WindowEvent::Ime(Ime::Disabled) => {
-                handle_ime_disabled(app, windows, id);
-            }
-            WindowEvent::Ime(Ime::Preedit(text, cursor)) => {
-                handle_ime_preedit(app, windows, id, text, cursor);
-            }
-            WindowEvent::Ime(Ime::Commit(text)) => {
-                handle_ime_commit(app, windows, id, text);
+            WindowEvent::Ime(ime) => {
+                handle_ime_cursor_event(app, windows, id, |window| match ime {
+                    Ime::Enabled => PlatformEvent::ImeEnabled(window),
+                    Ime::Disabled => PlatformEvent::ImeDisabled(window),
+                    Ime::Preedit(text, cursor) => PlatformEvent::ImePreedit {
+                        window,
+                        text,
+                        cursor,
+                    },
+                    Ime::Commit(text) => PlatformEvent::ImeCommit { window, text },
+                });
             }
             WindowEvent::DroppedFile(path) => {
                 handle_file_drop(app, windows, id, path);
@@ -1429,6 +1445,130 @@ mod tests {
         let app = CaretApp;
         let resolved = resolve_ime_cursor_area(app.ime_cursor_area(WindowId(0)), (1.0, 2.0));
         assert_eq!(resolved, [10.0, 20.0, 3.0, 24.0]);
+    }
+
+    #[test]
+    fn ime_candidate_area_uses_same_event_geometry() {
+        const EDITOR: WindowId = WindowId(1);
+        const OTHER: WindowId = WindowId(2);
+        const CARET: [f32; 4] = [56.0, 20.0, 1.0, 24.0];
+        const WRAPPED: [f32; 4] = [12.0, 44.0, 1.0, 24.0];
+        const COMMITTED: [f32; 4] = [28.0, 44.0, 1.0, 24.0];
+        const OTHER_CARET: [f32; 4] = [24.0, 72.0, 1.0, 24.0];
+
+        struct EditorApp {
+            caret: [f32; 4],
+            other_caret: Option<[f32; 4]>,
+            notified: Option<(WindowId, [f32; 4])>,
+        }
+        impl Application for EditorApp {
+            fn event(&mut self, event: PlatformEvent) -> bool {
+                match event {
+                    PlatformEvent::ImePreedit {
+                        window: EDITOR,
+                        text,
+                        ..
+                    } => {
+                        self.caret = if text.is_empty() { CARET } else { WRAPPED };
+                    }
+                    PlatformEvent::ImeCommit { window: EDITOR, .. } => self.caret = COMMITTED,
+                    PlatformEvent::FocusChanged {
+                        window: OTHER,
+                        gained: true,
+                        ..
+                    } => {
+                        self.other_caret = Some(OTHER_CARET);
+                    }
+                    _ => {}
+                }
+                false
+            }
+
+            fn ime_cursor_area(&self, window: WindowId) -> Option<[f32; 4]> {
+                if window == EDITOR {
+                    Some(self.caret)
+                } else {
+                    self.other_caret
+                }
+            }
+
+            fn set_ime_cursor_area(&mut self, window: WindowId, rect: [f32; 4]) {
+                self.notified = Some((window, rect));
+            }
+
+            fn frame(&mut self, _: FrameContext) -> Scene {
+                panic!("IME positioning must not wait for a frame")
+            }
+        }
+
+        let mut app = EditorApp {
+            caret: CARET,
+            other_caret: None,
+            notified: None,
+        };
+        let mut dispatch = |window, event, expected| {
+            app.notified = None;
+            let mut applied = Vec::new();
+            let dirty =
+                dispatch_ime_cursor_event(&mut app, window, event, (900.0, 800.0), |rect| {
+                    applied.push(rect);
+                });
+            assert!(!dirty, "candidate placement does not depend on a redraw");
+            assert_eq!(applied, [expected]);
+            assert_eq!(app.notified, Some((window, expected)));
+        };
+
+        dispatch(
+            OTHER,
+            PlatformEvent::ImeEnabled(OTHER),
+            [900.0, 800.0, 1.0, 24.0],
+        );
+        dispatch(EDITOR, PlatformEvent::ImeEnabled(EDITOR), CARET);
+        dispatch(
+            EDITOR,
+            PlatformEvent::ImePreedit {
+                window: EDITOR,
+                text: "測試組字".into(),
+                cursor: None,
+            },
+            WRAPPED,
+        );
+        dispatch(
+            EDITOR,
+            PlatformEvent::ImePreedit {
+                window: EDITOR,
+                text: String::new(),
+                cursor: None,
+            },
+            CARET,
+        );
+        dispatch(
+            EDITOR,
+            PlatformEvent::ImeCommit {
+                window: EDITOR,
+                text: "測".into(),
+            },
+            COMMITTED,
+        );
+        dispatch(EDITOR, PlatformEvent::ImeDisabled(EDITOR), [0.0; 4]);
+        dispatch(
+            EDITOR,
+            PlatformEvent::FocusChanged {
+                window: EDITOR,
+                gained: false,
+                node_id: 0,
+            },
+            [0.0; 4],
+        );
+        dispatch(
+            OTHER,
+            PlatformEvent::FocusChanged {
+                window: OTHER,
+                gained: true,
+                node_id: 0,
+            },
+            OTHER_CARET,
+        );
     }
 
     #[test]
@@ -2262,26 +2402,6 @@ fn handle_cursor_left(
     }
 }
 
-fn handle_focus(
-    app: &mut dyn Application,
-    windows: &mut HashMap<WinitWindowId, WindowState>,
-    id: WinitWindowId,
-    gained: bool,
-) {
-    if let Some(state) = windows.get_mut(&id) {
-        let win_id = state.id;
-        let dirty = app.event(PlatformEvent::FocusChanged {
-            window: win_id,
-            gained,
-            node_id: 0,
-        });
-        state.dirty |= dirty;
-        if state.dirty {
-            state.window.request_redraw();
-        }
-    }
-}
-
 fn handle_mouse_input(
     app: &mut dyn Application,
     windows: &mut HashMap<WinitWindowId, WindowState>,
@@ -2553,79 +2673,19 @@ fn apply_window_request(window: &Window, request: WindowRequest) {
     }
 }
 
-fn handle_ime_enabled(
+fn handle_ime_cursor_event(
     app: &mut dyn Application,
     windows: &mut HashMap<WinitWindowId, WindowState>,
     id: WinitWindowId,
+    event: impl FnOnce(WindowId) -> PlatformEvent,
 ) {
     if let Some(state) = windows.get_mut(&id) {
         let win_id = state.id;
-        let dirty = app.event(PlatformEvent::ImeEnabled(win_id));
-        state.dirty |= dirty;
-        // App-authoritative caret rect; mouse only as fallback.
-        let mouse = state.cursor;
-        apply_ime_cursor_area(app, &state.window, win_id, mouse);
-        if state.dirty {
-            state.window.request_redraw();
-        }
-    }
-}
-
-fn handle_ime_disabled(
-    app: &mut dyn Application,
-    windows: &mut HashMap<WinitWindowId, WindowState>,
-    id: WinitWindowId,
-) {
-    if let Some(state) = windows.get_mut(&id) {
-        let win_id = state.id;
-        let dirty = app.event(PlatformEvent::ImeDisabled(win_id));
-        state.dirty |= dirty;
-        // Reset IME cursor area to origin when IME is disabled
-        app.set_ime_cursor_area(win_id, [0.0, 0.0, 0.0, 0.0]);
-        state
-            .window
-            .set_ime_cursor_area(LogicalPosition::new(0.0, 0.0), LogicalSize::new(0.0, 0.0));
-        if state.dirty {
-            state.window.request_redraw();
-        }
-    }
-}
-
-fn handle_ime_preedit(
-    app: &mut dyn Application,
-    windows: &mut HashMap<WinitWindowId, WindowState>,
-    id: WinitWindowId,
-    text: String,
-    cursor: Option<(usize, usize)>,
-) {
-    if let Some(state) = windows.get_mut(&id) {
-        let win_id = state.id;
-        // Prefer app caret geometry over mouse during composition.
-        let mouse = state.cursor;
-        apply_ime_cursor_area(app, &state.window, win_id, mouse);
-        let dirty = app.event(PlatformEvent::ImePreedit {
-            window: win_id,
-            text,
-            cursor,
-        });
-        state.dirty |= dirty;
-        if state.dirty {
-            state.window.request_redraw();
-        }
-    }
-}
-
-fn handle_ime_commit(
-    app: &mut dyn Application,
-    windows: &mut HashMap<WinitWindowId, WindowState>,
-    id: WinitWindowId,
-    text: String,
-) {
-    if let Some(state) = windows.get_mut(&id) {
-        let win_id = state.id;
-        let dirty = app.event(PlatformEvent::ImeCommit {
-            window: win_id,
-            text,
+        let dirty = dispatch_ime_cursor_event(app, win_id, event(win_id), state.cursor, |rect| {
+            state.window.set_ime_cursor_area(
+                LogicalPosition::new(f64::from(rect[0]), f64::from(rect[1])),
+                LogicalSize::new(f64::from(rect[2]), f64::from(rect[3])),
+            );
         });
         state.dirty |= dirty;
         if state.dirty {

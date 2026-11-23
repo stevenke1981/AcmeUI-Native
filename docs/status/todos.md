@@ -1,6 +1,6 @@
 # Todos
 
-## QBoss framework requests FW-01–09
+## QBoss framework requests FW-01–10
 
 - [x] Row/Column cross-axis alignment, main-axis distribution, and flex wrapping (FW-01, FW-02, FW-06).
 - [x] Preserve intrinsic Label width by default and opt in to an ellipsis (FW-04).
@@ -21,6 +21,10 @@
   measurements up to avoid clipping fractional advances. Test pixel-aligned
   layout across seven sizes, family changes, and a mixed Traditional Chinese
   and ASCII label in the headless Typography Gallery test (PR #86 review).
+- [x] Deliver IME events before reading the application caret and set the
+  candidate area during the same dispatch (FW-10). Cover wrapping, cancellation,
+  commit and window focus in the platform tests, and preedit scrolling in the
+  headless Gallery. Native IME acceptance remains pending.
 
 ## ROADMAP 064 — Surface finishes, segmented selection, and window lifetime (2026-11-18)
 
