@@ -335,6 +335,38 @@ fn ime_caret_stays_inside_the_field_when_text_overflows() {
     }
 }
 
+#[test]
+fn ime_area_is_current_during_preedit_scroll_and_cancel_without_a_frame() {
+    let mut gallery = Gallery::new();
+    select(&mut gallery, TEXT_INPUT_PAGE);
+    bring_text_input_into_view(&mut gallery, 1.0);
+    focus_text_input(&mut gallery);
+    let window = WindowId(0);
+    gallery.event(PlatformEvent::ImeCommit {
+        window,
+        text: "abc".into(),
+    });
+    let before = caret_rect(&gallery);
+
+    gallery.event(PlatformEvent::ImePreedit {
+        window,
+        text: "Zhuyin注音".repeat(40),
+        cursor: None,
+    });
+    assert!(gallery.text_input.scroll_offset > 0.0);
+    assert!(caret_rect(&gallery)[0] < before[0]);
+    assert_eq!(gallery.text_input.text, "abc");
+
+    gallery.event(PlatformEvent::ImePreedit {
+        window,
+        text: String::new(),
+        cursor: None,
+    });
+    assert_eq!(caret_rect(&gallery), before);
+    assert!(gallery.text_input.preedit.is_empty());
+    assert_eq!(gallery.text_input.text, "abc");
+}
+
 /// Measurement report (not a gate): prints the largest logical drift per page
 /// and scale, and the caret drift on the TextInput page. Run with
 /// `cargo test -p acme-gallery dpi_tests::measure_drift_report -- --ignored --nocapture`.
