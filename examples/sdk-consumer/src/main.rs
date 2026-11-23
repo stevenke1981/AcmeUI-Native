@@ -296,16 +296,11 @@ impl SceneRenderer<'_, '_> {
                     BORDER_WIDTH,
                     theme_color(resolved.border),
                 );
-                let fg = if button.disabled {
-                    colors.disabled_text
-                } else {
-                    resolved.foreground
-                };
                 self.draw_text(
                     &button.label,
                     rect,
                     self.theme.typography.label,
-                    fg,
+                    resolved.foreground,
                     Align::Center,
                 );
                 self.hit_layer.push_region(
@@ -424,6 +419,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use acme_core::DrawCommand;
 
     #[test]
     fn frame_scene_is_non_empty_without_opening_a_window() {
@@ -435,6 +431,43 @@ mod tests {
 
         assert!(!scene.commands().is_empty(), "scene has no draw commands");
         scene.validate().expect("scene should be valid");
+    }
+
+    #[test]
+    fn disabled_button_paints_the_disabled_foreground() {
+        let mut app = ConsumerApp::new();
+        let widget = WidgetNode::from(
+            button::<ConsumerMessage>("disabled", "Disabled")
+                .primary()
+                .disabled(true),
+        );
+        let layout = widget.to_layout(NodeId::new(1));
+        let snapshot = app.layout.compute(&layout, (200.0, 60.0)).unwrap();
+        app.atlas.begin_frame();
+        let mut painter = Painter::new();
+        SceneRenderer {
+            snapshot: &snapshot,
+            theme: &app.theme,
+            fonts: &mut app.fonts,
+            atlas: &mut app.atlas,
+            scale_factor: 1.0,
+            hovered_id: None,
+            pressed_id: None,
+            painter: &mut painter,
+            hit_layer: &mut app.hit_layer,
+            button_id: &mut app.button_id,
+        }
+        .paint(&widget, &layout);
+
+        let scene = painter.finish_checked().unwrap();
+        let text = scene.commands().iter().find_map(|command| match command {
+            DrawCommand::Text(text) => Some(text),
+            _ => None,
+        });
+        assert_eq!(
+            text.expect("disabled button label must be painted").color,
+            theme_color(app.theme.colors.disabled_foreground)
+        );
     }
 
     #[test]

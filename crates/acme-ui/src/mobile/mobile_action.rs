@@ -67,7 +67,7 @@ impl<M: Clone + 'static> From<MobileActionBuilder<M>> for WidgetNode<M> {
             ColorToken::Surface
         };
         let foreground = if b.disabled {
-            ColorToken::DisabledText
+            ColorToken::DisabledForeground
         } else if b.destructive {
             ColorToken::Danger
         } else {

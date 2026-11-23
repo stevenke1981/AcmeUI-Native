@@ -62,7 +62,7 @@ fn defaults_and_public_states_control_activation_and_semantic_colours() {
                     assert_eq!(
                         l.style.text_color,
                         Some(if disabled {
-                            ColorToken::DisabledText
+                            ColorToken::DisabledForeground
                         } else if destructive {
                             ColorToken::Danger
                         } else {
