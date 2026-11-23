@@ -120,30 +120,31 @@ pub fn render_content(
             }
         }
         WidgetNode::Button(btn) => {
-            if btn.activate().is_none() {
-                return;
-            }
             if let Some(rect) = snapshot.get(layout.id) {
                 let y = rect.y - scroll_y;
-                let idx = *btn_idx;
-                *btn_idx += 1;
-                let st = ButtonState {
-                    hovered: hovered == Some(idx),
-                    pressed: pressed == Some(idx),
-                    focused: focused == idx,
+                let st = if btn.activate().is_some() {
+                    let idx = *btn_idx;
+                    *btn_idx += 1;
+                    ButtonState {
+                        hovered: hovered == Some(idx),
+                        pressed: pressed == Some(idx),
+                        focused: focused == idx,
+                    }
+                } else {
+                    ButtonState::default()
                 };
                 let resolved = btn.resolve_style(theme, st);
                 painter.rect(
                     Rect::new(rect.x, y, rect.width, rect.height),
                     rect_style(
                         resolved.background,
-                        theme.radii.md,
+                        btn.style.border_radius.unwrap_or(theme.radii.md),
                         if st.focused && show_focus_rings {
                             2.0
                         } else {
-                            1.0
+                            btn.resolved_border_width()
                         },
-                        if st.focused {
+                        if st.focused && show_focus_rings {
                             resolved.focus
                         } else {
                             resolved.border

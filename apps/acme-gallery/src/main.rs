@@ -712,9 +712,7 @@ impl Gallery {
                     "Button Variants",
                     column()
                         .gap(12.0)
-                        .child(label(
-                            "Four tone variants cover common interaction patterns:",
-                        ))
+                        .child(label("Button variants and controlled selection:"))
                         .child(
                             row()
                                 .gap(8.0)
@@ -735,6 +733,18 @@ impl Gallery {
                                 .child(
                                     button("iv_danger", "Danger")
                                         .variant(ButtonVariant::Danger)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("iv_subtle", "Subtle")
+                                        .variant(ButtonVariant::Subtle)
+                                        .selected(false)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("iv_selected", "Selected")
+                                        .variant(ButtonVariant::Subtle)
+                                        .selected(true)
                                         .on_click(GalleryMessage::DpiInfo),
                                 )
                                 .build(),
@@ -3193,10 +3203,7 @@ fn render_content_painter(
                     Rect::new(rect.x, y, rect.width, rect.height),
                     RectStyle::solid(theme_color(resolved.background))
                         .radius(btn.style.border_radius.unwrap_or(theme.radii.md))
-                        .border(
-                            btn.style.border_width.unwrap_or(1.0),
-                            theme_color(resolved.border),
-                        ),
+                        .border(btn.resolved_border_width(), theme_color(resolved.border)),
                 );
                 let shaped = fonts.shape(
                     &btn.label,
@@ -3544,7 +3551,7 @@ fn render_content(
                         [rect.x, y, rect.width, rect.height],
                         resolved.background,
                         btn.style.border_radius.unwrap_or(theme.radii.md),
-                        btn.style.border_width.unwrap_or(1.0),
+                        btn.resolved_border_width(),
                         resolved.border,
                     ),
                     clip,

@@ -1036,6 +1036,7 @@ mod tests {
                 ButtonVariant::Secondary,
                 ButtonVariant::Danger,
                 ButtonVariant::Ghost,
+                ButtonVariant::Subtle,
             ] {
                 let b = button::<Msg>("b", "b").variant(variant);
                 for (label, state) in [
@@ -1056,7 +1057,7 @@ mod tests {
                     ),
                 ] {
                     let s = b.resolve_style(theme, state);
-                    let bg = if variant == ButtonVariant::Ghost && label == "rest" {
+                    let bg = if s.background.alpha == 0.0 {
                         theme.colors.background
                     } else {
                         s.background
@@ -1088,6 +1089,50 @@ mod tests {
             failures.join("\n")
         );
     }
+    #[test]
+    fn subtle_button_selection_and_styled_overrides_survive_build() {
+        use acme_style::{ColorToken, Styled};
+        let theme = Theme::light();
+        let builder = button::<()>("choice", "Choice").variant(ButtonVariant::Subtle);
+        let unselected = builder.clone().selected(false);
+        assert!(!unselected.is_selected());
+        assert_eq!(unselected.accessibility_toggled(), Some(false));
+        assert_eq!(unselected.resolved_border_width(), 0.0);
+        assert_eq!(
+            unselected
+                .resolve_style(&theme, ButtonState::default())
+                .background
+                .alpha,
+            0.0
+        );
+
+        let selected = builder.selected(true);
+        assert!(selected.is_selected());
+        assert_eq!(selected.accessibility_toggled(), Some(true));
+        let style = selected.resolve_style(&theme, ButtonState::default());
+        assert_eq!(
+            (style.background, style.foreground),
+            theme.selected_item_colors()
+        );
+
+        let node = selected
+            .bg(ColorToken::Surface)
+            .text_color(ColorToken::Primary)
+            .border_width(2.0)
+            .on_click(());
+        let WidgetNode::Button(b) = node else {
+            panic!("expected Button")
+        };
+        assert_eq!(b.activate(), Some(&()));
+        assert_eq!(b.style.background, Some(ColorToken::Surface));
+        assert_eq!(b.style.text_color, Some(ColorToken::Primary));
+        assert_eq!(b.style.border_width, Some(2.0));
+        assert_eq!(b.resolved_border_width(), 2.0);
+        let style = b.resolve_style(&theme, ButtonState::default());
+        assert_eq!(style.background, theme.colors.surface);
+        assert_eq!(style.foreground, theme.colors.primary);
+    }
+
     #[test]
     fn button_resolve_style_has_no_hardcoded_colors() {
         let src = include_str!("inputs/button.rs");

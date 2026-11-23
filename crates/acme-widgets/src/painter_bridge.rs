@@ -534,8 +534,8 @@ fn paint_tree_inner<M>(
                 painter.rect(
                     rect,
                     RectStyle::solid(theme_color(resolved.background))
-                        .radius(theme.radii.md)
-                        .border(1.0, theme_color(resolved.border)),
+                        .radius(b.style.border_radius.unwrap_or(theme.radii.md))
+                        .border(b.resolved_border_width(), theme_color(resolved.border)),
                 );
             }
         }
