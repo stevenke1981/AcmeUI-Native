@@ -25,6 +25,7 @@ impl ThemePack for OneDarkPack {
             secondary_foreground: ThemeColor::rgb(56, 58, 66),
             accent: ThemeColor::rgb(166, 38, 164), // purple
             accent_foreground: ThemeColor::rgb(255, 255, 255),
+            selection_foreground: ThemeColor::rgb(255, 255, 255),
             muted: ThemeColor::rgb(240, 240, 242),
             muted_foreground: ThemeColor::rgb(106, 108, 115), // #6A6C73, AA on muted (062)
 
@@ -55,6 +56,7 @@ impl ThemePack for OneDarkPack {
 
             disabled_bg: ThemeColor::rgb(240, 240, 242),
             disabled_text: ThemeColor::rgb(160, 161, 167),
+            disabled_foreground: ThemeColor::rgb(107, 108, 112),
         };
         Theme::from_colors(
             ThemeMode::Light,
@@ -76,6 +78,7 @@ impl ThemePack for OneDarkPack {
             secondary_foreground: ThemeColor::rgb(171, 178, 191),
             accent: ThemeColor::rgb(198, 120, 221), // purple
             accent_foreground: ThemeColor::rgb(40, 44, 52),
+            selection_foreground: ThemeColor::rgb(40, 44, 52),
             muted: ThemeColor::rgb(33, 37, 43),
             muted_foreground: ThemeColor::rgb(141, 149, 162), // comment lightened to #8D95A2, AA on background (062 review)
 
@@ -106,6 +109,7 @@ impl ThemePack for OneDarkPack {
 
             disabled_bg: ThemeColor::rgb(33, 37, 43),
             disabled_text: ThemeColor::rgb(92, 99, 112),
+            disabled_foreground: ThemeColor::rgb(136, 141, 151),
         };
         Theme::from_colors(
             ThemeMode::Dark,

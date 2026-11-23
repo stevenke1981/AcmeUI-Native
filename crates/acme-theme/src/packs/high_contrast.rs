@@ -24,6 +24,7 @@ impl ThemePack for HighContrastPack {
             secondary_foreground: ThemeColor::rgb(0, 0, 0),
             accent: ThemeColor::rgb(214, 228, 255),
             accent_foreground: ThemeColor::rgb(0, 34, 102),
+            selection_foreground: ThemeColor::rgb(0, 34, 102),
             muted: ThemeColor::rgb(235, 235, 235),
             muted_foreground: ThemeColor::rgb(51, 51, 51),
 
@@ -54,6 +55,7 @@ impl ThemePack for HighContrastPack {
 
             disabled_bg: ThemeColor::rgb(235, 235, 235),
             disabled_text: ThemeColor::rgb(89, 89, 89),
+            disabled_foreground: ThemeColor::rgb(72, 72, 72),
         };
         Theme::from_colors(
             ThemeMode::Light,
@@ -75,6 +77,7 @@ impl ThemePack for HighContrastPack {
             secondary_foreground: ThemeColor::rgb(255, 255, 255),
             accent: ThemeColor::rgb(0, 59, 77),
             accent_foreground: ThemeColor::rgb(179, 245, 255),
+            selection_foreground: ThemeColor::rgb(179, 245, 255),
             muted: ThemeColor::rgb(20, 20, 20),
             muted_foreground: ThemeColor::rgb(212, 212, 212),
 
@@ -105,6 +108,7 @@ impl ThemePack for HighContrastPack {
 
             disabled_bg: ThemeColor::rgb(20, 20, 20),
             disabled_text: ThemeColor::rgb(140, 140, 140),
+            disabled_foreground: ThemeColor::rgb(170, 170, 170),
         };
         Theme::from_colors(
             ThemeMode::Dark,

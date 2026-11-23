@@ -165,6 +165,8 @@ pub struct ColorTokens {
     pub secondary_foreground: ThemeColor,
     pub accent: ThemeColor,
     pub accent_foreground: ThemeColor,
+    /// Text on the accent surface for a selected item.
+    pub selection_foreground: ThemeColor,
     pub muted: ThemeColor,
     pub muted_foreground: ThemeColor,
 
@@ -200,7 +202,16 @@ pub struct ColorTokens {
 
     // ── Disabled ──
     pub disabled_bg: ThemeColor,
+    /// Legacy disabled text token.
     pub disabled_text: ThemeColor,
+    /// Accessible disabled text on disabled_bg.
+    pub disabled_foreground: ThemeColor,
+}
+
+impl Default for ColorTokens {
+    fn default() -> Self {
+        Theme::light_colors().0
+    }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -435,7 +446,7 @@ impl Theme {
     pub fn wcag_report(&self) -> Vec<(&'static str, f32, ContrastLevel)> {
         let c = &self.colors;
         let (selected_bg, selected_fg) = self.selected_item_colors();
-        let pairs: [(&str, ThemeColor, ThemeColor); 7] = [
+        let pairs = [
             ("foreground/background", c.foreground, c.background),
             ("surface_fg/surface", c.surface_foreground, c.surface),
             ("primary_fg/primary", c.primary_foreground, c.primary),
@@ -447,6 +458,16 @@ impl Theme {
             ("muted_fg/muted", c.muted_foreground, c.muted),
             ("accent_fg/accent", c.accent_foreground, c.accent),
             ("selected_fg/selected_bg", selected_fg, selected_bg),
+            (
+                "selection_foreground/accent",
+                c.selection_foreground,
+                c.accent,
+            ),
+            (
+                "disabled_foreground/disabled_bg",
+                c.disabled_foreground,
+                c.disabled_bg,
+            ),
         ];
         pairs
             .into_iter()
@@ -501,6 +522,8 @@ impl Theme {
             c.ghost_pressed,
             c.disabled_bg,
             c.disabled_text,
+            c.disabled_foreground,
+            c.selection_foreground,
         ];
         if !color_fields.into_iter().all(ThemeColor::is_valid) {
             return Err(ThemeValidationError::InvalidColor);
@@ -628,6 +651,7 @@ impl Theme {
             secondary_foreground: ThemeColor::rgb(31, 41, 55), // #1F2937
             accent: ThemeColor::rgb(232, 240, 254), // #E8F0FE
             accent_foreground: ThemeColor::rgb(29, 78, 216), // #1D4ED8
+            selection_foreground: ThemeColor::rgb(29, 78, 216),
             muted: ThemeColor::rgb(244, 245, 247), // #F4F5F7
             muted_foreground: ThemeColor::rgb(104, 111, 125), // #686F7D, #6B7280 darkened for AA on muted (062)
 
@@ -664,6 +688,7 @@ impl Theme {
             // Disabled
             disabled_bg: ThemeColor::rgb(240, 241, 243), // #F0F1F3
             disabled_text: ThemeColor::rgb(156, 163, 175), // #9CA3AF
+            disabled_foreground: ThemeColor::rgb(103, 108, 116),
         };
 
         let shadow_base = ThemeColor::rgba(0.0, 0.0, 0.0, 1.0);
@@ -718,7 +743,8 @@ impl Theme {
             secondary_foreground: ThemeColor::rgb(226, 229, 234), // #E2E5EA
             accent: ThemeColor::rgb(25, 40, 67),    // #192843
             accent_foreground: ThemeColor::rgb(139, 180, 248), // #8BB4F8
-            muted: ThemeColor::rgb(22, 27, 34),     // #161B22
+            selection_foreground: ThemeColor::rgb(139, 180, 248),
+            muted: ThemeColor::rgb(22, 27, 34), // #161B22
             muted_foreground: ThemeColor::rgb(139, 146, 154), // #8B929A
 
             // Border & ring
@@ -754,6 +780,7 @@ impl Theme {
             // Disabled
             disabled_bg: ThemeColor::rgb(28, 33, 40), // #1C2128
             disabled_text: ThemeColor::rgb(75, 85, 99), // #4B5563
+            disabled_foreground: ThemeColor::rgb(131, 138, 147),
         };
 
         let shadow_base = ThemeColor::rgba(0.0, 0.0, 0.0, 1.0);
@@ -940,8 +967,7 @@ mod tests {
     #[test]
     fn wcag_report_covers_key_pairs() {
         let report = Theme::light().wcag_report();
-        // 7 pairs: the six token pairs plus the ROADMAP 060 selected-item pair.
-        assert_eq!(report.len(), 7);
+        assert_eq!(report.len(), 9);
         assert!(
             report
                 .iter()
@@ -975,6 +1001,30 @@ mod tests {
                 ratio >= 4.5,
                 "{label}: selected item fg/bg ratio {ratio:.2} must be >= 4.5"
             );
+        }
+    }
+
+    #[test]
+    fn state_foreground_tokens_have_aa_contrast_in_every_pack_and_mode() {
+        for (label, theme) in all_pack_themes() {
+            let c = theme.colors;
+            let report = theme.wcag_report();
+            for (name, fg, bg) in [
+                (
+                    "selection_foreground/accent",
+                    c.selection_foreground,
+                    c.accent,
+                ),
+                (
+                    "disabled_foreground/disabled_bg",
+                    c.disabled_foreground,
+                    c.disabled_bg,
+                ),
+            ] {
+                let ratio = contrast_ratio(fg, bg);
+                assert!(ratio >= 4.5, "{label} {name}: {ratio:.2}");
+                assert!(report.contains(&(name, ratio, ContrastLevel::from_ratio(ratio))));
+            }
         }
     }
 

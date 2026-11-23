@@ -1092,7 +1092,7 @@ mod tests {
         let style = selected.resolve_style(&theme, ButtonState::default());
         assert_eq!(
             (style.background, style.foreground),
-            theme.selected_item_colors()
+            (theme.colors.accent, theme.colors.selection_foreground)
         );
 
         let node = selected
@@ -1825,7 +1825,7 @@ mod tests {
         let theme = Theme::dark();
         let resolved = b.resolve_style(&theme, ButtonState::default());
         assert_eq!(resolved.background, theme.colors.disabled_bg);
-        assert_eq!(resolved.foreground, theme.colors.disabled_text);
+        assert_eq!(resolved.foreground, theme.colors.disabled_foreground);
     }
 
     // ------------------------------------------------------------------

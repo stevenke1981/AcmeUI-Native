@@ -1,5 +1,14 @@
 # Todos
 
+## QBoss framework requests FW-01–08
+
+- [x] Row/Column cross-axis alignment, main-axis distribution, and flex wrapping (FW-01, FW-02, FW-06).
+- [x] Preserve intrinsic Label width by default and opt in to an ellipsis (FW-04).
+- [x] Carry Label/Button text alignment through layout and into the painted text position (FW-03).
+- [x] Provide borderless Subtle buttons, controlled selection, and renderer-visible style overrides (FW-05).
+- [x] Accept percentage heights and flex growth in Table, DataGrid, and ScrollView layout (FW-07).
+- [x] Provide selection and disabled foreground tokens with AA contrast checks for every theme pack (FW-08).
+
 ## ROADMAP 064 — Surface finishes, segmented selection, and window lifetime (2026-11-18)
 
 - [x] Add themed metallic and glass finishes with an opt-in solid fallback and

@@ -204,13 +204,13 @@ impl<M> Button<M> {
     /// Uses V2 semantic color tokens from `acme-theme`.
     pub fn resolve_style(&self, theme: &Theme, state: ButtonState) -> ResolvedButtonStyle {
         let c = theme.colors;
-        let selected = (!self.disabled && self.is_selected()).then(|| theme.selected_item_colors());
+        let selected = !self.disabled && self.is_selected();
         let background = if let Some(bg) = self.style.background {
             bg.resolve(theme)
         } else if self.disabled {
             c.disabled_bg
-        } else if let Some((background, _)) = selected {
-            background
+        } else if selected {
+            c.accent
         } else if state.pressed {
             match self.variant {
                 ButtonVariant::Primary => c.primary_pressed,
@@ -242,11 +242,9 @@ impl<M> Button<M> {
             foreground: if let Some(fg) = self.style.text_color {
                 fg.resolve(theme)
             } else if self.disabled {
-                c.disabled_text
-            } else if let Some((_, foreground)) =
-                selected.filter(|_| self.style.background.is_none())
-            {
-                foreground
+                c.disabled_foreground
+            } else if selected && self.style.background.is_none() {
+                c.selection_foreground
             } else {
                 let candidates = match self.variant {
                     ButtonVariant::Primary | ButtonVariant::Danger => {

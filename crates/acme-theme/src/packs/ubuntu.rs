@@ -24,6 +24,7 @@ impl ThemePack for UbuntuPack {
             secondary_foreground: ThemeColor::rgb(17, 17, 17),
             accent: ThemeColor::rgb(119, 41, 83), // aubergine #772953
             accent_foreground: ThemeColor::rgb(255, 255, 255),
+            selection_foreground: ThemeColor::rgb(255, 255, 255),
             muted: ThemeColor::rgb(244, 244, 244),
             muted_foreground: ThemeColor::rgb(102, 102, 102),
 
@@ -54,6 +55,7 @@ impl ThemePack for UbuntuPack {
 
             disabled_bg: ThemeColor::rgb(238, 238, 238),
             disabled_text: ThemeColor::rgb(170, 170, 170),
+            disabled_foreground: ThemeColor::rgb(105, 105, 105),
         };
         let mut t = Theme::from_colors(
             ThemeMode::Light,
@@ -80,6 +82,7 @@ impl ThemePack for UbuntuPack {
             secondary_foreground: ThemeColor::rgb(255, 255, 255),
             accent: ThemeColor::rgb(153, 73, 110), // lighter aubergine
             accent_foreground: ThemeColor::rgb(255, 255, 255),
+            selection_foreground: ThemeColor::rgb(255, 255, 255),
             muted: ThemeColor::rgb(60, 60, 60),
             muted_foreground: ThemeColor::rgb(170, 170, 170),
 
@@ -110,6 +113,7 @@ impl ThemePack for UbuntuPack {
 
             disabled_bg: ThemeColor::rgb(72, 72, 72),
             disabled_text: ThemeColor::rgb(110, 110, 110),
+            disabled_foreground: ThemeColor::rgb(184, 184, 184),
         };
         let mut t = Theme::from_colors(
             ThemeMode::Dark,

@@ -24,6 +24,7 @@ impl ThemePack for MaterialPack {
             secondary_foreground: ThemeColor::rgb(29, 25, 43),
             accent: ThemeColor::rgb(232, 222, 248),
             accent_foreground: ThemeColor::rgb(103, 80, 164),
+            selection_foreground: ThemeColor::rgb(103, 80, 164),
             muted: ThemeColor::rgb(231, 224, 236),
             muted_foreground: ThemeColor::rgb(73, 69, 79),
 
@@ -54,6 +55,7 @@ impl ThemePack for MaterialPack {
 
             disabled_bg: ThemeColor::rgb(231, 224, 236),
             disabled_text: ThemeColor::rgb(150, 144, 156),
+            disabled_foreground: ThemeColor::rgb(102, 98, 106),
         };
         let mut t = Theme::from_colors(
             ThemeMode::Light,
@@ -81,6 +83,7 @@ impl ThemePack for MaterialPack {
             secondary_foreground: ThemeColor::rgb(232, 222, 248),
             accent: ThemeColor::rgb(74, 66, 92),
             accent_foreground: ThemeColor::rgb(208, 188, 255),
+            selection_foreground: ThemeColor::rgb(208, 188, 255),
             muted: ThemeColor::rgb(49, 48, 51),
             muted_foreground: ThemeColor::rgb(202, 196, 208),
 
@@ -111,6 +114,7 @@ impl ThemePack for MaterialPack {
 
             disabled_bg: ThemeColor::rgb(49, 48, 51),
             disabled_text: ThemeColor::rgb(90, 87, 95),
+            disabled_foreground: ThemeColor::rgb(154, 153, 157),
         };
         let mut t = Theme::from_colors(
             ThemeMode::Dark,

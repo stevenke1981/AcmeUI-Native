@@ -712,7 +712,7 @@ impl Gallery {
                     "Button Variants",
                     column()
                         .gap(12.0)
-                        .child(label("Button variants and controlled selection:"))
+                        .child(label("Button variants, selection, and disabled text:"))
                         .child(
                             row()
                                 .gap(8.0)
@@ -746,6 +746,10 @@ impl Gallery {
                                         .variant(ButtonVariant::Subtle)
                                         .selected(true)
                                         .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button::<GalleryMessage>("iv_disabled", "Disabled")
+                                        .disabled(true),
                                 )
                                 .build(),
                         )

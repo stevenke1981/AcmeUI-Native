@@ -24,6 +24,7 @@ impl ThemePack for Windows11Pack {
             secondary_foreground: ThemeColor::rgb(26, 26, 26),
             accent: ThemeColor::rgb(217, 232, 247),
             accent_foreground: ThemeColor::rgb(0, 103, 192),
+            selection_foreground: ThemeColor::rgb(0, 103, 192),
             muted: ThemeColor::rgb(243, 243, 243),
             muted_foreground: ThemeColor::rgb(96, 96, 96),
 
@@ -54,6 +55,7 @@ impl ThemePack for Windows11Pack {
 
             disabled_bg: ThemeColor::rgb(238, 238, 238),
             disabled_text: ThemeColor::rgb(160, 160, 160),
+            disabled_foreground: ThemeColor::rgb(106, 106, 106),
         };
         let mut t = Theme::from_colors(
             ThemeMode::Light,
@@ -81,6 +83,7 @@ impl ThemePack for Windows11Pack {
             secondary_foreground: ThemeColor::rgb(255, 255, 255),
             accent: ThemeColor::rgb(20, 40, 60),
             accent_foreground: ThemeColor::rgb(76, 194, 255),
+            selection_foreground: ThemeColor::rgb(76, 194, 255),
             muted: ThemeColor::rgb(43, 43, 43),
             muted_foreground: ThemeColor::rgb(160, 160, 160),
 
@@ -111,6 +114,7 @@ impl ThemePack for Windows11Pack {
 
             disabled_bg: ThemeColor::rgb(53, 53, 53),
             disabled_text: ThemeColor::rgb(102, 102, 102),
+            disabled_foreground: ThemeColor::rgb(159, 159, 159),
         };
         let mut t = Theme::from_colors(
             ThemeMode::Dark,

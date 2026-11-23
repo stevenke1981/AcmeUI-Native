@@ -24,6 +24,7 @@ impl ThemePack for ApplePack {
             secondary_foreground: ThemeColor::rgb(28, 28, 30),
             accent: ThemeColor::rgb(224, 238, 255),
             accent_foreground: ThemeColor::rgb(0, 102, 214), // #0066D6 = primary_hover, AA on accent (062)
+            selection_foreground: ThemeColor::rgb(0, 102, 214),
             muted: ThemeColor::rgb(242, 242, 247),
             muted_foreground: ThemeColor::rgb(109, 109, 114), // systemGray darkened for AA on muted (062)
 
@@ -54,6 +55,7 @@ impl ThemePack for ApplePack {
 
             disabled_bg: ThemeColor::rgb(229, 229, 234),
             disabled_text: ThemeColor::rgb(199, 199, 204),
+            disabled_foreground: ThemeColor::rgb(101, 101, 104),
         };
         let mut t = Theme::from_colors(
             ThemeMode::Light,
@@ -81,6 +83,7 @@ impl ThemePack for ApplePack {
             secondary_foreground: ThemeColor::rgb(235, 235, 245),
             accent: ThemeColor::rgb(20, 40, 69),
             accent_foreground: ThemeColor::rgb(64, 156, 255), // #409CFF = primary_hover, AA on accent (062)
+            selection_foreground: ThemeColor::rgb(64, 156, 255),
             muted: ThemeColor::rgb(28, 28, 30),
             muted_foreground: ThemeColor::rgb(142, 142, 147),
 
@@ -111,6 +114,7 @@ impl ThemePack for ApplePack {
 
             disabled_bg: ThemeColor::rgb(44, 44, 46),
             disabled_text: ThemeColor::rgb(72, 72, 74),
+            disabled_foreground: ThemeColor::rgb(149, 149, 150),
         };
         let mut t = Theme::from_colors(
             ThemeMode::Dark,

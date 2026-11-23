@@ -25,6 +25,7 @@ impl ThemePack for DraculaPack {
             secondary_foreground: ThemeColor::rgb(40, 42, 54),
             accent: ThemeColor::rgb(235, 228, 248),
             accent_foreground: ThemeColor::rgb(118, 78, 199), // #764EC7, AA on accent (062)
+            selection_foreground: ThemeColor::rgb(118, 78, 199),
             muted: ThemeColor::rgb(235, 235, 230),
             muted_foreground: ThemeColor::rgb(88, 103, 152), // comment #6272A4 darkened to #586798 for AA (062)
 
@@ -55,6 +56,7 @@ impl ThemePack for DraculaPack {
 
             disabled_bg: ThemeColor::rgb(235, 235, 230),
             disabled_text: ThemeColor::rgb(170, 170, 165),
+            disabled_foreground: ThemeColor::rgb(105, 105, 102),
         };
         Theme::from_colors(
             ThemeMode::Light,
@@ -76,6 +78,7 @@ impl ThemePack for DraculaPack {
             secondary_foreground: ThemeColor::rgb(248, 248, 242),
             accent: ThemeColor::rgb(68, 71, 90),
             accent_foreground: ThemeColor::rgb(255, 151, 211), // pink #FF79C6 lightened to #FF97D3 for AA (062)
+            selection_foreground: ThemeColor::rgb(255, 151, 211),
             muted: ThemeColor::rgb(68, 71, 90),
             muted_foreground: ThemeColor::rgb(175, 184, 209), // comment #6272A4 lightened to #AFB8D1 for AA (062)
 
@@ -106,6 +109,7 @@ impl ThemePack for DraculaPack {
 
             disabled_bg: ThemeColor::rgb(68, 71, 90),
             disabled_text: ThemeColor::rgb(98, 114, 164),
+            disabled_foreground: ThemeColor::rgb(176, 184, 210),
         };
         Theme::from_colors(
             ThemeMode::Dark,

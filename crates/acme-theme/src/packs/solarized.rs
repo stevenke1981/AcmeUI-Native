@@ -24,6 +24,7 @@ impl ThemePack for SolarizedPack {
             secondary_foreground: ThemeColor::rgb(253, 246, 227),
             accent: ThemeColor::rgb(238, 235, 245),
             accent_foreground: ThemeColor::rgb(95, 99, 172), // violet, darkened for AA on accent (060)
+            selection_foreground: ThemeColor::rgb(95, 99, 172),
             muted: ThemeColor::rgb(238, 232, 213),
             muted_foreground: ThemeColor::rgb(92, 106, 106), // base1 darkened to #5C6A6A for AA on base2 (062)
 
@@ -54,6 +55,7 @@ impl ThemePack for SolarizedPack {
 
             disabled_bg: ThemeColor::rgb(238, 232, 213),
             disabled_text: ThemeColor::rgb(147, 161, 161),
+            disabled_foreground: ThemeColor::rgb(96, 105, 105),
         };
         Theme::from_colors(
             ThemeMode::Light,
@@ -75,6 +77,7 @@ impl ThemePack for SolarizedPack {
             secondary_foreground: ThemeColor::rgb(147, 161, 161), // base1 (062)
             accent: ThemeColor::rgb(7, 54, 66),
             accent_foreground: ThemeColor::rgb(45, 171, 161), // cyan lightened to #2DABA1 for AA (062)
+            selection_foreground: ThemeColor::rgb(45, 171, 161),
             muted: ThemeColor::rgb(7, 54, 66),
             muted_foreground: ThemeColor::rgb(147, 161, 161), // base1, AA on base02 (062)
 
@@ -105,6 +108,7 @@ impl ThemePack for SolarizedPack {
 
             disabled_bg: ThemeColor::rgb(7, 54, 66),
             disabled_text: ThemeColor::rgb(88, 110, 117),
+            disabled_foreground: ThemeColor::rgb(143, 158, 163),
         };
         Theme::from_colors(
             ThemeMode::Dark,

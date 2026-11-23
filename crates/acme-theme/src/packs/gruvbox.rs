@@ -24,6 +24,7 @@ impl ThemePack for GruvboxPack {
             secondary_foreground: ThemeColor::rgb(60, 56, 54),
             accent: ThemeColor::rgb(175, 58, 3), // faded orange #AF3A03 (AA, 060)
             accent_foreground: ThemeColor::rgb(251, 241, 199),
+            selection_foreground: ThemeColor::rgb(251, 241, 199),
             muted: ThemeColor::rgb(235, 219, 178),
             muted_foreground: ThemeColor::rgb(102, 92, 84), // fg3 #665C54, AA on bg1 (062)
 
@@ -54,6 +55,7 @@ impl ThemePack for GruvboxPack {
 
             disabled_bg: ThemeColor::rgb(235, 219, 178),
             disabled_text: ThemeColor::rgb(124, 111, 100),
+            disabled_foreground: ThemeColor::rgb(104, 93, 84),
         };
         Theme::from_colors(
             ThemeMode::Light,
@@ -77,6 +79,7 @@ impl ThemePack for GruvboxPack {
             // surface for accent graphics, AA for selected text (060).
             accent: ThemeColor::rgb(254, 128, 25),
             accent_foreground: ThemeColor::rgb(40, 40, 40),
+            selection_foreground: ThemeColor::rgb(40, 40, 40),
             muted: ThemeColor::rgb(60, 56, 54),
             muted_foreground: ThemeColor::rgb(189, 174, 147), // fg3 #BDAE93, AA on bg1 (062)
 
@@ -107,6 +110,7 @@ impl ThemePack for GruvboxPack {
 
             disabled_bg: ThemeColor::rgb(60, 56, 54),
             disabled_text: ThemeColor::rgb(168, 153, 132),
+            disabled_foreground: ThemeColor::rgb(176, 162, 143),
         };
         Theme::from_colors(
             ThemeMode::Dark,
