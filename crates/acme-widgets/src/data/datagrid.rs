@@ -165,6 +165,8 @@ pub struct DataGrid<M> {
     pub viewport_width: f32,
     /// Total viewport height (set by layout).
     pub viewport_height: f32,
+    /// Optional style overrides for the table or grid's outer layout box.
+    pub style: acme_style::Style,
     /// Flat list of all cell widgets (for reconciliation / children()).
     pub(crate) all_cells: Vec<WidgetNode<M>>,
 }
@@ -191,6 +193,7 @@ impl<M: Clone> Clone for DataGrid<M> {
             viewport_width: self.viewport_width,
             viewport_height: self.viewport_height,
             all_cells: self.all_cells.clone(),
+            style: self.style.clone(),
         }
     }
 }
@@ -199,6 +202,7 @@ impl<M: std::fmt::Debug> std::fmt::Debug for DataGrid<M> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DataGrid")
             .field("key", &self.key)
+            .field("style", &self.style)
             .field("frozen_rows", &self.frozen_rows)
             .field("frozen_cols", &self.frozen_cols)
             .field("scroll_x", &self.scroll_x)
@@ -226,6 +230,7 @@ impl<M: PartialEq> PartialEq for DataGrid<M> {
             && self.default_row_height == other.default_row_height
             && self.overscan == other.overscan
             && self.state == other.state
+            && self.style == other.style
             && self.viewport_width == other.viewport_width
             && self.viewport_height == other.viewport_height
     }
@@ -253,6 +258,16 @@ pub fn datagrid<M>(key: impl Into<WidgetKey>) -> DataGrid<M> {
         viewport_width: 0.0,
         viewport_height: 0.0,
         all_cells: Vec::new(),
+        style: acme_style::Style::default(),
+    }
+}
+
+impl<M> acme_style::Styled for DataGrid<M> {
+    fn style(&self) -> &acme_style::Style {
+        &self.style
+    }
+    fn style_mut(&mut self) -> &mut acme_style::Style {
+        &mut self.style
     }
 }
 

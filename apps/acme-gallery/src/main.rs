@@ -985,6 +985,17 @@ impl Gallery {
                         .gap(4.0)
                         .child(label("The page you're viewing is inside a ScrollView."))
                         .child(label("Try scrolling to see all content."))
+                        .child(
+                            column()
+                                .height(80.0)
+                                .child(
+                                    scroll_view("percent_height")
+                                        .h(Length::Percent(0.5))
+                                        .child(label("ScrollView at 50% of an 80 px column"))
+                                        .build(),
+                                )
+                                .build(),
+                        )
                         .build(),
                 ),
             )

@@ -350,14 +350,9 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                LayoutNode::container(
-                    id,
-                    LayoutStyle {
-                        kind: LayoutKind::Column,
-                        ..Default::default()
-                    },
-                    child_nodes,
-                )
+                let mut style = LayoutStyle::column();
+                v.style.clone().apply_to_layout(&mut style);
+                LayoutNode::container(id, style, child_nodes)
             }
             Self::DataGrid(v) => {
                 let mut child_nodes: Vec<LayoutNode> = Vec::new();
@@ -408,14 +403,9 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                LayoutNode::container(
-                    id,
-                    LayoutStyle {
-                        kind: LayoutKind::Column,
-                        ..Default::default()
-                    },
-                    child_nodes,
-                )
+                let mut style = LayoutStyle::column();
+                v.style.clone().apply_to_layout(&mut style);
+                LayoutNode::container(id, style, child_nodes)
             }
             Self::NavRail(v) => LayoutNode::container(
                 id,
@@ -719,14 +709,9 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                LayoutNode::container(
-                    id,
-                    LayoutStyle {
-                        kind: LayoutKind::Column,
-                        ..Default::default()
-                    },
-                    child_nodes,
-                )
+                let mut style = LayoutStyle::column();
+                v.style.clone().apply_to_layout(&mut style);
+                LayoutNode::container(id, style, child_nodes)
             }
             Self::DataGrid(v) => {
                 let mut child_nodes: Vec<LayoutNode> = Vec::new();
@@ -773,14 +758,9 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                LayoutNode::container(
-                    id,
-                    LayoutStyle {
-                        kind: LayoutKind::Column,
-                        ..Default::default()
-                    },
-                    child_nodes,
-                )
+                let mut style = LayoutStyle::column();
+                v.style.clone().apply_to_layout(&mut style);
+                LayoutNode::container(id, style, child_nodes)
             }
             Self::NavRail(v) => LayoutNode::container(
                 id,
@@ -2216,6 +2196,52 @@ mod flex_container_tests {
             .iter()
             .map(|child| *snapshot.get(child.id).unwrap())
             .collect()
+    }
+
+    #[test]
+    fn table_grid_and_scroll_resolve_percent_height_and_flex_grow() {
+        let areas = [
+            [
+                table::<()>("tbl").h(Length::Percent(0.25)).build(),
+                datagrid::<()>("grid").h(Length::Percent(0.25)).build(),
+                scroll_view::<()>("scroll")
+                    .viewport_height(42.0)
+                    .h(Length::Percent(0.25))
+                    .build(),
+            ],
+            [
+                table::<()>("tbl").flex_1().build(),
+                datagrid::<()>("grid").flex_1().build(),
+                scroll_view::<()>("scroll").flex_1().build(),
+            ],
+        ];
+        let context = crate::painter_bridge::default_layout_context();
+        for (widgets, expected) in areas.into_iter().zip([30.0, 40.0]) {
+            let parent = widgets
+                .into_iter()
+                .fold(column().size(100.0, 120.0), |parent, child| {
+                    parent.child(child)
+                })
+                .build();
+            for layout in [
+                parent.to_layout(NodeId::new(1)),
+                parent.to_layout_with_context(NodeId::new(1), &context),
+            ] {
+                let snapshot = LayoutEngine::new()
+                    .compute(&layout, (100.0, 120.0))
+                    .unwrap();
+                for child in &layout.children {
+                    assert_eq!(snapshot.get(child.id).unwrap().height, expected);
+                }
+                assert_eq!(
+                    snapshot
+                        .scroll_metrics(layout.children[2].id)
+                        .unwrap()
+                        .viewport_height,
+                    expected
+                );
+            }
+        }
     }
 
     #[test]
