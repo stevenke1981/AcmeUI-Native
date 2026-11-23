@@ -8,7 +8,6 @@ use acme_widgets::ButtonState;
 use acme_widgets::WidgetNode;
 use acme_widgets::label_align_offset;
 use acme_widgets::painter_bridge::paint_canvas_with_theme;
-use acme_widgets::style::TextAlign;
 
 use crate::render::geometry::{rect_from_array, rect_style, rgba};
 use crate::render::style::push_widget_style;
@@ -55,23 +54,6 @@ pub fn render_content(
                     .or(l.line_height)
                     .unwrap_or(fs * theme.typography.line_height);
                 let y_text = rect.y - scroll_y + (rect.height - line_h).max(0.0) * 0.5;
-                // Single-line labels honour `text_align`; wrapped text stays left.
-                let alignment = l.style.text_align.unwrap_or(TextAlign::Left);
-                let text_x =
-                    if l.wrap == acme_widgets::LabelWrap::None && alignment != TextAlign::Left {
-                        let shaped = fonts.shape(
-                            &l.text,
-                            &TextStyle {
-                                font_size: fs,
-                                ..TextStyle::default()
-                            },
-                            TextConstraints::default(),
-                            scale,
-                        );
-                        rect.x + label_align_offset(alignment, rect.width, shaped.width)
-                    } else {
-                        rect.x + 4.0
-                    };
                 let text_color = l.color.unwrap_or_else(|| {
                     let s = &l.style;
                     s.text_color
@@ -79,39 +61,62 @@ pub fn render_content(
                         .map(|t| t.resolve(theme))
                         .unwrap_or(colors.foreground)
                 });
-                if l.style.truncate == Some(true) && l.wrap == acme_widgets::LabelWrap::None {
-                    let shaped = fonts.shape_with_ellipsis(
+                let style = TextStyle {
+                    font_size: fs,
+                    line_height: line_h,
+                    ..TextStyle::default()
+                };
+                let wrap = match l.wrap {
+                    acme_widgets::LabelWrap::None => acme_text::TextWrap::None,
+                    acme_widgets::LabelWrap::Word => acme_text::TextWrap::Word,
+                    acme_widgets::LabelWrap::Character => acme_text::TextWrap::Glyph,
+                };
+                let wrapped = l.wrap != acme_widgets::LabelWrap::None;
+                let truncated = l.style.truncate == Some(true) && !wrapped;
+                let shaped = if truncated {
+                    fonts.shape_with_ellipsis(&l.text, &style, rect.width, scale)
+                } else {
+                    fonts.shape(
                         &l.text,
-                        &TextStyle {
-                            font_size: fs,
-                            line_height: line_h,
-                            ..TextStyle::default()
+                        &style,
+                        TextConstraints {
+                            max_width: wrapped.then_some(rect.width),
+                            wrap,
                         },
-                        rect.width,
                         scale,
-                    );
-                    add_shaped_text(
-                        fonts,
-                        atlas,
-                        painter,
-                        &shaped,
-                        [rect.x, y_text],
-                        text_color,
-                        Some(clip),
-                    );
-                    return;
-                }
-                add_text(
-                    fonts,
-                    atlas,
-                    painter,
-                    &l.text,
-                    ([text_x, y_text], fs),
-                    text_color,
-                    scale,
-                    Some(clip),
-                    theme.typography.line_height,
-                );
+                    )
+                };
+                let alignment = layout.style.text_align.or(l.style.text_align);
+                let text_x = rect.x
+                    + label_align_offset(alignment.unwrap_or_default(), rect.width, shaped.width);
+                painter.with_clip(rect_from_array(clip), |painter| {
+                    if alignment.is_some() || truncated {
+                        painter.with_clip(
+                            Rect::new(rect.x, rect.y - scroll_y, rect.width, rect.height),
+                            |painter| {
+                                add_shaped_text(
+                                    fonts,
+                                    atlas,
+                                    painter,
+                                    &shaped,
+                                    [text_x, y_text + shaped.baseline],
+                                    text_color,
+                                    None,
+                                );
+                            },
+                        );
+                    } else {
+                        add_shaped_text(
+                            fonts,
+                            atlas,
+                            painter,
+                            &shaped,
+                            [text_x, y_text + shaped.baseline],
+                            text_color,
+                            None,
+                        );
+                    }
+                });
             }
         }
         WidgetNode::Button(btn) => {
@@ -145,17 +150,51 @@ pub fn render_content(
                         },
                     ),
                 );
-                add_text(
-                    fonts,
-                    atlas,
-                    painter,
+                let size = btn.style.font_size.unwrap_or(theme.typography.label);
+                if btn.style.text_align.is_none() {
+                    add_text(
+                        fonts,
+                        atlas,
+                        painter,
+                        &btn.label,
+                        ([rect.x + 10.0, y + 8.0], size),
+                        resolved.foreground,
+                        scale,
+                        Some(clip),
+                        theme.typography.line_height,
+                    );
+                    return;
+                }
+                let shaped = fonts.shape(
                     &btn.label,
-                    ([rect.x + 10.0, y + 8.0], theme.typography.label),
-                    resolved.foreground,
+                    &TextStyle {
+                        font_size: size,
+                        line_height: btn
+                            .style
+                            .line_height
+                            .unwrap_or(size * theme.typography.line_height),
+                        ..TextStyle::default()
+                    },
+                    TextConstraints::default(),
                     scale,
-                    Some(clip),
-                    theme.typography.line_height,
                 );
+                let origin = [
+                    btn.label_x(rect.x, rect.width, shaped.width),
+                    y + (rect.height - shaped.height).max(0.0) / 2.0 + shaped.baseline,
+                ];
+                painter.with_clip(rect_from_array(clip), |painter| {
+                    painter.with_clip(Rect::new(rect.x, y, rect.width, rect.height), |painter| {
+                        add_shaped_text(
+                            fonts,
+                            atlas,
+                            painter,
+                            &shaped,
+                            origin,
+                            resolved.foreground,
+                            None,
+                        );
+                    });
+                });
             }
         }
         WidgetNode::Canvas(c) => {

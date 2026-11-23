@@ -943,6 +943,19 @@ impl Gallery {
                                 .child(button::<GalleryMessage>("truncate_example", "Details"))
                                 .build(),
                         )
+                        .child(
+                            acme_widgets::label_builder("Right-aligned label")
+                                .text_align(TextAlign::Right)
+                                .build(),
+                        )
+                        .child(
+                            button::<GalleryMessage>(
+                                "right_aligned_example",
+                                "Right-aligned action",
+                            )
+                            .full_width(true)
+                            .text_align(TextAlign::Right),
+                        )
                         .child(label("Column (vertical):"))
                         .child(
                             column()
@@ -3104,9 +3117,9 @@ fn render_content_painter(
                     acme_widgets::LabelWrap::Character => acme_text::TextWrap::Glyph,
                 };
                 let wrapped = l.wrap != acme_widgets::LabelWrap::None;
-                let alignment = l.style.text_align.unwrap_or(TextAlign::Left);
-                let aligned = !wrapped && alignment != TextAlign::Left;
-                let mut text_x = rect.x + if wrapped || aligned { 0.0 } else { 4.0 };
+                let alignment = layout.style.text_align.or(l.style.text_align);
+                let truncated = l.style.truncate == Some(true) && !wrapped;
+                let mut text_x = rect.x;
                 // Color swatch label: "\x01{color_name}|{display_text}"
                 if let Some((color_name, display)) = l
                     .text
@@ -3136,7 +3149,7 @@ fn render_content_painter(
                     ..TextStyle::default()
                 };
                 let available = (rect.width - (text_x - rect.x)).max(0.0);
-                let shaped = if l.style.truncate == Some(true) && !wrapped {
+                let shaped = if truncated {
                     fonts.shape_with_ellipsis(display_text, &style, available, scale)
                 } else {
                     fonts.shape(
@@ -3149,34 +3162,23 @@ fn render_content_painter(
                         scale,
                     )
                 };
+                text_x += acme_widgets::label_align_offset(
+                    alignment.unwrap_or_default(),
+                    available,
+                    shaped.width,
+                );
                 let prepared = fonts.prepare(&shaped, atlas);
                 let primitive = text_primitive_from_prepared(
                     [text_x, y_text + shaped.baseline],
                     theme_color(text_color),
                     prepared,
                 );
-                if aligned {
-                    let remaining = (rect.width - shaped.width).max(0.0);
-                    let aligned_x = rect.x
-                        + if alignment == TextAlign::Center {
-                            remaining / 2.0
-                        } else {
-                            remaining
-                        };
-                    let x = rect.x.max(clip[0]);
-                    let y = y_text.max(clip[1]);
-                    let right = (rect.x + rect.width).min(clip[0] + clip[2]);
-                    let bottom = (y_text + rect.height).min(clip[1] + clip[3]);
-                    let aligned_primitive = TextPrimitive {
-                        origin: Point::new(aligned_x, y_text + shaped.baseline),
-                        ..primitive
-                    };
-                    painter.with_clip(
-                        Rect::new(x, y, (right - x).max(0.0), (bottom - y).max(0.0)),
-                        |painter| {
-                            painter.text_primitive(aligned_primitive);
-                        },
-                    );
+                if alignment.is_some() || truncated {
+                    let [x, y, w, h] =
+                        intersect_clip([rect.x, y_text, rect.width, rect.height], clip);
+                    painter.with_clip(Rect::new(x, y, w, h), |painter| {
+                        painter.text_primitive(primitive);
+                    });
                 } else {
                     painter.text_primitive(primitive);
                 }
@@ -3462,9 +3464,9 @@ fn render_content(
                     acme_widgets::LabelWrap::Character => acme_text::TextWrap::Glyph,
                 };
                 let wrapped = l.wrap != acme_widgets::LabelWrap::None;
-                let alignment = l.style.text_align.unwrap_or(TextAlign::Left);
-                let aligned = !wrapped && alignment != TextAlign::Left;
-                let mut text_x = rect.x + if wrapped || aligned { 0.0 } else { 4.0 };
+                let alignment = layout.style.text_align.or(l.style.text_align);
+                let truncated = l.style.truncate == Some(true) && !wrapped;
+                let mut text_x = rect.x;
                 // Color swatch label: "\x01{color_name}|{display_text}"
                 if let Some((color_name, display)) = l
                     .text
@@ -3499,7 +3501,7 @@ fn render_content(
                     ..TextStyle::default()
                 };
                 let available = (rect.width - (text_x - rect.x)).max(0.0);
-                let shaped = if l.style.truncate == Some(true) && !wrapped {
+                let shaped = if truncated {
                     fonts.shape_with_ellipsis(display_text, &style, available, scale)
                 } else {
                     fonts.shape(
@@ -3512,21 +3514,13 @@ fn render_content(
                         scale,
                     )
                 };
-                // Single-line alignment uses the existing style contract.
-                // Clip aligned text to its content box (e.g. avatar initials).
-                let text_clip = if aligned {
-                    let remaining = (rect.width - shaped.width).max(0.0);
-                    text_x = rect.x
-                        + if alignment == TextAlign::Center {
-                            remaining / 2.0
-                        } else {
-                            remaining
-                        };
-                    let x = rect.x.max(clip[0]);
-                    let y = y_text.max(clip[1]);
-                    let right = (rect.x + rect.width).min(clip[0] + clip[2]);
-                    let bottom = (y_text + rect.height).min(clip[1] + clip[3]);
-                    [x, y, (right - x).max(0.0), (bottom - y).max(0.0)]
+                text_x += acme_widgets::label_align_offset(
+                    alignment.unwrap_or_default(),
+                    available,
+                    shaped.width,
+                );
+                let text_clip = if alignment.is_some() || truncated {
+                    intersect_clip([rect.x, y_text, rect.width, rect.height], clip)
                 } else {
                     clip
                 };

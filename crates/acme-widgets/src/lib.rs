@@ -211,13 +211,17 @@ impl<M> WidgetNode<M> {
                 input.style.clone().apply_to_layout(&mut style);
                 LayoutNode::leaf(id, style)
             }
-            Self::Button(_) => LayoutNode::leaf(
-                id,
-                LayoutStyle {
-                    height: Length::px(36.0),
+            Self::Button(v) => {
+                let mut style = LayoutStyle {
+                    height: Length::px(v.size.px()),
                     ..Default::default()
-                },
-            ),
+                };
+                if v.full_width {
+                    style.width = Length::Percent(1.0);
+                }
+                v.style.clone().apply_to_layout(&mut style);
+                LayoutNode::leaf(id, style)
+            }
             Self::VirtualList(v) => LayoutNode::container(
                 id,
                 LayoutStyle {

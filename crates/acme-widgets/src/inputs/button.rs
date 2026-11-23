@@ -167,7 +167,9 @@ impl<M> Button<M> {
             self.style.padding.as_ref().map_or(DEFAULT_LABEL_PAD, side)
         };
         match self.style.text_align {
-            None | Some(TextAlign::Center) => rect_x + (rect_width - text_width).max(0.0) / 2.0,
+            None | Some(TextAlign::Center) => {
+                rect_x + crate::label_align_offset(TextAlign::Center, rect_width, text_width)
+            }
             Some(TextAlign::Left) => rect_x + pad(|e| e.left),
             Some(TextAlign::Right) => {
                 let start = rect_x + pad(|e| e.left);

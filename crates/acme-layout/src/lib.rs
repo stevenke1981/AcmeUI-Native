@@ -117,6 +117,15 @@ pub enum JustifyContent {
     SpaceBetween,
 }
 
+/// Text alignment — analogous to CSS `text-align`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TextAlign {
+    #[default]
+    Left,
+    Center,
+    Right,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct LayoutStyle {
     pub kind: LayoutKind,
@@ -134,6 +143,8 @@ pub struct LayoutStyle {
     pub flex_grow: f32,
     pub flex_shrink: f32,
     pub overflow: Overflow,
+    /// Explicit alignment for the renderer. Intrinsic measurement is alignment-independent.
+    pub text_align: Option<TextAlign>,
 }
 impl Default for LayoutStyle {
     fn default() -> Self {
@@ -153,6 +164,7 @@ impl Default for LayoutStyle {
             flex_grow: 0.0,
             flex_shrink: 0.0,
             overflow: Overflow::Visible,
+            text_align: None,
         }
     }
 }
@@ -229,6 +241,7 @@ pub struct ScrollMetrics {
 pub struct LayoutSnapshot {
     rects: HashMap<NodeId, LayoutRect>,
     scroll: HashMap<NodeId, ScrollMetrics>,
+    text_align: HashMap<NodeId, TextAlign>,
 }
 impl LayoutSnapshot {
     /// Insert a rect for the given node (used by tests and incremental updates).
@@ -241,6 +254,11 @@ impl LayoutSnapshot {
     }
     pub fn scroll_metrics(&self, id: NodeId) -> Option<&ScrollMetrics> {
         self.scroll.get(&id)
+    }
+    /// Explicit text alignment at this node. With no override the widget
+    /// supplies its own default (left for Labels, center for Buttons).
+    pub fn text_align(&self, id: NodeId) -> Option<TextAlign> {
+        self.text_align.get(&id).copied()
     }
     pub fn len(&self) -> usize {
         self.rects.len()
@@ -434,6 +452,9 @@ fn collect(
             height: l.size.height,
         },
     );
+    if let Some(alignment) = node.style.text_align {
+        out.text_align.insert(node.id, alignment);
+    }
     let children = tree
         .children(tid)
         .map_err(|e| LayoutError::Engine(e.to_string()))?;

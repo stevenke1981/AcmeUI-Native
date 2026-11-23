@@ -4,6 +4,7 @@
 //! and then applied to a widget during layout / rendering.
 
 use crate::color::ColorToken;
+pub use acme_layout::TextAlign;
 use acme_layout::{AlignItems, Edges, JustifyContent, LayoutKind, LayoutStyle, Length, Overflow};
 
 /// Shadow descriptor (offset + blur + color).
@@ -63,15 +64,6 @@ pub enum FontWeight {
     ExtraBold,
     /// Black (900).
     Black,
-}
-
-/// Text alignment — analogous to CSS `text-align`.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum TextAlign {
-    #[default]
-    Left,
-    Center,
-    Right,
 }
 
 /// Accumulated visual and layout properties.
@@ -224,6 +216,9 @@ impl Style {
         apply_opt!(justify_content);
         apply_opt!(align_items);
         apply_opt!(overflow);
+        if self.text_align.is_some() {
+            base.text_align = self.text_align;
+        }
 
         if let Some(p) = self.padding {
             base.padding = p;
