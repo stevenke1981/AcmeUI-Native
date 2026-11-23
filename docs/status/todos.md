@@ -7,6 +7,9 @@
 - [x] Carry Label/Button text alignment through layout and into the painted text position (FW-03).
 - [x] Provide borderless Subtle buttons, controlled selection, and renderer-visible style overrides (FW-05).
 - [x] Accept percentage heights and flex growth in Table, DataGrid, and ScrollView layout (FW-07).
+  After the M1 fix, ScrollView defaults to `flex_shrink = 1` and `min_height = 0`.
+  A requested `viewport_height` above the available height in a constrained
+  column shrinks to fit. Overflowing content remains scrollable.
 - [x] Provide selection and disabled foreground tokens with AA contrast checks for every theme pack (FW-08).
 - [x] Cover PR #83 review regressions for overflowing viewports, 28 px Styled Labels, detached overlay metadata, selectable and disabled Buttons, state foreground token resolution, and flex layout mappings. Document DataGrid's virtualized viewport and Stack's block layout, and add `Styled::no_wrap()`.
 

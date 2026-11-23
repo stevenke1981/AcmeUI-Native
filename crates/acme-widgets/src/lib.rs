@@ -2333,6 +2333,37 @@ mod flex_container_tests {
     }
 
     #[test]
+    fn explicit_scroll_viewport_shrinks_in_a_height_constrained_column() {
+        let scroll = (0..10)
+            .fold(
+                scroll_view::<()>("scroll").viewport_height(160.0),
+                |view, _| view.child(label("Overflowing line")),
+            )
+            .build();
+        let parent = column()
+            .size(200.0, 100.0)
+            .child(label_builder("Toolbar").h(Length::px(30.0)).build())
+            .child(scroll)
+            .build();
+        let context = crate::painter_bridge::default_layout_context();
+
+        for layout in [
+            parent.to_layout(NodeId::new(1)),
+            parent.to_layout_with_context(NodeId::new(1), &context),
+        ] {
+            let snapshot = LayoutEngine::new()
+                .compute(&layout, (200.0, 100.0))
+                .unwrap();
+            let id = layout.children[1].id;
+            let rect = snapshot.get(id).unwrap();
+            assert_eq!((rect.y, rect.height), (30.0, 70.0));
+            let metrics = snapshot.scroll_metrics(id).unwrap();
+            assert_eq!(metrics.viewport_height, 70.0);
+            assert!(metrics.content_height > metrics.viewport_height);
+        }
+    }
+
+    #[test]
     fn flex_wrap_moves_items_to_the_next_line_at_the_available_width() {
         let builder = || {
             (0..3).fold(row::<()>().width(100.0).gap(5.0), |row, _| {

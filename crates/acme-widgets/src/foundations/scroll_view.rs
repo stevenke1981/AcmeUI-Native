@@ -5,6 +5,10 @@ use acme_style::Style;
 use acme_style::prelude::*;
 
 /// A scrollable viewport.
+///
+/// The default layout has `flex_shrink = 1` and `min_height = 0`. In a
+/// height-constrained column, the viewport can shrink below `viewport_height`
+/// to fit the available space. Overflowing content remains scrollable.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScrollView<M> {
     pub key: WidgetKey,
@@ -18,6 +22,7 @@ impl<M> ScrollView<M> {
         self.children.push(child.into());
         self
     }
+    /// Set the preferred viewport height in logical pixels.
     pub fn viewport_height(mut self, value: f32) -> Self {
         self.viewport_height = Length::px(value);
         self

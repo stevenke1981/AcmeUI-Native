@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased - ScrollView sizing in constrained columns
+
+- `ScrollView` now defaults to `flex_shrink = 1` and `min_height = 0`. A
+  requested `viewport_height` larger than the column's available height
+  shrinks to fit. Overflowing content remains scrollable.
+
 ## Unreleased - Surface finishes and segmented selection (2026-11-18)
 
 - Added opt-in `SurfaceFinish` swatches and painting for metallic, glass, and
