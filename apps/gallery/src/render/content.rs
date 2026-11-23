@@ -12,7 +12,7 @@ use acme_widgets::style::TextAlign;
 
 use crate::render::geometry::{rect_from_array, rect_style, rgba};
 use crate::render::style::push_widget_style;
-use crate::render::text::add_text;
+use crate::render::text::{add_shaped_text, add_text};
 use crate::types::{GalleryMessage, TEXT_INPUT_MARKER};
 
 /// DFS walk of page content inside the scroll view.
@@ -79,6 +79,28 @@ pub fn render_content(
                         .map(|t| t.resolve(theme))
                         .unwrap_or(colors.foreground)
                 });
+                if l.style.truncate == Some(true) && l.wrap == acme_widgets::LabelWrap::None {
+                    let shaped = fonts.shape_with_ellipsis(
+                        &l.text,
+                        &TextStyle {
+                            font_size: fs,
+                            line_height: line_h,
+                            ..TextStyle::default()
+                        },
+                        rect.width,
+                        scale,
+                    );
+                    add_shaped_text(
+                        fonts,
+                        atlas,
+                        painter,
+                        &shaped,
+                        [rect.x, y_text],
+                        text_color,
+                        Some(clip),
+                    );
+                    return;
+                }
                 add_text(
                     fonts,
                     atlas,

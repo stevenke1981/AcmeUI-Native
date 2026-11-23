@@ -201,17 +201,7 @@ impl<M> WidgetNode<M> {
                 v.layout(),
                 v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
-            Self::Label(l) => {
-                let font_size = l.font_size.unwrap_or(16.0);
-                let line_height = (font_size * 1.5).ceil();
-                let mut style = LayoutStyle {
-                    min_height: Length::px(line_height),
-                    flex_shrink: 0.0,
-                    ..Default::default()
-                };
-                l.style.clone().apply_to_layout(&mut style);
-                LayoutNode::leaf(id, style)
-            }
+            Self::Label(l) => label_layout(l, id, 16.0, 24.0),
             Self::TextInput(input) => {
                 let mut style = LayoutStyle {
                     min_height: Length::px(40.0),
@@ -569,25 +559,7 @@ impl<M> WidgetNode<M> {
                     .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
-            Self::Label(l) => {
-                let font_size = l.font_size.unwrap_or(context.body_font_size);
-                let line_height = l.line_height.unwrap_or(context.body_line_height);
-                let min_h = (font_size * 1.5).ceil();
-                let spec = TextMeasureSpec {
-                    text: l.text.clone(),
-                    font_size,
-                    line_height,
-                    wrap: crate::foundations::label::map_label_wrap(l.wrap),
-                    max_lines: l.max_lines,
-                };
-                let mut style = LayoutStyle {
-                    min_height: Length::px(min_h),
-                    flex_shrink: 0.0,
-                    ..Default::default()
-                };
-                l.style.clone().apply_to_layout(&mut style);
-                LayoutNode::text_leaf(id, style, spec)
-            }
+            Self::Label(l) => label_layout(l, id, context.body_font_size, context.body_line_height),
             Self::TextInput(input) => {
                 let mut style = LayoutStyle {
                     min_height: Length::px(context.control_height),
@@ -2032,6 +2004,44 @@ mod text_input_style_tests {
     }
 }
 
+fn label_layout(label: &Label, id: NodeId, default_size: f32, default_height: f32) -> LayoutNode {
+    let font_size = label
+        .style
+        .font_size
+        .or(label.font_size)
+        .unwrap_or(default_size);
+    let line_height = label
+        .style
+        .line_height
+        .or(label.line_height)
+        .unwrap_or(default_height);
+    let truncate = label.style.truncate == Some(true) && label.wrap == LabelWrap::None;
+    let mut style = LayoutStyle {
+        min_height: Length::px((font_size * 1.5).ceil()),
+        // Auto min-width uses Taffy's measured min-content size. Truncation
+        // explicitly releases that constraint as well as enabling shrink.
+        min_width: if truncate {
+            Length::px(0.0)
+        } else {
+            Length::Auto
+        },
+        flex_shrink: if truncate { 1.0 } else { 0.0 },
+        ..Default::default()
+    };
+    label.style.clone().apply_to_layout(&mut style);
+    LayoutNode::text_leaf(
+        id,
+        style,
+        TextMeasureSpec {
+            text: label.text.clone(),
+            font_size,
+            line_height,
+            wrap: map_label_wrap(label.wrap),
+            max_lines: if truncate { Some(1) } else { label.max_lines },
+        },
+    )
+}
+
 #[cfg(test)]
 mod label_style_tests {
     use super::*;
@@ -2055,6 +2065,23 @@ mod label_style_tests {
         ] {
             assert_eq!(layout.style.width, Length::px(28.0));
             assert_eq!(layout.style.height, Length::px(28.0));
+        }
+    }
+
+    #[test]
+    fn truncate_releases_intrinsic_min_width_for_unwrapped_labels_only() {
+        for (truncate, wrap, shrink, min_width) in [
+            (false, LabelWrap::None, 0.0, Length::Auto),
+            (true, LabelWrap::None, 1.0, Length::px(0.0)),
+            (true, LabelWrap::Word, 0.0, Length::Auto),
+        ] {
+            let layout = label_builder::<()>("說明")
+                .truncate(truncate)
+                .wrap(wrap)
+                .build()
+                .to_layout(NodeId::new(1));
+            assert_eq!(layout.style.flex_shrink, shrink);
+            assert_eq!(layout.style.min_width, min_width);
         }
     }
 }

@@ -320,8 +320,11 @@ impl LayoutEngine {
                     return Size::ZERO;
                 };
                 // Derive the maximum width from available / known dimensions.
-                let max_width = match available.width {
-                    AvailableSpace::Definite(w) => Some(w),
+                let max_width = match (spec.wrap, available.width) {
+                    // An unwrapped run's min-content width is its natural
+                    // shaped width, including when the row offers less space.
+                    (TextWrapMode::None, _) => None,
+                    (_, AvailableSpace::Definite(w)) => Some(w),
                     _ => known.width,
                 };
                 let text_style = TextStyle {

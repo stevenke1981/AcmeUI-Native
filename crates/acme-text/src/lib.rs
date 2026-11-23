@@ -217,6 +217,53 @@ impl FontSystem {
         }
     }
 
+    /// Shape the first line of `text`, adding an ellipsis if it exceeds `width`.
+    /// Shrinks at shaping-cluster boundaries and returns an empty run when
+    /// even the ellipsis cannot fit.
+    pub fn shape_with_ellipsis(
+        &mut self,
+        text: &str,
+        style: &TextStyle,
+        width: f32,
+        scale: f32,
+    ) -> TextLayout {
+        let line = text.lines().next().unwrap_or_default();
+        let constraints = TextConstraints {
+            max_width: None,
+            wrap: TextWrap::None,
+        };
+        let full = self.shape(line, style, constraints, scale);
+        if full.width <= width {
+            return full;
+        }
+        let mut best = self.shape("…", style, constraints, scale);
+        if best.width > width {
+            return self.shape("", style, constraints, scale);
+        }
+
+        let mut boundaries: Vec<_> = full
+            .glyphs
+            .iter()
+            .map(|glyph| glyph.byte_range.start)
+            .collect();
+        boundaries.sort_unstable();
+        boundaries.dedup();
+        let mut low = boundaries.partition_point(|&end| end == 0);
+        let mut high = boundaries.len();
+        while low < high {
+            let mid = low + (high - low) / 2;
+            let prefix = &line[..boundaries[mid]];
+            let candidate = self.shape(&format!("{prefix}…"), style, constraints, scale);
+            if candidate.width <= width {
+                best = candidate;
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        best
+    }
+
     pub fn measure(
         &mut self,
         text: &str,
@@ -298,6 +345,33 @@ impl FontSystem {
             glyphs,
             uploads,
         }
+    }
+}
+
+#[cfg(test)]
+mod ellipsis_tests {
+    use super::*;
+
+    #[test]
+    fn ellipsis_fits_the_shaped_width() {
+        let mut fonts = FontSystem::new();
+        let style = TextStyle::default();
+        let expected = fonts.shape("很長…", &style, TextConstraints::default(), 1.0);
+        let shortened = fonts.shape_with_ellipsis("很長的說明文字", &style, expected.width, 1.0);
+        assert_eq!(shortened.glyphs, expected.glyphs);
+        assert!(
+            fonts
+                .shape_with_ellipsis("很長的說明文字", &style, 0.0, 1.0)
+                .glyphs
+                .is_empty()
+        );
+        let full = fonts.shape_with_ellipsis("很長", &style, 200.0, 1.0);
+        assert_eq!(
+            full.glyphs,
+            fonts
+                .shape("很長", &style, TextConstraints::default(), 1.0)
+                .glyphs
+        );
     }
 }
 

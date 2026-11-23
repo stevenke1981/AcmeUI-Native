@@ -147,6 +147,13 @@ pub fn label_builder<M>(text: impl Into<String>) -> LabelBuilder<M> {
 }
 
 impl<M> LabelBuilder<M> {
+    /// Allow a single-line label to shrink and render an ellipsis when it overflows.
+    /// Explicit wrapping takes precedence. The default is `false`.
+    pub fn truncate(mut self, value: bool) -> Self {
+        self.label.style.truncate = Some(value);
+        self
+    }
+
     /// Set an explicit font-size hint.
     pub fn font_size(mut self, value: f32) -> Self {
         self.label.font_size = Some(crate::finite(value));

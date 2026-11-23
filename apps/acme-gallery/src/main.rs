@@ -927,6 +927,20 @@ impl Gallery {
                                 .child(label("[C]"))
                                 .build(),
                         )
+                        .child(
+                            row()
+                                .width(240.0)
+                                .gap(8.0)
+                                .child(
+                                    acme_widgets::label_builder(
+                                        "很長的說明文字，空間不足時顯示省略號",
+                                    )
+                                    .truncate(true)
+                                    .build(),
+                                )
+                                .child(button::<GalleryMessage>("truncate_example", "Details"))
+                                .build(),
+                        )
                         .child(label("Column (vertical):"))
                         .child(
                             column()
@@ -3068,7 +3082,11 @@ fn render_content_painter(
                 return;
             }
             if let Some(rect) = snapshot.get(layout.id) {
-                let fs = l.font_size.unwrap_or(theme.typography.body);
+                let fs = l
+                    .style
+                    .font_size
+                    .or(l.font_size)
+                    .unwrap_or(theme.typography.body);
                 let y_text = rect.y - scroll_y;
                 let text_color = l
                     .style
@@ -3106,19 +3124,29 @@ fn render_content_painter(
                         text_x = swatch_x + swatch_size + 8.0;
                     }
                 }
-                let shaped = fonts.shape(
-                    display_text,
-                    &TextStyle {
-                        font_size: fs,
-                        line_height: l.line_height.unwrap_or(fs * theme.typography.line_height),
-                        ..TextStyle::default()
-                    },
-                    TextConstraints {
-                        max_width: wrapped.then_some((rect.width - (text_x - rect.x)).max(0.0)),
-                        wrap,
-                    },
-                    scale,
-                );
+                let style = TextStyle {
+                    font_size: fs,
+                    line_height: l
+                        .style
+                        .line_height
+                        .or(l.line_height)
+                        .unwrap_or(fs * theme.typography.line_height),
+                    ..TextStyle::default()
+                };
+                let available = (rect.width - (text_x - rect.x)).max(0.0);
+                let shaped = if l.style.truncate == Some(true) && !wrapped {
+                    fonts.shape_with_ellipsis(display_text, &style, available, scale)
+                } else {
+                    fonts.shape(
+                        display_text,
+                        &style,
+                        TextConstraints {
+                            max_width: wrapped.then_some(available),
+                            wrap,
+                        },
+                        scale,
+                    )
+                };
                 let prepared = fonts.prepare(&shaped, atlas);
                 let primitive = text_primitive_from_prepared(
                     [text_x, y_text + shaped.baseline],
@@ -3410,7 +3438,11 @@ fn render_content(
     match widget {
         WidgetNode::Label(l) => {
             if let Some(rect) = snapshot.get(layout.id) {
-                let fs = l.font_size.unwrap_or(theme.typography.body);
+                let fs = l
+                    .style
+                    .font_size
+                    .or(l.font_size)
+                    .unwrap_or(theme.typography.body);
                 let y_text = rect.y - scroll_y;
                 let text_color = l
                     .style
@@ -3455,19 +3487,29 @@ fn render_content(
                         text_x = swatch_x + swatch_size + 8.0;
                     }
                 }
-                let shaped = fonts.shape(
-                    display_text,
-                    &TextStyle {
-                        font_size: fs,
-                        line_height: l.line_height.unwrap_or(fs * theme.typography.line_height),
-                        ..TextStyle::default()
-                    },
-                    TextConstraints {
-                        max_width: wrapped.then_some((rect.width - (text_x - rect.x)).max(0.0)),
-                        wrap,
-                    },
-                    scale,
-                );
+                let style = TextStyle {
+                    font_size: fs,
+                    line_height: l
+                        .style
+                        .line_height
+                        .or(l.line_height)
+                        .unwrap_or(fs * theme.typography.line_height),
+                    ..TextStyle::default()
+                };
+                let available = (rect.width - (text_x - rect.x)).max(0.0);
+                let shaped = if l.style.truncate == Some(true) && !wrapped {
+                    fonts.shape_with_ellipsis(display_text, &style, available, scale)
+                } else {
+                    fonts.shape(
+                        display_text,
+                        &style,
+                        TextConstraints {
+                            max_width: wrapped.then_some(available),
+                            wrap,
+                        },
+                        scale,
+                    )
+                };
                 // Single-line alignment uses the existing style contract.
                 // Clip aligned text to its content box (e.g. avatar initials).
                 let text_clip = if aligned {
@@ -3862,6 +3904,62 @@ fn intersect_clip(rect: [f32; 4], clip: [f32; 4]) -> [f32; 4] {
         ((rect[0] + rect[2]).min(clip[0] + clip[2]) - x).max(0.0),
         ((rect[1] + rect[3]).min(clip[1] + clip[3]) - y).max(0.0),
     ]
+}
+
+#[cfg(test)]
+mod intrinsic_label_tests {
+    use super::*;
+
+    #[test]
+    fn row_preserves_intrinsic_cjk_label_unless_truncation_is_enabled() {
+        let mut fonts = FontSystem::new();
+        let text = "很長的說明文字，用來測試標籤的固有寬度";
+        let context = WidgetLayoutContext {
+            body_font_size: 14.0,
+            body_line_height: 21.0,
+            label_font_size: 13.0,
+            control_height: 36.0,
+            scale_factor: 1.0,
+        };
+        let natural = fonts
+            .shape(
+                text,
+                &TextStyle {
+                    font_size: 14.0,
+                    ..TextStyle::default()
+                },
+                TextConstraints::default(),
+                1.0,
+            )
+            .width;
+        assert!(natural > 30.0);
+        for (width, truncate, expected) in [
+            (natural.ceil() + 100.0, false, natural),
+            (130.0, false, natural),
+            (130.0, true, 30.0),
+        ] {
+            let layout = row::<()>()
+                .width(width)
+                .child(acme_widgets::label_builder(text).truncate(truncate).build())
+                .child(
+                    acme_widgets::text_input("field")
+                        .w(Length::px(100.0))
+                        .build(),
+                )
+                .build()
+                .to_layout_with_context(NodeId::new(1), &context);
+            let snapshot = LayoutEngine::new()
+                .compute_with_text(&layout, (width, 80.0), &mut fonts, 1.0)
+                .unwrap();
+            let label = snapshot.get(layout.children[0].id).unwrap();
+            let input = snapshot.get(layout.children[1].id).unwrap();
+            assert!(
+                (label.width - expected).abs() < 1.0,
+                "{label:?}, expected {expected}"
+            );
+            assert_eq!(input.x, label.width);
+        }
+    }
 }
 
 fn paint_card_shadow_painter(

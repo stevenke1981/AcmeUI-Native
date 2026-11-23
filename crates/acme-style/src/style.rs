@@ -143,6 +143,8 @@ pub struct Style {
     pub text_color: Option<ColorToken>,
     /// Text alignment.
     pub text_align: Option<TextAlign>,
+    /// Allow a single-line label to shrink and show an ellipsis.
+    pub truncate: Option<bool>,
 
     // ── Overflow ─────────────────────────────────────────────────
     pub overflow: Option<Overflow>,
@@ -188,6 +190,7 @@ impl Style {
         merge_opt!(line_height);
         merge_opt!(text_color);
         merge_opt!(text_align);
+        merge_opt!(truncate);
         merge_opt!(overflow);
     }
 
