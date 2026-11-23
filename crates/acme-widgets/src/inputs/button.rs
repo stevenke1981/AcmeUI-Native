@@ -14,6 +14,8 @@ pub enum ButtonVariant {
     Primary,
     Secondary,
     Ghost,
+    /// Minimal chrome with a transparent rest fill and no default border.
+    Subtle,
     Danger,
 }
 
@@ -69,6 +71,7 @@ pub struct Button<M> {
     pub trailing_icon: Option<String>,
     message: Option<M>,
     accessibility_toggled: Option<bool>,
+    selected: Option<bool>,
     /// Accumulated GPUI‑inspired style (background, border, rounding, etc.).
     pub style: Style,
 }
@@ -87,6 +90,7 @@ pub fn button<M>(key: impl Into<WidgetKey>, label: impl Into<String>) -> Button<
         trailing_icon: None,
         message: None,
         accessibility_toggled: None,
+        selected: None,
         style: Style::new(),
     }
 }
@@ -136,6 +140,32 @@ impl<M> Button<M> {
         self.accessibility_toggled
     }
 
+    /// Set the visual selection state of a navigation or page choice.
+    /// The accessibility bridge exposes a tab with this selected state. An
+    /// explicit `with_accessibility_toggled()` keeps the toggle-button role.
+    pub fn selected(mut self, value: bool) -> Self {
+        self.selected = Some(value);
+        self
+    }
+
+    /// Explicit selection state for accessibility. An ordinary button has no selection state.
+    pub fn accessibility_selected(&self) -> Option<bool> {
+        self.selected
+    }
+
+    /// Whether the button uses the theme's selected colors.
+    pub fn is_selected(&self) -> bool {
+        self.selected.unwrap_or(false)
+    }
+
+    /// Resolve the resting border width, excluding the focus ring.
+    pub fn resolved_border_width(&self) -> f32 {
+        self.style.border_width.unwrap_or(match self.variant {
+            ButtonVariant::Subtle => 0.0,
+            _ => 1.0,
+        })
+    }
+
     pub fn on_click(mut self, message: M) -> WidgetNode<M> {
         self.message = Some(message);
         WidgetNode::Button(self)
@@ -167,7 +197,9 @@ impl<M> Button<M> {
             self.style.padding.as_ref().map_or(DEFAULT_LABEL_PAD, side)
         };
         match self.style.text_align {
-            None | Some(TextAlign::Center) => rect_x + (rect_width - text_width).max(0.0) / 2.0,
+            None | Some(TextAlign::Center) => {
+                rect_x + crate::label_align_offset(TextAlign::Center, rect_width, text_width)
+            }
             Some(TextAlign::Left) => rect_x + pad(|e| e.left),
             Some(TextAlign::Right) => {
                 let start = rect_x + pad(|e| e.left);
@@ -176,36 +208,61 @@ impl<M> Button<M> {
         }
     }
     /// Resolve visual style from theme and state.
-    /// Uses V2 semantic color tokens from `acme-theme`.
+    /// Disabled colors take priority over explicit background and text colors.
+    /// A custom background is tinted toward a contrasting theme color on hover and press.
     pub fn resolve_style(&self, theme: &Theme, state: ButtonState) -> ResolvedButtonStyle {
         let c = theme.colors;
+        let selected = !self.disabled && self.is_selected();
         let background = if self.disabled {
             c.disabled_bg
+        } else if let Some(bg) = self.style.background {
+            let bg = bg.resolve(theme);
+            if state.pressed || state.hovered {
+                let tint = if theme.contrast(bg, c.foreground) > theme.contrast(bg, c.background) {
+                    c.foreground
+                } else {
+                    c.background
+                };
+                bg.lerp(tint, if state.pressed { 0.16 } else { 0.08 })
+            } else {
+                bg
+            }
+        } else if selected {
+            c.accent
         } else if state.pressed {
             match self.variant {
                 ButtonVariant::Primary => c.primary_pressed,
                 ButtonVariant::Danger => c.danger_pressed,
-                ButtonVariant::Secondary | ButtonVariant::Ghost => c.ghost_pressed,
+                ButtonVariant::Secondary | ButtonVariant::Ghost | ButtonVariant::Subtle => {
+                    c.ghost_pressed
+                }
             }
         } else if state.hovered {
             match self.variant {
                 ButtonVariant::Primary => c.primary_hover,
                 ButtonVariant::Danger => c.danger_hover,
-                ButtonVariant::Secondary => c.ghost_hover,
-                ButtonVariant::Ghost => c.ghost_hover,
+                ButtonVariant::Secondary | ButtonVariant::Ghost | ButtonVariant::Subtle => {
+                    c.ghost_hover
+                }
             }
         } else {
             match self.variant {
                 ButtonVariant::Primary => c.primary,
                 ButtonVariant::Danger => c.danger,
                 ButtonVariant::Secondary => c.secondary,
-                ButtonVariant::Ghost => ThemeColor::rgba(0.0, 0.0, 0.0, 0.0),
+                ButtonVariant::Ghost | ButtonVariant::Subtle => {
+                    ThemeColor::rgba(0.0, 0.0, 0.0, 0.0)
+                }
             }
         };
         ResolvedButtonStyle {
             background,
             foreground: if self.disabled {
-                c.disabled_text
+                c.disabled_foreground
+            } else if let Some(fg) = self.style.text_color {
+                fg.resolve(theme)
+            } else if selected && self.style.background.is_none() {
+                c.selection_foreground
             } else {
                 let candidates = match self.variant {
                     ButtonVariant::Primary | ButtonVariant::Danger => {
@@ -214,26 +271,28 @@ impl<M> Button<M> {
                     ButtonVariant::Secondary if !(state.pressed || state.hovered) => {
                         [c.secondary_foreground, c.foreground, c.background]
                     }
-                    ButtonVariant::Secondary | ButtonVariant::Ghost => {
+                    ButtonVariant::Secondary | ButtonVariant::Ghost | ButtonVariant::Subtle => {
                         [c.foreground, c.background, c.secondary_foreground]
                     }
                 };
-                let painted =
-                    if self.variant == ButtonVariant::Ghost && !(state.pressed || state.hovered) {
-                        c.background
-                    } else {
-                        background
-                    };
+                let painted = if background.alpha == 0.0 {
+                    c.background
+                } else {
+                    background
+                };
                 readable_foreground(theme, painted, candidates)
             },
-            border: c.border,
+            border: self
+                .style
+                .border_color
+                .map_or(c.border, |color| color.resolve(theme)),
             focus: c.ring,
         }
     }
 }
 
 /// First candidate token reaching WCAG AA (4.5:1) on `bg`, else the highest
-/// ratio. Mirrors `Theme::selected_item_colors`; only existing tokens are used.
+/// ratio. Only existing theme tokens are used.
 fn readable_foreground(theme: &Theme, bg: ThemeColor, candidates: [ThemeColor; 3]) -> ThemeColor {
     candidates
         .iter()

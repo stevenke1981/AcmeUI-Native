@@ -224,7 +224,7 @@ fn write_f32_section(
 
 // ── Field tables ─────────────────────────────────────────────────────────────
 
-fn color_fields(c: &ColorTokens) -> [(&'static str, ThemeColor); 34] {
+fn color_fields(c: &ColorTokens) -> [(&'static str, ThemeColor); 36] {
     [
         ("background", c.background),
         ("foreground", c.foreground),
@@ -260,6 +260,8 @@ fn color_fields(c: &ColorTokens) -> [(&'static str, ThemeColor); 34] {
         ("ghost_pressed", c.ghost_pressed),
         ("disabled_bg", c.disabled_bg),
         ("disabled_text", c.disabled_text),
+        ("disabled_foreground", c.disabled_foreground),
+        ("selection_foreground", c.selection_foreground),
     ]
 }
 
@@ -299,6 +301,8 @@ fn color_field_mut<'a>(c: &'a mut ColorTokens, key: &str) -> Option<&'a mut Them
         "ghost_pressed" => &mut c.ghost_pressed,
         "disabled_bg" => &mut c.disabled_bg,
         "disabled_text" => &mut c.disabled_text,
+        "disabled_foreground" => &mut c.disabled_foreground,
+        "selection_foreground" => &mut c.selection_foreground,
         _ => return None,
     })
 }

@@ -17,7 +17,7 @@
 
 use crate::color::ColorToken;
 use crate::style::{FontWeight, ShadowDef, Style, TextAlign};
-use acme_layout::{Edges, LayoutKind, Length, Overflow};
+use acme_layout::{AlignItems, Edges, JustifyContent, LayoutKind, Length, Overflow};
 
 /// Trait that provides chainable, Tailwind‑inspired style methods.
 ///
@@ -217,6 +217,42 @@ pub trait Styled: Sized {
     // Flex
     // ═══════════════════════════════════════════════════════════════
 
+    /// Set cross-axis placement of children to Start.
+    fn items_start(mut self) -> Self {
+        self.style_mut().align_items = Some(AlignItems::Start);
+        self
+    }
+
+    /// Set cross-axis placement of children to Center.
+    fn items_center(mut self) -> Self {
+        self.style_mut().align_items = Some(AlignItems::Center);
+        self
+    }
+
+    /// Set cross-axis placement of children to End.
+    fn items_end(mut self) -> Self {
+        self.style_mut().align_items = Some(AlignItems::End);
+        self
+    }
+
+    /// Set main-axis distribution of spare space to End.
+    fn justify_end(mut self) -> Self {
+        self.style_mut().justify_content = Some(JustifyContent::End);
+        self
+    }
+
+    /// Set main-axis distribution of spare space to Center.
+    fn justify_center(mut self) -> Self {
+        self.style_mut().justify_content = Some(JustifyContent::Center);
+        self
+    }
+
+    /// Set main-axis distribution of spare space to SpaceBetween.
+    fn justify_between(mut self) -> Self {
+        self.style_mut().justify_content = Some(JustifyContent::SpaceBetween);
+        self
+    }
+
     /// Set `flex-grow`.
     fn flex_grow(mut self, value: f32) -> Self {
         self.style_mut().flex_grow = Some(value.max(0.0));
@@ -227,6 +263,18 @@ pub trait Styled: Sized {
         self.style_mut().flex_shrink = Some(value.max(0.0));
         self
     }
+    /// Wrap flex children onto additional lines when the main axis is full.
+    fn flex_wrap(mut self) -> Self {
+        self.style_mut().flex_wrap = Some(true);
+        self
+    }
+
+    /// Keep flex children on one line, overriding a previous `flex_wrap()`.
+    fn no_wrap(mut self) -> Self {
+        self.style_mut().flex_wrap = Some(false);
+        self
+    }
+
     /// Shortcut: `flex-grow: 1`.
     fn flex_1(self) -> Self {
         self.flex_grow(1.0)
@@ -356,7 +404,7 @@ pub trait Styled: Sized {
         self.style_mut().font_weight = Some(value);
         self
     }
-    /// Set line height (as a ratio × font_size, e.g. `1.5`).
+    /// Set line height in logical pixels.
     fn line_height(mut self, value: f32) -> Self {
         self.style_mut().line_height = Some(value);
         self

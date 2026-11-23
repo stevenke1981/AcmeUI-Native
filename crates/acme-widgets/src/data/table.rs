@@ -190,6 +190,8 @@ pub struct Table<M> {
     /// Internal: current column resize operation state.
     #[doc(hidden)]
     pub(crate) resize_state: Option<ResizeState>,
+    /// Optional style overrides for the table or grid's outer layout box.
+    pub style: acme_style::Style,
     /// Flat list of all cell widgets (for reconciliation / children()).
     pub(crate) all_cells: Vec<WidgetNode<M>>,
 }
@@ -214,6 +216,7 @@ impl<M: Clone> Clone for Table<M> {
             state: self.state.clone(),
             resize_state: self.resize_state,
             all_cells: self.all_cells.clone(),
+            style: self.style.clone(),
         }
     }
 }
@@ -222,6 +225,7 @@ impl<M: std::fmt::Debug> std::fmt::Debug for Table<M> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Table")
             .field("key", &self.key)
+            .field("style", &self.style)
             .field("columns", &self.columns)
             .field("rows", &self.rows)
             .field("sort_column", &self.sort_column)
@@ -254,6 +258,7 @@ impl<M: PartialEq> PartialEq for Table<M> {
             && self.overscan == other.overscan
             && self.selection_mode == other.selection_mode
             && self.state == other.state
+            && self.style == other.style
     }
 }
 
@@ -277,6 +282,16 @@ pub fn table<M>(key: impl Into<WidgetKey>) -> Table<M> {
         state: TableState::Normal,
         resize_state: None,
         all_cells: Vec::new(),
+        style: acme_style::Style::default(),
+    }
+}
+
+impl<M> acme_style::Styled for Table<M> {
+    fn style(&self) -> &acme_style::Style {
+        &self.style
+    }
+    fn style_mut(&mut self) -> &mut acme_style::Style {
+        &mut self.style
     }
 }
 

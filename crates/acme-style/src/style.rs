@@ -4,7 +4,8 @@
 //! and then applied to a widget during layout / rendering.
 
 use crate::color::ColorToken;
-use acme_layout::{Edges, LayoutKind, LayoutStyle, Length, Overflow};
+pub use acme_layout::TextAlign;
+use acme_layout::{AlignItems, Edges, JustifyContent, LayoutKind, LayoutStyle, Length, Overflow};
 
 /// Shadow descriptor (offset + blur + color).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -65,15 +66,6 @@ pub enum FontWeight {
     Black,
 }
 
-/// Text alignment — analogous to CSS `text-align`.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum TextAlign {
-    #[default]
-    Left,
-    Center,
-    Right,
-}
-
 /// Accumulated visual and layout properties.
 ///
 /// All fields are `Option` so that a default `Style` is empty; only explicitly
@@ -107,6 +99,12 @@ pub struct Style {
     pub flex_grow: Option<f32>,
     /// Flex shrink factor.
     pub flex_shrink: Option<f32>,
+    /// Override flex line wrapping.
+    pub flex_wrap: Option<bool>,
+    /// Main-axis distribution of spare space in a flex container.
+    pub justify_content: Option<JustifyContent>,
+    /// Cross-axis placement of children in a flex container.
+    pub align_items: Option<AlignItems>,
 
     // ── Display / Layout kind ────────────────────────────────────
     /// The layout kind (row / column / stack).
@@ -143,6 +141,8 @@ pub struct Style {
     pub text_color: Option<ColorToken>,
     /// Text alignment.
     pub text_align: Option<TextAlign>,
+    /// Allow a single-line label to shrink and show an ellipsis.
+    pub truncate: Option<bool>,
 
     // ── Overflow ─────────────────────────────────────────────────
     pub overflow: Option<Overflow>,
@@ -175,6 +175,9 @@ impl Style {
         merge_opt!(gap);
         merge_opt!(flex_grow);
         merge_opt!(flex_shrink);
+        merge_opt!(flex_wrap);
+        merge_opt!(justify_content);
+        merge_opt!(align_items);
         merge_opt!(display);
         merge_opt!(layout_kind);
         merge_opt!(background);
@@ -188,6 +191,7 @@ impl Style {
         merge_opt!(line_height);
         merge_opt!(text_color);
         merge_opt!(text_align);
+        merge_opt!(truncate);
         merge_opt!(overflow);
     }
 
@@ -212,7 +216,13 @@ impl Style {
         apply_opt!(gap);
         apply_opt!(flex_grow);
         apply_opt!(flex_shrink);
+        apply_opt!(flex_wrap);
+        apply_opt!(justify_content);
+        apply_opt!(align_items);
         apply_opt!(overflow);
+        if self.text_align.is_some() {
+            base.text_align = self.text_align;
+        }
 
         if let Some(p) = self.padding {
             base.padding = p;

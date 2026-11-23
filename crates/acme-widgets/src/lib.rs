@@ -201,17 +201,7 @@ impl<M> WidgetNode<M> {
                 v.layout(),
                 v.children.iter().map(|c| c.to_layout_alloc(next)).collect(),
             ),
-            Self::Label(l) => {
-                let font_size = l.font_size.unwrap_or(16.0);
-                let line_height = (font_size * 1.5).ceil();
-                let mut style = LayoutStyle {
-                    min_height: Length::px(line_height),
-                    flex_shrink: 0.0,
-                    ..Default::default()
-                };
-                l.style.clone().apply_to_layout(&mut style);
-                LayoutNode::leaf(id, style)
-            }
+            Self::Label(l) => label_layout(l, id, 16.0, 24.0),
             Self::TextInput(input) => {
                 let mut style = LayoutStyle {
                     min_height: Length::px(40.0),
@@ -221,13 +211,17 @@ impl<M> WidgetNode<M> {
                 input.style.clone().apply_to_layout(&mut style);
                 LayoutNode::leaf(id, style)
             }
-            Self::Button(_) => LayoutNode::leaf(
-                id,
-                LayoutStyle {
-                    height: Length::px(36.0),
+            Self::Button(v) => {
+                let mut style = LayoutStyle {
+                    height: Length::px(v.size.px()),
                     ..Default::default()
-                },
-            ),
+                };
+                if v.full_width {
+                    style.width = Length::Percent(1.0);
+                }
+                v.style.clone().apply_to_layout(&mut style);
+                LayoutNode::leaf(id, style)
+            }
             Self::VirtualList(v) => LayoutNode::container(
                 id,
                 LayoutStyle {
@@ -356,14 +350,7 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                LayoutNode::container(
-                    id,
-                    LayoutStyle {
-                        kind: LayoutKind::Column,
-                        ..Default::default()
-                    },
-                    child_nodes,
-                )
+                LayoutNode::container(id, data_viewport_layout(&v.style), child_nodes)
             }
             Self::DataGrid(v) => {
                 let mut child_nodes: Vec<LayoutNode> = Vec::new();
@@ -414,14 +401,7 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                LayoutNode::container(
-                    id,
-                    LayoutStyle {
-                        kind: LayoutKind::Column,
-                        ..Default::default()
-                    },
-                    child_nodes,
-                )
+                LayoutNode::container(id, data_viewport_layout(&v.style), child_nodes)
             }
             Self::NavRail(v) => LayoutNode::container(
                 id,
@@ -569,25 +549,7 @@ impl<M> WidgetNode<M> {
                     .map(|c| c.to_layout_alloc_with_context(ids, context))
                     .collect(),
             ),
-            Self::Label(l) => {
-                let font_size = l.font_size.unwrap_or(context.body_font_size);
-                let line_height = l.line_height.unwrap_or(context.body_line_height);
-                let min_h = (font_size * 1.5).ceil();
-                let spec = TextMeasureSpec {
-                    text: l.text.clone(),
-                    font_size,
-                    line_height,
-                    wrap: crate::foundations::label::map_label_wrap(l.wrap),
-                    max_lines: l.max_lines,
-                };
-                let mut style = LayoutStyle {
-                    min_height: Length::px(min_h),
-                    flex_shrink: 0.0,
-                    ..Default::default()
-                };
-                l.style.clone().apply_to_layout(&mut style);
-                LayoutNode::text_leaf(id, style, spec)
-            }
+            Self::Label(l) => label_layout(l, id, context.body_font_size, context.body_line_height),
             Self::TextInput(input) => {
                 let mut style = LayoutStyle {
                     min_height: Length::px(context.control_height),
@@ -743,14 +705,7 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                LayoutNode::container(
-                    id,
-                    LayoutStyle {
-                        kind: LayoutKind::Column,
-                        ..Default::default()
-                    },
-                    child_nodes,
-                )
+                LayoutNode::container(id, data_viewport_layout(&v.style), child_nodes)
             }
             Self::DataGrid(v) => {
                 let mut child_nodes: Vec<LayoutNode> = Vec::new();
@@ -797,14 +752,7 @@ impl<M> WidgetNode<M> {
                         row_children,
                     ));
                 }
-                LayoutNode::container(
-                    id,
-                    LayoutStyle {
-                        kind: LayoutKind::Column,
-                        ..Default::default()
-                    },
-                    child_nodes,
-                )
+                LayoutNode::container(id, data_viewport_layout(&v.style), child_nodes)
             }
             Self::NavRail(v) => LayoutNode::container(
                 id,
@@ -1060,6 +1008,7 @@ mod tests {
                 ButtonVariant::Secondary,
                 ButtonVariant::Danger,
                 ButtonVariant::Ghost,
+                ButtonVariant::Subtle,
             ] {
                 let b = button::<Msg>("b", "b").variant(variant);
                 for (label, state) in [
@@ -1080,7 +1029,7 @@ mod tests {
                     ),
                 ] {
                     let s = b.resolve_style(theme, state);
-                    let bg = if variant == ButtonVariant::Ghost && label == "rest" {
+                    let bg = if s.background.alpha == 0.0 {
                         theme.colors.background
                     } else {
                         s.background
@@ -1112,6 +1061,89 @@ mod tests {
             failures.join("\n")
         );
     }
+    #[test]
+    fn subtle_button_selection_and_styled_overrides_survive_build() {
+        use acme_style::{ColorToken, Styled};
+        let theme = Theme::light();
+        let builder = button::<()>("choice", "Choice").variant(ButtonVariant::Subtle);
+        let unselected = builder.clone().selected(false);
+        assert!(!unselected.is_selected());
+        assert_eq!(unselected.accessibility_toggled(), None);
+        assert_eq!(unselected.resolved_border_width(), 0.0);
+        assert_eq!(
+            unselected
+                .resolve_style(&theme, ButtonState::default())
+                .background
+                .alpha,
+            0.0
+        );
+
+        let selected = builder.selected(true);
+        assert!(selected.is_selected());
+        assert_eq!(selected.accessibility_toggled(), None);
+        let style = selected.resolve_style(&theme, ButtonState::default());
+        assert_eq!(
+            (style.background, style.foreground),
+            (theme.colors.accent, theme.colors.selection_foreground)
+        );
+
+        let node = selected
+            .bg(ColorToken::Surface)
+            .text_color(ColorToken::Primary)
+            .border_width(2.0)
+            .on_click(());
+        let WidgetNode::Button(b) = node else {
+            panic!("expected Button")
+        };
+        assert_eq!(b.activate(), Some(&()));
+        assert_eq!(b.style.background, Some(ColorToken::Surface));
+        assert_eq!(b.style.text_color, Some(ColorToken::Primary));
+        assert_eq!(b.style.border_width, Some(2.0));
+        assert_eq!(b.resolved_border_width(), 2.0);
+        let style = b.resolve_style(&theme, ButtonState::default());
+        assert_eq!(style.background, theme.colors.surface);
+        assert_eq!(style.foreground, theme.colors.primary);
+    }
+
+    #[test]
+    fn custom_button_colors_show_pointer_feedback_and_yield_to_disabled_colors() {
+        use acme_style::{ColorToken, Styled};
+
+        for theme in [Theme::light(), Theme::dark()] {
+            let button = button::<()>("custom", "Custom")
+                .selected(true)
+                .bg(ColorToken::Background)
+                .text_color(ColorToken::Primary);
+            let states = [
+                ButtonState::default(),
+                ButtonState {
+                    hovered: true,
+                    ..Default::default()
+                },
+                ButtonState {
+                    hovered: true,
+                    pressed: true,
+                    focused: true,
+                },
+            ];
+            let [rest, hover, press] = states.map(|state| button.resolve_style(&theme, state));
+            assert_eq!(rest.background, theme.colors.background);
+            assert_ne!(hover.background, rest.background);
+            assert_ne!(press.background, hover.background);
+            assert_ne!(press.background, rest.background);
+            for style in [rest, hover, press] {
+                assert_eq!(style.foreground, theme.colors.primary);
+            }
+
+            let disabled = button.disabled(true);
+            for state in states {
+                let style = disabled.resolve_style(&theme, state);
+                assert_eq!(style.background, theme.colors.disabled_bg);
+                assert_eq!(style.foreground, theme.colors.disabled_foreground);
+            }
+        }
+    }
+
     #[test]
     fn button_resolve_style_has_no_hardcoded_colors() {
         let src = include_str!("inputs/button.rs");
@@ -1824,7 +1856,7 @@ mod tests {
         let theme = Theme::dark();
         let resolved = b.resolve_style(&theme, ButtonState::default());
         assert_eq!(resolved.background, theme.colors.disabled_bg);
-        assert_eq!(resolved.foreground, theme.colors.disabled_text);
+        assert_eq!(resolved.foreground, theme.colors.disabled_foreground);
     }
 
     // ------------------------------------------------------------------
@@ -2032,6 +2064,55 @@ mod text_input_style_tests {
     }
 }
 
+fn data_viewport_layout(style: &acme_style::Style) -> LayoutStyle {
+    let mut layout = LayoutStyle::column();
+    if style.flex_grow.unwrap_or_default() > 0.0 || matches!(style.height, Some(Length::Percent(_)))
+    {
+        layout.flex_shrink = 1.0;
+        layout.min_height = Length::px(0.0);
+    }
+    style.clone().apply_to_layout(&mut layout);
+    layout
+}
+
+fn label_layout(label: &Label, id: NodeId, default_size: f32, default_height: f32) -> LayoutNode {
+    let font_size = label
+        .style
+        .font_size
+        .or(label.font_size)
+        .unwrap_or(default_size);
+    let line_height = label
+        .style
+        .line_height
+        .or(label.line_height)
+        .unwrap_or(default_height);
+    let truncate = label.style.truncate == Some(true) && label.wrap == LabelWrap::None;
+    let mut style = LayoutStyle {
+        min_height: Length::px((font_size * 1.5).ceil()),
+        // Auto min-width uses Taffy's measured min-content size. Truncation
+        // explicitly releases that constraint as well as enabling shrink.
+        min_width: if truncate {
+            Length::px(0.0)
+        } else {
+            Length::Auto
+        },
+        flex_shrink: if truncate { 1.0 } else { 0.0 },
+        ..Default::default()
+    };
+    label.style.clone().apply_to_layout(&mut style);
+    LayoutNode::text_leaf(
+        id,
+        style,
+        TextMeasureSpec {
+            text: label.text.clone(),
+            font_size,
+            line_height,
+            wrap: map_label_wrap(label.wrap),
+            max_lines: if truncate { Some(1) } else { label.max_lines },
+        },
+    )
+}
+
 #[cfg(test)]
 mod label_style_tests {
     use super::*;
@@ -2055,6 +2136,23 @@ mod label_style_tests {
         ] {
             assert_eq!(layout.style.width, Length::px(28.0));
             assert_eq!(layout.style.height, Length::px(28.0));
+        }
+    }
+
+    #[test]
+    fn truncate_releases_intrinsic_min_width_for_unwrapped_labels_only() {
+        for (truncate, wrap, shrink, min_width) in [
+            (false, LabelWrap::None, 0.0, Length::Auto),
+            (true, LabelWrap::None, 1.0, Length::px(0.0)),
+            (true, LabelWrap::Word, 0.0, Length::Auto),
+        ] {
+            let layout = label_builder::<()>("說明")
+                .truncate(truncate)
+                .wrap(wrap)
+                .build()
+                .to_layout(NodeId::new(1));
+            assert_eq!(layout.style.flex_shrink, shrink);
+            assert_eq!(layout.style.min_width, min_width);
         }
     }
 }
@@ -2123,5 +2221,179 @@ mod button_label_x_tests {
             left.label_x(5.0, 100.0, 1.0),
             left.label_x(5.0, 100.0, 99.0)
         );
+    }
+}
+
+#[cfg(test)]
+mod flex_container_tests {
+    use super::*;
+    use acme_layout::{LayoutEngine, LayoutRect};
+    use acme_style::Styled;
+
+    fn child_rects(widget: WidgetNode<()>) -> Vec<LayoutRect> {
+        let layout = widget.to_layout(NodeId::new(1));
+        let snapshot = LayoutEngine::new().compute(&layout, (100.0, 60.0)).unwrap();
+        layout
+            .children
+            .iter()
+            .map(|child| *snapshot.get(child.id).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn table_grid_and_scroll_resolve_percent_height_and_flex_grow() {
+        let areas = [
+            [
+                table::<()>("tbl").h(Length::Percent(0.25)).build(),
+                datagrid::<()>("grid").h(Length::Percent(0.25)).build(),
+                scroll_view::<()>("scroll")
+                    .viewport_height(42.0)
+                    .h(Length::Percent(0.25))
+                    .build(),
+            ],
+            [
+                table::<()>("tbl").flex_1().build(),
+                datagrid::<()>("grid").flex_1().build(),
+                scroll_view::<()>("scroll").flex_1().build(),
+            ],
+        ];
+        let context = crate::painter_bridge::default_layout_context();
+        for (widgets, expected) in areas.into_iter().zip([30.0, 40.0]) {
+            let parent = widgets
+                .into_iter()
+                .fold(column().size(100.0, 120.0), |parent, child| {
+                    parent.child(child)
+                })
+                .build();
+            for layout in [
+                parent.to_layout(NodeId::new(1)),
+                parent.to_layout_with_context(NodeId::new(1), &context),
+            ] {
+                let snapshot = LayoutEngine::new()
+                    .compute(&layout, (100.0, 120.0))
+                    .unwrap();
+                for child in &layout.children {
+                    assert_eq!(snapshot.get(child.id).unwrap().height, expected);
+                }
+                assert_eq!(
+                    snapshot
+                        .scroll_metrics(layout.children[2].id)
+                        .unwrap()
+                        .viewport_height,
+                    expected
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn populated_scrollable_widgets_fit_their_column_and_keep_overflowing_content() {
+        let mut table = table::<()>("table").column(TableColumn::new("name", label("Name"), 100.0));
+        let mut grid =
+            datagrid::<()>("grid").column(DataGridColumn::new("name", label("Name"), 100.0));
+        let mut scroll = scroll_view::<()>("scroll");
+        for _ in 0..20 {
+            table = table.add_row(TableRow::new(vec![label("Row")]));
+            grid = grid.add_row(DataGridRow::new(vec![label("Row")]));
+        }
+        for _ in 0..10 {
+            scroll = scroll.child(label("Overflowing line"));
+        }
+        let cases = [
+            (table.clone().flex_1().build(), 100.0),
+            (grid.clone().flex_1().build(), 100.0),
+            (scroll.clone().flex_1().build(), 100.0),
+            (table.h(Length::Percent(0.5)).build(), 50.0),
+            (grid.h(Length::Percent(0.5)).build(), 50.0),
+            (scroll.h(Length::Percent(0.5)).build(), 50.0),
+        ];
+        let context = crate::painter_bridge::default_layout_context();
+        for (widget, height) in cases {
+            let is_scroll_view = matches!(&widget, WidgetNode::ScrollView(_));
+            let parent = column().size(200.0, 100.0).child(widget).build();
+            for layout in [
+                parent.to_layout(NodeId::new(1)),
+                parent.to_layout_with_context(NodeId::new(1), &context),
+            ] {
+                let snapshot = LayoutEngine::new()
+                    .compute(&layout, (200.0, 100.0))
+                    .unwrap();
+                let child = &layout.children[0];
+                let viewport = snapshot.get(child.id).unwrap();
+                assert_eq!(viewport.height, height);
+                let last = snapshot.get(child.children.last().unwrap().id).unwrap();
+                assert!(last.y + last.height > viewport.y + viewport.height);
+                if is_scroll_view {
+                    let metrics = snapshot.scroll_metrics(child.id).unwrap();
+                    assert_eq!(metrics.viewport_height, height);
+                    assert!(metrics.content_height > height);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn flex_wrap_moves_items_to_the_next_line_at_the_available_width() {
+        let builder = || {
+            (0..3).fold(row::<()>().width(100.0).gap(5.0), |row, _| {
+                row.child(label_builder("item").w(Length::px(45.0)).build())
+            })
+        };
+        let nowrap = child_rects(builder().build());
+        assert_eq!((nowrap[2].x, nowrap[2].y), (100.0, 0.0));
+        let wrapped = child_rects(builder().flex_wrap().build());
+        assert_eq!((wrapped[1].x, wrapped[1].y), (50.0, 0.0));
+        assert_eq!((wrapped[2].x, wrapped[2].y), (0.0, 29.0));
+        assert_eq!(child_rects(builder().flex_wrap().no_wrap().build()), nowrap);
+    }
+
+    #[test]
+    fn main_axis_distribution_places_children_with_existing_gap() {
+        let builder = || {
+            row::<()>()
+                .size(100.0, 60.0)
+                .gap(10.0)
+                .child(label_builder("first").w(Length::px(20.0)).build())
+                .child(label_builder("second").w(Length::px(20.0)).build())
+        };
+        for (row, positions) in [
+            (builder(), [0.0, 30.0]),
+            (builder().justify_center(), [25.0, 55.0]),
+            (builder().justify_end(), [50.0, 80.0]),
+            (builder().justify_between(), [0.0, 80.0]),
+        ] {
+            let rects = child_rects(row.build());
+            assert_eq!([rects[0].x, rects[1].x], positions);
+        }
+    }
+
+    #[test]
+    fn cross_axis_alignment_positions_children_and_preserves_default_stretch() {
+        let builder = || {
+            row::<()>()
+                .size(100.0, 60.0)
+                .child(label_builder("fixed").h(Length::px(30.0)).build())
+                .child(label("auto"))
+        };
+        for (row, y) in [
+            (builder().items_start(), 0.0),
+            (builder().items_center(), 15.0),
+            (builder().items_end(), 30.0),
+        ] {
+            let rects = child_rects(row.build());
+            assert_eq!(rects[0].y, y);
+            assert_eq!(rects[0].height, 30.0);
+        }
+        let rects = child_rects(builder().build());
+        assert_eq!(rects[0].y, 0.0);
+        assert_eq!(rects[1].height, 60.0);
+        let rects = child_rects(
+            column::<()>()
+                .size(100.0, 60.0)
+                .items_end()
+                .child(label_builder("fixed").w(Length::px(30.0)).build())
+                .build(),
+        );
+        assert_eq!(rects[0].x, 70.0);
     }
 }

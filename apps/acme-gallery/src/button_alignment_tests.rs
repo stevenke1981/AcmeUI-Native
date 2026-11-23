@@ -318,3 +318,44 @@ fn gallery_shell_category_labels_left_aligned_after_marker() {
     // Same x for every category and selection state.
     assert!(label_offsets.windows(2).all(|w| (w[0] - w[1]).abs() < 0.01));
 }
+
+#[test]
+fn label_and_button_alignment_survive_layout_and_set_scene_text_origins() {
+    let mut gallery = Gallery::new();
+    let theme = gallery.current_theme();
+    for alignment in [TextAlign::Left, TextAlign::Center, TextAlign::Right] {
+        let widget = column()
+            .width(160.0)
+            .child(
+                acme_widgets::label_builder("Label")
+                    .text_align(alignment)
+                    .build(),
+            )
+            .child(
+                button("aligned", "Button")
+                    .full_width(true)
+                    .p(0.0)
+                    .text_align(alignment),
+            )
+            .build();
+        let (layout, snapshot, scene) = paint(&mut gallery, &widget);
+        let runs = texts(&scene);
+        assert_eq!(runs.len(), 2);
+        for ((node, run), (text, size)) in layout.children.iter().zip(&runs).zip([
+            ("Label", theme.typography.body),
+            ("Button", theme.typography.label),
+        ]) {
+            assert_eq!(snapshot.text_align(node.id), Some(alignment));
+            let rect = snapshot.get(node.id).unwrap();
+            let width = shape(&mut gallery, text, size).width;
+            let spare = (rect.width - width).max(0.0);
+            let expected = rect.x
+                + match alignment {
+                    TextAlign::Left => 0.0,
+                    TextAlign::Center => spare / 2.0,
+                    TextAlign::Right => spare,
+                };
+            assert_eq!(run.origin.x.get(), expected, "{text}, {alignment:?}");
+        }
+    }
+}

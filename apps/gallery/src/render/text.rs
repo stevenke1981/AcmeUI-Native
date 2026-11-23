@@ -24,7 +24,19 @@ pub fn add_text(
         ..TextStyle::default()
     };
     let layout = fonts.shape(text, &style, TextConstraints::default(), scale);
-    let prepared = fonts.prepare(&layout, atlas);
+    add_shaped_text(fonts, atlas, painter, &layout, origin, color, clip);
+}
+
+pub(super) fn add_shaped_text(
+    fonts: &mut FontSystem,
+    atlas: &mut GlyphAtlas,
+    painter: &mut Painter<'_>,
+    layout: &acme_text::TextLayout,
+    origin: [f32; 2],
+    color: ThemeColor,
+    clip: Option<[f32; 4]>,
+) {
+    let prepared = fonts.prepare(layout, atlas);
 
     // Convert prepared text to scene types
     let mut glyphs = Vec::new();

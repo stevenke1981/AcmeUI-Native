@@ -712,9 +712,7 @@ impl Gallery {
                     "Button Variants",
                     column()
                         .gap(12.0)
-                        .child(label(
-                            "Four tone variants cover common interaction patterns:",
-                        ))
+                        .child(label("Button variants, selection, and disabled text:"))
                         .child(
                             row()
                                 .gap(8.0)
@@ -736,6 +734,22 @@ impl Gallery {
                                     button("iv_danger", "Danger")
                                         .variant(ButtonVariant::Danger)
                                         .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("iv_subtle", "Subtle")
+                                        .variant(ButtonVariant::Subtle)
+                                        .selected(false)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button("iv_selected", "Selected")
+                                        .variant(ButtonVariant::Subtle)
+                                        .selected(true)
+                                        .on_click(GalleryMessage::DpiInfo),
+                                )
+                                .child(
+                                    button::<GalleryMessage>("iv_disabled", "Disabled")
+                                        .disabled(true),
                                 )
                                 .build(),
                         )
@@ -918,13 +932,62 @@ impl Gallery {
                     "Row & Column",
                     column()
                         .gap(8.0)
-                        .child(label("Row (horizontal):"))
+                        .child(label("Row (space between):"))
                         .child(
                             row()
                                 .gap(8.0)
+                                .justify_between()
                                 .child(label("[A]"))
                                 .child(label("[B]"))
                                 .child(label("[C]"))
+                                .build(),
+                        )
+                        .child(
+                            row()
+                                .width(240.0)
+                                .gap(8.0)
+                                .items_center()
+                                .child(
+                                    acme_widgets::label_builder(
+                                        "很長的說明文字，空間不足時顯示省略號",
+                                    )
+                                    .truncate(true)
+                                    .build(),
+                                )
+                                .child(button::<GalleryMessage>("truncate_example", "Details"))
+                                .build(),
+                        )
+                        .child(
+                            acme_widgets::label_builder("Right-aligned label")
+                                .text_align(TextAlign::Right)
+                                .build(),
+                        )
+                        .child(
+                            button::<GalleryMessage>(
+                                "right_aligned_example",
+                                "Right-aligned action",
+                            )
+                            .full_width(true)
+                            .text_align(TextAlign::Right),
+                        )
+                        .child(label("Wrapping row:"))
+                        .child(
+                            row()
+                                .width(200.0)
+                                .gap(8.0)
+                                .flex_wrap()
+                                .child(
+                                    button::<GalleryMessage>("wrap_1", "Option A")
+                                        .w(Length::px(90.0)),
+                                )
+                                .child(
+                                    button::<GalleryMessage>("wrap_2", "Option B")
+                                        .w(Length::px(90.0)),
+                                )
+                                .child(
+                                    button::<GalleryMessage>("wrap_3", "Option C")
+                                        .w(Length::px(90.0)),
+                                )
                                 .build(),
                         )
                         .child(label("Column (vertical):"))
@@ -946,6 +1009,19 @@ impl Gallery {
                         .gap(4.0)
                         .child(label("The page you're viewing is inside a ScrollView."))
                         .child(label("Try scrolling to see all content."))
+                        .child(
+                            column()
+                                .height(80.0)
+                                .child(
+                                    scroll_view("percent_height")
+                                        .h(Length::Percent(0.5))
+                                        .child(label("40 px viewport"))
+                                        .child(label("Second line"))
+                                        .child(label("Below the viewport"))
+                                        .build(),
+                                )
+                                .build(),
+                        )
                         .build(),
                 ),
             )
@@ -1664,7 +1740,13 @@ impl Gallery {
                     "Typography Scale",
                     column()
                         .gap(8.0)
-                        .child(label_with_size("Heading 1 (h1) — 28px  Page title", 28.0))
+                        .child(
+                            Styled::font_size(
+                                acme_widgets::label_builder("Heading 1 (h1) — 28px  Page title"),
+                                28.0,
+                            )
+                            .build(),
+                        )
                         .child(label_with_size(
                             "Heading 2 (h2) — 22px  Section title",
                             22.0,
@@ -3068,7 +3150,11 @@ fn render_content_painter(
                 return;
             }
             if let Some(rect) = snapshot.get(layout.id) {
-                let fs = l.font_size.unwrap_or(theme.typography.body);
+                let fs = l
+                    .style
+                    .font_size
+                    .or(l.font_size)
+                    .unwrap_or(theme.typography.body);
                 let y_text = rect.y - scroll_y;
                 let text_color = l
                     .style
@@ -3084,9 +3170,9 @@ fn render_content_painter(
                     acme_widgets::LabelWrap::Character => acme_text::TextWrap::Glyph,
                 };
                 let wrapped = l.wrap != acme_widgets::LabelWrap::None;
-                let alignment = l.style.text_align.unwrap_or(TextAlign::Left);
-                let aligned = !wrapped && alignment != TextAlign::Left;
-                let mut text_x = rect.x + if wrapped || aligned { 0.0 } else { 4.0 };
+                let alignment = layout.style.text_align.or(l.style.text_align);
+                let truncated = l.style.truncate == Some(true) && !wrapped;
+                let mut text_x = rect.x;
                 // Color swatch label: "\x01{color_name}|{display_text}"
                 if let Some((color_name, display)) = l
                     .text
@@ -3106,18 +3192,33 @@ fn render_content_painter(
                         text_x = swatch_x + swatch_size + 8.0;
                     }
                 }
-                let shaped = fonts.shape(
-                    display_text,
-                    &TextStyle {
-                        font_size: fs,
-                        line_height: l.line_height.unwrap_or(fs * theme.typography.line_height),
-                        ..TextStyle::default()
-                    },
-                    TextConstraints {
-                        max_width: wrapped.then_some((rect.width - (text_x - rect.x)).max(0.0)),
-                        wrap,
-                    },
-                    scale,
+                let style = TextStyle {
+                    font_size: fs,
+                    line_height: l
+                        .style
+                        .line_height
+                        .or(l.line_height)
+                        .unwrap_or(fs * theme.typography.line_height),
+                    ..TextStyle::default()
+                };
+                let available = (rect.width - (text_x - rect.x)).max(0.0);
+                let shaped = if truncated {
+                    fonts.shape_with_ellipsis(display_text, &style, available, scale)
+                } else {
+                    fonts.shape(
+                        display_text,
+                        &style,
+                        TextConstraints {
+                            max_width: wrapped.then_some(available),
+                            wrap,
+                        },
+                        scale,
+                    )
+                };
+                text_x += acme_widgets::label_align_offset(
+                    alignment.unwrap_or_default(),
+                    available,
+                    shaped.width,
                 );
                 let prepared = fonts.prepare(&shaped, atlas);
                 let primitive = text_primitive_from_prepared(
@@ -3125,28 +3226,12 @@ fn render_content_painter(
                     theme_color(text_color),
                     prepared,
                 );
-                if aligned {
-                    let remaining = (rect.width - shaped.width).max(0.0);
-                    let aligned_x = rect.x
-                        + if alignment == TextAlign::Center {
-                            remaining / 2.0
-                        } else {
-                            remaining
-                        };
-                    let x = rect.x.max(clip[0]);
-                    let y = y_text.max(clip[1]);
-                    let right = (rect.x + rect.width).min(clip[0] + clip[2]);
-                    let bottom = (y_text + rect.height).min(clip[1] + clip[3]);
-                    let aligned_primitive = TextPrimitive {
-                        origin: Point::new(aligned_x, y_text + shaped.baseline),
-                        ..primitive
-                    };
-                    painter.with_clip(
-                        Rect::new(x, y, (right - x).max(0.0), (bottom - y).max(0.0)),
-                        |painter| {
-                            painter.text_primitive(aligned_primitive);
-                        },
-                    );
+                if alignment.is_some() || truncated {
+                    let [x, y, w, h] =
+                        intersect_clip([rect.x, y_text, rect.width, rect.height], clip);
+                    painter.with_clip(Rect::new(x, y, w, h), |painter| {
+                        painter.text_primitive(primitive);
+                    });
                 } else {
                     painter.text_primitive(primitive);
                 }
@@ -3161,10 +3246,7 @@ fn render_content_painter(
                     Rect::new(rect.x, y, rect.width, rect.height),
                     RectStyle::solid(theme_color(resolved.background))
                         .radius(btn.style.border_radius.unwrap_or(theme.radii.md))
-                        .border(
-                            btn.style.border_width.unwrap_or(1.0),
-                            theme_color(resolved.border),
-                        ),
+                        .border(btn.resolved_border_width(), theme_color(resolved.border)),
                 );
                 let shaped = fonts.shape(
                     &btn.label,
@@ -3410,7 +3492,11 @@ fn render_content(
     match widget {
         WidgetNode::Label(l) => {
             if let Some(rect) = snapshot.get(layout.id) {
-                let fs = l.font_size.unwrap_or(theme.typography.body);
+                let fs = l
+                    .style
+                    .font_size
+                    .or(l.font_size)
+                    .unwrap_or(theme.typography.body);
                 let y_text = rect.y - scroll_y;
                 let text_color = l
                     .style
@@ -3428,9 +3514,9 @@ fn render_content(
                     acme_widgets::LabelWrap::Character => acme_text::TextWrap::Glyph,
                 };
                 let wrapped = l.wrap != acme_widgets::LabelWrap::None;
-                let alignment = l.style.text_align.unwrap_or(TextAlign::Left);
-                let aligned = !wrapped && alignment != TextAlign::Left;
-                let mut text_x = rect.x + if wrapped || aligned { 0.0 } else { 4.0 };
+                let alignment = layout.style.text_align.or(l.style.text_align);
+                let truncated = l.style.truncate == Some(true) && !wrapped;
+                let mut text_x = rect.x;
                 // Color swatch label: "\x01{color_name}|{display_text}"
                 if let Some((color_name, display)) = l
                     .text
@@ -3455,34 +3541,36 @@ fn render_content(
                         text_x = swatch_x + swatch_size + 8.0;
                     }
                 }
-                let shaped = fonts.shape(
-                    display_text,
-                    &TextStyle {
-                        font_size: fs,
-                        line_height: l.line_height.unwrap_or(fs * theme.typography.line_height),
-                        ..TextStyle::default()
-                    },
-                    TextConstraints {
-                        max_width: wrapped.then_some((rect.width - (text_x - rect.x)).max(0.0)),
-                        wrap,
-                    },
-                    scale,
+                let style = TextStyle {
+                    font_size: fs,
+                    line_height: l
+                        .style
+                        .line_height
+                        .or(l.line_height)
+                        .unwrap_or(fs * theme.typography.line_height),
+                    ..TextStyle::default()
+                };
+                let available = (rect.width - (text_x - rect.x)).max(0.0);
+                let shaped = if truncated {
+                    fonts.shape_with_ellipsis(display_text, &style, available, scale)
+                } else {
+                    fonts.shape(
+                        display_text,
+                        &style,
+                        TextConstraints {
+                            max_width: wrapped.then_some(available),
+                            wrap,
+                        },
+                        scale,
+                    )
+                };
+                text_x += acme_widgets::label_align_offset(
+                    alignment.unwrap_or_default(),
+                    available,
+                    shaped.width,
                 );
-                // Single-line alignment uses the existing style contract.
-                // Clip aligned text to its content box (e.g. avatar initials).
-                let text_clip = if aligned {
-                    let remaining = (rect.width - shaped.width).max(0.0);
-                    text_x = rect.x
-                        + if alignment == TextAlign::Center {
-                            remaining / 2.0
-                        } else {
-                            remaining
-                        };
-                    let x = rect.x.max(clip[0]);
-                    let y = y_text.max(clip[1]);
-                    let right = (rect.x + rect.width).min(clip[0] + clip[2]);
-                    let bottom = (y_text + rect.height).min(clip[1] + clip[3]);
-                    [x, y, (right - x).max(0.0), (bottom - y).max(0.0)]
+                let text_clip = if alignment.is_some() || truncated {
+                    intersect_clip([rect.x, y_text, rect.width, rect.height], clip)
                 } else {
                     clip
                 };
@@ -3506,7 +3594,7 @@ fn render_content(
                         [rect.x, y, rect.width, rect.height],
                         resolved.background,
                         btn.style.border_radius.unwrap_or(theme.radii.md),
-                        btn.style.border_width.unwrap_or(1.0),
+                        btn.resolved_border_width(),
                         resolved.border,
                     ),
                     clip,
@@ -3862,6 +3950,114 @@ fn intersect_clip(rect: [f32; 4], clip: [f32; 4]) -> [f32; 4] {
         ((rect[0] + rect[2]).min(clip[0] + clip[2]) - x).max(0.0),
         ((rect[1] + rect[3]).min(clip[1] + clip[3]) - y).max(0.0),
     ]
+}
+
+#[cfg(test)]
+mod intrinsic_label_tests {
+    use super::*;
+
+    #[test]
+    fn styled_font_size_changes_shaped_label_width_and_minimum_height() {
+        let text = "Styled label";
+        let normal = acme_widgets::label_builder::<()>(text)
+            .font_size(14.0)
+            .build();
+        let large = Styled::font_size(
+            acme_widgets::label_builder::<()>(text).font_size(14.0),
+            28.0,
+        )
+        .build();
+        let context = WidgetLayoutContext {
+            body_font_size: 14.0,
+            body_line_height: 21.0,
+            label_font_size: 13.0,
+            control_height: 36.0,
+            scale_factor: 1.0,
+        };
+        let mut fonts = acme_text::FontSystem::new();
+        let expected = acme_layout::measure_text(
+            text,
+            &mut fonts,
+            &acme_text::TextStyle {
+                font_size: 28.0,
+                line_height: context.body_line_height,
+                ..Default::default()
+            },
+            1.0,
+            None,
+        );
+        let id = NodeId::new(1);
+        let mut engine = acme_layout::LayoutEngine::new();
+        let normal_snapshot = engine
+            .compute_with_text(&normal.to_layout(id), (400.0, 100.0), &mut fonts, 1.0)
+            .unwrap();
+        let natural_width = normal_snapshot.get(id).unwrap().width;
+        assert!(natural_width > 0.0);
+
+        for layout in [
+            large.to_layout(id),
+            large.to_layout_with_context(id, &context),
+        ] {
+            let snapshot = engine
+                .compute_with_text(&layout, (400.0, 100.0), &mut fonts, 1.0)
+                .unwrap();
+            let bounds = snapshot.get(id).unwrap();
+            assert!((bounds.width - expected.width).abs() <= 1.0);
+            assert!(bounds.width > natural_width);
+            assert_eq!(bounds.height, 42.0);
+        }
+    }
+
+    #[test]
+    fn row_preserves_intrinsic_cjk_label_unless_truncation_is_enabled() {
+        let mut fonts = FontSystem::new();
+        let text = "很長的說明文字，用來測試標籤的固有寬度";
+        let context = WidgetLayoutContext {
+            body_font_size: 14.0,
+            body_line_height: 21.0,
+            label_font_size: 13.0,
+            control_height: 36.0,
+            scale_factor: 1.0,
+        };
+        let natural = fonts
+            .shape(
+                text,
+                &TextStyle {
+                    font_size: 14.0,
+                    ..TextStyle::default()
+                },
+                TextConstraints::default(),
+                1.0,
+            )
+            .width;
+        assert!(natural > 30.0);
+        for (width, truncate, expected) in [
+            (natural.ceil() + 100.0, false, natural),
+            (130.0, false, natural),
+            (130.0, true, 30.0),
+        ] {
+            let layout = row::<()>()
+                .width(width)
+                .child(acme_widgets::label_builder(text).truncate(truncate).build())
+                .child(
+                    acme_widgets::text_input("field")
+                        .w(Length::px(100.0))
+                        .build(),
+                )
+                .build()
+                .to_layout_with_context(NodeId::new(1), &context);
+            let snapshot = LayoutEngine::new()
+                .compute_with_text(&layout, (width, 80.0), &mut fonts, 1.0)
+                .unwrap();
+            let label = snapshot.get(layout.children[0].id).unwrap();
+            let input = snapshot.get(layout.children[1].id).unwrap();
+            assert!(
+                (label.width - expected).abs() < 1.0,
+                "{label:?}, expected {expected}"
+            );
+            assert_eq!(input.x, label.width);
+        }
+    }
 }
 
 fn paint_card_shadow_painter(

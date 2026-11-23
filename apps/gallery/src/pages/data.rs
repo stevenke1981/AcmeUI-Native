@@ -1,5 +1,6 @@
 //! Data category page builders (Tree, Table, DataGrid, VirtualList).
 
+use acme_widgets::style::prelude::{Length, Styled};
 use acme_widgets::{DataGridColumn, DataGridRow, SortDirection, TableColumn, TableRow, TreeNode};
 use acme_widgets::{
     WidgetKey, WidgetNode, button, column, datagrid, label, label_with_size, row, separator, table,
@@ -108,7 +109,8 @@ impl crate::Gallery {
         let widths = [160.0_f32, 100.0, 100.0, 120.0];
         let mut tbl = table::<GalleryMessage>("gallery_table")
             .sticky_header(true)
-            .row_height(28.0);
+            .row_height(28.0)
+            .h(Length::Percent(1.0));
 
         for (ci, (header, width)) in headers.iter().zip(widths.iter()).enumerate() {
             let mut title = (*header).to_string();
@@ -176,7 +178,7 @@ impl crate::Gallery {
                 "Click header to sort · click row to select. State lives on Gallery.",
             ))
             .child(label(format!("{sort_info} · {sel_info}")))
-            .child(node)
+            .child(column().height(696.0).child(node).build())
             .build()
     }
 
@@ -189,6 +191,7 @@ impl crate::Gallery {
             .default_col_width(120.0)
             .viewport_width(640.0)
             .viewport_height(280.0)
+            .flex_1()
             .column(
                 DataGridColumn::new("id", label("ID"), 72.0)
                     .frozen(true)
@@ -228,7 +231,7 @@ impl crate::Gallery {
             .child(label(
                 "Frozen cols stay visible during horizontal scroll; merge is declarative (layout still shows cell slots).",
             ))
-            .child(grid.build())
+            .child(column().height(312.0).child(grid.build()).build())
             .build()
     }
 

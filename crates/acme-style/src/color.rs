@@ -42,6 +42,8 @@ pub enum ColorToken {
     Accent,
     /// Text on accent.
     AccentForeground,
+    /// Selected item text on accent.
+    SelectionForeground,
     /// Subtle hover / disabled bg.
     Muted,
     /// Secondary text / placeholder.
@@ -92,8 +94,10 @@ pub enum ColorToken {
     // ── Disabled ────────────────────────────────────────────────
     /// Disabled background.
     DisabledBg,
-    /// Disabled text.
+    /// Legacy disabled text.
     DisabledText,
+    /// Accessible disabled text on disabled background.
+    DisabledForeground,
 
     // ── Elevation surfaces ──────────────────────────────────────
     /// Elevation‑2 (popover / menu).
@@ -123,6 +127,7 @@ impl ColorToken {
             SecondaryForeground => c.secondary_foreground,
             Accent => c.accent,
             AccentForeground => c.accent_foreground,
+            SelectionForeground => c.selection_foreground,
             Muted => c.muted,
             MutedForeground => c.muted_foreground,
 
@@ -149,6 +154,7 @@ impl ColorToken {
 
             DisabledBg => c.disabled_bg,
             DisabledText => c.disabled_text,
+            DisabledForeground => c.disabled_foreground,
 
             SurfaceElevated => c.surface_elevated,
             SurfaceOverlay => c.surface_overlay,
@@ -218,6 +224,25 @@ mod tests {
             let d = t.resolve(&dark);
             assert!(l.is_valid(), "light {t:?} must be valid");
             assert!(d.is_valid(), "dark {t:?} must be valid");
+        }
+    }
+
+    #[test]
+    fn selection_and_disabled_foreground_tokens_resolve_in_each_mode() {
+        for theme in [Theme::light(), Theme::dark()] {
+            let colors = theme.colors;
+            assert_eq!(
+                ColorToken::SelectionForeground.resolve(&theme),
+                colors.selection_foreground
+            );
+            assert_eq!(
+                ColorToken::DisabledForeground.resolve(&theme),
+                colors.disabled_foreground
+            );
+            assert_eq!(
+                ColorToken::DisabledText.resolve(&theme),
+                colors.disabled_text
+            );
         }
     }
 

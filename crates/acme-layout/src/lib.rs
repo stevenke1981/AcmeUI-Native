@@ -87,6 +87,7 @@ impl Edges {
 pub enum LayoutKind {
     Row,
     Column,
+    /// Block with overlapping children. Flex alignment, justification and wrapping do not apply.
     Stack,
     Leaf,
 }
@@ -95,6 +96,35 @@ pub enum Overflow {
     Visible,
     Clip,
     Scroll,
+}
+
+/// Cross-axis placement of children in a flex container.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum AlignItems {
+    Start,
+    Center,
+    End,
+    #[default]
+    Stretch,
+}
+
+/// Main-axis distribution of spare space in a flex container.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum JustifyContent {
+    #[default]
+    Start,
+    Center,
+    End,
+    SpaceBetween,
+}
+
+/// Text alignment — analogous to CSS `text-align`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TextAlign {
+    #[default]
+    Left,
+    Center,
+    Right,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -109,9 +139,15 @@ pub struct LayoutStyle {
     pub padding: Edges,
     pub margin: Edges,
     pub gap: f32,
+    pub justify_content: JustifyContent,
+    pub align_items: AlignItems,
+    /// Allow flex items to flow onto additional lines.
+    pub flex_wrap: bool,
     pub flex_grow: f32,
     pub flex_shrink: f32,
     pub overflow: Overflow,
+    /// Explicit alignment for the renderer. Intrinsic measurement is alignment-independent.
+    pub text_align: Option<TextAlign>,
 }
 impl Default for LayoutStyle {
     fn default() -> Self {
@@ -126,9 +162,13 @@ impl Default for LayoutStyle {
             padding: Edges::default(),
             margin: Edges::default(),
             gap: 0.0,
+            justify_content: JustifyContent::default(),
+            align_items: AlignItems::default(),
+            flex_wrap: false,
             flex_grow: 0.0,
             flex_shrink: 0.0,
             overflow: Overflow::Visible,
+            text_align: None,
         }
     }
 }
@@ -205,6 +245,7 @@ pub struct ScrollMetrics {
 pub struct LayoutSnapshot {
     rects: HashMap<NodeId, LayoutRect>,
     scroll: HashMap<NodeId, ScrollMetrics>,
+    text_align: HashMap<NodeId, TextAlign>,
 }
 impl LayoutSnapshot {
     /// Insert a rect for the given node (used by tests and incremental updates).
@@ -217,6 +258,19 @@ impl LayoutSnapshot {
     }
     pub fn scroll_metrics(&self, id: NodeId) -> Option<&ScrollMetrics> {
         self.scroll.get(&id)
+    }
+    /// Explicit text alignment at this node. With no override the widget
+    /// supplies its own default (left for Labels, center for Buttons).
+    pub fn text_align(&self, id: NodeId) -> Option<TextAlign> {
+        self.text_align.get(&id).copied()
+    }
+    /// Set or clear the alignment override of a node in a manually built snapshot.
+    pub fn set_text_align(&mut self, id: NodeId, align: Option<TextAlign>) {
+        if let Some(align) = align {
+            self.text_align.insert(id, align);
+        } else {
+            self.text_align.remove(&id);
+        }
     }
     pub fn len(&self) -> usize {
         self.rects.len()
@@ -320,8 +374,11 @@ impl LayoutEngine {
                     return Size::ZERO;
                 };
                 // Derive the maximum width from available / known dimensions.
-                let max_width = match available.width {
-                    AvailableSpace::Definite(w) => Some(w),
+                let max_width = match (spec.wrap, available.width) {
+                    // An unwrapped run's min-content width is its natural
+                    // shaped width, including when the row offers less space.
+                    (TextWrapMode::None, _) => None,
+                    (_, AvailableSpace::Definite(w)) => Some(w),
                     _ => known.width,
                 };
                 let text_style = TextStyle {
@@ -407,6 +464,9 @@ fn collect(
             height: l.size.height,
         },
     );
+    if let Some(alignment) = node.style.text_align {
+        out.set_text_align(node.id, Some(alignment));
+    }
     let children = tree
         .children(tid)
         .map_err(|e| LayoutError::Engine(e.to_string()))?;
@@ -482,6 +542,23 @@ fn to_taffy(s: &LayoutStyle) -> Style {
         gap: Size {
             width: length(s.gap),
             height: length(s.gap),
+        },
+        align_items: Some(match s.align_items {
+            AlignItems::Start => taffy::AlignItems::Start,
+            AlignItems::Center => taffy::AlignItems::Center,
+            AlignItems::End => taffy::AlignItems::End,
+            AlignItems::Stretch => taffy::AlignItems::Stretch,
+        }),
+        justify_content: Some(match s.justify_content {
+            JustifyContent::Start => taffy::JustifyContent::Start,
+            JustifyContent::Center => taffy::JustifyContent::Center,
+            JustifyContent::End => taffy::JustifyContent::End,
+            JustifyContent::SpaceBetween => taffy::JustifyContent::SpaceBetween,
+        }),
+        flex_wrap: if s.flex_wrap {
+            taffy::FlexWrap::Wrap
+        } else {
+            taffy::FlexWrap::NoWrap
         },
         flex_grow: normalize(s.flex_grow),
         flex_shrink: normalize(s.flex_shrink),
@@ -628,16 +705,79 @@ mod tests {
         assert_eq!(s.get(NodeId::new(3)).unwrap().x, 25.0);
     }
     #[test]
+    fn flex_alignment_values_map_to_taffy() {
+        let mut row = LayoutStyle::row();
+        for (setting, expected) in [
+            (AlignItems::Start, taffy::AlignItems::Start),
+            (AlignItems::Center, taffy::AlignItems::Center),
+            (AlignItems::End, taffy::AlignItems::End),
+            (AlignItems::Stretch, taffy::AlignItems::Stretch),
+        ] {
+            row.align_items = setting;
+            assert_eq!(to_taffy(&row).align_items, Some(expected));
+        }
+        for (setting, expected) in [
+            (JustifyContent::Start, taffy::JustifyContent::Start),
+            (JustifyContent::Center, taffy::JustifyContent::Center),
+            (JustifyContent::End, taffy::JustifyContent::End),
+            (
+                JustifyContent::SpaceBetween,
+                taffy::JustifyContent::SpaceBetween,
+            ),
+        ] {
+            row.justify_content = setting;
+            assert_eq!(to_taffy(&row).justify_content, Some(expected));
+        }
+    }
+
+    #[test]
+    fn wrap_setting_changes_the_second_child_line() {
+        for (flex_wrap, second_position) in [(false, (30.0, 0.0)), (true, (0.0, 10.0))] {
+            let root = LayoutNode::container(
+                NodeId::new(1),
+                LayoutStyle {
+                    width: Length::px(50.0),
+                    flex_wrap,
+                    ..LayoutStyle::row()
+                },
+                vec![fixed(2, 30.0, 10.0), fixed(3, 30.0, 10.0)],
+            );
+            let snapshot = LayoutEngine::new().compute(&root, (50.0, 40.0)).unwrap();
+            let child = snapshot.get(NodeId::new(3)).unwrap();
+            assert_eq!((child.x, child.y), second_position);
+        }
+    }
+
+    #[test]
+    fn text_alignment_is_mapped_to_snapshot_without_changing_geometry() {
+        let mut node = fixed(1, 50.0, 10.0);
+        let mut engine = LayoutEngine::new();
+        let baseline = engine.compute(&node, (100.0, 100.0)).unwrap();
+        assert_eq!(baseline.text_align(node.id), None);
+        for value in [TextAlign::Left, TextAlign::Center, TextAlign::Right] {
+            node.style.text_align = Some(value);
+            let mut snapshot = engine.compute(&node, (100.0, 100.0)).unwrap();
+            assert_eq!(snapshot.text_align(node.id), Some(value));
+            snapshot.set_text_align(node.id, None);
+            assert_eq!(snapshot, baseline);
+        }
+    }
+
+    #[test]
     fn stack_overlaps_children() {
         let root = LayoutNode::container(
             NodeId::new(1),
             LayoutStyle {
                 width: Length::px(100.0),
                 height: Length::px(100.0),
+                align_items: AlignItems::End,
+                justify_content: JustifyContent::End,
+                flex_wrap: true,
                 ..LayoutStyle::stack()
             },
             vec![fixed(2, 20.0, 30.0), fixed(3, 40.0, 50.0)],
         );
+        assert_eq!(to_taffy(&root.style).display, Display::Block);
         let snapshot = LayoutEngine::new().compute(&root, (100.0, 100.0)).unwrap();
         assert_eq!(
             (

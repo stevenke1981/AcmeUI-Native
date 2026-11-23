@@ -767,9 +767,9 @@ fn placeholder_keeps_the_muted_colour_without_a_composition() {
 }
 
 #[test]
-fn readonly_composition_uses_the_disabled_text_token() {
+fn readonly_composition_uses_the_disabled_foreground_token() {
     let mut h = Harness::new();
-    let disabled = h.theme.colors.disabled_text;
+    let disabled = h.theme.colors.disabled_foreground;
     let mut state = TextInputState::new();
     state.focused = true;
     state.readonly = true;

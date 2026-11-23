@@ -26,12 +26,16 @@ impl<M> ScrollView<M> {
         WidgetNode::ScrollView(self)
     }
     pub(crate) fn layout(&self) -> LayoutStyle {
-        LayoutStyle {
+        let mut layout = LayoutStyle {
             kind: LayoutKind::Column,
             height: self.viewport_height,
+            min_height: Length::px(0.0),
+            flex_shrink: 1.0,
             overflow: Overflow::Scroll,
             ..Default::default()
-        }
+        };
+        self.style.clone().apply_to_layout(&mut layout);
+        layout
     }
 }
 

@@ -25,6 +25,7 @@ impl ThemePack for NordPack {
             secondary_foreground: ThemeColor::rgb(46, 52, 64),
             accent: ThemeColor::rgb(216, 222, 233),
             accent_foreground: ThemeColor::rgb(76, 86, 106), // nord3 (polar night), AA on accent (062)
+            selection_foreground: ThemeColor::rgb(76, 86, 106),
             muted: ThemeColor::rgb(229, 233, 240),
             muted_foreground: ThemeColor::rgb(76, 86, 106), // nord3
 
@@ -55,6 +56,7 @@ impl ThemePack for NordPack {
 
             disabled_bg: ThemeColor::rgb(229, 233, 240),
             disabled_text: ThemeColor::rgb(156, 163, 175),
+            disabled_foreground: ThemeColor::rgb(98, 103, 110),
         };
         Theme::from_colors(
             ThemeMode::Light,
@@ -76,6 +78,7 @@ impl ThemePack for NordPack {
             secondary_foreground: ThemeColor::rgb(229, 233, 240),
             accent: ThemeColor::rgb(67, 76, 94),
             accent_foreground: ThemeColor::rgb(147, 198, 212), // nord8 lightened to #93C6D4 for AA on accent (062)
+            selection_foreground: ThemeColor::rgb(147, 198, 212),
             muted: ThemeColor::rgb(59, 66, 82),
             muted_foreground: ThemeColor::rgb(216, 222, 233), // nord4
 
@@ -106,6 +109,7 @@ impl ThemePack for NordPack {
 
             disabled_bg: ThemeColor::rgb(67, 76, 94),
             disabled_text: ThemeColor::rgb(76, 86, 106),
+            disabled_foreground: ThemeColor::rgb(187, 191, 198),
         };
         Theme::from_colors(
             ThemeMode::Dark,
