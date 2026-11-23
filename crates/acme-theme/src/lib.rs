@@ -360,7 +360,12 @@ pub struct Theme {
     pub control_heights: ControlHeights,
 }
 
+/// Reason a [`Theme`] failed validation.
+///
+/// Marked `#[non_exhaustive]` so new checks can be added without breaking
+/// downstream `match` expressions.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum ThemeValidationError {
     /// A color channel is invalid.
     InvalidColor,
@@ -378,7 +383,7 @@ impl std::fmt::Display for ThemeValidationError {
         match self {
             Self::SelectionContrastTooLow { ratio } => write!(
                 f,
-                "selection_foreground has insufficient contrast against accent ({ratio}:1, requires 4.5:1)"
+                "selection_foreground has insufficient contrast against accent ({ratio:.2}:1, requires 4.5:1)"
             ),
             _ => write!(f, "{self:?}"),
         }

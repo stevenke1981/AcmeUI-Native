@@ -1103,7 +1103,7 @@ mod tests {
         );
         assert!(err.message().contains("selection_foreground"));
         assert!(err.message().contains("accent"));
-        assert!(err.message().contains(&format!("{ratio}:1")));
+        assert!(err.message().contains(&format!("{ratio:.2}:1")));
     }
 
     #[test]
