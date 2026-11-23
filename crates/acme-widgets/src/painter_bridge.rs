@@ -54,7 +54,7 @@ fn max_layout_node_id(node: &LayoutNode) -> u64 {
 }
 
 fn shift_snapshot(raw: &LayoutSnapshot, dx: f32, dy: f32) -> LayoutSnapshot {
-    let mut shifted = LayoutSnapshot::default();
+    let mut shifted = raw.clone();
     let ox = safe_coord(dx);
     let oy = safe_coord(dy);
     for (id, rect) in raw.iter() {
@@ -995,6 +995,61 @@ mod tests {
                 0.0,
                 "{variant:?}"
             );
+        }
+    }
+
+    #[test]
+    fn detached_dialog_and_popover_keep_text_alignment_and_scroll_metrics() {
+        use crate::{dialog, label, popover};
+        use acme_style::{Styled, TextAlign};
+
+        let content = |align| {
+            scroll_view::<()>("overlay-scroll")
+                .viewport_height(30.0)
+                .child(crate::label_builder("First").text_align(align).build())
+                .child(label("Second"))
+                .child(label("Third"))
+                .build()
+        };
+        let dialog = dialog("dialog", content(TextAlign::Right)).open(true);
+        let popover = popover("popover", label("Anchor"))
+            .open(true)
+            .content(content(TextAlign::Center));
+        let anchor = LayoutNode::leaf(NodeId::new(1), acme_layout::LayoutStyle::default());
+        let mut snapshot = LayoutSnapshot::default();
+        snapshot.insert(
+            anchor.id,
+            LayoutRect {
+                x: 40.0,
+                y: 20.0,
+                width: 100.0,
+                height: 24.0,
+            },
+        );
+        let context = default_layout_context();
+        let mut next_synthetic = OVERLAY_SYNTHETIC_BASE;
+        let (_, detached_dialog) =
+            resolve_dialog_geometry(&dialog, &anchor, &snapshot, &context, &mut next_synthetic);
+        let (_, popover_layout, popover_snapshot) =
+            resolve_popover_overlay(&popover, &anchor, &snapshot, &context, &mut next_synthetic)
+                .unwrap();
+        for ((layout, detached), align, x, y) in [
+            (detached_dialog.unwrap(), TextAlign::Right, 56.0, 36.0),
+            (
+                (popover_layout, popover_snapshot),
+                TextAlign::Center,
+                40.0,
+                44.0 + POPOVER_GAP,
+            ),
+        ] {
+            let label_id = layout.children[0].id;
+            let rect = detached.get(label_id).unwrap();
+            assert_eq!((rect.x, rect.y), (x, y));
+            assert_eq!(detached.text_align(label_id), Some(align));
+            assert_eq!(detached.text_align(layout.children[1].id), None);
+            let metrics = detached.scroll_metrics(layout.id).unwrap();
+            assert_eq!(metrics.viewport_height, 30.0);
+            assert!(metrics.content_height > metrics.viewport_height);
         }
     }
 

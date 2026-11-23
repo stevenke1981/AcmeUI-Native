@@ -263,6 +263,14 @@ impl LayoutSnapshot {
     pub fn text_align(&self, id: NodeId) -> Option<TextAlign> {
         self.text_align.get(&id).copied()
     }
+    /// Set or clear the alignment override of a node in a manually built snapshot.
+    pub fn set_text_align(&mut self, id: NodeId, align: Option<TextAlign>) {
+        if let Some(align) = align {
+            self.text_align.insert(id, align);
+        } else {
+            self.text_align.remove(&id);
+        }
+    }
     pub fn len(&self) -> usize {
         self.rects.len()
     }
@@ -456,7 +464,7 @@ fn collect(
         },
     );
     if let Some(alignment) = node.style.text_align {
-        out.text_align.insert(node.id, alignment);
+        out.set_text_align(node.id, Some(alignment));
     }
     let children = tree
         .children(tid)
