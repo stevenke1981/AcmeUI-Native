@@ -87,6 +87,7 @@ impl Edges {
 pub enum LayoutKind {
     Row,
     Column,
+    /// Block with overlapping children. Flex alignment, justification and wrapping do not apply.
     Stack,
     Leaf,
 }
@@ -704,16 +705,79 @@ mod tests {
         assert_eq!(s.get(NodeId::new(3)).unwrap().x, 25.0);
     }
     #[test]
+    fn flex_alignment_values_map_to_taffy() {
+        let mut row = LayoutStyle::row();
+        for (setting, expected) in [
+            (AlignItems::Start, taffy::AlignItems::Start),
+            (AlignItems::Center, taffy::AlignItems::Center),
+            (AlignItems::End, taffy::AlignItems::End),
+            (AlignItems::Stretch, taffy::AlignItems::Stretch),
+        ] {
+            row.align_items = setting;
+            assert_eq!(to_taffy(&row).align_items, Some(expected));
+        }
+        for (setting, expected) in [
+            (JustifyContent::Start, taffy::JustifyContent::Start),
+            (JustifyContent::Center, taffy::JustifyContent::Center),
+            (JustifyContent::End, taffy::JustifyContent::End),
+            (
+                JustifyContent::SpaceBetween,
+                taffy::JustifyContent::SpaceBetween,
+            ),
+        ] {
+            row.justify_content = setting;
+            assert_eq!(to_taffy(&row).justify_content, Some(expected));
+        }
+    }
+
+    #[test]
+    fn wrap_setting_changes_the_second_child_line() {
+        for (flex_wrap, second_position) in [(false, (30.0, 0.0)), (true, (0.0, 10.0))] {
+            let root = LayoutNode::container(
+                NodeId::new(1),
+                LayoutStyle {
+                    width: Length::px(50.0),
+                    flex_wrap,
+                    ..LayoutStyle::row()
+                },
+                vec![fixed(2, 30.0, 10.0), fixed(3, 30.0, 10.0)],
+            );
+            let snapshot = LayoutEngine::new().compute(&root, (50.0, 40.0)).unwrap();
+            let child = snapshot.get(NodeId::new(3)).unwrap();
+            assert_eq!((child.x, child.y), second_position);
+        }
+    }
+
+    #[test]
+    fn text_alignment_is_mapped_to_snapshot_without_changing_geometry() {
+        let mut node = fixed(1, 50.0, 10.0);
+        let mut engine = LayoutEngine::new();
+        let baseline = engine.compute(&node, (100.0, 100.0)).unwrap();
+        assert_eq!(baseline.text_align(node.id), None);
+        for value in [TextAlign::Left, TextAlign::Center, TextAlign::Right] {
+            node.style.text_align = Some(value);
+            let mut snapshot = engine.compute(&node, (100.0, 100.0)).unwrap();
+            assert_eq!(snapshot.text_align(node.id), Some(value));
+            snapshot.set_text_align(node.id, None);
+            assert_eq!(snapshot, baseline);
+        }
+    }
+
+    #[test]
     fn stack_overlaps_children() {
         let root = LayoutNode::container(
             NodeId::new(1),
             LayoutStyle {
                 width: Length::px(100.0),
                 height: Length::px(100.0),
+                align_items: AlignItems::End,
+                justify_content: JustifyContent::End,
+                flex_wrap: true,
                 ..LayoutStyle::stack()
             },
             vec![fixed(2, 20.0, 30.0), fixed(3, 40.0, 50.0)],
         );
+        assert_eq!(to_taffy(&root.style).display, Display::Block);
         let snapshot = LayoutEngine::new().compute(&root, (100.0, 100.0)).unwrap();
         assert_eq!(
             (

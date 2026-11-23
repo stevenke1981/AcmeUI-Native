@@ -269,6 +269,12 @@ pub trait Styled: Sized {
         self
     }
 
+    /// Keep flex children on one line, overriding a previous `flex_wrap()`.
+    fn no_wrap(mut self) -> Self {
+        self.style_mut().flex_wrap = Some(false);
+        self
+    }
+
     /// Shortcut: `flex-grow: 1`.
     fn flex_1(self) -> Self {
         self.flex_grow(1.0)
@@ -398,7 +404,7 @@ pub trait Styled: Sized {
         self.style_mut().font_weight = Some(value);
         self
     }
-    /// Set line height (as a ratio × font_size, e.g. `1.5`).
+    /// Set line height in logical pixels.
     fn line_height(mut self, value: f32) -> Self {
         self.style_mut().line_height = Some(value);
         self

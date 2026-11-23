@@ -2344,6 +2344,7 @@ mod flex_container_tests {
         let wrapped = child_rects(builder().flex_wrap().build());
         assert_eq!((wrapped[1].x, wrapped[1].y), (50.0, 0.0));
         assert_eq!((wrapped[2].x, wrapped[2].y), (0.0, 29.0));
+        assert_eq!(child_rects(builder().flex_wrap().no_wrap().build()), nowrap);
     }
 
     #[test]

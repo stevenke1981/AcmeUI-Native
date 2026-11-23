@@ -175,6 +175,9 @@ pub fn column<M>() -> ContainerBuilder<M> {
 }
 
 /// Create a stack container builder.
+///
+/// Stack uses block layout with overlapping children. The `items_*`,
+/// `justify_*`, `flex_wrap()`, and `no_wrap()` flex controls have no effect.
 pub fn stack<M>() -> ContainerBuilder<M> {
     ContainerBuilder {
         container: Container::new(),
