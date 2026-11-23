@@ -24,6 +24,18 @@ Build a Rust-native desktop UI framework using wgpu, winit, Taffy, cosmic-text a
 - Traditional Chinese IME architecture before TextInput
 - No GPUI dependency
 
+## Layout and text
+
+Use the same `FontSystem` default family for intrinsic measurement and painting.
+After changing `FontSystem::set_default_family`, recompute layout and any cached
+shaped runs.
+
+Taffy rounds layout to whole logical pixels for all font families. Automatic
+text leaf dimensions round shaped measurements up before layout. The ceiling
+uses the measured value directly so even a width just above an integer gets
+enough space for a painter that compares the full advance to the layout width.
+Explicit sizes and flex constraints can still limit the space for text.
+
 ## Non-goals for v0.1
 - Rich text editor
 - Full CSS

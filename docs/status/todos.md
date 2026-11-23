@@ -1,6 +1,6 @@
 # Todos
 
-## QBoss framework requests FW-01–08
+## QBoss framework requests FW-01–09
 
 - [x] Row/Column cross-axis alignment, main-axis distribution, and flex wrapping (FW-01, FW-02, FW-06).
 - [x] Preserve intrinsic Label width by default and opt in to an ellipsis (FW-04).
@@ -16,6 +16,11 @@
 - [x] Provide selection and disabled foreground tokens with AA contrast checks for every theme pack (FW-08).
 - [x] Preserve partial theme JSON overrides with an AA fallback for omitted selection text and a contrast diagnostic for invalid explicit selection text (PR #84 follow-up A).
 - [x] Cover PR #83 review regressions for overflowing viewports, 28 px Styled Labels, detached overlay metadata, selectable and disabled Buttons, state foreground token resolution, and flex layout mappings. Document DataGrid's virtualized viewport and Stack's block layout, and add `Styled::no_wrap()`.
+- [x] Allow the font system to share a default family between intrinsic layout and text painting (FW-09).
+  Keep Taffy's pixel rounding for every family and round automatic text leaf
+  measurements up to avoid clipping fractional advances. Test pixel-aligned
+  layout across seven sizes, family changes, and a mixed Traditional Chinese
+  and ASCII label in the headless Typography Gallery test (PR #86 review).
 
 ## ROADMAP 064 — Surface finishes, segmented selection, and window lifetime (2026-11-18)
 

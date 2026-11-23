@@ -359,3 +359,54 @@ fn label_and_button_alignment_survive_layout_and_set_scene_text_origins() {
         }
     }
 }
+
+#[test]
+fn label_width_matches_the_configured_painted_font() {
+    let mut gallery = Gallery::new();
+    let theme = gallery.current_theme();
+    let widget = font_family_example();
+    let size = theme.typography.body;
+    let families = if cfg!(windows) {
+        &[None, Some("monospace"), Some("Microsoft JhengHei UI"), None][..]
+    } else {
+        &[None, Some("monospace"), None][..]
+    };
+    for &family in families {
+        gallery.fonts.set_default_family(family);
+        let (layout, snapshot, scene) = paint(&mut gallery, &widget);
+        let bounds = snapshot.get(layout.children[0].id).unwrap();
+        let shaped = gallery.fonts.shape(
+            FONT_FAMILY_SAMPLE,
+            &TextStyle {
+                font_size: size,
+                line_height: size * theme.typography.line_height,
+                family: family.unwrap_or("sans-serif").into(),
+                ..TextStyle::default()
+            },
+            TextConstraints {
+                max_width: None,
+                wrap: TextWrap::None,
+            },
+            1.0,
+        );
+        let prepared = gallery.fonts.prepare(&shaped, &mut gallery.atlas);
+        let runs = texts(&scene);
+        assert_eq!(runs.len(), 1);
+        let full_run = text_primitive_from_prepared([0.0, 0.0], runs[0].color, prepared);
+        assert!(!full_run.glyphs.is_empty());
+        assert_eq!(
+            runs[0].glyphs, full_run.glyphs,
+            "{family:?}: text was clipped"
+        );
+        assert!(
+            bounds.width >= shaped.width && bounds.width - shaped.width < 1.0,
+            "{family:?}: measured {} px, painted {} px",
+            bounds.width,
+            shaped.width
+        );
+        eprintln!(
+            "{family:?}: measured {:.5} px, painted {:.5} px",
+            bounds.width, shaped.width
+        );
+    }
+}

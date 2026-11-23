@@ -39,8 +39,12 @@ impl Default for TextStyle {
 }
 
 /// Map a [`TextStyle`] onto cosmic-text attributes (family, weight, style).
-fn style_attrs(style: &TextStyle) -> Attrs<'_> {
+fn style_attrs<'a>(style: &'a TextStyle, default_family: Option<&'a str>) -> Attrs<'a> {
     let family = style.family.trim();
+    let family = match family {
+        "" | "sans-serif" => default_family.unwrap_or(family),
+        _ => family,
+    };
     let attrs = match family {
         "" | "sans-serif" => Attrs::new().family(Family::SansSerif),
         "monospace" => Attrs::new().family(Family::Monospace),
@@ -125,6 +129,7 @@ pub struct FontSystem {
     inner: CosmicFontSystem,
     rasterizer: SwashCache,
     diagnostics: FallbackDiagnostics,
+    default_family: Option<String>,
 }
 
 impl Default for FontSystem {
@@ -144,7 +149,26 @@ impl FontSystem {
                 system_faces,
                 ..FallbackDiagnostics::default()
             },
+            default_family: None,
         }
+    }
+
+    /// Use this family for text with an empty or `sans-serif` family. Other
+    /// explicit [`TextStyle::family`] values keep their meaning. Font fallback
+    /// still applies when the selected family lacks a face or glyph.
+    ///
+    /// Pass `None`, a blank name, or `sans-serif` to restore system defaults.
+    /// Recompute cached layout and shaped text when changing this setting.
+    pub fn set_default_family(&mut self, family: Option<&str>) {
+        self.default_family = family
+            .map(str::trim)
+            .filter(|family| !matches!(*family, "" | "sans-serif"))
+            .map(str::to_owned);
+    }
+
+    /// The configured default family, if the system default was overridden.
+    pub fn default_family(&self) -> Option<&str> {
+        self.default_family.as_deref()
     }
 
     pub fn diagnostics(&self) -> &FallbackDiagnostics {
@@ -168,7 +192,7 @@ impl FontSystem {
         buffer.set_size(&mut self.inner, width, None);
         buffer.set_wrap(&mut self.inner, map_wrap(constraints.wrap));
 
-        let attrs = style_attrs(style);
+        let attrs = style_attrs(style, self.default_family.as_deref());
         buffer.set_text(&mut self.inner, text, &attrs, Shaping::Advanced);
 
         let mut glyphs = Vec::new();
@@ -898,7 +922,7 @@ mod style_attr_tests {
     fn default_style_is_regular_upright() {
         let style = TextStyle::default();
         assert!(!style.bold && !style.italic);
-        let attrs = style_attrs(&style);
+        let attrs = style_attrs(&style, None);
         assert_eq!(attrs.weight, Weight::NORMAL);
         assert_eq!(attrs.style, FontStyle::Normal);
         assert_eq!(attrs.family, Family::SansSerif);
@@ -912,7 +936,7 @@ mod style_attr_tests {
             italic: true,
             ..TextStyle::default()
         };
-        let attrs = style_attrs(&style);
+        let attrs = style_attrs(&style, None);
         assert_eq!(attrs.weight, Weight::BOLD);
         assert_eq!(attrs.style, FontStyle::Italic);
         assert_eq!(attrs.family, Family::Monospace);
@@ -924,7 +948,45 @@ mod style_attr_tests {
             family: "  Consolas ".into(),
             ..TextStyle::default()
         };
-        assert_eq!(style_attrs(&style).family, Family::Name("Consolas"));
+        assert_eq!(style_attrs(&style, None).family, Family::Name("Consolas"));
+    }
+
+    #[test]
+    fn configured_default_family_preserves_explicit_styles_and_can_be_reset() {
+        let mut fonts = FontSystem::new();
+        let style = TextStyle::default();
+        let text = "Invoice W1 0.1.0";
+        let constraints = TextConstraints::default();
+        let original = fonts.measure(text, &style, constraints);
+        assert!(original.width > 0.0);
+
+        fonts.set_default_family(Some(" monospace "));
+        assert_eq!(fonts.default_family(), Some("monospace"));
+        let mono = TextStyle {
+            family: "monospace".into(),
+            ..style.clone()
+        };
+        assert_eq!(
+            fonts.measure(text, &style, constraints),
+            fonts.measure(text, &mono, constraints)
+        );
+        let serif = TextStyle {
+            family: "serif".into(),
+            ..style.clone()
+        };
+        let explicit = fonts.measure(text, &serif, constraints);
+        assert_eq!(
+            style_attrs(&serif, fonts.default_family()).family,
+            Family::Serif
+        );
+
+        for reset in [None, Some(" "), Some("sans-serif")] {
+            fonts.set_default_family(Some("monospace"));
+            fonts.set_default_family(reset);
+            assert_eq!(fonts.default_family(), None);
+            assert_eq!(fonts.measure(text, &style, constraints), original);
+            assert_eq!(fonts.measure(text, &serif, constraints), explicit);
+        }
     }
 
     #[test]
