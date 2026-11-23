@@ -263,6 +263,12 @@ pub trait Styled: Sized {
         self.style_mut().flex_shrink = Some(value.max(0.0));
         self
     }
+    /// Wrap flex children onto additional lines when the main axis is full.
+    fn flex_wrap(mut self) -> Self {
+        self.style_mut().flex_wrap = Some(true);
+        self
+    }
+
     /// Shortcut: `flex-grow: 1`.
     fn flex_1(self) -> Self {
         self.flex_grow(1.0)

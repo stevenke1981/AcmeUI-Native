@@ -140,6 +140,8 @@ pub struct LayoutStyle {
     pub gap: f32,
     pub justify_content: JustifyContent,
     pub align_items: AlignItems,
+    /// Allow flex items to flow onto additional lines.
+    pub flex_wrap: bool,
     pub flex_grow: f32,
     pub flex_shrink: f32,
     pub overflow: Overflow,
@@ -161,6 +163,7 @@ impl Default for LayoutStyle {
             gap: 0.0,
             justify_content: JustifyContent::default(),
             align_items: AlignItems::default(),
+            flex_wrap: false,
             flex_grow: 0.0,
             flex_shrink: 0.0,
             overflow: Overflow::Visible,
@@ -543,6 +546,11 @@ fn to_taffy(s: &LayoutStyle) -> Style {
             JustifyContent::End => taffy::JustifyContent::End,
             JustifyContent::SpaceBetween => taffy::JustifyContent::SpaceBetween,
         }),
+        flex_wrap: if s.flex_wrap {
+            taffy::FlexWrap::Wrap
+        } else {
+            taffy::FlexWrap::NoWrap
+        },
         flex_grow: normalize(s.flex_grow),
         flex_shrink: normalize(s.flex_shrink),
         overflow: taffy::Point {

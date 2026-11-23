@@ -966,6 +966,26 @@ impl Gallery {
                             .full_width(true)
                             .text_align(TextAlign::Right),
                         )
+                        .child(label("Wrapping row:"))
+                        .child(
+                            row()
+                                .width(200.0)
+                                .gap(8.0)
+                                .flex_wrap()
+                                .child(
+                                    button::<GalleryMessage>("wrap_1", "Option A")
+                                        .w(Length::px(90.0)),
+                                )
+                                .child(
+                                    button::<GalleryMessage>("wrap_2", "Option B")
+                                        .w(Length::px(90.0)),
+                                )
+                                .child(
+                                    button::<GalleryMessage>("wrap_3", "Option C")
+                                        .w(Length::px(90.0)),
+                                )
+                                .build(),
+                        )
                         .child(label("Column (vertical):"))
                         .child(
                             column()

@@ -99,6 +99,8 @@ pub struct Style {
     pub flex_grow: Option<f32>,
     /// Flex shrink factor.
     pub flex_shrink: Option<f32>,
+    /// Override flex line wrapping.
+    pub flex_wrap: Option<bool>,
     /// Main-axis distribution of spare space in a flex container.
     pub justify_content: Option<JustifyContent>,
     /// Cross-axis placement of children in a flex container.
@@ -173,6 +175,7 @@ impl Style {
         merge_opt!(gap);
         merge_opt!(flex_grow);
         merge_opt!(flex_shrink);
+        merge_opt!(flex_wrap);
         merge_opt!(justify_content);
         merge_opt!(align_items);
         merge_opt!(display);
@@ -213,6 +216,7 @@ impl Style {
         apply_opt!(gap);
         apply_opt!(flex_grow);
         apply_opt!(flex_shrink);
+        apply_opt!(flex_wrap);
         apply_opt!(justify_content);
         apply_opt!(align_items);
         apply_opt!(overflow);

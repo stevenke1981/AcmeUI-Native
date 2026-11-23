@@ -2245,6 +2245,20 @@ mod flex_container_tests {
     }
 
     #[test]
+    fn flex_wrap_moves_items_to_the_next_line_at_the_available_width() {
+        let builder = || {
+            (0..3).fold(row::<()>().width(100.0).gap(5.0), |row, _| {
+                row.child(label_builder("item").w(Length::px(45.0)).build())
+            })
+        };
+        let nowrap = child_rects(builder().build());
+        assert_eq!((nowrap[2].x, nowrap[2].y), (100.0, 0.0));
+        let wrapped = child_rects(builder().flex_wrap().build());
+        assert_eq!((wrapped[1].x, wrapped[1].y), (50.0, 0.0));
+        assert_eq!((wrapped[2].x, wrapped[2].y), (0.0, 29.0));
+    }
+
+    #[test]
     fn main_axis_distribution_places_children_with_existing_gap() {
         let builder = || {
             row::<()>()
