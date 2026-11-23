@@ -1773,6 +1773,7 @@ impl Gallery {
                         .child(label_with_size("Label — 13px  Form label", 13.0))
                         .child(label_with_size("Caption — 12px  Helper text, badges", 12.0))
                         .child(label_with_size("Small — 11px  Legal, timestamps", 11.0))
+                        .child(font_family_example())
                         .build(),
                 ),
             )
@@ -4073,6 +4074,16 @@ mod intrinsic_label_tests {
             assert_eq!(input.x, label.width);
         }
     }
+}
+
+const FONT_FAMILY_SAMPLE: &str = "版本 QBoss 0.1.0";
+
+fn font_family_example() -> WidgetNode<GalleryMessage> {
+    row()
+        .gap(8.0)
+        .child(label(FONT_FAMILY_SAMPLE))
+        .child(acme_widgets::text_input("font-family-sample").w(Length::px(100.0)))
+        .build()
 }
 
 fn paint_card_shadow_painter(

@@ -359,3 +359,69 @@ fn label_and_button_alignment_survive_layout_and_set_scene_text_origins() {
         }
     }
 }
+
+#[test]
+fn label_width_matches_the_configured_painted_font() {
+    let mut gallery = Gallery::new();
+    let theme = gallery.current_theme();
+    let widget = font_family_example();
+    let size = theme.typography.body;
+    let original = shape(&mut gallery, FONT_FAMILY_SAMPLE, size);
+    assert!(original.width > 0.0);
+    let (layout, snapshot, _) = paint(&mut gallery, &widget);
+    assert_eq!(
+        snapshot.get(layout.children[0].id).unwrap().width,
+        original.width.round()
+    );
+
+    let families = if cfg!(windows) {
+        &["monospace", "Microsoft JhengHei UI"][..]
+    } else {
+        &["monospace"][..]
+    };
+    for &family in families {
+        gallery.fonts.set_default_family(Some(family));
+        let (layout, snapshot, scene) = paint(&mut gallery, &widget);
+        let bounds = snapshot.get(layout.children[0].id).unwrap();
+        let shaped = gallery.fonts.shape(
+            FONT_FAMILY_SAMPLE,
+            &TextStyle {
+                font_size: size,
+                line_height: size * theme.typography.line_height,
+                family: family.into(),
+                ..TextStyle::default()
+            },
+            TextConstraints {
+                max_width: None,
+                wrap: TextWrap::None,
+            },
+            1.0,
+        );
+        let prepared = gallery.fonts.prepare(&shaped, &mut gallery.atlas);
+        let runs = texts(&scene);
+        assert_eq!(runs.len(), 1);
+        let full_run = text_primitive_from_prepared([0.0, 0.0], runs[0].color, prepared);
+        assert!(!full_run.glyphs.is_empty());
+        assert_eq!(
+            runs[0].glyphs, full_run.glyphs,
+            "{family}: text was clipped"
+        );
+        assert!(
+            bounds.width >= shaped.width && bounds.width - shaped.width <= 0.5,
+            "{family}: measured {} px, painted {} px",
+            bounds.width,
+            shaped.width
+        );
+        eprintln!(
+            "{family}: default {:.4} px, measured {:.4} px, painted {:.4} px",
+            original.width, bounds.width, shaped.width
+        );
+    }
+
+    gallery.fonts.set_default_family(None);
+    let (layout, snapshot, _) = paint(&mut gallery, &widget);
+    assert_eq!(
+        snapshot.get(layout.children[0].id).unwrap().width,
+        original.width.round()
+    );
+}

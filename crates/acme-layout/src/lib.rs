@@ -340,6 +340,11 @@ impl LayoutEngine {
     /// Nodes that carry a [`TextMeasureSpec`] (created via [`LayoutNode::text_leaf`])
     /// are measured by actually shaping the text with `fonts` inside Taffy's measure
     /// function, so wrapping and font metrics are accounted for during layout.
+    ///
+    /// With a default family configured through [`FontSystem::set_default_family`],
+    /// the snapshot keeps fractional logical pixels so the painter can compare
+    /// glyph advances against the available width without rounding-induced overflow.
+    /// With the system default family, legacy pixel rounding still applies.
     pub fn compute_with_text(
         &mut self,
         root: &LayoutNode,
@@ -355,6 +360,9 @@ impl LayoutEngine {
             return Err(LayoutError::InvalidViewport);
         }
         let mut tree: TaffyTree<NodeContext> = TaffyTree::new();
+        if fonts.default_family().is_some() {
+            tree.disable_rounding();
+        }
         let mut ids = HashMap::new();
         let root_node = build(&mut tree, root, &mut ids, false)?;
 
