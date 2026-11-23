@@ -106,9 +106,11 @@ impl Theme {
 
     /// Parse a [`Theme`] from JSON, allowing partial overrides over the resolved
     /// [`Theme::light`] or [`Theme::dark`] defaults.
-    /// When an accent color is overridden, an omitted `selection_foreground` inherits
-    /// `accent_foreground`. An omitted `disabled_foreground` keeps its default
-    /// when it meets 4.5:1 contrast on `disabled_bg`, or uses black or white.
+    /// An omitted `selection_foreground` takes the first of `accent_foreground`,
+    /// `foreground`, and `primary_foreground` with at least 4.5:1 contrast on
+    /// `accent`, or uses whichever of black and white has higher contrast.
+    /// An omitted `disabled_foreground` keeps its default when it meets 4.5:1
+    /// contrast on `disabled_bg`, or uses the same black or white fallback.
     pub fn from_json(input: &str) -> Result<Theme, ThemeJsonError> {
         let root = parse_json(input)?;
         let entries = root
@@ -125,7 +127,6 @@ impl Theme {
             ThemeMode::Dark => Theme::dark(),
         };
 
-        let mut accent_overridden = false;
         let mut selection_foreground_overridden = false;
         let mut disabled_foreground_overridden = false;
         for (key, value) in entries {
@@ -139,7 +140,6 @@ impl Theme {
                         if let Some(target) = color_field_mut(&mut theme.colors, name) {
                             *target = parse_color(color, &format!("colors.{name}"))?;
                             match name.as_str() {
-                                "accent" | "accent_foreground" => accent_overridden = true,
                                 "selection_foreground" => selection_foreground_overridden = true,
                                 "disabled_foreground" => disabled_foreground_overridden = true,
                                 _ => {}
@@ -170,26 +170,25 @@ impl Theme {
         }
 
         let colors = &mut theme.colors;
-        if accent_overridden && !selection_foreground_overridden {
-            colors.selection_foreground = colors.accent_foreground;
+        if !selection_foreground_overridden {
+            colors.selection_foreground = [
+                colors.accent_foreground,
+                colors.foreground,
+                colors.primary_foreground,
+            ]
+            .into_iter()
+            .find(|&candidate| contrast_ratio(candidate, colors.accent) >= 4.5)
+            .unwrap_or_else(|| contrasting_monochrome(colors.accent));
         }
-        let disabled_bg = colors.disabled_bg;
         if !disabled_foreground_overridden
-            && contrast_ratio(colors.disabled_foreground, disabled_bg) < 4.5
+            && contrast_ratio(colors.disabled_foreground, colors.disabled_bg) < 4.5
         {
-            let black = ThemeColor::rgb(0, 0, 0);
-            let white = ThemeColor::rgb(255, 255, 255);
-            colors.disabled_foreground =
-                if contrast_ratio(black, disabled_bg) >= contrast_ratio(white, disabled_bg) {
-                    black
-                } else {
-                    white
-                };
+            colors.disabled_foreground = contrasting_monochrome(colors.disabled_bg);
         }
 
         theme
             .validate()
-            .map_err(|err| ThemeJsonError::new(format!("theme validation failed: {err:?}")))?;
+            .map_err(|err| ThemeJsonError::new(format!("theme validation failed: {err}")))?;
 
         for (name, shadow) in shadow_fields(&theme.shadows) {
             if !shadow.color.is_valid() {
@@ -200,6 +199,16 @@ impl Theme {
         }
 
         Ok(theme)
+    }
+}
+
+fn contrasting_monochrome(background: ThemeColor) -> ThemeColor {
+    let black = ThemeColor::rgb(0, 0, 0);
+    let white = ThemeColor::rgb(255, 255, 255);
+    if contrast_ratio(black, background) >= contrast_ratio(white, background) {
+        black
+    } else {
+        white
     }
 }
 
@@ -1047,6 +1056,35 @@ mod tests {
     }
 
     #[test]
+    fn partial_accent_overrides_keep_selected_text_readable() {
+        let light = Theme::light().colors;
+        let dark = Theme::dark().colors;
+        for (mode, token, [red, green, blue], expected) in [
+            (
+                "light",
+                "accent",
+                [0.02, 0.12, 0.3],
+                light.primary_foreground,
+            ),
+            ("light", "accent", [0.45; 3], light.primary_foreground),
+            ("dark", "accent", [0.48; 3], ThemeColor::rgb(0, 0, 0)),
+            ("dark", "accent", [0.45; 3], ThemeColor::rgb(255, 255, 255)),
+            ("dark", "accent", [1.0, 0.95, 0.65], dark.primary_foreground),
+            ("light", "accent_foreground", [1.0; 3], light.foreground),
+        ] {
+            let theme = Theme::from_json(&format!(
+                r#"{{"mode": "{mode}", "colors": {{
+                    "{token}": {{ "red": {red}, "green": {green}, "blue": {blue} }}
+                }}}}"#,
+            ))
+            .unwrap_or_else(|err| panic!("{mode} {token} {red}, {green}, {blue}: {err}"));
+            let (bg, fg) = theme.selected_item_colors();
+            assert_eq!(fg, expected);
+            assert!(theme.contrast(fg, bg) >= 4.5);
+        }
+    }
+
+    #[test]
     fn explicit_selection_foreground_is_preserved_and_validated() {
         let input = r#"{"colors": {
             "accent": { "red": 0, "green": 0, "blue": 0 },
@@ -1058,7 +1096,14 @@ mod tests {
             theme.selected_item_colors().1,
             ThemeColor::rgba(0.8, 0.8, 0.8, 1.0)
         );
-        assert!(Theme::from_json(&input.replace("0.8", "0.02")).is_err());
+        let err = Theme::from_json(&input.replace("0.8", "0.02")).unwrap_err();
+        let ratio = contrast_ratio(
+            ThemeColor::rgba(0.02, 0.02, 0.02, 1.0),
+            ThemeColor::rgb(0, 0, 0),
+        );
+        assert!(err.message().contains("selection_foreground"));
+        assert!(err.message().contains("accent"));
+        assert!(err.message().contains(&format!("{ratio}:1")));
     }
 
     #[test]

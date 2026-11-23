@@ -360,13 +360,29 @@ pub struct Theme {
     pub control_heights: ControlHeights,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ThemeValidationError {
-    /// A color channel is invalid or selected text fails AA contrast.
+    /// A color channel is invalid.
     InvalidColor,
+    /// `selection_foreground` has less than 4.5:1 contrast against `accent`.
+    SelectionContrastTooLow {
+        ratio: f32,
+    },
     InvalidSpacing,
     InvalidRadius,
     InvalidTypography,
+}
+
+impl std::fmt::Display for ThemeValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SelectionContrastTooLow { ratio } => write!(
+                f,
+                "selection_foreground has insufficient contrast against accent ({ratio}:1, requires 4.5:1)"
+            ),
+            _ => write!(f, "{self:?}"),
+        }
+    }
 }
 
 impl Theme {
@@ -541,8 +557,9 @@ impl Theme {
             return Err(ThemeValidationError::InvalidTypography);
         }
         let (selected_bg, selected_fg) = self.selected_item_colors();
-        if !ContrastLevel::from_ratio(contrast_ratio(selected_fg, selected_bg)).meets_aa() {
-            return Err(ThemeValidationError::InvalidColor);
+        let ratio = contrast_ratio(selected_fg, selected_bg);
+        if !ContrastLevel::from_ratio(ratio).meets_aa() {
+            return Err(ThemeValidationError::SelectionContrastTooLow { ratio });
         }
         Ok(())
     }
@@ -907,7 +924,11 @@ mod tests {
         let mut theme = Theme::light();
         theme.colors.accent = ThemeColor::rgb(0, 0, 0);
         theme.colors.selection_foreground = ThemeColor::rgb(112, 112, 112);
-        assert!(theme.validate().is_err());
+        let ratio = contrast_ratio(theme.colors.selection_foreground, theme.colors.accent);
+        assert_eq!(
+            theme.validate(),
+            Err(ThemeValidationError::SelectionContrastTooLow { ratio })
+        );
 
         theme.colors.selection_foreground = ThemeColor::rgb(117, 117, 117);
         assert_eq!(theme.validate(), Ok(()));

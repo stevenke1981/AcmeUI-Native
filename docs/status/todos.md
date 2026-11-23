@@ -12,6 +12,7 @@
   flex, percentage, and automatic ScrollViews, plus explicit shrink and minimum
   height overrides.
 - [x] Provide selection and disabled foreground tokens with AA contrast checks for every theme pack (FW-08).
+- [x] Preserve partial theme JSON overrides with an AA fallback for omitted selection text and a contrast diagnostic for invalid explicit selection text (PR #84 follow-up A).
 - [x] Cover PR #83 review regressions for overflowing viewports, 28 px Styled Labels, detached overlay metadata, selectable and disabled Buttons, state foreground token resolution, and flex layout mappings. Document DataGrid's virtualized viewport and Stack's block layout, and add `Styled::no_wrap()`.
 
 ## ROADMAP 064 — Surface finishes, segmented selection, and window lifetime (2026-11-18)
