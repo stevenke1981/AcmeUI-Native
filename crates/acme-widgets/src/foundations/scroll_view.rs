@@ -5,6 +5,10 @@ use acme_style::Style;
 use acme_style::prelude::*;
 
 /// A scrollable viewport.
+///
+/// The viewport can shrink in a constrained parent when it has flex growth,
+/// a percentage height, or the default automatic height. These cases use
+/// `flex_shrink = 1` and `min_height = 0` unless overridden by the caller.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScrollView<M> {
     pub key: WidgetKey,
@@ -18,6 +22,10 @@ impl<M> ScrollView<M> {
         self.children.push(child.into());
         self
     }
+    /// Set the preferred viewport height in logical pixels.
+    ///
+    /// The viewport keeps this height by default, even in a shorter column.
+    /// Use `.flex_1()` or set `.flex_shrink(...)` to allow it to shrink.
     pub fn viewport_height(mut self, value: f32) -> Self {
         self.viewport_height = Length::px(value);
         self
@@ -29,11 +37,17 @@ impl<M> ScrollView<M> {
         let mut layout = LayoutStyle {
             kind: LayoutKind::Column,
             height: self.viewport_height,
-            min_height: Length::px(0.0),
-            flex_shrink: 1.0,
             overflow: Overflow::Scroll,
             ..Default::default()
         };
+        let height = self.style.height.unwrap_or(self.viewport_height);
+        if self.style.flex_grow.unwrap_or_default() > 0.0
+            || matches!(height, Length::Percent(_))
+            || (height == Length::Auto && self.viewport_height == Length::Auto)
+        {
+            layout.flex_shrink = 1.0;
+            layout.min_height = Length::px(0.0);
+        }
         self.style.clone().apply_to_layout(&mut layout);
         layout
     }

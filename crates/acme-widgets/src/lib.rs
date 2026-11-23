@@ -2303,9 +2303,11 @@ mod flex_container_tests {
             (table.clone().flex_1().build(), 100.0),
             (grid.clone().flex_1().build(), 100.0),
             (scroll.clone().flex_1().build(), 100.0),
-            (table.h(Length::Percent(0.5)).build(), 50.0),
-            (grid.h(Length::Percent(0.5)).build(), 50.0),
+            (table.clone().h(Length::Percent(0.5)).build(), 50.0),
+            (grid.clone().h(Length::Percent(0.5)).build(), 50.0),
             (scroll.h(Length::Percent(0.5)).build(), 50.0),
+            (table.h(Length::px(160.0)).build(), 160.0),
+            (grid.h(Length::px(160.0)).build(), 160.0),
         ];
         let context = crate::painter_bridge::default_layout_context();
         for (widget, height) in cases {
@@ -2329,6 +2331,87 @@ mod flex_container_tests {
                     assert!(metrics.content_height > height);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn scroll_viewport_shrinks_conditionally_in_a_height_constrained_column() {
+        let auto = (0..10).fold(scroll_view::<()>("scroll"), |view, _| {
+            view.child(label("Overflowing line"))
+        });
+        let fixed = auto.clone().viewport_height(160.0);
+        let cases = [
+            (auto.clone(), 70.0),
+            (auto.h(Length::px(160.0)), 160.0),
+            (fixed.clone(), 160.0),
+            (fixed.clone().flex_1(), 70.0),
+            (fixed.clone().h(Length::Percent(1.0)), 70.0),
+            (fixed.clone().flex_shrink(1.0), 70.0),
+            (fixed.clone().flex_1().flex_shrink(0.0), 160.0),
+            (fixed.flex_1().min_h(Length::px(90.0)), 90.0),
+        ];
+        let context = crate::painter_bridge::default_layout_context();
+
+        for (scroll, height) in cases {
+            let parent = column()
+                .size(200.0, 100.0)
+                .child(label_builder("Toolbar").h(Length::px(30.0)).build())
+                .child(scroll.build())
+                .build();
+            for layout in [
+                parent.to_layout(NodeId::new(1)),
+                parent.to_layout_with_context(NodeId::new(1), &context),
+            ] {
+                let snapshot = LayoutEngine::new()
+                    .compute(&layout, (200.0, 100.0))
+                    .unwrap();
+                assert_eq!(snapshot.get(layout.id).unwrap().height, 100.0);
+                let id = layout.children[1].id;
+                let rect = snapshot.get(id).unwrap();
+                assert_eq!((rect.y, rect.height), (30.0, height));
+                let metrics = snapshot.scroll_metrics(id).unwrap();
+                assert_eq!(metrics.viewport_height, height);
+                assert!(metrics.content_height > metrics.viewport_height);
+            }
+        }
+    }
+
+    #[test]
+    fn nested_scroll_view_keeps_its_preferred_viewport_height() {
+        let outer = scroll_view::<()>("outer")
+            .viewport_height(120.0)
+            .child(button("toolbar", "Toolbar"))
+            .child(
+                scroll_view("inner")
+                    .viewport_height(100.0)
+                    .child(label("Inner content"))
+                    .build(),
+            )
+            .build();
+        let context = crate::painter_bridge::default_layout_context();
+
+        for layout in [
+            outer.to_layout(NodeId::new(1)),
+            outer.to_layout_with_context(NodeId::new(1), &context),
+        ] {
+            let snapshot = LayoutEngine::new()
+                .compute(&layout, (200.0, 120.0))
+                .unwrap();
+            let outer_rect = snapshot.get(layout.id).unwrap();
+            let inner = &layout.children[1];
+            let inner_rect = snapshot.get(inner.id).unwrap();
+            let metrics = snapshot.scroll_metrics(layout.id).unwrap();
+            assert_eq!(metrics.viewport_height, 120.0);
+            assert_eq!(inner_rect.height, 100.0);
+            assert_eq!(
+                snapshot.scroll_metrics(inner.id).unwrap().viewport_height,
+                100.0
+            );
+            assert_eq!(
+                metrics.content_height,
+                inner_rect.y - outer_rect.y + inner_rect.height
+            );
+            assert!(metrics.content_height > metrics.viewport_height);
         }
     }
 

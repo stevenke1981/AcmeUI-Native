@@ -140,8 +140,41 @@ fn action_paint_indices_semantic_label_colours_and_clips_follow_live_theme() {
                 // Text order: share icon/label, delete icon/label, disabled label.
                 assert_eq!(f.text[2].color, rgba(theme.colors.danger));
                 assert_eq!(f.text[3].color, rgba(theme.colors.danger));
-                assert_eq!(f.text[4].color, rgba(theme.colors.disabled_text));
+                assert_eq!(f.text[4].color, rgba(theme.colors.disabled_foreground));
                 assert!(f.text.iter().all(|t| fab_tests::clip_within(t.clip, clip)));
+
+                let mut painter = Painter::new();
+                let mut painter_index = 0;
+                render_content_painter(
+                    &mut painter,
+                    &widget,
+                    &layout,
+                    &snapshot,
+                    &theme,
+                    scale,
+                    5.0,
+                    clip,
+                    &mut painter_index,
+                    Some(2),
+                    Some(1),
+                    &mut g.fonts,
+                    &mut g.atlas,
+                );
+                assert_eq!(painter_index, 3);
+                let scene = painter.finish_checked().unwrap();
+                let disabled_text = scene
+                    .commands()
+                    .iter()
+                    .filter_map(|command| match command {
+                        acme_core::DrawCommand::Text(text) => Some(text),
+                        _ => None,
+                    })
+                    .nth(4)
+                    .expect("disabled action label must be painted");
+                assert_eq!(
+                    disabled_text.color,
+                    theme_color(theme.colors.disabled_foreground)
+                );
             }
         }
     }

@@ -1022,6 +1022,18 @@ impl Gallery {
                                 )
                                 .build(),
                         )
+                        .child(
+                            scroll_view("nested_scroll_outer")
+                                .viewport_height(120.0)
+                                .child(button("nested_scroll_toolbar", "Toolbar"))
+                                .child(
+                                    scroll_view("nested_scroll_inner")
+                                        .viewport_height(100.0)
+                                        .child(label("100 px inner viewport"))
+                                        .build(),
+                                )
+                                .build(),
+                        )
                         .build(),
                 ),
             )
@@ -4266,6 +4278,32 @@ mod tests {
             control_height: 36.0,
             scale_factor: 1.0,
         }
+    }
+
+    #[test]
+    fn layout_page_keeps_the_nested_scroll_viewport_at_its_pixel_height() {
+        let page = Gallery::new().layout_page();
+        let layout = page.to_layout_with_context(NodeId::new(1), &layout_context());
+        let snapshot = LayoutEngine::new()
+            .compute(&layout, (640.0, 480.0))
+            .unwrap();
+        let mut pending = vec![(&page, &layout)];
+        let outer = loop {
+            let (widget, node) = pending.pop().expect("missing nested ScrollView demo");
+            if widget
+                .key()
+                .is_some_and(|key| key.as_str() == "nested_scroll_outer")
+            {
+                break node;
+            }
+            pending.extend(widget.children().iter().zip(&node.children));
+        };
+
+        let outer_metrics = snapshot.scroll_metrics(outer.id).unwrap();
+        let inner_metrics = snapshot.scroll_metrics(outer.children[1].id).unwrap();
+        assert_eq!(outer_metrics.viewport_height, 120.0);
+        assert_eq!(inner_metrics.viewport_height, 100.0);
+        assert_eq!(outer_metrics.content_height, 136.0);
     }
 
     #[test]

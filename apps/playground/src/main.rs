@@ -890,11 +890,7 @@ impl Playground {
             &label_text,
             [rect.origin.x.get() + 14.0, rect.origin.y.get() + 13.0],
             theme.typography.label,
-            if disabled {
-                theme.colors.disabled_text
-            } else {
-                resolved.foreground
-            },
+            resolved.foreground,
             scale_factor,
         );
     }
@@ -1440,6 +1436,22 @@ mod tests {
         let hc_scene = app.frame(ctx(1080.0, 720.0));
         assert!(hc_scene.validate().is_ok());
         assert_ne!(hc_scene.clear_color(), default_clear);
+    }
+
+    #[test]
+    fn disabled_clicker_paints_the_disabled_foreground() {
+        let mut app = Playground::new();
+        app.click_count = 999;
+        let theme = app.current_theme();
+        let scene = app.frame(ctx(1080.0, 720.0));
+        let clicker = layout_rect(&app, app.interactive_ids[5]);
+        let origin = Point::new(clicker.x + 14.0, clicker.y - app.scroll + 13.0);
+
+        assert!(scene.commands().iter().any(|command| matches!(
+            command,
+            DrawCommand::Text(text) if text.origin == origin
+                && text.color == theme_color(theme.colors.disabled_foreground)
+        )));
     }
 
     #[test]

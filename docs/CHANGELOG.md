@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased - ScrollView sizing in constrained columns
+
+- A `ScrollView` with an explicit pixel height keeps its preferred height by
+  default, including inside another scroll view. The parent handles the
+  overflow. Flex growth, percentage height, and the default automatic
+  viewport can shrink to fit. Explicit `flex_shrink` and `min_h` styles take
+  precedence.
+
 ## Unreleased - Surface finishes and segmented selection (2026-11-18)
 
 - Added opt-in `SurfaceFinish` swatches and painting for metallic, glass, and
