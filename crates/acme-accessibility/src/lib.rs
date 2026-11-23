@@ -733,6 +733,13 @@ fn widget_role<M>(node: &WidgetNode<M>) -> Role {
             Role::Group
         }
         WidgetNode::Label(_) => Role::Label,
+        // Selectable navigation buttons share the selection semantics of TabBar items.
+        WidgetNode::Button(button)
+            if button.accessibility_toggled().is_none()
+                && button.accessibility_selected().is_some() =>
+        {
+            Role::Tab
+        }
         WidgetNode::Button(_) => Role::Button,
         WidgetNode::Separator(_) => Role::Splitter,
         WidgetNode::ScrollView(_) => Role::ScrollView,
@@ -998,6 +1005,8 @@ fn apply_widget_state<M>(access_node: &mut AccessNode, node: &WidgetNode<M>, slo
                 } else {
                     Toggled::False
                 });
+            } else if let Some(selected) = button.accessibility_selected() {
+                access_node.set_selected(selected);
             }
             if button.disabled {
                 access_node.set_disabled();
@@ -1233,6 +1242,7 @@ mod tests {
             .child(
                 button("day", "Today")
                     .with_accessibility_toggled(true)
+                    .selected(true)
                     .on_click(TestMsg {}),
             )
             .child(
@@ -1261,6 +1271,40 @@ mod tests {
                 .unwrap();
             assert_eq!(node.role(), Role::Button);
             assert_eq!(node.toggled(), toggled, "{label}");
+            assert_eq!(node.is_selected(), None, "{label}");
+            assert_eq!(node.is_disabled(), disabled, "{label}");
+            assert_eq!(node.supports_action(Action::Click), !disabled, "{label}");
+        }
+    }
+
+    #[test]
+    fn selectable_navigation_buttons_expose_tab_selection_and_keep_button_actions() {
+        let tree = column::<TestMsg>()
+            .child(button("inbox", "Inbox").selected(true).on_click(TestMsg {}))
+            .child(
+                button("archive", "Archive")
+                    .selected(false)
+                    .on_click(TestMsg {}),
+            )
+            .child(button("locked", "Locked").selected(false).disabled(true))
+            .child(button("go", "Go").on_click(TestMsg {}))
+            .build();
+        let update = build_tree_update(&tree, &LayoutSnapshot::default(), None, None);
+        for (label, role, selected, disabled) in [
+            ("Inbox", Role::Tab, Some(true), false),
+            ("Archive", Role::Tab, Some(false), false),
+            ("Locked", Role::Tab, Some(false), true),
+            ("Go", Role::Button, None, false),
+        ] {
+            let (_, node) = update
+                .nodes
+                .iter()
+                .find(|(_, node)| node.label() == Some(label))
+                .unwrap();
+            assert_eq!(node.role(), role, "{label}");
+            assert_eq!(node.is_selected(), selected, "{label}");
+            assert_eq!(node.toggled(), None, "{label}");
+            assert!(node.supports_action(Action::Focus));
             assert_eq!(node.is_disabled(), disabled, "{label}");
             assert_eq!(node.supports_action(Action::Click), !disabled, "{label}");
         }

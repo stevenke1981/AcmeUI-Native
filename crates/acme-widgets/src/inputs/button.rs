@@ -137,13 +137,20 @@ impl<M> Button<M> {
 
     /// Current toggle state, or `None` for an ordinary button.
     pub fn accessibility_toggled(&self) -> Option<bool> {
-        self.accessibility_toggled.or(self.selected)
+        self.accessibility_toggled
     }
 
-    /// Set the visual selection state and provide a default toggle state to accessibility.
+    /// Set the visual selection state of a navigation or page choice.
+    /// The accessibility bridge exposes a tab with this selected state. An
+    /// explicit `with_accessibility_toggled()` keeps the toggle-button role.
     pub fn selected(mut self, value: bool) -> Self {
         self.selected = Some(value);
         self
+    }
+
+    /// Explicit selection state for accessibility. An ordinary button has no selection state.
+    pub fn accessibility_selected(&self) -> Option<bool> {
+        self.selected
     }
 
     /// Whether the button uses the theme's selected colors.
@@ -201,14 +208,25 @@ impl<M> Button<M> {
         }
     }
     /// Resolve visual style from theme and state.
-    /// Uses V2 semantic color tokens from `acme-theme`.
+    /// Disabled colors take priority over explicit background and text colors.
+    /// A custom background is tinted toward a contrasting theme color on hover and press.
     pub fn resolve_style(&self, theme: &Theme, state: ButtonState) -> ResolvedButtonStyle {
         let c = theme.colors;
         let selected = !self.disabled && self.is_selected();
-        let background = if let Some(bg) = self.style.background {
-            bg.resolve(theme)
-        } else if self.disabled {
+        let background = if self.disabled {
             c.disabled_bg
+        } else if let Some(bg) = self.style.background {
+            let bg = bg.resolve(theme);
+            if state.pressed || state.hovered {
+                let tint = if theme.contrast(bg, c.foreground) > theme.contrast(bg, c.background) {
+                    c.foreground
+                } else {
+                    c.background
+                };
+                bg.lerp(tint, if state.pressed { 0.16 } else { 0.08 })
+            } else {
+                bg
+            }
         } else if selected {
             c.accent
         } else if state.pressed {
@@ -239,10 +257,10 @@ impl<M> Button<M> {
         };
         ResolvedButtonStyle {
             background,
-            foreground: if let Some(fg) = self.style.text_color {
-                fg.resolve(theme)
-            } else if self.disabled {
+            foreground: if self.disabled {
                 c.disabled_foreground
+            } else if let Some(fg) = self.style.text_color {
+                fg.resolve(theme)
             } else if selected && self.style.background.is_none() {
                 c.selection_foreground
             } else {
@@ -274,7 +292,7 @@ impl<M> Button<M> {
 }
 
 /// First candidate token reaching WCAG AA (4.5:1) on `bg`, else the highest
-/// ratio. Mirrors `Theme::selected_item_colors`; only existing tokens are used.
+/// ratio. Only existing theme tokens are used.
 fn readable_foreground(theme: &Theme, bg: ThemeColor, candidates: [ThemeColor; 3]) -> ThemeColor {
     candidates
         .iter()

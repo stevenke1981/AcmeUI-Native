@@ -1068,7 +1068,7 @@ mod tests {
         let builder = button::<()>("choice", "Choice").variant(ButtonVariant::Subtle);
         let unselected = builder.clone().selected(false);
         assert!(!unselected.is_selected());
-        assert_eq!(unselected.accessibility_toggled(), Some(false));
+        assert_eq!(unselected.accessibility_toggled(), None);
         assert_eq!(unselected.resolved_border_width(), 0.0);
         assert_eq!(
             unselected
@@ -1080,7 +1080,7 @@ mod tests {
 
         let selected = builder.selected(true);
         assert!(selected.is_selected());
-        assert_eq!(selected.accessibility_toggled(), Some(true));
+        assert_eq!(selected.accessibility_toggled(), None);
         let style = selected.resolve_style(&theme, ButtonState::default());
         assert_eq!(
             (style.background, style.foreground),
@@ -1103,6 +1103,45 @@ mod tests {
         let style = b.resolve_style(&theme, ButtonState::default());
         assert_eq!(style.background, theme.colors.surface);
         assert_eq!(style.foreground, theme.colors.primary);
+    }
+
+    #[test]
+    fn custom_button_colors_show_pointer_feedback_and_yield_to_disabled_colors() {
+        use acme_style::{ColorToken, Styled};
+
+        for theme in [Theme::light(), Theme::dark()] {
+            let button = button::<()>("custom", "Custom")
+                .selected(true)
+                .bg(ColorToken::Background)
+                .text_color(ColorToken::Primary);
+            let states = [
+                ButtonState::default(),
+                ButtonState {
+                    hovered: true,
+                    ..Default::default()
+                },
+                ButtonState {
+                    hovered: true,
+                    pressed: true,
+                    focused: true,
+                },
+            ];
+            let [rest, hover, press] = states.map(|state| button.resolve_style(&theme, state));
+            assert_eq!(rest.background, theme.colors.background);
+            assert_ne!(hover.background, rest.background);
+            assert_ne!(press.background, hover.background);
+            assert_ne!(press.background, rest.background);
+            for style in [rest, hover, press] {
+                assert_eq!(style.foreground, theme.colors.primary);
+            }
+
+            let disabled = button.disabled(true);
+            for state in states {
+                let style = disabled.resolve_style(&theme, state);
+                assert_eq!(style.background, theme.colors.disabled_bg);
+                assert_eq!(style.foreground, theme.colors.disabled_foreground);
+            }
+        }
     }
 
     #[test]
