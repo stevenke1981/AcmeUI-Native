@@ -25,7 +25,9 @@ pub mod overlay;
 
 // Re-export common types
 pub use acme_core::{NodeId, WidgetKey};
-pub use acme_layout::{LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow};
+pub use acme_layout::{
+    AlignItems, LayoutEngine, LayoutKind, LayoutNode, LayoutStyle, Length, Overflow,
+};
 pub use acme_theme::ThemeColor;
 pub use acme_widgets::*;
 pub use native::{

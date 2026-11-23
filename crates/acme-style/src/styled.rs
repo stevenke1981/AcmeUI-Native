@@ -17,7 +17,7 @@
 
 use crate::color::ColorToken;
 use crate::style::{FontWeight, ShadowDef, Style, TextAlign};
-use acme_layout::{Edges, LayoutKind, Length, Overflow};
+use acme_layout::{AlignItems, Edges, LayoutKind, Length, Overflow};
 
 /// Trait that provides chainable, Tailwind‑inspired style methods.
 ///
@@ -216,6 +216,24 @@ pub trait Styled: Sized {
     // ═══════════════════════════════════════════════════════════════
     // Flex
     // ═══════════════════════════════════════════════════════════════
+
+    /// Set cross-axis placement of children to Start.
+    fn items_start(mut self) -> Self {
+        self.style_mut().align_items = Some(AlignItems::Start);
+        self
+    }
+
+    /// Set cross-axis placement of children to Center.
+    fn items_center(mut self) -> Self {
+        self.style_mut().align_items = Some(AlignItems::Center);
+        self
+    }
+
+    /// Set cross-axis placement of children to End.
+    fn items_end(mut self) -> Self {
+        self.style_mut().align_items = Some(AlignItems::End);
+        self
+    }
 
     /// Set `flex-grow`.
     fn flex_grow(mut self, value: f32) -> Self {

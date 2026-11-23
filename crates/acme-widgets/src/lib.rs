@@ -2152,3 +2152,50 @@ mod button_label_x_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod flex_container_tests {
+    use super::*;
+    use acme_layout::{LayoutEngine, LayoutRect};
+    use acme_style::Styled;
+
+    fn child_rects(widget: WidgetNode<()>) -> Vec<LayoutRect> {
+        let layout = widget.to_layout(NodeId::new(1));
+        let snapshot = LayoutEngine::new().compute(&layout, (100.0, 60.0)).unwrap();
+        layout
+            .children
+            .iter()
+            .map(|child| *snapshot.get(child.id).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn cross_axis_alignment_positions_children_and_preserves_default_stretch() {
+        let builder = || {
+            row::<()>()
+                .size(100.0, 60.0)
+                .child(label_builder("fixed").h(Length::px(30.0)).build())
+                .child(label("auto"))
+        };
+        for (row, y) in [
+            (builder().items_start(), 0.0),
+            (builder().items_center(), 15.0),
+            (builder().items_end(), 30.0),
+        ] {
+            let rects = child_rects(row.build());
+            assert_eq!(rects[0].y, y);
+            assert_eq!(rects[0].height, 30.0);
+        }
+        let rects = child_rects(builder().build());
+        assert_eq!(rects[0].y, 0.0);
+        assert_eq!(rects[1].height, 60.0);
+        let rects = child_rects(
+            column::<()>()
+                .size(100.0, 60.0)
+                .items_end()
+                .child(label_builder("fixed").w(Length::px(30.0)).build())
+                .build(),
+        );
+        assert_eq!(rects[0].x, 70.0);
+    }
+}

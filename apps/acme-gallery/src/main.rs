@@ -931,6 +931,7 @@ impl Gallery {
                             row()
                                 .width(240.0)
                                 .gap(8.0)
+                                .items_center()
                                 .child(
                                     acme_widgets::label_builder(
                                         "很長的說明文字，空間不足時顯示省略號",

@@ -97,6 +97,16 @@ pub enum Overflow {
     Scroll,
 }
 
+/// Cross-axis placement of children in a flex container.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum AlignItems {
+    Start,
+    Center,
+    End,
+    #[default]
+    Stretch,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct LayoutStyle {
     pub kind: LayoutKind,
@@ -109,6 +119,7 @@ pub struct LayoutStyle {
     pub padding: Edges,
     pub margin: Edges,
     pub gap: f32,
+    pub align_items: AlignItems,
     pub flex_grow: f32,
     pub flex_shrink: f32,
     pub overflow: Overflow,
@@ -126,6 +137,7 @@ impl Default for LayoutStyle {
             padding: Edges::default(),
             margin: Edges::default(),
             gap: 0.0,
+            align_items: AlignItems::default(),
             flex_grow: 0.0,
             flex_shrink: 0.0,
             overflow: Overflow::Visible,
@@ -486,6 +498,12 @@ fn to_taffy(s: &LayoutStyle) -> Style {
             width: length(s.gap),
             height: length(s.gap),
         },
+        align_items: Some(match s.align_items {
+            AlignItems::Start => taffy::AlignItems::Start,
+            AlignItems::Center => taffy::AlignItems::Center,
+            AlignItems::End => taffy::AlignItems::End,
+            AlignItems::Stretch => taffy::AlignItems::Stretch,
+        }),
         flex_grow: normalize(s.flex_grow),
         flex_shrink: normalize(s.flex_shrink),
         overflow: taffy::Point {
