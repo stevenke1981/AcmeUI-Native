@@ -1027,9 +1027,12 @@ impl Gallery {
                                 .viewport_height(120.0)
                                 .child(button("nested_scroll_toolbar", "Toolbar"))
                                 .child(
-                                    scroll_view("nested_scroll_inner")
-                                        .viewport_height(100.0)
-                                        .child(label("100 px inner viewport"))
+                                    (1..=10)
+                                        .fold(
+                                            scroll_view("nested_scroll_inner")
+                                                .viewport_height(100.0),
+                                            |view, line| view.child(label(format!("Line {line}"))),
+                                        )
                                         .build(),
                                 )
                                 .build(),
@@ -4281,7 +4284,7 @@ mod tests {
     }
 
     #[test]
-    fn layout_page_keeps_the_nested_scroll_viewport_at_its_pixel_height() {
+    fn layout_page_keeps_nested_scroll_overflow_inside_its_viewport() {
         let page = Gallery::new().layout_page();
         let layout = page.to_layout_with_context(NodeId::new(1), &layout_context());
         let snapshot = LayoutEngine::new()
@@ -4303,6 +4306,7 @@ mod tests {
         let inner_metrics = snapshot.scroll_metrics(outer.children[1].id).unwrap();
         assert_eq!(outer_metrics.viewport_height, 120.0);
         assert_eq!(inner_metrics.viewport_height, 100.0);
+        assert!(inner_metrics.content_height > inner_metrics.viewport_height);
         assert_eq!(outer_metrics.content_height, 136.0);
     }
 

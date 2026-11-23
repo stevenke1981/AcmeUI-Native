@@ -11,6 +11,8 @@
   inner viewport in a nested ScrollView's outer scroll range. Cover constrained
   flex, percentage, and automatic ScrollViews, plus explicit shrink and minimum
   height overrides.
+  Contain clipped and nested scroll content within its own viewport in both
+  widget layout paths, with a headless Gallery regression (PR #84 follow-up B).
 - [x] Provide selection and disabled foreground tokens with AA contrast checks for every theme pack (FW-08).
 - [x] Preserve partial theme JSON overrides with an AA fallback for omitted selection text and a contrast diagnostic for invalid explicit selection text (PR #84 follow-up A).
 - [x] Cover PR #83 review regressions for overflowing viewports, 28 px Styled Labels, detached overlay metadata, selectable and disabled Buttons, state foreground token resolution, and flex layout mappings. Document DataGrid's virtualized viewport and Stack's block layout, and add `Styled::no_wrap()`.

@@ -2377,23 +2377,25 @@ mod flex_container_tests {
     }
 
     #[test]
-    fn nested_scroll_view_keeps_its_preferred_viewport_height() {
+    fn nested_scroll_view_keeps_overflow_within_its_preferred_viewport() {
         let outer = scroll_view::<()>("outer")
             .viewport_height(120.0)
             .child(button("toolbar", "Toolbar"))
             .child(
-                scroll_view("inner")
-                    .viewport_height(100.0)
-                    .child(label("Inner content"))
+                (0..10)
+                    .fold(scroll_view("inner").viewport_height(100.0), |view, _| {
+                        view.child(label("Inner content"))
+                    })
                     .build(),
             )
             .build();
         let context = crate::painter_bridge::default_layout_context();
 
-        for layout in [
+        let content_heights = [
             outer.to_layout(NodeId::new(1)),
             outer.to_layout_with_context(NodeId::new(1), &context),
-        ] {
+        ]
+        .map(|layout| {
             let snapshot = LayoutEngine::new()
                 .compute(&layout, (200.0, 120.0))
                 .unwrap();
@@ -2403,16 +2405,13 @@ mod flex_container_tests {
             let metrics = snapshot.scroll_metrics(layout.id).unwrap();
             assert_eq!(metrics.viewport_height, 120.0);
             assert_eq!(inner_rect.height, 100.0);
-            assert_eq!(
-                snapshot.scroll_metrics(inner.id).unwrap().viewport_height,
-                100.0
-            );
-            assert_eq!(
-                metrics.content_height,
-                inner_rect.y - outer_rect.y + inner_rect.height
-            );
-            assert!(metrics.content_height > metrics.viewport_height);
-        }
+            assert_eq!(inner_rect.y - outer_rect.y, 36.0);
+            let inner_metrics = snapshot.scroll_metrics(inner.id).unwrap();
+            assert_eq!(inner_metrics.viewport_height, 100.0);
+            assert!(inner_metrics.content_height > inner_metrics.viewport_height);
+            metrics.content_height
+        });
+        assert_eq!(content_heights, [136.0, 136.0], "without and with context");
     }
 
     #[test]

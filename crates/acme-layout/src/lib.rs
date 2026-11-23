@@ -502,9 +502,12 @@ fn descendant_extent(node: &LayoutNode, snapshot: &LayoutSnapshot, x: f32, y: f3
             right = right.max(rect.x + rect.width - x);
             bottom = bottom.max(rect.y + rect.height - y);
         }
-        let nested = descendant_extent(child, snapshot, x, y);
-        right = right.max(nested.0);
-        bottom = bottom.max(nested.1);
+        // Clipped and scrolling children contribute only their own viewport.
+        if child.style.overflow == Overflow::Visible {
+            let (nested_right, nested_bottom) = descendant_extent(child, snapshot, x, y);
+            right = right.max(nested_right);
+            bottom = bottom.max(nested_bottom);
+        }
     }
     (right, bottom)
 }
@@ -811,6 +814,61 @@ mod tests {
         assert_eq!(m.viewport_height, 40.0);
         assert_eq!(m.content_height, 90.0);
     }
+
+    #[test]
+    fn scroll_counts_nested_overflow_only_when_visible() {
+        for (overflow, expected_extent) in [
+            (Overflow::Visible, (180.0, 246.0)),
+            (Overflow::Clip, (90.0, 136.0)),
+            (Overflow::Scroll, (90.0, 136.0)),
+        ] {
+            let inner = LayoutNode::container(
+                NodeId::new(4),
+                LayoutStyle {
+                    width: Length::px(90.0),
+                    height: Length::px(100.0),
+                    overflow,
+                    ..LayoutStyle::column()
+                },
+                vec![fixed(5, 180.0, 210.0)],
+            );
+            let wrapper = LayoutNode::container(
+                NodeId::new(3),
+                LayoutStyle {
+                    width: Length::px(60.0),
+                    height: Length::px(60.0),
+                    ..LayoutStyle::column()
+                },
+                vec![inner],
+            );
+            let outer = LayoutNode::container(
+                NodeId::new(1),
+                LayoutStyle {
+                    width: Length::px(80.0),
+                    height: Length::px(120.0),
+                    overflow: Overflow::Scroll,
+                    ..LayoutStyle::column()
+                },
+                vec![fixed(2, 80.0, 36.0), wrapper],
+            );
+            let snapshot = LayoutEngine::new().compute(&outer, (80.0, 120.0)).unwrap();
+            let metrics = snapshot.scroll_metrics(outer.id).unwrap();
+            assert_eq!(
+                (metrics.content_width, metrics.content_height),
+                expected_extent,
+                "{overflow:?}"
+            );
+            assert!(snapshot.get(NodeId::new(5)).is_some());
+            if overflow == Overflow::Scroll {
+                let inner_metrics = snapshot.scroll_metrics(NodeId::new(4)).unwrap();
+                assert_eq!(
+                    (inner_metrics.content_width, inner_metrics.content_height),
+                    (180.0, 210.0)
+                );
+            }
+        }
+    }
+
     #[test]
     fn duplicate_ids_fail_closed() {
         let root =
