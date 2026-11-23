@@ -38,17 +38,18 @@ Explicit sizes and flex constraints can still limit the space for text.
 
 ## IME candidate placement
 
-In `Application::event`, apply `ImePreedit` (including an empty string),
-`ImeCommit`, or native focus changes before updating the focused field's caret.
-If wrapping or scrolling moves the caret, update its geometry in the same
-callback. Return the current rectangle for the event's window through
-`Application::ime_cursor_area` as `[x, y, width, height]` in logical client
-pixels. Use `None` for the pointer fallback when no caret rectangle is available.
+The runtime queries `Application::ime_cursor_area` after dispatching IME enable,
+preedit, commit, or native window focus gain to `Application::event`, before any
+redraw. Apply the event and update the focused field's caret geometry in that
+callback. If your application normally measures the caret in `Application::frame`,
+refresh the layout or measure the caret during event handling. Report the current
+rectangle for the event's window as `[x, y, width, height]` in logical client pixels.
 
-The runtime queries the rectangle after IME enable, preedit, commit, and native
-window focus gain, before any redraw. It resets the area on IME disable and
-native window focus loss. An empty preedit clears the composition and uses the
-resulting caret, including when winit sends it immediately before a commit.
+When the application returns `None`, IME enable and preedit use a 1 by 24 logical
+pixel rectangle at the pointer. Commit and native focus gain leave the area as
+it is. Native focus loss leaves the area as it is, and IME disable resets it to
+zero. An empty preedit clears the composition and uses the resulting caret,
+including when winit sends it immediately before a commit.
 
 ## Non-goals for v0.1
 - Rich text editor

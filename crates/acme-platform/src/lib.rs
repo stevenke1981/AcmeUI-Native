@@ -467,20 +467,21 @@ pub trait Application: 'static {
     ///
     /// `rect` is `[x, y, width, height]` in logical pixels relative to the window's
     /// client area. The framework calls this before updating the native candidate
-    /// window. IME disable and native window focus loss report a zero rectangle.
+    /// window. IME disable reports a zero rectangle.
     /// Existing apps may ignore this notification.
     fn set_ime_cursor_area(&mut self, _window: WindowId, _rect: [f32; 4]) {}
 
     /// Return the preferred IME candidate area for `window` in logical pixels
     /// relative to the window client area (`[x, y, width, height]`).
     ///
-    /// `None` means the platform should use its fallback (mouse cursor position).
-    /// Apps with a focused text field should return the caret rectangle so the
-    /// system IME candidate window tracks the text caret rather than the pointer.
-    /// The runtime queries this after delivering IME enable, preedit (including
-    /// empty preedit), commit, and native window focus gain to [`Application::event`].
-    /// Update the caret geometry during that callback so it is available before
-    /// the next frame.
+    /// The runtime reads this after dispatching IME enable, preedit (including an
+    /// empty preedit), commit, or native window focus gain to [`Application::event`].
+    /// Update caret geometry in that callback. If you normally measure it in
+    /// [`Application::frame`], refresh the layout or measure the caret during
+    /// event handling so this query sees the updated rectangle.
+    ///
+    /// `None` uses the mouse position on IME enable or preedit and leaves the
+    /// candidate area unchanged on commit or native window focus gain.
     fn ime_cursor_area(&self, _window: WindowId) -> Option<[f32; 4]> {
         None
     }
@@ -603,6 +604,19 @@ pub fn resolve_ime_cursor_area(app_rect: Option<[f32; 4]>, mouse: (f32, f32)) ->
     app_rect.unwrap_or([mouse.0, mouse.1, 1.0, 24.0])
 }
 
+fn ime_platform_event(ime: Ime, window: WindowId) -> PlatformEvent {
+    match ime {
+        Ime::Enabled => PlatformEvent::ImeEnabled(window),
+        Ime::Disabled => PlatformEvent::ImeDisabled(window),
+        Ime::Preedit(text, cursor) => PlatformEvent::ImePreedit {
+            window,
+            text,
+            cursor,
+        },
+        Ime::Commit(text) => PlatformEvent::ImeCommit { window, text },
+    }
+}
+
 fn dispatch_ime_cursor_event(
     app: &mut dyn Application,
     win_id: WindowId,
@@ -610,18 +624,26 @@ fn dispatch_ime_cursor_event(
     mouse: (f32, f32),
     apply_area: impl FnOnce([f32; 4]),
 ) -> bool {
-    let reset = matches!(
+    if matches!(event, PlatformEvent::FocusChanged { gained: false, .. }) {
+        return app.event(event);
+    }
+
+    let reset = matches!(event, PlatformEvent::ImeDisabled(_));
+    let mouse_fallback = matches!(
         event,
-        PlatformEvent::ImeDisabled(_) | PlatformEvent::FocusChanged { gained: false, .. }
-    );
+        PlatformEvent::ImeEnabled(_) | PlatformEvent::ImePreedit { .. }
+    )
+    .then(|| resolve_ime_cursor_area(None, mouse));
     let dirty = app.event(event);
     let rect = if reset {
-        [0.0; 4]
+        Some([0.0; 4])
     } else {
-        resolve_ime_cursor_area(app.ime_cursor_area(win_id), mouse)
+        app.ime_cursor_area(win_id).or(mouse_fallback)
     };
-    app.set_ime_cursor_area(win_id, rect);
-    apply_area(rect);
+    if let Some(rect) = rect {
+        app.set_ime_cursor_area(win_id, rect);
+        apply_area(rect);
+    }
     dirty
 }
 
@@ -954,16 +976,7 @@ impl<A: Application> ApplicationHandler for Runtime<A> {
                 handle_keyboard(app, windows, id, key_event);
             }
             WindowEvent::Ime(ime) => {
-                handle_ime_cursor_event(app, windows, id, |window| match ime {
-                    Ime::Enabled => PlatformEvent::ImeEnabled(window),
-                    Ime::Disabled => PlatformEvent::ImeDisabled(window),
-                    Ime::Preedit(text, cursor) => PlatformEvent::ImePreedit {
-                        window,
-                        text,
-                        cursor,
-                    },
-                    Ime::Commit(text) => PlatformEvent::ImeCommit { window, text },
-                });
+                handle_ime_cursor_event(app, windows, id, |window| ime_platform_event(ime, window));
             }
             WindowEvent::DroppedFile(path) => {
                 handle_file_drop(app, windows, id, path);
@@ -1448,6 +1461,89 @@ mod tests {
     }
 
     #[test]
+    fn winit_ime_dispatch_preserves_candidate_behavior_without_a_caret_hook() {
+        #[derive(Default)]
+        struct LegacyApp {
+            events: Vec<PlatformEvent>,
+            areas: Vec<(WindowId, [f32; 4])>,
+        }
+
+        impl Application for LegacyApp {
+            fn event(&mut self, event: PlatformEvent) -> bool {
+                self.events.push(event);
+                true
+            }
+
+            fn set_ime_cursor_area(&mut self, window: WindowId, rect: [f32; 4]) {
+                self.areas.push((window, rect));
+            }
+
+            fn frame(&mut self, _: FrameContext) -> Scene {
+                panic!("IME positioning must not wait for a frame")
+            }
+        }
+
+        let window = WindowId(7);
+        let mouse = (42.0, 84.0);
+        let fallback = Some([42.0, 84.0, 1.0, 24.0]);
+        let check = |event, expected_event, expected_area: Option<[f32; 4]>| {
+            let mut app = LegacyApp::default();
+            let mut window_areas = Vec::new();
+            assert!(dispatch_ime_cursor_event(
+                &mut app,
+                window,
+                event,
+                mouse,
+                |rect| {
+                    window_areas.push(rect);
+                }
+            ));
+            assert_eq!(app.events, [expected_event]);
+            assert_eq!(
+                app.areas,
+                expected_area.map(|rect| (window, rect)).as_slice()
+            );
+            assert_eq!(window_areas, expected_area.as_slice());
+        };
+
+        check(
+            ime_platform_event(Ime::Enabled, window),
+            PlatformEvent::ImeEnabled(window),
+            fallback,
+        );
+        check(
+            ime_platform_event(Ime::Preedit("注音".into(), Some((0, 3))), window),
+            PlatformEvent::ImePreedit {
+                window,
+                text: "注音".into(),
+                cursor: Some((0, 3)),
+            },
+            fallback,
+        );
+        check(
+            ime_platform_event(Ime::Commit("字".into()), window),
+            PlatformEvent::ImeCommit {
+                window,
+                text: "字".into(),
+            },
+            None,
+        );
+        for gained in [true, false] {
+            let event = PlatformEvent::FocusChanged {
+                window,
+                gained,
+                node_id: 0,
+            };
+            check(event.clone(), event, None);
+        }
+        check(
+            ime_platform_event(Ime::Disabled, window),
+            PlatformEvent::ImeDisabled(window),
+            Some([0.0; 4]),
+        );
+    }
+
+    #[test]
     fn ime_candidate_area_uses_same_event_geometry() {
         const EDITOR: WindowId = WindowId(1);
         const OTHER: WindowId = WindowId(2);
@@ -1506,24 +1602,24 @@ mod tests {
             other_caret: None,
             notified: None,
         };
-        let mut dispatch = |window, event, expected| {
+        let mut dispatch = |window, event, expected: Option<[f32; 4]>| {
             app.notified = None;
-            let mut applied = Vec::new();
+            let mut applied = None;
             let dirty =
                 dispatch_ime_cursor_event(&mut app, window, event, (900.0, 800.0), |rect| {
-                    applied.push(rect);
+                    applied = Some(rect);
                 });
             assert!(!dirty, "candidate placement does not depend on a redraw");
-            assert_eq!(applied, [expected]);
-            assert_eq!(app.notified, Some((window, expected)));
+            assert_eq!(applied, expected);
+            assert_eq!(app.notified, expected.map(|rect| (window, rect)));
         };
 
         dispatch(
             OTHER,
             PlatformEvent::ImeEnabled(OTHER),
-            [900.0, 800.0, 1.0, 24.0],
+            Some([900.0, 800.0, 1.0, 24.0]),
         );
-        dispatch(EDITOR, PlatformEvent::ImeEnabled(EDITOR), CARET);
+        dispatch(EDITOR, PlatformEvent::ImeEnabled(EDITOR), Some(CARET));
         dispatch(
             EDITOR,
             PlatformEvent::ImePreedit {
@@ -1531,7 +1627,7 @@ mod tests {
                 text: "測試組字".into(),
                 cursor: None,
             },
-            WRAPPED,
+            Some(WRAPPED),
         );
         dispatch(
             EDITOR,
@@ -1540,7 +1636,7 @@ mod tests {
                 text: String::new(),
                 cursor: None,
             },
-            CARET,
+            Some(CARET),
         );
         dispatch(
             EDITOR,
@@ -1548,9 +1644,9 @@ mod tests {
                 window: EDITOR,
                 text: "測".into(),
             },
-            COMMITTED,
+            Some(COMMITTED),
         );
-        dispatch(EDITOR, PlatformEvent::ImeDisabled(EDITOR), [0.0; 4]);
+        dispatch(EDITOR, PlatformEvent::ImeDisabled(EDITOR), Some([0.0; 4]));
         dispatch(
             EDITOR,
             PlatformEvent::FocusChanged {
@@ -1558,7 +1654,7 @@ mod tests {
                 gained: false,
                 node_id: 0,
             },
-            [0.0; 4],
+            None,
         );
         dispatch(
             OTHER,
@@ -1567,7 +1663,7 @@ mod tests {
                 gained: true,
                 node_id: 0,
             },
-            OTHER_CARET,
+            Some(OTHER_CARET),
         );
     }
 

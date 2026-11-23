@@ -24,7 +24,9 @@
 - [x] Deliver IME events before reading the application caret and set the
   candidate area during the same dispatch (FW-10). Cover wrapping, cancellation,
   commit and window focus in the platform tests, and preedit scrolling in the
-  headless Gallery. Native IME acceptance remains pending.
+  headless Gallery. Cover winit event conversion and retain the pointer fallback
+  on IME enable and preedit, and the zero reset on IME disable (PR #87 review).
+  Native IME acceptance remains pending.
 
 ## ROADMAP 064 — Surface finishes, segmented selection, and window lifetime (2026-11-18)
 
