@@ -107,6 +107,16 @@ pub enum AlignItems {
     Stretch,
 }
 
+/// Main-axis distribution of spare space in a flex container.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum JustifyContent {
+    #[default]
+    Start,
+    Center,
+    End,
+    SpaceBetween,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct LayoutStyle {
     pub kind: LayoutKind,
@@ -119,6 +129,7 @@ pub struct LayoutStyle {
     pub padding: Edges,
     pub margin: Edges,
     pub gap: f32,
+    pub justify_content: JustifyContent,
     pub align_items: AlignItems,
     pub flex_grow: f32,
     pub flex_shrink: f32,
@@ -137,6 +148,7 @@ impl Default for LayoutStyle {
             padding: Edges::default(),
             margin: Edges::default(),
             gap: 0.0,
+            justify_content: JustifyContent::default(),
             align_items: AlignItems::default(),
             flex_grow: 0.0,
             flex_shrink: 0.0,
@@ -503,6 +515,12 @@ fn to_taffy(s: &LayoutStyle) -> Style {
             AlignItems::Center => taffy::AlignItems::Center,
             AlignItems::End => taffy::AlignItems::End,
             AlignItems::Stretch => taffy::AlignItems::Stretch,
+        }),
+        justify_content: Some(match s.justify_content {
+            JustifyContent::Start => taffy::JustifyContent::Start,
+            JustifyContent::Center => taffy::JustifyContent::Center,
+            JustifyContent::End => taffy::JustifyContent::End,
+            JustifyContent::SpaceBetween => taffy::JustifyContent::SpaceBetween,
         }),
         flex_grow: normalize(s.flex_grow),
         flex_shrink: normalize(s.flex_shrink),

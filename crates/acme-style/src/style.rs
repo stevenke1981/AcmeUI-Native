@@ -4,7 +4,7 @@
 //! and then applied to a widget during layout / rendering.
 
 use crate::color::ColorToken;
-use acme_layout::{AlignItems, Edges, LayoutKind, LayoutStyle, Length, Overflow};
+use acme_layout::{AlignItems, Edges, JustifyContent, LayoutKind, LayoutStyle, Length, Overflow};
 
 /// Shadow descriptor (offset + blur + color).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -107,6 +107,8 @@ pub struct Style {
     pub flex_grow: Option<f32>,
     /// Flex shrink factor.
     pub flex_shrink: Option<f32>,
+    /// Main-axis distribution of spare space in a flex container.
+    pub justify_content: Option<JustifyContent>,
     /// Cross-axis placement of children in a flex container.
     pub align_items: Option<AlignItems>,
 
@@ -179,6 +181,7 @@ impl Style {
         merge_opt!(gap);
         merge_opt!(flex_grow);
         merge_opt!(flex_shrink);
+        merge_opt!(justify_content);
         merge_opt!(align_items);
         merge_opt!(display);
         merge_opt!(layout_kind);
@@ -218,6 +221,7 @@ impl Style {
         apply_opt!(gap);
         apply_opt!(flex_grow);
         apply_opt!(flex_shrink);
+        apply_opt!(justify_content);
         apply_opt!(align_items);
         apply_opt!(overflow);
 

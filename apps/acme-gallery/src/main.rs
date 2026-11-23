@@ -918,10 +918,11 @@ impl Gallery {
                     "Row & Column",
                     column()
                         .gap(8.0)
-                        .child(label("Row (horizontal):"))
+                        .child(label("Row (space between):"))
                         .child(
                             row()
                                 .gap(8.0)
+                                .justify_between()
                                 .child(label("[A]"))
                                 .child(label("[B]"))
                                 .child(label("[C]"))

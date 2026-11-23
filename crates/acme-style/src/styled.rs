@@ -17,7 +17,7 @@
 
 use crate::color::ColorToken;
 use crate::style::{FontWeight, ShadowDef, Style, TextAlign};
-use acme_layout::{AlignItems, Edges, LayoutKind, Length, Overflow};
+use acme_layout::{AlignItems, Edges, JustifyContent, LayoutKind, Length, Overflow};
 
 /// Trait that provides chainable, Tailwind‑inspired style methods.
 ///
@@ -232,6 +232,24 @@ pub trait Styled: Sized {
     /// Set cross-axis placement of children to End.
     fn items_end(mut self) -> Self {
         self.style_mut().align_items = Some(AlignItems::End);
+        self
+    }
+
+    /// Set main-axis distribution of spare space to End.
+    fn justify_end(mut self) -> Self {
+        self.style_mut().justify_content = Some(JustifyContent::End);
+        self
+    }
+
+    /// Set main-axis distribution of spare space to Center.
+    fn justify_center(mut self) -> Self {
+        self.style_mut().justify_content = Some(JustifyContent::Center);
+        self
+    }
+
+    /// Set main-axis distribution of spare space to SpaceBetween.
+    fn justify_between(mut self) -> Self {
+        self.style_mut().justify_content = Some(JustifyContent::SpaceBetween);
         self
     }
 

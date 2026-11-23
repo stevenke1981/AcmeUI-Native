@@ -58,5 +58,5 @@ pub mod prelude {
     pub use crate::tailwind::*;
 
     // Re-export layout types commonly used with style methods
-    pub use acme_layout::{AlignItems, Edges, Length, Overflow};
+    pub use acme_layout::{AlignItems, Edges, JustifyContent, Length, Overflow};
 }

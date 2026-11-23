@@ -2170,6 +2170,26 @@ mod flex_container_tests {
     }
 
     #[test]
+    fn main_axis_distribution_places_children_with_existing_gap() {
+        let builder = || {
+            row::<()>()
+                .size(100.0, 60.0)
+                .gap(10.0)
+                .child(label_builder("first").w(Length::px(20.0)).build())
+                .child(label_builder("second").w(Length::px(20.0)).build())
+        };
+        for (row, positions) in [
+            (builder(), [0.0, 30.0]),
+            (builder().justify_center(), [25.0, 55.0]),
+            (builder().justify_end(), [50.0, 80.0]),
+            (builder().justify_between(), [0.0, 80.0]),
+        ] {
+            let rects = child_rects(row.build());
+            assert_eq!([rects[0].x, rects[1].x], positions);
+        }
+    }
+
+    #[test]
     fn cross_axis_alignment_positions_children_and_preserves_default_stretch() {
         let builder = || {
             row::<()>()
