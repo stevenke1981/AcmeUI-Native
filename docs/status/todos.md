@@ -17,8 +17,10 @@
 - [x] Preserve partial theme JSON overrides with an AA fallback for omitted selection text and a contrast diagnostic for invalid explicit selection text (PR #84 follow-up A).
 - [x] Cover PR #83 review regressions for overflowing viewports, 28 px Styled Labels, detached overlay metadata, selectable and disabled Buttons, state foreground token resolution, and flex layout mappings. Document DataGrid's virtualized viewport and Stack's block layout, and add `Styled::no_wrap()`.
 - [x] Allow the font system to share a default family between intrinsic layout and text painting (FW-09).
-  Preserve fractional bounds when a family is configured and retain legacy rounding otherwise.
-  Cover a mixed Traditional Chinese and ASCII label in the headless Typography Gallery test.
+  Keep Taffy's pixel rounding for every family and round automatic text leaf
+  measurements up to avoid clipping fractional advances. Test pixel-aligned
+  layout across seven sizes, family changes, and a mixed Traditional Chinese
+  and ASCII label in the headless Typography Gallery test (PR #86 review).
 
 ## ROADMAP 064 — Surface finishes, segmented selection, and window lifetime (2026-11-18)
 

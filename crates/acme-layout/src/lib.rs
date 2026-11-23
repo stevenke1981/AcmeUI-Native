@@ -341,10 +341,9 @@ impl LayoutEngine {
     /// are measured by actually shaping the text with `fonts` inside Taffy's measure
     /// function, so wrapping and font metrics are accounted for during layout.
     ///
-    /// With a default family configured through [`FontSystem::set_default_family`],
-    /// the snapshot keeps fractional logical pixels so the painter can compare
-    /// glyph advances against the available width without rounding-induced overflow.
-    /// With the system default family, legacy pixel rounding still applies.
+    /// Layout uses Taffy's pixel rounding for every font family. Unspecified
+    /// text dimensions round up to whole logical pixels before layout so an
+    /// intrinsically sized leaf can fit the shaped run.
     pub fn compute_with_text(
         &mut self,
         root: &LayoutNode,
@@ -360,9 +359,6 @@ impl LayoutEngine {
             return Err(LayoutError::InvalidViewport);
         }
         let mut tree: TaffyTree<NodeContext> = TaffyTree::new();
-        if fonts.default_family().is_some() {
-            tree.disable_rounding();
-        }
         let mut ids = HashMap::new();
         let root_node = build(&mut tree, root, &mut ids, false)?;
 
@@ -400,8 +396,10 @@ impl LayoutEngine {
                 };
                 let shaped = fonts.shape(&spec.text, &text_style, constraints, scale_factor);
                 Size {
-                    width: known.width.unwrap_or(shaped.width),
-                    height: known.height.unwrap_or(shaped.height.max(spec.line_height)),
+                    width: known.width.unwrap_or(shaped.width.ceil()),
+                    height: known
+                        .height
+                        .unwrap_or(shaped.height.max(spec.line_height).ceil()),
                 }
             },
         )
@@ -885,6 +883,137 @@ mod tests {
             LayoutEngine::new().compute(&root, (10.0, 10.0)),
             Err(LayoutError::DuplicateId(id)) if id.get() == 1
         ));
+    }
+
+    #[test]
+    fn intrinsic_text_fits_in_pixel_rounded_layout_with_either_family_setting() {
+        let samples = [
+            "版本 QBoss 0.1.0",
+            "臺灣 ABC 123",
+            "名稱 Name",
+            "繁體中文字",
+            "設定",
+            "Typography",
+            "AcmeUI Native",
+            "iiiiiiiiiiii",
+            "WWWWWWWWWWWW",
+            "Row 42 / 128",
+            "1,234.56",
+            "ＡＢＣ１２３",
+            "（全形標點）",
+            "９００１：啟用",
+        ];
+        let mut fonts = FontSystem::new();
+        let mut engine = LayoutEngine::new();
+        for family in [None, Some("monospace")] {
+            fonts.set_default_family(family);
+            for size in [10.0, 12.0, 14.0, 16.0, 18.0, 24.0, 28.0] {
+                let style = TextStyle {
+                    font_size: size,
+                    line_height: size * 1.25,
+                    ..Default::default()
+                };
+                for text in samples {
+                    let label = LayoutNode::text_leaf(
+                        NodeId::new(2),
+                        LayoutStyle::default(),
+                        TextMeasureSpec {
+                            text: text.into(),
+                            font_size: size,
+                            line_height: style.line_height,
+                            wrap: TextWrapMode::None,
+                            max_lines: None,
+                        },
+                    );
+                    let row = LayoutNode::container(
+                        NodeId::new(1),
+                        LayoutStyle {
+                            align_items: AlignItems::Start,
+                            gap: 8.25,
+                            padding: Edges::all(0.25),
+                            ..LayoutStyle::row()
+                        },
+                        vec![label, fixed(3, 31.25, 17.25)],
+                    );
+                    let snapshot = engine
+                        .compute_with_text(&row, (960.0, 80.0), &mut fonts, 1.0)
+                        .unwrap();
+                    let shaped = measure_text(text, &mut fonts, &style, 1.0, None);
+                    assert!(shaped.width > 0.0 && !shaped.glyphs.is_empty());
+                    let rect = snapshot.get(NodeId::new(2)).unwrap();
+                    assert!(
+                        rect.width >= shaped.width && rect.width - shaped.width < 1.0,
+                        "{family:?}, {size}px, {text:?}: width {} < shaped {} or spare >= 1px",
+                        rect.width,
+                        shaped.width,
+                    );
+                    assert!(
+                        rect.height >= shaped.height && rect.height - shaped.height < 1.0,
+                        "{family:?}, {size}px, {text:?}: height {} < shaped {} or spare >= 1px",
+                        rect.height,
+                        shaped.height,
+                    );
+                    for (id, rect) in snapshot.iter() {
+                        assert!(
+                            [rect.x, rect.y, rect.width, rect.height]
+                                .into_iter()
+                                .all(|value| value.fract() == 0.0),
+                            "{family:?}, {size}px, {text:?}, node {}: {rect:?}",
+                            id.get(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn changing_the_configured_family_updates_intrinsic_width() {
+        let mut fonts = FontSystem::new();
+        let mut engine = LayoutEngine::new();
+        let style = TextStyle {
+            font_size: 24.0,
+            line_height: 30.0,
+            ..Default::default()
+        };
+        let text = "iiiiiiiiiiii";
+        let label = LayoutNode::text_leaf(
+            NodeId::new(1),
+            LayoutStyle::default(),
+            TextMeasureSpec {
+                text: text.into(),
+                font_size: style.font_size,
+                line_height: style.line_height,
+                wrap: TextWrapMode::None,
+                max_lines: None,
+            },
+        );
+        let families = if cfg!(any(windows, target_os = "macos")) {
+            ["Courier New", "Times New Roman"]
+        } else {
+            ["DejaVu Sans Mono", "DejaVu Serif"]
+        };
+        let [first, second, restored] = [families[0], families[1], families[0]].map(|family| {
+            fonts.set_default_family(Some(family));
+            let snapshot = engine
+                .compute_with_text(&label, (960.0, 80.0), &mut fonts, 1.0)
+                .unwrap();
+            let width = snapshot.get(label.id).unwrap().width;
+            let shaped = measure_text(
+                text,
+                &mut fonts,
+                &TextStyle {
+                    family: family.into(),
+                    ..style.clone()
+                },
+                1.0,
+                None,
+            );
+            assert_eq!(width, shaped.width.ceil(), "{family}");
+            width
+        });
+        assert_ne!(first, second, "{families:?} must produce different widths");
+        assert_eq!(first, restored);
     }
 
     #[test]
