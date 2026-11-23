@@ -2,9 +2,11 @@
 
 ## Unreleased - ScrollView sizing in constrained columns
 
-- `ScrollView` now defaults to `flex_shrink = 1` and `min_height = 0`. A
-  requested `viewport_height` larger than the column's available height
-  shrinks to fit. Overflowing content remains scrollable.
+- A `ScrollView` with an explicit pixel height keeps its preferred height by
+  default, including inside another scroll view. The parent handles the
+  overflow. Flex growth, percentage height, and the default automatic
+  viewport can shrink to fit. Explicit `flex_shrink` and `min_h` styles take
+  precedence.
 
 ## Unreleased - Surface finishes and segmented selection (2026-11-18)
 
