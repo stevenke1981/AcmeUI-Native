@@ -2,7 +2,7 @@
 //!
 //! A flat, square-cornered light palette: lavender form background,
 //! steel-blue table headers, a muted indigo chrome band and no shadows.
-//! Light values are sampled from a classic Windows desktop reference; the
+//! Light values are based on classic desktop form colors; the
 //! dark variant is a conservative companion that only needs to satisfy the
 //! shared validation rules.
 
@@ -138,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn classic_light_matches_live_samples() {
+    fn classic_light_slots_are_pinned() {
         let c = ClassicPack.light().colors;
         let expected = [
             (c.background, 0xE6E6FA),

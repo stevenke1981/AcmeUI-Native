@@ -1644,9 +1644,9 @@ mod tests {
         );
     }
 
-    /// Pack/modes retuned by ROADMAP 062 before the review fixes. The
-    /// state-feedback rule ([`roadmap_062_state_fills_give_feedback`]) is
-    /// asserted on these; untouched packs are listed instead.
+    /// Pack/modes checked strictly by the state-feedback rule
+    /// ([`roadmap_062_state_fills_give_feedback`]): packs retuned by ROADMAP
+    /// 062 plus packs added after it. Untouched packs are listed instead.
     const ROADMAP_062_RETUNED: [&str; 17] = [
         "classic/Light",
         "classic/Dark",
