@@ -227,7 +227,7 @@ fn view() -> WidgetNode<AppMessage> {
 - Palette library 是 theme pack 的設計輸入，不是 Widget 的 Hex 值來源。
 - Light/Dark 都要定義 background、surface、foreground、muted、border、primary、focus、success、warning、danger、info。
 - 新 theme pack 必須執行 `meets_wcag_aa()` 與 `wcag_report()`。
-- 優先使用現有 packs：apple、windows10、windows11、ubuntu、material、nord、dracula、solarized、gruvbox、one-dark。
+- 優先使用現有 packs：apple、windows10、windows11、ubuntu、material、nord、dracula、solarized、gruvbox、one-dark、classic（經典 WinForms 風格）。
 
 配色資料見 `libraries/palettes.json`；視覺方向見 `libraries/style-recipes.yaml`。
 

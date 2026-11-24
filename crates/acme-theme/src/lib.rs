@@ -1011,7 +1011,7 @@ mod tests {
     #[test]
     fn selected_item_colors_meet_aa_in_every_pack_and_mode() {
         let themes = all_pack_themes();
-        assert_eq!(themes.len(), 24, "2 built-ins + 11 packs x 2 modes");
+        assert_eq!(themes.len(), 26, "2 built-ins + 12 packs x 2 modes");
         for (label, theme) in themes {
             let (bg, fg) = theme.selected_item_colors();
             let ratio = contrast_ratio(fg, bg);
@@ -1592,7 +1592,7 @@ mod tests {
     #[test]
     fn roadmap_062_every_pack_meets_aa_gate() {
         let themes = all_pack_themes();
-        assert_eq!(themes.len(), 24, "2 built-ins + 11 packs x 2 modes");
+        assert_eq!(themes.len(), 26, "2 built-ins + 12 packs x 2 modes");
         let mut failures = Vec::new();
         for (label, theme) in &themes {
             let c = &theme.colors;
@@ -1647,7 +1647,9 @@ mod tests {
     /// Pack/modes retuned by ROADMAP 062 before the review fixes. The
     /// state-feedback rule ([`roadmap_062_state_fills_give_feedback`]) is
     /// asserted on these; untouched packs are listed instead.
-    const ROADMAP_062_RETUNED: [&str; 15] = [
+    const ROADMAP_062_RETUNED: [&str; 17] = [
+        "classic/Light",
+        "classic/Dark",
         "default/light",
         "apple/Light",
         "apple/Dark",
