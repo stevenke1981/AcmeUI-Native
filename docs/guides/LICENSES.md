@@ -163,9 +163,11 @@ images are not in any `.crate` file.
 
 ## 6. Theme pack palettes
 
-`crates/acme-theme/src/packs/` contains eleven packs named after third-party
+`crates/acme-theme/src/packs/` contains packs named after third-party
 designs: Apple, Dracula, Gruvbox, Material (Material Design 3), Nord, One Dark,
-Solarized, Ubuntu (Yaru), Windows 10 (Fluent), and Windows 11. Several color
+Solarized, Ubuntu (Yaru), Windows 10 (Fluent), and Windows 11. The
+`high-contrast` and `classic` packs are original palettes with no upstream
+source. Several color
 values carry comments naming an upstream palette, for example `// nord6`,
 `// Dracula bg`, and the Nord "Snow Storm" note.
 

@@ -7,6 +7,7 @@
 use crate::{ShadowDef, ShadowTokens, Theme, ThemeColor, ThemeMode};
 
 pub mod apple;
+pub mod classic;
 pub mod dracula;
 pub mod gruvbox;
 pub mod high_contrast;
@@ -87,6 +88,7 @@ pub fn theme_by_name(name: &str, mode: ThemeMode) -> Option<Theme> {
         "gruvbox" => Some(gruvbox::GruvboxPack.theme(mode)),
         "one-dark" | "onedark" => Some(one_dark::OneDarkPack.theme(mode)),
         "high-contrast" | "high_contrast" => Some(high_contrast::HighContrastPack.theme(mode)),
+        "classic" => Some(classic::ClassicPack.theme(mode)),
         _ => None,
     }
 }
@@ -105,6 +107,7 @@ pub fn available_themes() -> &'static [&'static str] {
         "gruvbox",
         "one-dark",
         "high-contrast",
+        "classic",
     ]
 }
 
