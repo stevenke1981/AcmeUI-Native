@@ -1,36 +1,33 @@
 //! Grapheme and word boundary helpers.
 
-use super::*;
+use unicode_segmentation::{GraphemeCursor, UnicodeSegmentation};
 
 /// Return the byte offset of the grapheme cluster boundary immediately before
 /// `offset`.  If `offset` is already at a boundary, returns the previous one.
 pub(crate) fn prev_grapheme_boundary(text: &str, offset: usize) -> usize {
-    // Collect all grapheme cluster boundaries up to `offset`.
-    let clamped = offset.min(text.len());
-    let mut prev = 0;
-    for (boundary, _grapheme) in text.grapheme_indices(true) {
-        if boundary >= clamped {
-            break;
-        }
-        prev = boundary;
+    // Round up so the start of a scalar containing `offset` is still a candidate.
+    let mut start = offset.min(text.len());
+    while !text.is_char_boundary(start) {
+        start += 1;
     }
-    prev
+    GraphemeCursor::new(start, text.len(), true)
+        .prev_boundary(text, 0)
+        .expect("the complete text provides all grapheme context")
+        .unwrap_or(0)
 }
 
 /// Return the byte offset of the grapheme cluster boundary immediately after
 /// `offset`.
 pub(crate) fn next_grapheme_boundary(text: &str, offset: usize) -> usize {
-    let clamped = offset.min(text.len());
-    for (boundary, grapheme) in text.grapheme_indices(true) {
-        if boundary > clamped {
-            return boundary;
-        }
-        if boundary == clamped {
-            // This grapheme starts at `clamped` — return the next one.
-            return boundary + grapheme.len();
-        }
+    // Round down so the end of a scalar containing `offset` is still a candidate.
+    let mut start = offset.min(text.len());
+    while !text.is_char_boundary(start) {
+        start -= 1;
     }
-    text.len()
+    GraphemeCursor::new(start, text.len(), true)
+        .next_boundary(text, 0)
+        .expect("the complete text provides all grapheme context")
+        .unwrap_or(text.len())
 }
 
 // ---------------------------------------------------------------------------
@@ -56,4 +53,43 @@ pub(crate) fn next_word_boundary(text: &str, offset: usize) -> usize {
         .find(|(i, _)| *i > clamped)
         .map(|(i, _)| i)
         .unwrap_or(text.len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn grapheme_neighbors_match_full_segmentation_at_every_byte() {
+        for text in [
+            "",
+            "ASCII\r\ntext\n",
+            "繁體中文 a\u{0301}\u{0327} é",
+            "\u{0600}a 한",
+            "🇦🇧🇨🇩🇪 🇫🇬🇭🇮🇯🇰",
+            "a👩🏽\u{200d}🚀👨\u{200d}👩\u{200d}👧z",
+            "क्\u{200d}षि क्ष्क कष",
+        ] {
+            let boundaries: Vec<_> = text
+                .grapheme_indices(true)
+                .map(|(boundary, _)| boundary)
+                .chain(std::iter::once(text.len()))
+                .collect();
+            for offset in (0..=text.len() + 1).chain(std::iter::once(usize::MAX)) {
+                let clamped = offset.min(text.len());
+                let previous = boundaries.iter().copied().rfind(|&b| b < clamped);
+                let next = boundaries.iter().copied().find(|&b| b > clamped);
+                assert_eq!(
+                    prev_grapheme_boundary(text, offset),
+                    previous.unwrap_or(0),
+                    "previous boundary in {text:?} at {offset}"
+                );
+                assert_eq!(
+                    next_grapheme_boundary(text, offset),
+                    next.unwrap_or(text.len()),
+                    "next boundary in {text:?} at {offset}"
+                );
+            }
+        }
+    }
 }
