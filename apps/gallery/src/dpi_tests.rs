@@ -174,6 +174,47 @@ fn assert_finite_non_negative(caret: [f32; 4], context: &str) {
     );
 }
 
+#[test]
+fn focused_gallery_text_input_navigates_and_deletes_multicodepoint_graphemes() {
+    let mut gallery = Gallery::new();
+    select(&mut gallery, TEXT_INPUT_PAGE);
+    bring_text_input_into_view(&mut gallery, 1.0);
+    focus_text_input(&mut gallery);
+
+    let committed = "Ae\u{301}🇹🇼👩‍👩‍👧‍👦Z";
+    gallery.event(PlatformEvent::ImeCommit {
+        window: WindowId(0),
+        text: committed.to_owned(),
+    });
+    assert_eq!(gallery.text_input.text, committed);
+
+    let press = |gallery: &mut Gallery, key, shift| {
+        gallery.event(PlatformEvent::Key {
+            window: WindowId(0),
+            key,
+            pressed: true,
+            shift,
+            ctrl: false,
+            alt: false,
+            meta: false,
+            repeat: false,
+            text: None,
+            character: None,
+        })
+    };
+
+    assert!(press(&mut gallery, PlatformKey::ArrowLeft, false));
+    let family_end = gallery.text_input.cursor();
+    assert!(press(&mut gallery, PlatformKey::ArrowLeft, false));
+    assert_eq!(
+        &gallery.text_input.text[gallery.text_input.cursor()..family_end],
+        "👩‍👩‍👧‍👦"
+    );
+    assert!(press(&mut gallery, PlatformKey::ArrowRight, false));
+    assert!(press(&mut gallery, PlatformKey::Backspace, false));
+    assert_eq!(gallery.text_input.text, "Ae\u{301}🇹🇼Z");
+}
+
 /// Drive focus, preedit and commit through the real event path, frame after
 /// each step, and return the caret and field seen after every step.
 fn type_mixed_text(scale_factor: f32) -> Vec<([f32; 4], [f32; 4])> {
