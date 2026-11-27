@@ -1,5 +1,13 @@
 # Delivery Status
 
+## 2026-11-27 — Long-field grapheme navigation
+
+TextInput now finds adjacent graphemes starting near the caret. At the end of a 16,380-grapheme mixed field, the median time for one left/right pair fell from 2.284 ms to 48.3 ns on the test PC. [Improvement plan, workload and reproduction command](../plans/textinput-navigation.md)
+
+Verification used source commit `25b87877b9989e5858e3b4c7d4a8966b12f4c27f` on Windows with Rust 1.88.0. Formatting, targeted Clippy, workspace all-target checks and all three SDK CPU checks passed. The locked workspace suite reported 2,267 passed, zero failed and 13 ignored. The ignored navigation benchmark ran separately. The focused Gallery key-event test and the Unicode boundary oracle both passed. An independent reviewer checked the integrated source and reported zero blocking findings.
+
+The timings cover state navigation. Native key-to-frame latency, screen readers and Traditional Chinese IME were not measured in this batch.
+
 ## 2026-11-17 — ROADMAP 062 WCAG AA across all theme packs
 
 - All 24 pack/mode combinations now meet AA, with 3:1 graphics, gated by tests with no exemptions. A real-window check found that Secondary buttons painted the wrong text token; `Button::resolve_style` now picks text for the painted fill, and the hardcoded white is gone. Workspace tests 2190 passed / 0 failed; [report](../team/roadmap-062/REPORT.md).

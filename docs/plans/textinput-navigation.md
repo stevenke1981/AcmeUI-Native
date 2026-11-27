@@ -20,3 +20,24 @@ GPT-6.2 Sol owns the boundary implementation and its internal oracle tests in `c
 | Integration | Run locked text-input and Gallery tests, formatting, targeted Clippy and the SDK CPU profile. Fix any changed-code diagnostics. Independent review must have zero unresolved correctness blockers. |
 
 The change stays inside the private boundary helpers and uses the existing dependency. Native rendering, composition event handling and the public interface are outside this batch. Rollback is a revert of the implementation commit. The behavior tests and benchmark also run on the original implementation.
+
+## Review findings outside the boundary helpers
+
+- **Profile the Gallery key handler next.** A handled key calls `refresh_ime_caret_rect` in `apps/gallery/src/events/dispatch.rs`. The geometry path in `crates/acme-textinput/src/caret.rs` can shape a text prefix or the entire field. Time a key event in a focused, overflowing field at several caret positions before deciding whether to reuse shaped geometry. Preserve the caret rectangle and scroll position across edits, font changes and DPI changes.
+- **Check closed dialogs across renderers and accessibility.** The painter and hit-test bridges check `d.open`. The AccessKit walker in `crates/acme-accessibility/src/lib.rs` emits a Dialog node and applies the modal flag without an equivalent open-state check. Start with a tree regression for open, close and reopen. Check that focus returns to a reachable control and confirm announcements with a screen reader. This is a source finding. Native announcement behavior is unverified.
+
+## Measured navigation cost
+
+Windows 11 23H2, AMD Ryzen 9 3900X, Rust 1.88.0, workspace release profile. The benchmark uses the same mixed string, ending in a CJK character, at three lengths. Each sample times 300 left/right pairs at the end of the field. The table reports the median of seven samples. Text construction, shaping, painting and event delivery are outside the timed loop. Context-sensitive clusters can still require looking backward.
+
+| Graphemes | UTF-8 bytes | Baseline ns/pair | Candidate ns/pair |
+| ---: | ---: | ---: | ---: |
+| 252 | 1,722 | 34,554.3 | 49.0 |
+| 4,092 | 27,962 | 569,504.3 | 49.0 |
+| 16,380 | 111,930 | 2,284,266.0 | 48.3 |
+
+Run the following command at `52e429e02378089ce15c860f446f564ca138cb62` (original algorithm with benchmark) and `25b87877b9989e5858e3b4c7d4a8966b12f4c27f` (candidate). Both commits contain the same benchmark source.
+
+```sh
+cargo test --locked --release -p acme-textinput --test grapheme_navigation -- --ignored --nocapture
+```

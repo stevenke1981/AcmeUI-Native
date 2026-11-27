@@ -1,5 +1,10 @@
 # Todos
 
+## Text input navigation
+
+- [x] Replace prefix scans on ordinary arrow movement with local extended-grapheme lookup. Cover selection, deletion and the focused Gallery input. [Plan and benchmark](../plans/textinput-navigation.md)
+- [ ] Profile the full Gallery key handler, including caret scrolling and shaping. Measure word selection and no-op deletion separately before changing either path.
+
 ## QBoss framework requests FW-01–10
 
 - [x] Row/Column cross-axis alignment, main-axis distribution, and flex wrapping (FW-01, FW-02, FW-06).
